@@ -7,6 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Try the single property lookup endpoint
     const response = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
       method: "POST",
       headers: {
@@ -14,120 +15,153 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
       },
       body: JSON.stringify({
-        requests: [{ propertyAddress: { street, city, state, zip } }]
+        requests: [{ 
+          propertyAddress: { 
+            street: street.trim(), 
+            city: city.trim(), 
+            state: state.trim().toUpperCase(), 
+            zip: zip.trim() 
+          } 
+        }]
       }),
     });
 
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { 
-      return res.status(500).json({ error: `BatchData returned unexpected response: ${text.slice(0, 200)}` }); 
+      return res.status(500).json({ error: `Unexpected response: ${text.slice(0, 200)}` }); 
     }
-    if (!response.ok) return res.status(response.status).json({ 
-      error: data?.message || data?.error || `BatchData error ${response.status}` 
-    });
 
-    // Log the FULL raw response so we can see exactly what BatchData returns
     console.log("BATCHDATA RAW RESPONSE:", JSON.stringify(data, null, 2));
 
-    // Try every possible path to find property data
-    const result = data?.results?.[0] || data?.responses?.[0] || data?.data?.[0] || {};
-    console.log("RESULT KEYS:", Object.keys(result));
+    // Correct path: results.properties array
+    const properties = data?.results?.properties || [];
+    console.log("PROPERTIES COUNT:", properties.length);
 
-    const prop = result?.propertyInfo || result?.property || result || {};
-    console.log("PROP KEYS:", Object.keys(prop));
+    let property = null;
 
-    const assessment = prop?.assessmentInfo || prop?.assessment || prop?.taxAssessment || prop?.tax || {};
-    console.log("ASSESSMENT:", JSON.stringify(assessment));
+    if (properties.length > 0) {
+      property = properties[0];
+      console.log("PROPERTY KEYS:", Object.keys(property));
+      console.log("FULL PROPERTY:", JSON.stringify(property, null, 2));
+    } else {
+      // If no match, try the search endpoint as fallback
+      console.log("No match from lookup, trying search endpoint...");
+      const searchResponse = await fetch("https://api.batchdata.com/api/v1/property/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          filters: {
+            address: {
+              street: street.trim(),
+              city: city.trim(),
+              state: state.trim().toUpperCase(),
+              zip: zip.trim(),
+            }
+          },
+          size: 1,
+        }),
+      });
 
-    const building = prop?.buildingInfo || prop?.building || prop?.structure || prop?.characteristics || {};
-    console.log("BUILDING:", JSON.stringify(building));
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        console.log("SEARCH RESPONSE:", JSON.stringify(searchData, null, 2));
+        const searchProps = searchData?.results?.properties || searchData?.results || searchData?.properties || [];
+        if (searchProps.length > 0) property = searchProps[0];
+      }
+    }
 
-    const valuation = prop?.valuationInfo || prop?.valuation || prop?.avm || {};
-    console.log("VALUATION:", JSON.stringify(valuation));
+    if (!property) {
+      return res.status(404).json({ 
+        error: `Property not found for ${street}, ${city}, ${state} ${zip}. Please verify the address and try again.` 
+      });
+    }
 
-    // Extract every possible field variant
+    // Extract fields — log every key so we can see the exact structure
+    console.log("ALL PROPERTY FIELDS:", JSON.stringify(property, null, 2));
+
+    // Navigate the actual BatchData schema
+    const address = property?.address || {};
+    const assessmentInfo = property?.assessmentInfo || property?.assessment || property?.taxInfo || {};
+    const buildingInfo = property?.buildingInfo || property?.building || property?.improvements || {};
+    const valuationInfo = property?.valuationInfo || property?.valuation || property?.avm || {};
+    const lotInfo = property?.lotInfo || property?.lot || {};
+
+    console.log("ASSESSMENT INFO:", JSON.stringify(assessmentInfo));
+    console.log("BUILDING INFO:", JSON.stringify(buildingInfo));
+    console.log("VALUATION INFO:", JSON.stringify(valuationInfo));
+
     const assessedValue = 
-      assessment?.assessedValue || 
-      assessment?.totalAssessedValue || 
-      assessment?.assessedTotalValue ||
-      assessment?.taxableValue ||
-      assessment?.landValue + assessment?.improvementValue ||
-      prop?.assessedValue ||
+      assessmentInfo?.assessedValue ?? 
+      assessmentInfo?.totalAssessedValue ?? 
+      assessmentInfo?.assessedTotalValue ??
+      assessmentInfo?.taxableValue ??
+      property?.assessedValue ??
       null;
 
     const marketValue = 
-      valuation?.estimatedValue || 
-      valuation?.value || 
-      valuation?.avm ||
-      assessment?.marketValue || 
-      assessment?.marketTotalValue ||
-      assessment?.appraisedValue ||
-      prop?.marketValue ||
+      valuationInfo?.estimatedValue ?? 
+      valuationInfo?.value ?? 
+      valuationInfo?.avm ??
+      assessmentInfo?.marketValue ?? 
+      assessmentInfo?.appraisedValue ??
+      property?.marketValue ??
       null;
 
     const sqft = 
-      building?.livingArea || 
-      building?.squareFeet || 
-      building?.buildingArea ||
-      building?.grossArea ||
-      building?.finishedArea ||
-      prop?.livingArea ||
-      prop?.squareFeet ||
-      prop?.buildingArea ||
-      result?.squareFeet ||
+      buildingInfo?.livingArea ?? 
+      buildingInfo?.squareFeet ?? 
+      buildingInfo?.buildingArea ??
+      buildingInfo?.totalArea ??
+      buildingInfo?.finishedArea ??
+      property?.livingArea ??
+      property?.squareFeet ??
       null;
 
     const yearBuilt = 
-      building?.yearBuilt || 
-      building?.effectiveYearBuilt ||
-      prop?.yearBuilt ||
-      result?.yearBuilt ||
+      buildingInfo?.yearBuilt ?? 
+      buildingInfo?.effectiveYearBuilt ??
+      property?.yearBuilt ??
       null;
 
     const beds = 
-      building?.bedrooms || 
-      building?.beds || 
-      prop?.bedrooms ||
-      prop?.beds ||
+      buildingInfo?.bedrooms ?? 
+      buildingInfo?.beds ?? 
+      property?.bedrooms ??
       null;
 
     const baths = 
-      building?.bathrooms || 
-      building?.baths || 
-      building?.totalBaths ||
-      prop?.bathrooms ||
-      prop?.baths ||
+      buildingInfo?.bathrooms ?? 
+      buildingInfo?.totalBaths ??
+      buildingInfo?.baths ??
+      property?.bathrooms ??
       null;
 
     const annualTax = 
-      prop?.taxInfo?.annualTaxAmount ||
-      prop?.tax?.annualTaxAmount ||
-      prop?.taxInfo?.taxAmount ||
-      assessment?.annualTaxAmount ||
-      assessment?.taxAmount ||
+      assessmentInfo?.annualTaxAmount ??
+      assessmentInfo?.taxAmount ??
+      property?.annualTaxAmount ??
       null;
 
     const county = 
-      prop?.county || 
-      prop?.countyName || 
-      prop?.address?.county || 
-      result?.county ||
-      result?.address?.county ||
+      address?.county ?? 
+      property?.county ?? 
+      property?.countyName ??
       null;
 
     const taxYear = 
-      assessment?.taxYear || 
-      assessment?.year || 
-      prop?.taxInfo?.taxYear ||
+      assessmentInfo?.taxYear ?? 
+      assessmentInfo?.year ??
       new Date().getFullYear().toString();
 
     const countyName = county ? `${county} County` : `${city} County`;
-    const countyState = state.toUpperCase();
 
-    console.log("EXTRACTED VALUES:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county });
+    console.log("EXTRACTED:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear });
 
-    // Step 2: Ask Claude to find the county appraisal district filing address
+    // Look up the appraisal district
     const districtRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -140,18 +174,18 @@ export default async function handler(req, res) {
         max_tokens: 500,
         messages: [{
           role: "user",
-          content: `What is the official mailing address for filing a property tax assessment appeal or dispute with the ${countyName} appraisal district or board of assessment review in ${countyState}?
+          content: `What is the official mailing address for filing a property tax assessment appeal with the ${countyName} appraisal district in ${state.toUpperCase()}?
 
 Return ONLY a JSON object, no other text:
 {
-  "districtName": "Official name of the appraisal district or board",
+  "districtName": "Official name",
   "mailingAddress": "Street address",
   "city": "City",
   "state": "State abbreviation",
   "zip": "ZIP code",
-  "phone": "Phone number if known",
-  "website": "Website URL if known",
-  "filingDeadlineNote": "Brief note about typical filing deadline in this state",
+  "phone": "Phone number or null",
+  "website": "Website URL or null",
+  "filingDeadlineNote": "Typical filing deadline note",
   "filingMethod": "mail | online | in-person | mail or online"
 }`
         }],
@@ -160,7 +194,6 @@ Return ONLY a JSON object, no other text:
 
     const districtJson = await districtRes.json();
     let appraisalDistrict = null;
-
     if (districtJson.content) {
       const districtText = districtJson.content.filter(b => b.type === "text").map(b => b.text).join("");
       try {
@@ -170,13 +203,14 @@ Return ONLY a JSON object, no other text:
     }
 
     return res.status(200).json({
-      ...data,
+      results: { properties: [property] },
       extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear },
       appraisalDistrict,
       resolvedCounty: countyName,
     });
 
   } catch (err) {
+    console.error("Lookup error:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
 }
