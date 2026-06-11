@@ -214,7 +214,11 @@ function StepDispute({ formData, onRestart }) {
       const claudeRes = await fetch("/api/generate-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+  prompt,
+  address: pd.rawAddress || addr,
+  county: pd.county,
+  assessedValue: pd.assessedValue,,
       });
 
       const claudeJson = await claudeRes.json();
