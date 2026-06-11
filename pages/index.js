@@ -218,7 +218,9 @@ function StepDispute({ formData, onRestart }) {
   prompt,
   address: pd.rawAddress || addr,
   county: pd.county,
-  assessedValue: pd.assessedValue,,
+  assessedValue: pd.assessedValue,
+  zip: property.zip,
+  state: property.state,,
       });
 
       const claudeJson = await claudeRes.json();
