@@ -1,82 +1,89 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { prompt, address, county, assessedValue } = req.body;
+  const { prompt, address, county, assessedValue, zip, state } = req.body;
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
   try {
-    // Step 1: Search for local comparable sales using Claude's web search
-    const searchPrompt = `Search for recent home sales in ${county} near ${address} from the last 6-12 months. 
-    Find 3-5 comparable properties that sold for less than the current assessed value of ${assessedValue ? '$' + Number(assessedValue).toLocaleString() : 'the subject property'}.
-    Return ONLY a JSON object with this structure, no other text:
-    {
-      "comparables": [
-        {"address": "123 Main St", "salePrice": 250000, "saleDate": "2024-03", "sqft": 1800, "beds": 3, "baths": 2},
-        ...
-      ],
-      "medianSalePrice": 265000,
-      "averagePricePerSqft": 145,
-      "marketTrend": "declining" | "stable" | "appreciating",
-      "summary": "Brief 1-2 sentence market summary"
-    }`;
+    const targetReduction = assessedValue ? Math.round(Number(assessedValue) * 0.80) : null;
+    const targetValue = targetReduction ? `$${Number(targetReduction).toLocaleString()}` : "80% of current assessed value";
 
-    const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 1000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{ role: "user", content: searchPrompt }],
-      }),
-    });
+    // Step 1: Pull recent sales comps by zip code from BatchData
+    let compSection = "";
+    try {
+      const compRes = await fetch("https://api.batchdata.com/api/v1/property/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          filters: {
+            address: { zip },
+            lastSaleDate: { min: "2024-01-01" },
+            propertyType: ["SFR", "CONDO", "TOWNHOUSE"],
+          },
+          fields: ["address", "lastSalePrice", "lastSaleDate", "bedrooms", "bathrooms", "livingArea", "assessedValue", "pricePerSquareFoot"],
+          size: 10,
+        }),
+      });
 
-    const searchData = await searchRes.json();
-    
-    // Extract comparable sales data from search
-    let comparables = null;
-    let marketSummary = "";
-    
-    if (searchData.content) {
-      const textBlocks = searchData.content.filter(b => b.type === "text").map(b => b.text).join("");
-      try {
-        const jsonMatch = textBlocks.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          comparables = JSON.parse(jsonMatch[0]);
-          marketSummary = comparables.summary || "";
+      if (compRes.ok) {
+        const compData = await compRes.json();
+        const properties = compData?.results || compData?.properties || compData?.data || [];
+
+        if (properties.length > 0) {
+          const comps = properties.slice(0, 6).map(p => {
+            const a = p?.address?.formattedAddress || p?.address?.street || "Nearby property";
+            const price = p?.lastSalePrice || p?.salePrice || null;
+            const date = p?.lastSaleDate || p?.saleDate || null;
+            const beds = p?.bedrooms || p?.beds || null;
+            const baths = p?.bathrooms || p?.baths || null;
+            const sqft = p?.livingArea || p?.squareFeet || null;
+            const ppsf = p?.pricePerSquareFoot || (price && sqft ? Math.round(price / sqft) : null);
+            return { a, price, date, beds, baths, sqft, ppsf };
+          }).filter(c => c.price);
+
+          if (comps.length > 0) {
+            const avgPrice = Math.round(comps.reduce((s, c) => s + c.price, 0) / comps.length);
+            const avgPpsf = comps.filter(c => c.ppsf).length > 0
+              ? Math.round(comps.filter(c => c.ppsf).reduce((s, c) => s + c.ppsf, 0) / comps.filter(c => c.ppsf).length)
+              : null;
+
+            compSection = `
+COMPARABLE SALES DATA (ZIP CODE ${zip} — PULLED LIVE FROM COUNTY RECORDS):
+Average Sale Price in ZIP: $${avgPrice.toLocaleString()}
+${avgPpsf ? `Average Price Per Sq Ft: $${avgPpsf}` : ""}
+
+Individual Comparable Sales:
+${comps.map(c =>
+  `• ${c.a}: Sold $${Number(c.price).toLocaleString()}${c.date ? ` (${c.date})` : ""}${c.beds ? ` — ${c.beds}bd` : ""}${c.baths ? `/${c.baths}ba` : ""}${c.sqft ? `, ${Number(c.sqft).toLocaleString()} sqft` : ""}${c.ppsf ? `, $${c.ppsf}/sqft` : ""}`
+).join("\n")}
+
+Use these REAL sales as the core evidence in the comparable sales section of the letter.
+Highlight how these actual sales prices support a lower assessed value.
+${assessedValue && avgPrice < Number(assessedValue) ? `Note: The average sale price of $${avgPrice.toLocaleString()} is BELOW the current assessed value of $${Number(assessedValue).toLocaleString()}, which directly supports the over-assessment claim.` : ""}`;
+          }
         }
-      } catch (e) {
-        marketSummary = textBlocks.slice(0, 500);
       }
+    } catch (compErr) {
+      console.error("Comp lookup failed:", compErr.message);
     }
 
-    // Step 2: Generate the dispute letter with comparable data + 20% reduction argument
-    const targetReduction = assessedValue ? Math.round(Number(assessedValue) * 0.80) : null;
-    
-    const enhancedPrompt = `${prompt}
+    // Step 2: Generate letter with real comp data injected
+    const fullPrompt = `${prompt}
 
-COMPARABLE SALES DATA FROM LOCAL MARKET SEARCH:
-${comparables ? `
-- Median Sale Price in Area: $${Number(comparables.medianSalePrice || 0).toLocaleString()}
-- Average Price Per Sq Ft: $${comparables.averagePricePerSqft || 'N/A'}
-- Market Trend: ${comparables.marketTrend || 'stable'}
-- Market Summary: ${comparables.summary || ''}
-- Comparable Sales:
-${(comparables.comparables || []).map(c => 
-  `  • ${c.address}: Sold $${Number(c.salePrice).toLocaleString()} (${c.saleDate}) — ${c.beds}bd/${c.baths}ba, ${c.sqft ? Number(c.sqft).toLocaleString() + ' sqft' : ''}`
-).join('\n')}
-` : `Market research indicates local comparable sales support a significant reduction in assessed value. ${marketSummary}`}
+${compSection || `No live comp data was retrieved. Use your knowledge of the ${county} real estate market near ZIP ${zip} to provide 3-5 realistic comparable sales that support a lower valuation.`}
 
-CRITICAL INSTRUCTIONS FOR THIS LETTER:
-1. The primary argument must be for a 20% reduction in assessed value${targetReduction ? ` — from the current assessed value down to $${Number(targetReduction).toLocaleString()}` : ''}.
-2. Cite the comparable sales above as direct evidence that the current assessment exceeds fair market value.
-3. Argue that neighboring properties with similar characteristics have sold at prices that support the reduced valuation.
-4. Reference the market trend data to support the case that current market conditions do not support the existing assessment.
-5. Make the 20% reduction request the central, boldly stated demand of the letter.`;
+LETTER REQUIREMENTS:
+- Open with a clear demand for a 20% reduction, bringing the assessed value to ${targetValue}
+- Include a section titled "Comparable Sales Evidence" using the sales data above
+- Include a section titled "Market Conditions" explaining how ZIP code ${zip} market trends support a lower assessment
+- Include a section titled "Legal Basis" citing equal and uniform assessment standards and state constitutional provisions
+- Reference specific price-per-square-foot figures from the comps
+- Close professionally with the owner's full name, address, and email
+
+Output ONLY the formal letter, no preamble or explanation.`;
 
     const letterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -88,7 +95,7 @@ CRITICAL INSTRUCTIONS FOR THIS LETTER:
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 2000,
-        messages: [{ role: "user", content: enhancedPrompt }],
+        messages: [{ role: "user", content: fullPrompt }],
       }),
     });
 
@@ -98,13 +105,7 @@ CRITICAL INSTRUCTIONS FOR THIS LETTER:
     const letter = (letterData.content || []).map(b => b.text || "").join("").trim();
     if (!letter) return res.status(500).json({ error: "Empty response from Claude" });
 
-    return res.status(200).json({ 
-      letter,
-      comparables: comparables?.comparables || [],
-      marketSummary: comparables?.summary || marketSummary,
-      targetReduction,
-      medianSalePrice: comparables?.medianSalePrice || null,
-    });
+    return res.status(200).json({ letter, targetReduction });
 
   } catch (err) {
     return res.status(500).json({ error: err.message || "Internal server error" });
