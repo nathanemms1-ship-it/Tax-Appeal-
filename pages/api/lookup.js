@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -14,18 +15,16 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
       },
       body: JSON.stringify({
-        requests: [{
-          propertyAddress: { street, city, state, zip }
-        }]
+        requests: [{ propertyAddress: { street, city, state, zip } }]
       }),
     });
 
-    if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: errBody?.message || "BatchData lookup failed" });
-    }
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { return res.status(500).json({ error: `BatchData returned unexpected response: ${text.slice(0, 200)}` }); }
 
-    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: data?.message || data?.error || `BatchData error ${response.status}` });
+
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message || "Internal server error" });
