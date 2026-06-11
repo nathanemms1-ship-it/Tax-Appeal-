@@ -7,124 +7,57 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Try multiple request formats until one works
-    const attempts = [
-      // Format 1: standard nested propertyAddress
-      {
-        requests: [{
-          propertyAddress: {
-            street: street.trim(),
-            city: city.trim(),
-            state: state.trim().toUpperCase(),
-            zip: zip.trim()
-          }
-        }]
+    // Correct BatchData format: flat fields inside requests array
+    const response = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
       },
-      // Format 2: flat address fields
-      {
+      body: JSON.stringify({
         requests: [{
           street: street.trim(),
           city: city.trim(),
           state: state.trim().toUpperCase(),
-          zip: zip.trim()
-        }]
-      },
-      // Format 3: single address string
-      {
-        requests: [{
-          propertyAddress: {
-            address: `${street.trim()}, ${city.trim()}, ${state.trim().toUpperCase()} ${zip.trim()}`
-          }
-        }]
-      },
-    ];
+          zip: zip.trim(),
+        }],
+        options: {}
+      }),
+    });
 
-    let data = null;
-    let properties = [];
-
-    for (const body of attempts) {
-      const response = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const text = await response.text();
-      let parsed;
-      try { parsed = JSON.parse(text); } catch { continue; }
-
-      console.log(`Attempt with body ${JSON.stringify(body)} => matchCount: ${parsed?.results?.meta?.results?.matchCount}`);
-      console.log("FULL RESPONSE:", JSON.stringify(parsed, null, 2));
-
-      properties = parsed?.results?.properties || [];
-      if (properties.length > 0) {
-        data = parsed;
-        break;
-      }
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      return res.status(500).json({ error: `Unexpected response: ${text.slice(0, 200)}` });
     }
 
-    // If lookup failed, try property-search endpoint
-    if (properties.length === 0) {
-      console.log("All lookup attempts failed, trying property-search...");
-      const searchRes = await fetch("https://api.batchdata.com/api/v1/property/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
-        },
-        body: JSON.stringify({
-          filters: {
-            address: {
-              street: street.trim(),
-              city: city.trim(),
-              state: state.trim().toUpperCase(),
-              zip: zip.trim(),
-            }
-          },
-          fields: ["address", "assessmentInfo", "buildingInfo", "valuationInfo", "taxInfo", "lotInfo"],
-          size: 1,
-        }),
-      });
+    console.log("BATCHDATA RESPONSE:", JSON.stringify(data, null, 2));
 
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        console.log("SEARCH RESPONSE:", JSON.stringify(searchData, null, 2));
-        properties = searchData?.results?.properties || searchData?.properties || [];
-        if (properties.length > 0) data = searchData;
-      }
-    }
+    const properties = data?.results?.properties || [];
 
     if (properties.length === 0) {
       return res.status(404).json({
-        error: `Property not found. Please verify: ${street}, ${city}, ${state} ${zip}. Try abbreviating street type (St, Ave, Ct, Dr, Blvd).`
+        error: `Property not found for ${street}, ${city}, ${state} ${zip}. Please verify the address.`
       });
     }
 
     const property = properties[0];
     console.log("MATCHED PROPERTY:", JSON.stringify(property, null, 2));
 
-    // Extract all fields
     const address = property?.address || {};
-    const assessmentInfo = property?.assessmentInfo || property?.assessment || property?.taxInfo || {};
-    const buildingInfo = property?.buildingInfo || property?.building || property?.improvements || {};
+    const assessmentInfo = property?.assessmentInfo || property?.assessment || {};
+    const buildingInfo = property?.buildingInfo || property?.building || {};
     const valuationInfo = property?.valuationInfo || property?.valuation || property?.avm || {};
 
-    console.log("ASSESSMENT:", JSON.stringify(assessmentInfo));
-    console.log("BUILDING:", JSON.stringify(buildingInfo));
-    console.log("VALUATION:", JSON.stringify(valuationInfo));
-
-    const assessedValue = assessmentInfo?.assessedValue ?? assessmentInfo?.totalAssessedValue ?? assessmentInfo?.taxableValue ?? property?.assessedValue ?? null;
-    const marketValue = valuationInfo?.estimatedValue ?? valuationInfo?.value ?? assessmentInfo?.marketValue ?? assessmentInfo?.appraisedValue ?? property?.marketValue ?? null;
-    const sqft = buildingInfo?.livingArea ?? buildingInfo?.squareFeet ?? buildingInfo?.buildingArea ?? property?.livingArea ?? property?.squareFeet ?? null;
-    const yearBuilt = buildingInfo?.yearBuilt ?? buildingInfo?.effectiveYearBuilt ?? property?.yearBuilt ?? null;
-    const beds = buildingInfo?.bedrooms ?? buildingInfo?.beds ?? property?.bedrooms ?? null;
-    const baths = buildingInfo?.bathrooms ?? buildingInfo?.totalBaths ?? property?.bathrooms ?? null;
-    const annualTax = assessmentInfo?.annualTaxAmount ?? assessmentInfo?.taxAmount ?? property?.annualTaxAmount ?? null;
-    const county = address?.county ?? property?.county ?? property?.countyName ?? null;
-    const taxYear = assessmentInfo?.taxYear ?? assessmentInfo?.year ?? new Date().getFullYear().toString();
+    const assessedValue = assessmentInfo?.assessedValue ?? assessmentInfo?.totalAssessedValue ?? assessmentInfo?.taxableValue ?? null;
+    const marketValue = valuationInfo?.estimatedValue ?? valuationInfo?.value ?? assessmentInfo?.marketValue ?? assessmentInfo?.appraisedValue ?? null;
+    const sqft = buildingInfo?.livingArea ?? buildingInfo?.squareFeet ?? buildingInfo?.buildingArea ?? null;
+    const yearBuilt = buildingInfo?.yearBuilt ?? buildingInfo?.effectiveYearBuilt ?? null;
+    const beds = buildingInfo?.bedrooms ?? buildingInfo?.beds ?? null;
+    const baths = buildingInfo?.bathrooms ?? buildingInfo?.totalBaths ?? null;
+    const annualTax = assessmentInfo?.annualTaxAmount ?? assessmentInfo?.taxAmount ?? null;
+    const county = address?.county ?? property?.county ?? null;
+    const taxYear = assessmentInfo?.taxYear ?? new Date().getFullYear().toString();
     const countyName = county ? `${county} County` : `${city} County`;
 
     console.log("EXTRACTED:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county });
@@ -151,7 +84,7 @@ export default async function handler(req, res) {
   "zip": "ZIP",
   "phone": "Phone or null",
   "website": "URL or null",
-  "filingDeadlineNote": "Deadline note",
+  "filingDeadlineNote": "Typical filing deadline note",
   "filingMethod": "mail | online | in-person | mail or online"
 }`
         }],
