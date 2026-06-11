@@ -211,16 +211,17 @@ function StepDispute({ formData, onRestart }) {
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : "on file";
       const prompt = `You are a property tax attorney. Write a complete, formal property tax assessment dispute letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nOWNER: ${account.firstName} ${account.lastName}\nEMAIL: ${account.email}\nPROPERTY ADDRESS: ${pd.rawAddress || addr}\nPROPERTY TYPE: ${property.propType || "Residential"}\nBEDS/BATHS: ${beds || "—"} bed / ${baths || "—"} bath\nSQ FT: ${sqft ? Number(sqft).toLocaleString() : "on file"}\nYEAR BUILT: ${pd.yearBuilt || "on file"}\nCOUNTY/JURISDICTION: ${pd.county}\nTAX YEAR: ${pd.taxYear}\n\nOFFICIAL DATA FROM COUNTY ASSESSOR:\n- Current Assessed Value: ${fmt(pd.assessedValue)}\n- Estimated Fair Market Value (AVM): ${fmt(pd.marketValue)}\n- Annual Tax Bill: ${fmt(pd.annualTax)}\n- Over-Assessment vs Market: ${pd.overPct != null ? pd.overPct + "%" : "significant discrepancy"}\n- Estimated Annual Savings if Corrected: ${pd.savings ? fmt(pd.savings) : "substantial"}\n\nADDITIONAL OWNER NOTES:\n${property.notes || "Property condition and market data indicate the current assessment exceeds fair market value."}\n\nWrite a complete formal dispute letter to the ${pd.county} Board of Assessment Review dated June 2026. Include:\n1. Formal salutation to the Board\n2. Clear identification of property, parcel, and tax year\n3. Specific dollar amounts from the official data above\n4. Legal grounds: equal and uniform assessment, market value standard, state constitutional basis\n5. Request to reduce assessed value to ${fmt(pd.marketValue)} (the estimated fair market value)\n6. Request for a formal hearing if administrative review is denied\n7. Professional closing with owner's full name, address, and email\n\nBe specific, authoritative, and cite the assessed vs. market value discrepancy prominently. Output ONLY the letter.`;
 
-      const claudeRes = await fetch("/api/generate-letter", {
+     const claudeRes = await fetch("/api/generate-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-  prompt,
-  address: pd.rawAddress || addr,
-  county: pd.county,
-  assessedValue: pd.assessedValue,
-  zip: property.zip,
-  state: property.state,
+        body: JSON.stringify({
+          prompt,
+          address: pd.rawAddress || addr,
+          county: pd.county,
+          assessedValue: pd.assessedValue,
+          zip: property.zip,
+          state: property.state,
+        }),
       });
 
       const claudeJson = await claudeRes.json();
