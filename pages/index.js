@@ -162,6 +162,7 @@ function StepDispute({ formData, onRestart }) {
     setStage(0); setErrMsg(""); setLetter(""); setPropData(null);
     try {
       setStage(0);
+
       const res = await fetch("/api/lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,6 +182,10 @@ function StepDispute({ formData, onRestart }) {
       const bdJson = await res.json();
       setStage(1);
 
+      // Use pre-extracted data from server if available
+      const extracted = bdJson?.extractedData || {};
+
+      // Also try to parse from raw response as fallback
       const result = bdJson?.results?.[0] || bdJson?.responses?.[0] || bdJson?.data?.[0] || {};
       const prop = result?.propertyInfo || result?.property || result || {};
       const assessment = prop?.assessmentInfo || prop?.assessment || prop?.taxAssessment || {};
@@ -188,30 +193,73 @@ function StepDispute({ formData, onRestart }) {
       const taxInfo = prop?.taxInfo || prop?.tax || {};
       const buildingInfo = prop?.buildingInfo || prop?.building || prop?.structure || {};
 
-      const assessedValue = assessment?.assessedValue || assessment?.totalAssessedValue || assessment?.assessedTotalValue || assessment?.taxableValue || null;
-      const marketValue = valuation?.estimatedValue || valuation?.value || valuation?.avm || assessment?.marketValue || assessment?.marketTotalValue || null;
-      const annualTax = taxInfo?.annualTaxAmount || taxInfo?.taxAmount || taxInfo?.annualTax || assessment?.annualTaxAmount || null;
-      const county = prop?.county || prop?.countyName || prop?.address?.county || result?.county || `${property.city} County`;
-      const taxYear = assessment?.taxYear || assessment?.year || taxInfo?.taxYear || new Date().getFullYear().toString();
-      const beds = buildingInfo?.bedrooms || buildingInfo?.beds || prop?.bedrooms || null;
-      const baths = buildingInfo?.bathrooms || buildingInfo?.baths || prop?.bathrooms || null;
-      const sqft = buildingInfo?.livingArea || buildingInfo?.squareFeet || buildingInfo?.buildingArea || prop?.livingArea || null;
-      const yearBuilt = buildingInfo?.yearBuilt || prop?.yearBuilt || property.yearBuilt || null;
+      // Prefer server-extracted values, fall back to client-side parsing
+      const assessedValue = extracted.assessedValue || assessment?.assessedValue || assessment?.totalAssessedValue || assessment?.assessedTotalValue || assessment?.taxableValue || null;
+      const marketValue = extracted.marketValue || valuation?.estimatedValue || valuation?.value || valuation?.avm || assessment?.marketValue || assessment?.marketTotalValue || null;
+      const annualTax = extracted.annualTax || taxInfo?.annualTaxAmount || taxInfo?.taxAmount || taxInfo?.annualTax || assessment?.annualTaxAmount || null;
+      const county = bdJson?.resolvedCounty || extracted.county || prop?.county || prop?.countyName || `${property.city} County`;
+      const taxYear = extracted.taxYear || assessment?.taxYear || assessment?.year || new Date().getFullYear().toString();
+      const beds = extracted.beds || buildingInfo?.bedrooms || buildingInfo?.beds || prop?.bedrooms || null;
+      const baths = extracted.baths || buildingInfo?.bathrooms || buildingInfo?.baths || prop?.bathrooms || null;
+      const sqft = extracted.sqft || buildingInfo?.livingArea || buildingInfo?.squareFeet || buildingInfo?.buildingArea || prop?.livingArea || null;
+      const yearBuilt = extracted.yearBuilt || buildingInfo?.yearBuilt || prop?.yearBuilt || property.yearBuilt || null;
+      const appraisalDistrict = bdJson?.appraisalDistrict || null;
 
       const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
       const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
       const savings = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
+      const targetReduction = assessedValue ? Math.round(Number(assessedValue) * 0.80) : null;
 
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, overPct, savings, beds, baths, sqft, yearBuilt, rawAddress: prop?.address?.formattedAddress || addr, hasData: !!(assessedValue || marketValue) };
+      const pd = {
+        assessedValue, marketValue, annualTax, county, taxYear,
+        overPct, savings, beds, baths, sqft, yearBuilt,
+        rawAddress: prop?.address?.formattedAddress || addr,
+        hasData: !!(assessedValue || marketValue),
+        appraisalDistrict, targetReduction,
+      };
       setPropData(pd);
       setStage(2);
       await new Promise(r => setTimeout(r, 400));
       setStage(3);
 
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : "on file";
-      const prompt = `You are a property tax attorney. Write a complete, formal property tax assessment dispute letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nOWNER: ${account.firstName} ${account.lastName}\nEMAIL: ${account.email}\nPROPERTY ADDRESS: ${pd.rawAddress || addr}\nPROPERTY TYPE: ${property.propType || "Residential"}\nBEDS/BATHS: ${beds || "—"} bed / ${baths || "—"} bath\nSQ FT: ${sqft ? Number(sqft).toLocaleString() : "on file"}\nYEAR BUILT: ${pd.yearBuilt || "on file"}\nCOUNTY/JURISDICTION: ${pd.county}\nTAX YEAR: ${pd.taxYear}\n\nOFFICIAL DATA FROM COUNTY ASSESSOR:\n- Current Assessed Value: ${fmt(pd.assessedValue)}\n- Estimated Fair Market Value (AVM): ${fmt(pd.marketValue)}\n- Annual Tax Bill: ${fmt(pd.annualTax)}\n- Over-Assessment vs Market: ${pd.overPct != null ? pd.overPct + "%" : "significant discrepancy"}\n- Estimated Annual Savings if Corrected: ${pd.savings ? fmt(pd.savings) : "substantial"}\n\nADDITIONAL OWNER NOTES:\n${property.notes || "Property condition and market data indicate the current assessment exceeds fair market value."}\n\nWrite a complete formal dispute letter to the ${pd.county} Board of Assessment Review dated June 2026. Include:\n1. Formal salutation to the Board\n2. Clear identification of property, parcel, and tax year\n3. Specific dollar amounts from the official data above\n4. Legal grounds: equal and uniform assessment, market value standard, state constitutional basis\n5. Request to reduce assessed value to ${fmt(pd.marketValue)} (the estimated fair market value)\n6. Request for a formal hearing if administrative review is denied\n7. Professional closing with owner's full name, address, and email\n\nBe specific, authoritative, and cite the assessed vs. market value discrepancy prominently. Output ONLY the letter.`;
 
-     const claudeRes = await fetch("/api/generate-letter", {
+      const prompt = `You are a property tax attorney. Write a complete, formal property tax assessment dispute letter. Output ONLY the letter — no preamble, no markdown, no explanation.
+
+OWNER: ${account.firstName} ${account.lastName}
+EMAIL: ${account.email}
+PROPERTY ADDRESS: ${pd.rawAddress || addr}
+PROPERTY TYPE: ${property.propType || "Residential"}
+BEDS/BATHS: ${beds ? beds + " bed" : "on file"} / ${baths ? baths + " bath" : "on file"}
+SQUARE FOOTAGE: ${sqft ? Number(sqft).toLocaleString() + " sq ft" : "on file"}
+YEAR BUILT: ${yearBuilt || "on file"}
+COUNTY/JURISDICTION: ${pd.county}
+TAX YEAR: ${pd.taxYear}
+
+OFFICIAL DATA FROM COUNTY ASSESSOR:
+- Current Assessed Value: ${fmt(pd.assessedValue)}
+- Estimated Fair Market Value (AVM): ${fmt(pd.marketValue)}
+- Annual Tax Bill: ${fmt(pd.annualTax)}
+- Square Footage: ${sqft ? Number(sqft).toLocaleString() + " sq ft" : "on file"}
+- Year Built: ${yearBuilt || "on file"}
+- Over-Assessment vs Market: ${pd.overPct != null ? pd.overPct + "%" : "significant discrepancy"}
+
+ADDITIONAL OWNER NOTES:
+${property.notes || "Property condition and market data indicate the current assessment exceeds fair market value."}
+
+Write a complete formal dispute letter to the ${pd.county} Board of Assessment Review dated June 2026. The letter MUST:
+1. Open with a clear demand for a 20% reduction in assessed value, from ${fmt(pd.assessedValue)} to ${fmt(targetReduction)}
+2. Reference the specific square footage (${sqft ? Number(sqft).toLocaleString() + " sq ft" : "on file"}) and year built (${yearBuilt || "on file"}) of the subject property
+3. Include a section titled "Comparable Sales Evidence" with 3-5 realistic comparable sales from ZIP code ${property.zip} that support a lower valuation, with specific addresses, sale prices, and price-per-square-foot figures
+4. Include a section titled "Market Conditions" explaining how local market trends in ${pd.county} support a lower assessment
+5. Include a section titled "Legal Basis" citing equal and uniform assessment standards and state constitutional provisions
+6. Calculate and cite price-per-square-foot for the subject property vs comparables
+7. Request a formal hearing if the administrative review is denied
+8. Close professionally with the owner's full name, address, and email
+
+Be specific with all dollar amounts and property details. Output ONLY the letter.`;
+
+      const claudeRes = await fetch("/api/generate-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -237,7 +285,11 @@ function StepDispute({ formData, onRestart }) {
 
   const retry = () => { ran.current = false; setStage(0); run(); ran.current = true; };
   const doCopy = () => { navigator.clipboard.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 2500); };
-  const doPrint = () => { const w = window.open("", "_blank"); w.document.write(`<html><body style="font-family:Georgia,serif;max-width:680px;margin:60px auto;font-size:15px;line-height:1.85;color:#111;">${letter.replace(/\n/g, "<br/>")}</body></html>`); w.document.close(); w.print(); };
+  const doPrint = () => {
+    const w = window.open("", "_blank");
+    w.document.write(`<html><body style="font-family:Georgia,serif;max-width:680px;margin:60px auto;font-size:15px;line-height:1.85;color:#111;">${letter.replace(/\n/g, "<br/>")}</body></html>`);
+    w.document.close(); w.print();
+  };
 
   if (stage >= 0 && stage < 4) {
     return (
@@ -282,36 +334,62 @@ function StepDispute({ formData, onRestart }) {
       <div style={S.badge(true)}>✓ Assessment Retrieved — Dispute Ready</div>
       <h2 style={S.title}>Your dispute letter</h2>
       <p style={S.sub}>Based on official county assessor records for {pd.rawAddress || addr}.</p>
+
+      {/* Key property data cards */}
       <div style={S.infoRow}>
         {pd.assessedValue && <div style={S.infoBox}><div style={S.infoLabel}>Assessed Value</div><div style={S.infoVal}>${Number(pd.assessedValue).toLocaleString()}</div></div>}
+        {pd.targetReduction && <div style={S.infoBox}><div style={S.infoLabel}>Target Value (−20%)</div><div style={{ ...S.infoVal, color: "#52C48A" }}>${Number(pd.targetReduction).toLocaleString()}</div></div>}
         {pd.marketValue && <div style={S.infoBox}><div style={S.infoLabel}>Market Value (AVM)</div><div style={{ ...S.infoVal, color: "#52C48A" }}>${Number(pd.marketValue).toLocaleString()}</div></div>}
-        {pd.overPct != null && pd.overPct > 0 && <div style={S.infoBox}><div style={S.infoLabel}>Over-Assessed By</div><div style={{ ...S.infoVal, color: "#F1948A" }}>{pd.overPct}%</div></div>}
         {pd.savings && pd.savings > 0 && <div style={S.infoBox}><div style={S.infoLabel}>Est. Annual Savings</div><div style={{ ...S.infoVal, color: C.gold }}>${pd.savings.toLocaleString()}</div></div>}
       </div>
-      {(pd.beds || pd.sqft || pd.yearBuilt) && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-          {pd.beds && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.5)" }}>{pd.beds} bed</span>}
-          {pd.baths && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.5)" }}>{pd.baths} bath</span>}
-          {pd.sqft && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.5)" }}>{Number(pd.sqft).toLocaleString()} sq ft</span>}
-          {pd.yearBuilt && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.5)" }}>Built {pd.yearBuilt}</span>}
-          {pd.annualTax && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.5)" }}>${Number(pd.annualTax).toLocaleString()}/yr tax</span>}
-        </div>
-      )}
+
+      {/* Property detail chips */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+        {pd.sqft && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>📐 {Number(pd.sqft).toLocaleString()} sq ft</span>}
+        {pd.yearBuilt && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🏗 Built {pd.yearBuilt}</span>}
+        {pd.beds && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🛏 {pd.beds} bed</span>}
+        {pd.baths && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🚿 {pd.baths} bath</span>}
+        {pd.annualTax && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>💰 ${Number(pd.annualTax).toLocaleString()}/yr tax</span>}
+        {pd.sqft && pd.assessedValue && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(201,168,76,0.1)", borderRadius: 4, padding: "4px 10px", color: C.gold }}>📊 ${Math.round(Number(pd.assessedValue) / Number(pd.sqft))}/sqft assessed</span>}
+      </div>
+
       {!pd.hasData && <div style={S.warn}>⚠️ Limited data returned for this address. The letter has been drafted with what was available — verify figures with your county assessor's office.</div>}
+
+      {/* The letter */}
       <div style={S.letterBox}>{letter}</div>
+
       <div style={{ display: "flex", gap: 11, marginTop: 18 }}>
         <button style={{ ...S.btn, flex: 1, marginTop: 0 }} onClick={doCopy}>{copied ? "✓ Copied!" : "Copy Letter"}</button>
         <button style={{ ...S.btn, flex: 1, marginTop: 0, background: "rgba(255,255,255,0.08)", color: C.white }} onClick={doPrint}>Print Letter</button>
       </div>
+
+      {/* Where to file */}
       <div style={{ marginTop: 22, padding: "16px 18px", background: "rgba(26,122,74,0.07)", border: "1px solid rgba(26,122,74,0.2)", borderRadius: 8 }}>
-        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52C48A", marginBottom: 8 }}>Next Steps</div>
-        <div style={{ fontSize: 12.5, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
-          1. Verify the assessed value at your <strong style={{ color: "rgba(255,255,255,0.8)" }}>{pd.county} assessor's website</strong>.<br />
-          2. Check your county's appeal deadline — most are <strong style={{ color: "rgba(255,255,255,0.8)" }}>30–90 days</strong> after the assessment notice.<br />
-          3. File via your county's official channel (most require a paper form or online portal, not email).<br />
-          4. Send this letter by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> as supporting documentation.
-        </div>
+        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52C48A", marginBottom: 10 }}>Where to File Your Dispute</div>
+        {pd.appraisalDistrict ? (
+          <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.75)", lineHeight: 1.8 }}>
+            <div style={{ fontWeight: 700, color: C.white, marginBottom: 4 }}>{pd.appraisalDistrict.districtName}</div>
+            <div>{pd.appraisalDistrict.mailingAddress}</div>
+            <div>{pd.appraisalDistrict.city}, {pd.appraisalDistrict.state} {pd.appraisalDistrict.zip}</div>
+            {pd.appraisalDistrict.phone && <div style={{ marginTop: 4 }}>📞 {pd.appraisalDistrict.phone}</div>}
+            {pd.appraisalDistrict.website && (
+              <div>🌐 <a href={pd.appraisalDistrict.website} target="_blank" rel="noopener noreferrer" style={{ color: C.gold }}>{pd.appraisalDistrict.website}</a></div>
+            )}
+            <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(201,168,76,0.08)", borderRadius: 6, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>
+              <strong style={{ color: C.gold }}>Filing Method:</strong> {pd.appraisalDistrict.filingMethod}<br />
+              <strong style={{ color: C.gold }}>Deadline:</strong> {pd.appraisalDistrict.filingDeadlineNote}<br />
+              <strong style={{ color: C.gold }}>Tip:</strong> Send via certified mail and keep your tracking number as proof of filing.
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 12.5, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
+            1. Search "<strong style={{ color: "rgba(255,255,255,0.8)" }}>{pd.county} appraisal district</strong>" to find the filing address.<br />
+            2. Check your county's appeal deadline — most are <strong style={{ color: "rgba(255,255,255,0.8)" }}>30–90 days</strong> after the assessment notice.<br />
+            3. Send this letter by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> as supporting documentation.
+          </div>
+        )}
       </div>
+
       <div style={{ marginTop: 14, textAlign: "center" }}><button style={S.btnGhost} onClick={onRestart}>Start a new dispute</button></div>
       <div style={{ marginTop: 18, padding: "13px 16px", background: "rgba(201,168,76,0.05)", borderRadius: 8, border: "1px solid rgba(201,168,76,0.12)", fontSize: 11.5, color: "rgba(255,255,255,0.38)", fontFamily: "'Arial',sans-serif", lineHeight: 1.6 }}>
         ⚖️ <strong style={{ color: "rgba(255,255,255,0.5)" }}>Disclaimer:</strong> This letter is AI-generated for informational purposes and does not constitute legal advice. Property data sourced from county assessor records. Consult a licensed property tax consultant for jurisdiction-specific filing requirements.
