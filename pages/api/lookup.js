@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     let marketValue = null;
     let county = null;
 
-    // Step 1: Resolve county via US Census Geocoder
+    // Step 1: Resolve county via US Census Geocoder (free, no API key needed)
     try {
       const censusRes = await fetch(
         `https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`
@@ -35,152 +35,128 @@ export default async function handler(req, res) {
       console.log("Census lookup failed:", e.message);
     }
 
+    // Step 2: Claude county fallback if census failed
+    if (!county) {
+      try {
+        const countyRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5",
+            max_tokens: 100,
+            messages: [{
+              role: "user",
+              content: `What county is ${fullAddress} in? Return ONLY JSON: {"county": "Name"} — name only, no word "County".`
+            }],
+          }),
+        });
+        const countyJson = await countyRes.json();
+        const countyText = (countyJson.content || []).map(b => b.text || "").join("");
+        const match = countyText.match(/\{[\s\S]*?\}/);
+        if (match) county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
+        console.log("COUNTY FROM CLAUDE:", county);
+      } catch (e) {
+        console.log("Claude county fallback failed:", e.message);
+      }
+    }
+
     const countyName = county ? `${county} County` : `${city} County`;
     const taxYear = new Date().getFullYear().toString();
 
-    // Step 2: Web search for property details + tax appraisal value
-    // Run all searches in parallel for speed
-    const [propertySearchResult, taxSearchResult, districtSearchResult] = await Promise.all([
-
-      // Search 1: Property details from Zillow/Redfin
-      fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 1000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `Search Zillow, Redfin, or Realtor.com for the property at ${fullAddress}. Find the square footage, number of bedrooms, number of bathrooms, year built, and estimated market value (Zestimate or similar AVM). Return ONLY a JSON object with no other text:
-{
-  "sqft": 2150,
-  "beds": 4,
-  "baths": 2.5,
-  "yearBuilt": 1998,
-  "marketValue": 425000,
-  "source": "Zillow"
-}
-If a field is not found, use null. Return ONLY the JSON object.`
-          }],
-        }),
-      }).then(r => r.json()).catch(() => null),
-
-      // Search 2: Current tax appraisal value from county appraisal district
-      fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 1000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `Search the ${countyName} appraisal district website or property tax records for the current appraised/assessed value of ${fullAddress}. Also look for the annual property tax amount. Try searching the county appraisal district portal, county tax assessor website, or public property records. Return ONLY a JSON object:
-{
-  "assessedValue": 389000,
-  "annualTax": 8200,
-  "taxYear": "2025",
-  "appraisalAccountNumber": "12345678",
-  "source": "Tarrant Appraisal District"
-}
-If a field is not found, use null. Return ONLY the JSON object.`
-          }],
-        }),
-      }).then(r => r.json()).catch(() => null),
-
-      // Search 3: Appraisal district filing address
-      fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 800,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `Search for the official mailing address of the ${countyName} Appraisal District in ${state.toUpperCase()} where property owners file tax protests. Find the current street address, city, ZIP, phone, website, and protest filing deadline. Return ONLY a JSON object:
-{
-  "districtName": "Tarrant Appraisal District",
-  "mailingAddress": "2500 Handley-Ederville Rd",
-  "city": "Fort Worth",
-  "state": "TX",
-  "zip": "76118",
-  "phone": "817-284-0024",
-  "website": "https://www.tad.org",
-  "filingDeadlineNote": "May 15 or 30 days after assessment notice, whichever is later",
-  "filingMethod": "mail or online"
-}
-Return ONLY the JSON object.`
-          }],
-        }),
-      }).then(r => r.json()).catch(() => null),
-    ]);
-
-    // Parse property details from web search
-    if (propertySearchResult?.content) {
-      const text = propertySearchResult.content.filter(b => b.type === "text").map(b => b.text).join("");
-      try {
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) {
-          const data = JSON.parse(match[0]);
-          console.log("PROPERTY FROM WEB SEARCH:", data);
-          if (!sqft && data.sqft) sqft = Number(data.sqft);
-          if (!beds && data.beds) beds = Number(data.beds);
-          if (!baths && data.baths) baths = Number(data.baths);
-          if (!yearBuilt && data.yearBuilt) yearBuilt = String(data.yearBuilt);
-          if (!marketValue && data.marketValue) marketValue = Number(data.marketValue);
-        }
-      } catch (e) {
-        console.log("Property search parse error:", e.message);
-      }
-    }
-
-    // Parse tax appraisal value from web search
-    if (taxSearchResult?.content) {
-      const text = taxSearchResult.content.filter(b => b.type === "text").map(b => b.text).join("");
-      try {
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) {
-          const data = JSON.parse(match[0]);
-          console.log("TAX DATA FROM WEB SEARCH:", data);
-          if (!assessedValue && data.assessedValue) assessedValue = Number(data.assessedValue);
-          if (!annualTax && data.annualTax) annualTax = Number(data.annualTax);
-        }
-      } catch (e) {
-        console.log("Tax search parse error:", e.message);
-      }
-    }
-
-    // Parse appraisal district info
+    // Step 3: Single combined web search for ALL property data at once
     let appraisalDistrict = null;
-    if (districtSearchResult?.content) {
-      const text = districtSearchResult.content.filter(b => b.type === "text").map(b => b.text).join("");
-      try {
+    try {
+      const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 1500,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          messages: [{
+            role: "user",
+            content: `I need three pieces of information about ${fullAddress} in ${countyName}, ${state.toUpperCase()}. Please search for all three and return a single JSON object.
+
+1. Property details from Zillow, Redfin, or Realtor.com: square footage, bedrooms, bathrooms, year built, estimated market value
+2. Current tax appraised value from the ${countyName} Appraisal District public records or county tax assessor website
+3. The official mailing address of the ${countyName} Appraisal District where property owners file tax protests, including phone, website, and protest deadline
+
+Return ONLY this JSON object with no other text:
+{
+  "property": {
+    "sqft": 2150,
+    "beds": 4,
+    "baths": 2.5,
+    "yearBuilt": 1998,
+    "marketValue": 425000,
+    "source": "Zillow"
+  },
+  "tax": {
+    "assessedValue": 389000,
+    "annualTax": 8200,
+    "taxYear": "2025",
+    "source": "Tarrant Appraisal District"
+  },
+  "district": {
+    "districtName": "Tarrant Appraisal District",
+    "mailingAddress": "2500 Handley-Ederville Rd",
+    "city": "Fort Worth",
+    "state": "TX",
+    "zip": "76118",
+    "phone": "817-284-0024",
+    "website": "https://www.tad.org",
+    "filingDeadlineNote": "May 15 or 30 days after notice, whichever is later",
+    "filingMethod": "mail or online"
+  }
+}
+Use null for any field you cannot find. Return ONLY the JSON object.`
+          }],
+        }),
+      });
+
+      const searchJson = await searchRes.json();
+      console.log("COMBINED SEARCH RESPONSE:", JSON.stringify(searchJson?.content?.filter(b => b.type === "text"), null, 2));
+
+      if (searchJson.content) {
+        const text = searchJson.content.filter(b => b.type === "text").map(b => b.text).join("");
         const match = text.match(/\{[\s\S]*\}/);
         if (match) {
-          appraisalDistrict = JSON.parse(match[0]);
-          console.log("APPRAISAL DISTRICT:", appraisalDistrict);
+          const data = JSON.parse(match[0]);
+          console.log("PARSED COMBINED DATA:", JSON.stringify(data, null, 2));
+
+          // Property details
+          const prop = data.property || {};
+          if (!sqft && prop.sqft) sqft = Number(prop.sqft);
+          if (!beds && prop.beds) beds = Number(prop.beds);
+          if (!baths && prop.baths) baths = Number(prop.baths);
+          if (!yearBuilt && prop.yearBuilt) yearBuilt = String(prop.yearBuilt);
+          if (!marketValue && prop.marketValue) marketValue = Number(prop.marketValue);
+
+          // Tax data
+          const tax = data.tax || {};
+          if (!assessedValue && tax.assessedValue) assessedValue = Number(tax.assessedValue);
+          if (!annualTax && tax.annualTax) annualTax = Number(tax.annualTax);
+
+          // Appraisal district
+          if (data.district && data.district.districtName) {
+            appraisalDistrict = data.district;
+          }
         }
-      } catch (e) {
-        console.log("District parse error:", e.message);
       }
+    } catch (e) {
+      console.log("Combined search failed:", e.message);
     }
 
-    // Step 3: BatchData as additional fallback for any still-missing fields
-    if (!assessedValue || !sqft || !yearBuilt) {
+    // Step 4: BatchData as fallback for any still-missing property fields
+    if (!sqft || !yearBuilt || !assessedValue) {
       try {
         const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
           method: "POST",
@@ -215,10 +191,6 @@ Return ONLY the JSON object.`
             if (!beds) beds = bi?.bedrooms ?? bi?.beds ?? null;
             if (!baths) baths = bi?.bathrooms ?? bi?.totalBaths ?? null;
             if (!annualTax) annualTax = ai?.annualTaxAmount ?? ai?.taxAmount ?? null;
-            if (!county) {
-              const bdCounty = prop?.address?.county || prop?.county || null;
-              if (bdCounty) county = bdCounty.replace(/ County$/i, "").trim();
-            }
           }
         }
       } catch (e) {
@@ -226,35 +198,7 @@ Return ONLY the JSON object.`
       }
     }
 
-    // Step 4: Claude county fallback if still missing
-    if (!county) {
-      try {
-        const countyRes = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-5",
-            max_tokens: 100,
-            messages: [{
-              role: "user",
-              content: `What county is ${fullAddress} in? Return ONLY JSON: {"county": "Name"} — name only, no word "County".`
-            }],
-          }),
-        });
-        const countyJson = await countyRes.json();
-        const countyText = (countyJson.content || []).map(b => b.text || "").join("");
-        const match = countyText.match(/\{[\s\S]*?\}/);
-        if (match) county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
-      } catch (e) {
-        console.log("Claude county fallback failed:", e.message);
-      }
-    }
-
-    // Step 5: Appraisal district fallback if web search failed
+    // Step 5: Appraisal district Claude fallback if web search missed it
     if (!appraisalDistrict) {
       try {
         const fallbackRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -266,7 +210,7 @@ Return ONLY the JSON object.`
           },
           body: JSON.stringify({
             model: "claude-sonnet-4-5",
-            max_tokens: 500,
+            max_tokens: 400,
             messages: [{
               role: "user",
               content: `What is the official mailing address of the ${countyName} Appraisal District in ${state.toUpperCase()} where property owners file tax protests? Return ONLY JSON:
@@ -278,7 +222,7 @@ Return ONLY the JSON object.`
   "zip": "ZIP",
   "phone": "Phone or null",
   "website": "URL or null",
-  "filingDeadlineNote": "Filing deadline note",
+  "filingDeadlineNote": "Filing deadline",
   "filingMethod": "mail | online | in-person | mail or online"
 }`
             }],
@@ -293,14 +237,12 @@ Return ONLY the JSON object.`
       }
     }
 
-    const finalCountyName = county ? `${county} County` : countyName;
-
-    console.log("FINAL DATA:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county: finalCountyName });
+    console.log("FINAL DATA:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county: countyName });
 
     return res.status(200).json({
       extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear },
       appraisalDistrict,
-      resolvedCounty: finalCountyName,
+      resolvedCounty: countyName,
     });
 
   } catch (err) {
