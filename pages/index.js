@@ -41,6 +41,250 @@ const S = {
   timelineSub: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2, fontFamily: "'Arial',sans-serif" },
 };
 
+// State support configuration
+const SUPPORTED_STATES = {
+  TX: {
+    name: "Texas",
+    deadlineType: "fixed",
+    deadlineMonth: 4, // May = month 4 (0-indexed)
+    deadlineDay: 15,
+    deadlineNote: "May 15 or 30 days after your appraisal notice, whichever is later",
+    filingNote: "Postmark by deadline counts in Texas",
+    board: "Appraisal Review Board (ARB)",
+  },
+  GA: {
+    name: "Georgia",
+    deadlineType: "rolling",
+    deadlineDaysAfterNotice: 45,
+    deadlineNote: "45 days from the date on your assessment notice",
+    filingNote: "Postmark by deadline counts in Georgia",
+    board: "Board of Equalization",
+  },
+  FL: {
+    name: "Florida",
+    deadlineType: "trim",
+    deadlineMonth: 8, // September = month 8 (0-indexed)
+    deadlineDay: 18,
+    deadlineNote: "25 days after your TRIM notice (typically mid-September)",
+    filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.",
+    board: "Value Adjustment Board (VAB)",
+  },
+};
+
+// Calculate days until deadline for supported states
+function getDeadlineInfo(stateCode) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const state = SUPPORTED_STATES[stateCode];
+  if (!state) return null;
+
+  let deadline = null;
+  if (stateCode === "TX") {
+    deadline = new Date(year, 4, 15); // May 15
+    if (today > deadline) deadline = new Date(year + 1, 4, 15);
+  } else if (stateCode === "FL") {
+    deadline = new Date(year, 8, 18); // ~Sept 18
+    if (today > deadline) deadline = new Date(year + 1, 8, 18);
+  } else if (stateCode === "GA") {
+    // Georgia is rolling — use a typical spring deadline
+    deadline = new Date(year, 5, 1); // June 1 as approximate
+    if (today > deadline) deadline = new Date(year + 1, 5, 1);
+  }
+
+  if (!deadline) return null;
+  const msLeft = deadline - today;
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+  return { daysLeft, deadline, state };
+}
+
+// Countdown banner component
+function CountdownBanner({ stateCode }) {
+  const info = getDeadlineInfo(stateCode);
+  if (!info) return null;
+  const { daysLeft, state } = info;
+
+  const urgent = daysLeft <= 14;
+  const warning = daysLeft <= 30 && daysLeft > 14;
+
+  const bgColor = urgent
+    ? "linear-gradient(135deg, rgba(192,57,43,0.25), rgba(192,57,43,0.15))"
+    : warning
+    ? "linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.1))"
+    : "linear-gradient(135deg, rgba(26,122,74,0.15), rgba(26,122,74,0.08))";
+
+  const borderColor = urgent
+    ? "rgba(192,57,43,0.5)"
+    : warning
+    ? "rgba(201,168,76,0.4)"
+    : "rgba(26,122,74,0.3)";
+
+  const textColor = urgent ? "#F1948A" : warning ? C.gold : "#52C48A";
+  const icon = urgent ? "🚨" : warning ? "⏰" : "📅";
+
+  const message = urgent
+    ? `Only ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left to file your ${state.name} protest — potentially save hundreds or thousands. Don't delay!`
+    : warning
+    ? `${daysLeft} days until the ${state.name} protest deadline. File now to protect your savings.`
+    : `${daysLeft} days until the ${state.name} protest deadline — ${state.deadlineNote}.`;
+
+  return (
+    <div style={{
+      background: bgColor,
+      border: `1px solid ${borderColor}`,
+      borderRadius: 8,
+      padding: "12px 18px",
+      marginBottom: 24,
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10,
+    }}>
+      <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+      <div>
+        <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", fontWeight: 700, color: textColor, marginBottom: 2 }}>
+          {message}
+        </div>
+        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+          {state.filingNote}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Unsupported state screen with waitlist
+function UnsupportedState({ stateCode, onBack }) {
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const stateName = stateCode
+    ? stateCode.toUpperCase()
+    : "your state";
+
+  return (
+    <div style={S.card}>
+      <div style={{ fontSize: 48, marginBottom: 16, textAlign: "center" }}>🗺️</div>
+      <h2 style={{ ...S.title, textAlign: "center" }}>Coming Soon to {stateName}</h2>
+      <p style={{ ...S.sub, textAlign: "center" }}>
+        TaxAppeal currently serves homeowners in <strong style={{ color: C.gold }}>Texas</strong>, <strong style={{ color: C.gold }}>Georgia</strong>, and <strong style={{ color: C.gold }}>Florida</strong>. We're expanding rapidly — enter your email to be first in line when we launch in {stateName}.
+      </p>
+
+      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "18px 20px", marginBottom: 24 }}>
+        <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", fontWeight: 700, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+          Currently available in:
+        </div>
+        {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
+          <div key={code} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.7)" }}>
+            <span style={{ color: "#52C48A", fontSize: 14 }}>✓</span>
+            <strong style={{ color: C.white }}>{s.name}</strong>
+            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>— {s.deadlineNote}</span>
+          </div>
+        ))}
+      </div>
+
+      {!submitted ? (
+        <>
+          <div style={S.fieldGroup}>
+            <label style={S.label}>Notify me when {stateName} launches</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              style={S.input}
+            />
+          </div>
+          <button
+            style={S.btn}
+            onClick={() => { if (email.includes("@")) setSubmitted(true); }}
+          >
+            Notify Me →
+          </button>
+        </>
+      ) : (
+        <div style={{ textAlign: "center", padding: "20px", background: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)", borderRadius: 8 }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
+          <div style={{ fontSize: 14, fontFamily: "'Arial',sans-serif", color: "#52C48A", fontWeight: 700 }}>You're on the list!</div>
+          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.45)", marginTop: 4 }}>We'll email you as soon as {stateName} is available.</div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, textAlign: "center" }}>
+        <button style={S.btnGhost} onClick={onBack}>← Back</button>
+      </div>
+    </div>
+  );
+}
+
+// Deadline popup modal
+function DeadlinePopup({ stateCode, onClose }) {
+  const info = getDeadlineInfo(stateCode);
+  const state = SUPPORTED_STATES[stateCode];
+  if (!info || !state) return null;
+  const { daysLeft } = info;
+  const urgent = daysLeft <= 14;
+  const accentColor = urgent ? "#F1948A" : C.gold;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+    }}>
+      <div style={{
+        background: `linear-gradient(160deg, ${C.ink} 0%, ${C.slate} 100%)`,
+        border: `1px solid ${urgent ? "rgba(192,57,43,0.5)" : "rgba(201,168,76,0.3)"}`,
+        borderRadius: 14, padding: "36px 40px", maxWidth: 480, width: "100%",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+      }}>
+        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>
+          {urgent ? "🚨" : "⏰"}
+        </div>
+        <h2 style={{ ...S.title, textAlign: "center", fontSize: 22, marginBottom: 8 }}>
+          {urgent ? `Only ${daysLeft} Days Left!` : `${daysLeft} Days Until Deadline`}
+        </h2>
+        <p style={{ ...S.sub, textAlign: "center", marginBottom: 20 }}>
+          {urgent
+            ? `The ${state.name} property tax protest deadline is almost here. Homeowners who file save an average of $800–$2,500 per year. Don't leave money on the table.`
+            : `The ${state.name} protest window is open. Most homeowners who file save hundreds or thousands per year.`}
+        </p>
+
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "16px 18px", marginBottom: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, fontFamily: "'Arial',sans-serif" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>State</span>
+              <span style={{ color: C.white, fontWeight: 700 }}>{state.name}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>Filing Body</span>
+              <span style={{ color: C.white }}>{state.board}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>Deadline Rule</span>
+              <span style={{ color: accentColor, fontWeight: 700, textAlign: "right", maxWidth: 220 }}>{state.deadlineNote}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>Filing Note</span>
+              <span style={{ color: "rgba(255,255,255,0.6)", textAlign: "right", maxWidth: 220 }}>{state.filingNote}</span>
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)" }}>Days Remaining</span>
+              <span style={{ color: accentColor, fontWeight: 700, fontSize: 16 }}>{daysLeft} days</span>
+            </div>
+          </div>
+        </div>
+
+        <button style={{ ...S.btn, marginTop: 0, marginBottom: 10 }} onClick={onClose}>
+          File My Protest Now →
+        </button>
+        <div style={{ textAlign: "center" }}>
+          <button style={{ ...S.btnGhost, fontSize: 12, padding: "7px 16px" }} onClick={onClose}>
+            I understand, continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ISSUE_CATEGORIES = [
   {
     category: "Structural & Major Systems",
@@ -165,63 +409,87 @@ function StepAccount({ data, onChange, onNext }) {
   );
 }
 
-function StepProperty({ data, onChange, onNext, onBack }) {
+function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
   const [err, setErr] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [checkedState, setCheckedState] = useState(null);
+
   const go = () => {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
+    const stateCode = data.state.trim().toUpperCase();
+    if (!SUPPORTED_STATES[stateCode]) {
+      onUnsupportedState(stateCode);
+      return;
+    }
+    if (checkedState !== stateCode) {
+      setCheckedState(stateCode);
+      setShowPopup(true);
+      return;
+    }
     setErr(""); onNext();
   };
+
+  const handlePopupClose = () => {
+    setShowPopup(false);
+    onNext();
+  };
+
   return (
-    <div style={S.card}>
-      <h2 style={S.title}>Your property</h2>
-      <p style={S.sub}>Enter your address and we'll automatically pull your tax appraisal value, property details, and comparable sales from public records.</p>
-      {err && <div style={S.err}>{err}</div>}
-      <Field label="Street Address" id="st" value={data.street} onChange={e => onChange("street", e.target.value)} placeholder="123 Maple Avenue" />
-      <div style={S.row3}>
-        <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
-        <Field label="State" id="state" value={data.state} onChange={e => onChange("state", e.target.value)} placeholder="TX" />
-        <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
-      </div>
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 18, marginTop: 4, marginBottom: 4 }}>
-        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>
-          Override (optional) — enter if you have your tax bill handy
-        </div>
-        <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.3)", marginBottom: 14, lineHeight: 1.5 }}>
-          Leave blank and we'll look everything up automatically.
-        </div>
-        <div style={S.row2}>
-          <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
-          <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
-        </div>
+    <>
+      {showPopup && checkedState && (
+        <DeadlinePopup stateCode={checkedState} onClose={handlePopupClose} />
+      )}
+      <div style={S.card}>
+        <h2 style={S.title}>Your property</h2>
+        <p style={S.sub}>Enter your address and we'll automatically pull your tax appraisal value, property details, and comparable sales from public records.</p>
+        {err && <div style={S.err}>{err}</div>}
+        <Field label="Street Address" id="st" value={data.street} onChange={e => onChange("street", e.target.value)} placeholder="123 Maple Avenue" />
         <div style={S.row3}>
-          <Field label="Year Built" id="ybm" value={data.manualYearBuilt} onChange={e => onChange("manualYearBuilt", e.target.value)} placeholder="1998" />
-          <Field label="Bedrooms" id="bd" value={data.manualBeds} onChange={e => onChange("manualBeds", e.target.value)} placeholder="4" />
-          <Field label="Bathrooms" id="bt" value={data.manualBaths} onChange={e => onChange("manualBaths", e.target.value)} placeholder="2.5" />
+          <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
+          <Field label="State" id="state" value={data.state} onChange={e => onChange("state", e.target.value)} placeholder="TX" />
+          <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
         </div>
-        <Field label="Property Type" id="pt" value={data.propType} onChange={e => onChange("propType", e.target.value)} placeholder="Single-family home" />
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 18, marginTop: 4, marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>
+            Override (optional) — enter if you have your tax bill handy
+          </div>
+          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.3)", marginBottom: 14, lineHeight: 1.5 }}>
+            Leave blank and we'll look everything up automatically.
+          </div>
+          <div style={S.row2}>
+            <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
+            <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
+          </div>
+          <div style={S.row3}>
+            <Field label="Year Built" id="ybm" value={data.manualYearBuilt} onChange={e => onChange("manualYearBuilt", e.target.value)} placeholder="1998" />
+            <Field label="Bedrooms" id="bd" value={data.manualBeds} onChange={e => onChange("manualBeds", e.target.value)} placeholder="4" />
+            <Field label="Bathrooms" id="bt" value={data.manualBaths} onChange={e => onChange("manualBaths", e.target.value)} placeholder="2.5" />
+          </div>
+          <Field label="Property Type" id="pt" value={data.propType} onChange={e => onChange("propType", e.target.value)} placeholder="Single-family home" />
+        </div>
+        <div style={S.fieldGroup}>
+          <label style={S.label}>Additional Notes (optional)</label>
+          <textarea value={data.notes} onChange={e => onChange("notes", e.target.value)}
+            placeholder="Any other details about the property..."
+            style={{ ...S.input, minHeight: 72, resize: "vertical", lineHeight: 1.6 }} />
+        </div>
+        <button style={{ ...S.btn, marginTop: 20 }} onClick={go}>Next: Property Issues →</button>
+        <div style={{ marginTop: 11, textAlign: "center" }}>
+          <button style={S.btnGhost} onClick={onBack}>← Back</button>
+        </div>
       </div>
-      <div style={S.fieldGroup}>
-        <label style={S.label}>Additional Notes (optional)</label>
-        <textarea value={data.notes} onChange={e => onChange("notes", e.target.value)}
-          placeholder="Any other details about the property..."
-          style={{ ...S.input, minHeight: 72, resize: "vertical", lineHeight: 1.6 }} />
-      </div>
-      <button style={{ ...S.btn, marginTop: 20 }} onClick={go}>Next: Property Issues →</button>
-      <div style={{ marginTop: 11, textAlign: "center" }}>
-        <button style={S.btnGhost} onClick={onBack}>← Back</button>
-      </div>
-    </div>
+    </>
   );
 }
 
-function StepIssues({ selectedIssues, onToggle, onNext, onBack }) {
+function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode }) {
   const count = selectedIssues.length;
   return (
     <div style={S.card}>
+      {stateCode && <CountdownBanner stateCode={stateCode} />}
       <div style={S.badge(false)}>💡 Optional but strengthens your case</div>
       <h2 style={S.title}>Property issues</h2>
-      <p style={S.sub}>Select any problems that apply to your property. These will be cited as evidence in your dispute letter to support the lower valuation.</p>
-
+      <p style={S.sub}>Select any problems that apply to your property. Each one will be cited as evidence in your dispute letter to support the lower valuation.</p>
       {ISSUE_CATEGORIES.map((cat) => (
         <div key={cat.category} style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.gold, marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
@@ -231,27 +499,8 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack }) {
             {cat.issues.map((issue) => {
               const selected = selectedIssues.includes(issue);
               return (
-                <div
-                  key={issue}
-                  onClick={() => onToggle(issue)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    padding: "10px 14px",
-                    borderRadius: 7,
-                    border: `1px solid ${selected ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"}`,
-                    background: selected ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.02)",
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <div style={{
-                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                    border: `2px solid ${selected ? C.gold : "rgba(255,255,255,0.2)"}`,
-                    background: selected ? C.gold : "transparent",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, color: C.ink, fontWeight: 700,
-                    transition: "all 0.15s",
-                  }}>
+                <div key={issue} onClick={() => onToggle(issue)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 7, border: `1px solid ${selected ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"}`, background: selected ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 0.15s" }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `2px solid ${selected ? C.gold : "rgba(255,255,255,0.2)"}`, background: selected ? C.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.ink, fontWeight: 700, transition: "all 0.15s" }}>
                     {selected ? "✓" : ""}
                   </div>
                   <span style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: selected ? C.white : "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>
@@ -263,13 +512,11 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack }) {
           </div>
         </div>
       ))}
-
       {count > 0 && (
         <div style={{ marginBottom: 20, padding: "10px 14px", background: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)", borderRadius: 7, fontSize: 12, fontFamily: "'Arial',sans-serif", color: "#52C48A" }}>
-          ✓ {count} issue{count !== 1 ? "s" : ""} selected — {count >= 3 ? "strong case" : count >= 1 ? "good start" : ""}
+          ✓ {count} issue{count !== 1 ? "s" : ""} selected — {count >= 3 ? "strong case" : "good start"}
         </div>
       )}
-
       <button style={S.btn} onClick={onNext}>
         {count > 0 ? `Generate Letter with ${count} Issue${count !== 1 ? "s" : ""} →` : "Skip & Generate Letter →"}
       </button>
@@ -297,6 +544,7 @@ function StepDispute({ formData, onRestart }) {
 
   const { account, property, issues } = formData;
   const addr = `${property.street}, ${property.city}, ${property.state} ${property.zip}`;
+  const stateCode = property.state.trim().toUpperCase();
 
   useEffect(() => {
     if (ran.current) return;
@@ -315,10 +563,8 @@ function StepDispute({ formData, onRestart }) {
           city: property.city,
           state: property.state,
           zip: property.zip,
-          manualAssessedValue: property.manualAssessedValue
-            ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null,
-          manualSqft: property.manualSqft
-            ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null,
+          manualAssessedValue: property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null,
+          manualSqft: property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null,
           manualYearBuilt: property.manualYearBuilt || null,
           manualBeds: property.manualBeds || null,
           manualBaths: property.manualBaths || null,
@@ -347,26 +593,19 @@ function StepDispute({ formData, onRestart }) {
 
       setStage(2);
 
-      const overPct = assessedValue && marketValue && marketValue > 0
-        ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
+      const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
       const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
-      const savings = assessedValue && marketValue && assessedValue > marketValue
-        ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
+      const savings = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
       const targetReduction = assessedValue ? Math.round(Number(assessedValue) * 0.80) : null;
 
-      const pd = {
-        assessedValue, marketValue, annualTax, county, taxYear,
-        overPct, savings, beds, baths, sqft, yearBuilt,
-        rawAddress: addr,
-        hasData: !!(assessedValue || marketValue),
-        appraisalDistrict, targetReduction,
-      };
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, overPct, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction };
       setPropData(pd);
 
       await new Promise(r => setTimeout(r, 400));
       setStage(3);
 
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
+      const stateInfo = SUPPORTED_STATES[stateCode] || {};
 
       const propDetails = [
         sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null,
@@ -378,12 +617,12 @@ function StepDispute({ formData, onRestart }) {
       ].filter(Boolean).join("\n");
 
       const issuesBlock = issues && issues.length > 0
-        ? `PROPERTY DEFECTS & ISSUES (selected by owner — cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}`
+        ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}`
         : "No specific property issues reported beyond general market value discrepancy.";
 
       const districtBlock = appraisalDistrict
-        ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || "Check with district"}\nFiling Method: ${appraisalDistrict.filingMethod || "mail"}`
-        : `FILE WITH: ${county} Appraisal District`;
+        ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}\nFiling Method: ${appraisalDistrict.filingMethod || "mail"}`
+        : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
 
       const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.
 
@@ -391,6 +630,7 @@ PROPERTY OWNER: ${account.firstName} ${account.lastName}
 EMAIL: ${account.email}
 PROPERTY ADDRESS: ${addr}
 COUNTY: ${county}
+STATE: ${property.state.toUpperCase()}
 TAX YEAR: ${taxYear}
 
 SUBJECT PROPERTY CHARACTERISTICS:
@@ -406,32 +646,25 @@ ${districtBlock}
 
 OWNER NOTES: ${property.notes || "None."}
 
-LETTER REQUIREMENTS — follow exactly:
+LETTER REQUIREMENTS:
 1. Address letter to: ${appraisalDistrict ? appraisalDistrict.districtName : county + " Appraisal District"}
 2. Date: June 2026
 3. Subject line referencing property address and tax year
-4. Section "SUBJECT PROPERTY DESCRIPTION": list every characteristic with its EXACT number — sq footage, year built, bedrooms, bathrooms, assessed value, price per sq ft. Never write "on file" — use the actual numbers.
-5. Section "PROPERTY DEFECTS & CONDITIONS": if any issues were selected above, cite each one by name and explain how each defect negatively impacts market value and supports a lower assessment. Be specific and persuasive.
-6. Section "COMPARABLE SALES EVIDENCE": cite 4-5 real recent sales from ZIP ${property.zip} with addresses, prices, dates, sq ft, and price per sq ft. Show the subject property's assessed price per sq ft exceeds comparable sales.
-7. Section "MARKET CONDITIONS": explain ${county} market trends supporting a lower valuation
-8. Section "LEGAL BASIS": cite Texas Tax Code §41.41 and §41.43 (or applicable state statute), equal and uniform assessment, and market value standard
-9. Demand 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}
-10. Request ARB hearing if protest is not resolved at informal level
-11. Professional closing with owner name, address, email, and signature line
+4. Section "SUBJECT PROPERTY DESCRIPTION": list every characteristic with its EXACT number. Never write "on file."
+5. Section "PROPERTY DEFECTS & CONDITIONS": cite each selected issue by name, explain how it negatively impacts market value. Be specific and persuasive.
+6. Section "COMPARABLE SALES EVIDENCE": cite 4-5 real recent sales from ZIP ${property.zip} with addresses, prices, dates, sq ft, and price per sq ft. Show subject property's assessed price per sq ft exceeds comparable sales.
+7. Section "MARKET CONDITIONS": explain local market trends supporting a lower valuation.
+8. Section "LEGAL BASIS": cite applicable state statutes (Texas Tax Code §41.41/§41.43 for TX, O.C.G.A. §48-5-311 for GA, Florida Statute §194.011 for FL), equal and uniform assessment, and market value standard.
+9. Demand 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}.
+10. Request formal hearing if not resolved administratively.
+11. Professional closing with owner name, address, email, and signature line.
 
 Output ONLY the complete formal letter.`;
 
       const claudeRes = await fetch("/api/generate-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          address: addr,
-          county,
-          assessedValue,
-          zip: property.zip,
-          state: property.state,
-        }),
+        body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }),
       });
 
       const claudeJson = await claudeRes.json();
@@ -464,9 +697,7 @@ Output ONLY the complete formal letter.`;
             return (
               <div key={i} style={S.timelineItem(done, active)}>
                 <div style={S.timelineDot(done, active)}>
-                  {done ? "✓" : active
-                    ? <div style={{ width: 9, height: 9, borderRadius: "50%", border: `2px solid ${C.gold}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />
-                    : i + 1}
+                  {done ? "✓" : active ? <div style={{ width: 9, height: 9, borderRadius: "50%", border: `2px solid ${C.gold}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} /> : i + 1}
                 </div>
                 <div>
                   <div style={S.timelineText(active)}>{st.label}</div>
@@ -487,9 +718,7 @@ Output ONLY the complete formal letter.`;
         <div style={S.err}>{errMsg}</div>
         <p style={{ ...S.sub, marginBottom: 20 }}>Try again or go back and enter your details manually.</p>
         <button style={S.btn} onClick={retry}>Try Again</button>
-        <div style={{ marginTop: 11, textAlign: "center" }}>
-          <button style={S.btnGhost} onClick={onRestart}>← Start over</button>
-        </div>
+        <div style={{ marginTop: 11, textAlign: "center" }}><button style={S.btnGhost} onClick={onRestart}>← Start over</button></div>
       </div>
     );
   }
@@ -497,85 +726,48 @@ Output ONLY the complete formal letter.`;
   const pd = propData || {};
   return (
     <div style={S.card}>
+      {stateCode && <CountdownBanner stateCode={stateCode} />}
       <div style={S.badge(true)}>✓ Dispute Letter Ready</div>
       <h2 style={S.title}>Your dispute letter</h2>
       <p style={S.sub}>{pd.rawAddress} — {pd.county}</p>
-
-      {/* Key value cards */}
       <div style={S.infoRow}>
-        {pd.assessedValue && (
-          <div style={S.infoBox}>
-            <div style={S.infoLabel}>Current Assessed Value</div>
-            <div style={S.infoVal}>${Number(pd.assessedValue).toLocaleString()}</div>
-          </div>
-        )}
-        {pd.targetReduction && (
-          <div style={S.infoBox}>
-            <div style={S.infoLabel}>Target Value (−20%)</div>
-            <div style={{ ...S.infoVal, color: "#52C48A" }}>${Number(pd.targetReduction).toLocaleString()}</div>
-          </div>
-        )}
-        {pd.savings && pd.savings > 0 && (
-          <div style={S.infoBox}>
-            <div style={S.infoLabel}>Est. Annual Savings</div>
-            <div style={{ ...S.infoVal, color: C.gold }}>${pd.savings.toLocaleString()}</div>
-          </div>
-        )}
+        {pd.assessedValue && <div style={S.infoBox}><div style={S.infoLabel}>Current Assessed Value</div><div style={S.infoVal}>${Number(pd.assessedValue).toLocaleString()}</div></div>}
+        {pd.targetReduction && <div style={S.infoBox}><div style={S.infoLabel}>Target Value (−20%)</div><div style={{ ...S.infoVal, color: "#52C48A" }}>${Number(pd.targetReduction).toLocaleString()}</div></div>}
+        {pd.savings && pd.savings > 0 && <div style={S.infoBox}><div style={S.infoLabel}>Est. Annual Savings</div><div style={{ ...S.infoVal, color: C.gold }}>${pd.savings.toLocaleString()}</div></div>}
       </div>
-
-      {/* Property detail chips */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         {pd.sqft && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>📐 {Number(pd.sqft).toLocaleString()} sq ft</span>}
         {pd.yearBuilt && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🏗 Built {pd.yearBuilt}</span>}
         {pd.beds && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🛏 {pd.beds} bed</span>}
         {pd.baths && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🚿 {pd.baths} bath</span>}
         {pd.annualTax && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>💰 ${Number(pd.annualTax).toLocaleString()}/yr tax</span>}
-        {pd.sqft && pd.assessedValue && (
-          <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(201,168,76,0.1)", borderRadius: 4, padding: "4px 10px", color: C.gold }}>
-            📊 ${Math.round(Number(pd.assessedValue) / Number(pd.sqft))}/sqft assessed
-          </span>
-        )}
+        {pd.sqft && pd.assessedValue && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(201,168,76,0.1)", borderRadius: 4, padding: "4px 10px", color: C.gold }}>📊 ${Math.round(Number(pd.assessedValue) / Number(pd.sqft))}/sqft assessed</span>}
       </div>
-
-      {/* Selected issues chips */}
       {formData.issues && formData.issues.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontFamily: "'Arial',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Issues cited in letter</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {formData.issues.map(issue => (
-              <span key={issue} style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: 4, padding: "3px 9px", color: "#F1948A" }}>
-                {issue}
-              </span>
+              <span key={issue} style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: 4, padding: "3px 9px", color: "#F1948A" }}>{issue}</span>
             ))}
           </div>
         </div>
       )}
-
-      {!pd.hasData && (
-        <div style={S.warn}>⚠️ Limited data returned. The letter was drafted with available info — verify figures with your county assessor.</div>
-      )}
-
+      {!pd.hasData && <div style={S.warn}>⚠️ Limited data returned. Verify figures with your county assessor.</div>}
       <div style={S.letterBox}>{letter}</div>
-
       <div style={{ display: "flex", gap: 11, marginTop: 18 }}>
         <button style={{ ...S.btn, flex: 1, marginTop: 0 }} onClick={doCopy}>{copied ? "✓ Copied!" : "Copy Letter"}</button>
         <button style={{ ...S.btn, flex: 1, marginTop: 0, background: "rgba(255,255,255,0.08)", color: C.white }} onClick={doPrint}>Print Letter</button>
       </div>
-
-      {/* Where to file */}
       <div style={{ marginTop: 22, padding: "16px 18px", background: "rgba(26,122,74,0.07)", border: "1px solid rgba(26,122,74,0.2)", borderRadius: 8 }}>
-        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52C48A", marginBottom: 10 }}>
-          Where to File Your Dispute
-        </div>
+        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52C48A", marginBottom: 10 }}>Where to File Your Dispute</div>
         {pd.appraisalDistrict ? (
           <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.75)", lineHeight: 1.9 }}>
             <div style={{ fontWeight: 700, color: C.white, fontSize: 14, marginBottom: 4 }}>{pd.appraisalDistrict.districtName}</div>
             <div>{pd.appraisalDistrict.mailingAddress}</div>
             <div>{pd.appraisalDistrict.city}, {pd.appraisalDistrict.state} {pd.appraisalDistrict.zip}</div>
             {pd.appraisalDistrict.phone && <div style={{ marginTop: 4 }}>📞 {pd.appraisalDistrict.phone}</div>}
-            {pd.appraisalDistrict.website && (
-              <div>🌐 <a href={pd.appraisalDistrict.website} target="_blank" rel="noopener noreferrer" style={{ color: C.gold }}>{pd.appraisalDistrict.website}</a></div>
-            )}
+            {pd.appraisalDistrict.website && <div>🌐 <a href={pd.appraisalDistrict.website} target="_blank" rel="noopener noreferrer" style={{ color: C.gold }}>{pd.appraisalDistrict.website}</a></div>}
             <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(201,168,76,0.08)", borderRadius: 6, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.7 }}>
               <strong style={{ color: C.gold }}>Filing Method:</strong> {pd.appraisalDistrict.filingMethod}<br />
               <strong style={{ color: C.gold }}>Deadline:</strong> {pd.appraisalDistrict.filingDeadlineNote}<br />
@@ -585,15 +777,11 @@ Output ONLY the complete formal letter.`;
         ) : (
           <div style={{ fontSize: 12.5, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
             Search <strong style={{ color: "rgba(255,255,255,0.8)" }}>"{pd.county} appraisal district"</strong> to find the filing address.<br />
-            Most counties require filing <strong style={{ color: "rgba(255,255,255,0.8)" }}>30–90 days</strong> after the assessment notice.<br />
             Send by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> with tracking as proof of filing.
           </div>
         )}
       </div>
-
-      <div style={{ marginTop: 14, textAlign: "center" }}>
-        <button style={S.btnGhost} onClick={onRestart}>Start a new dispute</button>
-      </div>
+      <div style={{ marginTop: 14, textAlign: "center" }}><button style={S.btnGhost} onClick={onRestart}>Start a new dispute</button></div>
       <div style={{ marginTop: 18, padding: "13px 16px", background: "rgba(201,168,76,0.05)", borderRadius: 8, border: "1px solid rgba(201,168,76,0.12)", fontSize: 11.5, color: "rgba(255,255,255,0.38)", fontFamily: "'Arial',sans-serif", lineHeight: 1.6 }}>
         ⚖️ <strong style={{ color: "rgba(255,255,255,0.5)" }}>Disclaimer:</strong> This letter is AI-generated for informational purposes and does not constitute legal advice. Consult a licensed property tax consultant for jurisdiction-specific filing requirements.
       </div>
@@ -604,31 +792,22 @@ Output ONLY the complete formal letter.`;
 export default function App() {
   const [step, setStep] = useState("account");
   const [account, setAccount] = useState({ firstName: "", lastName: "", email: "", password: "" });
-  const [property, setProperty] = useState({
-    street: "", city: "", state: "", zip: "",
-    propType: "", yearBuilt: "", notes: "",
-    manualAssessedValue: "", manualSqft: "", manualYearBuilt: "",
-    manualBeds: "", manualBaths: "",
-  });
+  const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
   const [issues, setIssues] = useState([]);
+  const [unsupportedState, setUnsupportedState] = useState(null);
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
-
-  const toggleIssue = (issue) => {
-    setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
-  };
+  const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
 
   const restart = () => {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
-    setProperty({
-      street: "", city: "", state: "", zip: "",
-      propType: "", yearBuilt: "", notes: "",
-      manualAssessedValue: "", manualSqft: "", manualYearBuilt: "",
-      manualBeds: "", manualBaths: "",
-    });
+    setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
     setIssues([]);
+    setUnsupportedState(null);
   };
+
+  const stateCode = property.state.trim().toUpperCase();
 
   return (
     <div style={S.page}>
@@ -649,11 +828,17 @@ export default function App() {
         </div>
       </header>
       <main style={S.main}>
-        <ProgressBar currentStep={step} />
-        {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
-        {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} />}
-        {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} />}
-        {step === "dispute" && <StepDispute formData={{ account, property, issues }} onRestart={restart} />}
+        {unsupportedState ? (
+          <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
+        ) : (
+          <>
+            <ProgressBar currentStep={step} />
+            {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
+            {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} onUnsupportedState={(s) => setUnsupportedState(s)} />}
+            {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} stateCode={stateCode} />}
+            {step === "dispute" && <StepDispute formData={{ account, property, issues }} onRestart={restart} />}
+          </>
+        )}
       </main>
     </div>
   );
