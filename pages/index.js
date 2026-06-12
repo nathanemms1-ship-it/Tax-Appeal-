@@ -409,6 +409,89 @@ function StepAccount({ data, onChange, onNext }) {
   );
 }
 
+
+function AddressAutocomplete({ value, onChange, onSelect }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const debounce = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setShow(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    onChange(val);
+    if (debounce.current) clearTimeout(debounce.current);
+    if (val.length < 3) { setSuggestions([]); setShow(false); return; }
+    debounce.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/autocomplete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: val }),
+        });
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+        setShow((data.suggestions || []).length > 0);
+      } catch (_) {}
+      setLoading(false);
+    }, 300);
+  };
+
+  const handleSelect = (s) => {
+    onSelect(s);
+    setShow(false);
+    setSuggestions([]);
+  };
+
+  return (
+    <div ref={wrapRef} style={{ ...S.fieldGroup, position: "relative" }}>
+      <label style={S.label}>Street Address</label>
+      <div style={{ position: "relative" }}>
+        <input
+          type="text"
+          value={value}
+          onChange={handleChange}
+          placeholder="123 Maple Avenue"
+          style={{ ...S.input, ...(focused ? { borderColor: C.gold } : {}), paddingRight: 36 }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          autoComplete="off"
+        />
+        {loading && (
+          <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.gold}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />
+        )}
+      </div>
+      {show && suggestions.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#1E1E38", border: `1px solid rgba(201,168,76,0.35)`, borderRadius: "0 0 8px 8px", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={() => handleSelect(s)}
+              style={{ padding: "11px 15px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: 10 }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ color: C.gold, fontSize: 14, flexShrink: 0 }}>📍</span>
+              <div>
+                <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: C.white, lineHeight: 1.3 }}>{s.street}</div>
+                <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{[s.city, s.state, s.zip].filter(Boolean).join(", ")}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
   const [err, setErr] = useState("");
   const [showPopup, setShowPopup] = useState(false);
@@ -443,7 +526,16 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
         <h2 style={S.title}>Your property</h2>
         <p style={S.sub}>Enter your address and we'll automatically pull your tax appraisal value, property details, and comparable sales from public records.</p>
         {err && <div style={S.err}>{err}</div>}
-        <Field label="Street Address" id="st" value={data.street} onChange={e => onChange("street", e.target.value)} placeholder="123 Maple Avenue" />
+        <AddressAutocomplete
+          value={data.street}
+          onChange={(val) => onChange("street", val)}
+          onSelect={(s) => {
+            onChange("street", s.street);
+            if (s.city) onChange("city", s.city);
+            if (s.state) onChange("state", s.state);
+            if (s.zip) onChange("zip", s.zip);
+          }}
+        />
         <div style={S.row3}>
           <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
           <Field label="State" id="state" value={data.state} onChange={e => onChange("state", e.target.value)} placeholder="TX" />
