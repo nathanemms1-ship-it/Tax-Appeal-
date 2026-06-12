@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
-const STEPS = ["account", "property", "dispute"];
-const stepLabels = { account: "Create Account", property: "Your Property", dispute: "Dispute Letter" };
+const STEPS = ["account", "property", "issues", "dispute"];
+const stepLabels = { account: "Create Account", property: "Your Property", issues: "Property Issues", dispute: "Dispute Letter" };
 
 const C = {
   ink: "#1A1A2E", slate: "#2C2C4A", white: "#FFFFFF",
@@ -40,6 +40,72 @@ const S = {
   timelineText: (active) => ({ fontSize: 13, fontFamily: "'Arial',sans-serif", color: active ? C.white : "rgba(255,255,255,0.6)", lineHeight: 1.45 }),
   timelineSub: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2, fontFamily: "'Arial',sans-serif" },
 };
+
+const ISSUE_CATEGORIES = [
+  {
+    category: "Structural & Major Systems",
+    icon: "🏗",
+    issues: [
+      "Foundation cracks, settling, or structural damage",
+      "Roof damage or age (leaks, missing shingles, sagging)",
+      "Major water damage (ceiling/wall/floor stains, rot)",
+      "Mold or persistent mildew problems",
+      "Outdated or failed HVAC system",
+      "Failed or aging water heater",
+      "Outdated electrical service",
+      "Significant plumbing defects (leaks, corroded pipes)",
+      "Sewer or septic failure requiring replacement",
+    ],
+  },
+  {
+    category: "Safety, Health & Code",
+    icon: "⚠️",
+    issues: [
+      "Active pest infestation (termites, rodents)",
+      "Asbestos or lead paint present",
+      "Code violations or illegal additions",
+      "Unpermitted work or missing permits",
+      "Noncompliant electrical (knob-and-tube, overloaded panels)",
+      "Hazardous materials requiring remediation",
+    ],
+  },
+  {
+    category: "Functional & Livability",
+    icon: "🏠",
+    issues: [
+      "Cramped or poorly configured rooms",
+      "Illegally converted rooms with no egress",
+      "Inadequate insulation or energy inefficiency",
+      "Broken windows, doors, or security issues",
+      "No indoor laundry hookups",
+      "Only one bathroom for multiple bedrooms",
+      "Severely dated interiors requiring major renovation",
+    ],
+  },
+  {
+    category: "Exterior & Site",
+    icon: "🌿",
+    issues: [
+      "Poor drainage causing yard or foundation flooding",
+      "Floodplain location or high flood insurance costs",
+      "Erosion, steep unusable land, or poor lot configuration",
+      "Proximity to busy road, industrial site, or airport",
+      "Proximity to landfill or other nuisance",
+      "Unpermitted outbuildings, fences, or encroachments",
+    ],
+  },
+  {
+    category: "Appearance & Maintenance",
+    icon: "🔧",
+    issues: [
+      "Deferred maintenance (peeling paint, rotten trim)",
+      "Severely dated kitchen requiring full update",
+      "Severely dated bathrooms requiring full update",
+      "Significant curb appeal issues reducing buyer interest",
+      "Overgrown or neglected landscaping",
+    ],
+  },
+];
 
 function Field({ label, id, type = "text", value, onChange, placeholder, mono }) {
   const [f, setF] = useState(false);
@@ -137,19 +203,86 @@ function StepProperty({ data, onChange, onNext, onBack }) {
       <div style={S.fieldGroup}>
         <label style={S.label}>Additional Notes (optional)</label>
         <textarea value={data.notes} onChange={e => onChange("notes", e.target.value)}
-          placeholder="e.g., Foundation issues, recent storm damage, deferred maintenance, comparable homes assessed lower..."
-          style={{ ...S.input, minHeight: 80, resize: "vertical", lineHeight: 1.6 }} />
+          placeholder="Any other details about the property..."
+          style={{ ...S.input, minHeight: 72, resize: "vertical", lineHeight: 1.6 }} />
       </div>
-      <button style={{ ...S.btn, marginTop: 20 }} onClick={go}>Look Up My Assessment →</button>
+      <button style={{ ...S.btn, marginTop: 20 }} onClick={go}>Next: Property Issues →</button>
       <div style={{ marginTop: 11, textAlign: "center" }}>
         <button style={S.btnGhost} onClick={onBack}>← Back</button>
       </div>
     </div>
   );
 }
+
+function StepIssues({ selectedIssues, onToggle, onNext, onBack }) {
+  const count = selectedIssues.length;
+  return (
+    <div style={S.card}>
+      <div style={S.badge(false)}>💡 Optional but strengthens your case</div>
+      <h2 style={S.title}>Property issues</h2>
+      <p style={S.sub}>Select any problems that apply to your property. These will be cited as evidence in your dispute letter to support the lower valuation.</p>
+
+      {ISSUE_CATEGORIES.map((cat) => (
+        <div key={cat.category} style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.gold, marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
+            <span>{cat.icon}</span>{cat.category}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {cat.issues.map((issue) => {
+              const selected = selectedIssues.includes(issue);
+              return (
+                <div
+                  key={issue}
+                  onClick={() => onToggle(issue)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 14px",
+                    borderRadius: 7,
+                    border: `1px solid ${selected ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"}`,
+                    background: selected ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.02)",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                    border: `2px solid ${selected ? C.gold : "rgba(255,255,255,0.2)"}`,
+                    background: selected ? C.gold : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 11, color: C.ink, fontWeight: 700,
+                    transition: "all 0.15s",
+                  }}>
+                    {selected ? "✓" : ""}
+                  </div>
+                  <span style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: selected ? C.white : "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>
+                    {issue}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {count > 0 && (
+        <div style={{ marginBottom: 20, padding: "10px 14px", background: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)", borderRadius: 7, fontSize: 12, fontFamily: "'Arial',sans-serif", color: "#52C48A" }}>
+          ✓ {count} issue{count !== 1 ? "s" : ""} selected — {count >= 3 ? "strong case" : count >= 1 ? "good start" : ""}
+        </div>
+      )}
+
+      <button style={S.btn} onClick={onNext}>
+        {count > 0 ? `Generate Letter with ${count} Issue${count !== 1 ? "s" : ""} →` : "Skip & Generate Letter →"}
+      </button>
+      <div style={{ marginTop: 11, textAlign: "center" }}>
+        <button style={S.btnGhost} onClick={onBack}>← Back</button>
+      </div>
+    </div>
+  );
+}
+
 const STAGES = [
   { label: "Determining county", sub: "Looking up jurisdiction via Census geocoder" },
-  { label: "Retrieving assessment data", sub: "Pulling official county assessor records" },
+  { label: "Retrieving assessment data", sub: "Searching county appraisal district records" },
   { label: "Finding appraisal district", sub: "Locating where to file your dispute" },
   { label: "Drafting dispute letter", sub: "Building legal arguments with comp evidence" },
 ];
@@ -162,7 +295,7 @@ function StepDispute({ formData, onRestart }) {
   const [copied, setCopied] = useState(false);
   const ran = useRef(false);
 
-  const { account, property } = formData;
+  const { account, property, issues } = formData;
   const addr = `${property.street}, ${property.city}, ${property.state} ${property.zip}`;
 
   useEffect(() => {
@@ -183,10 +316,12 @@ function StepDispute({ formData, onRestart }) {
           state: property.state,
           zip: property.zip,
           manualAssessedValue: property.manualAssessedValue
-            ? Number(property.manualAssessedValue.replace(/[^0-9]/g, "")) : null,
+            ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null,
           manualSqft: property.manualSqft
-            ? Number(property.manualSqft.replace(/[^0-9]/g, "")) : null,
+            ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null,
           manualYearBuilt: property.manualYearBuilt || null,
+          manualBeds: property.manualBeds || null,
+          manualBaths: property.manualBaths || null,
         }),
       });
 
@@ -207,7 +342,7 @@ function StepDispute({ formData, onRestart }) {
       const beds = extracted.beds || null;
       const baths = extracted.baths || null;
       const sqft = extracted.sqft || null;
-      const yearBuilt = extracted.yearBuilt || property.yearBuilt || null;
+      const yearBuilt = extracted.yearBuilt || null;
       const appraisalDistrict = bdJson?.appraisalDistrict || null;
 
       setStage(2);
@@ -231,51 +366,58 @@ function StepDispute({ formData, onRestart }) {
       await new Promise(r => setTimeout(r, 400));
       setStage(3);
 
-      const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : "on file";
+      const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
+
+      const propDetails = [
+        sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null,
+        yearBuilt ? `Year Built: ${yearBuilt}` : null,
+        beds ? `Bedrooms: ${beds}` : null,
+        baths ? `Bathrooms: ${baths}` : null,
+        property.propType ? `Property Type: ${property.propType}` : null,
+        sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null,
+      ].filter(Boolean).join("\n");
+
+      const issuesBlock = issues && issues.length > 0
+        ? `PROPERTY DEFECTS & ISSUES (selected by owner — cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}`
+        : "No specific property issues reported beyond general market value discrepancy.";
 
       const districtBlock = appraisalDistrict
-        ? `FILE YOUR DISPUTE WITH:
-${appraisalDistrict.districtName}
-${appraisalDistrict.mailingAddress}
-${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}
-${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}
-${appraisalDistrict.website ? "Website: " + appraisalDistrict.website : ""}
-Filing deadline: ${appraisalDistrict.filingDeadlineNote || "Check with district"}
-Filing method: ${appraisalDistrict.filingMethod || "mail"}`
+        ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || "Check with district"}\nFiling Method: ${appraisalDistrict.filingMethod || "mail"}`
         : `FILE WITH: ${county} Appraisal District`;
 
-      const prompt = `You are a property tax attorney. Write a complete, formal property tax assessment dispute letter. Output ONLY the letter — no preamble, no markdown, no explanation.
+      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.
 
-OWNER: ${account.firstName} ${account.lastName}
+PROPERTY OWNER: ${account.firstName} ${account.lastName}
 EMAIL: ${account.email}
 PROPERTY ADDRESS: ${addr}
-PROPERTY TYPE: ${property.propType || "Residential"}
-BEDS/BATHS: ${beds ? beds + " bed" : "on file"} / ${baths ? baths + " bath" : "on file"}
-SQUARE FOOTAGE: ${sqft ? Number(sqft).toLocaleString() + " sq ft" : "on file"}
-YEAR BUILT: ${yearBuilt || "on file"}
 COUNTY: ${county}
 TAX YEAR: ${taxYear}
 
-OFFICIAL ASSESSMENT DATA:
-- Current Assessed Value: ${fmt(assessedValue)}
-- Estimated Fair Market Value: ${fmt(marketValue)}
-- Annual Tax Bill: ${fmt(annualTax)}
-- Over-Assessment: ${overPct != null ? overPct + "%" : "significant discrepancy"}
+SUBJECT PROPERTY CHARACTERISTICS:
+${propDetails || "See county records"}
+Current Assessed Value: ${fmt(assessedValue) || "See records"}
+Estimated Market Value: ${fmt(marketValue) || "N/A"}
+Annual Tax Bill: ${fmt(annualTax) || "N/A"}
+Requested Reduction: 20% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}
+
+${issuesBlock}
 
 ${districtBlock}
 
-LETTER REQUIREMENTS:
-1. Address the letter directly to ${appraisalDistrict ? appraisalDistrict.districtName : county + " Appraisal District"}
-2. Open with a clear demand for a 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}
-3. Reference the specific square footage (${sqft ? Number(sqft).toLocaleString() + " sq ft" : "on file"}) and year built (${yearBuilt || "on file"})
-4. Include a section "Comparable Sales Evidence" — cite 3-5 realistic comparable sales from ZIP ${property.zip} with addresses, sale prices, dates, and price per sq ft
-5. Include a section "Market Conditions" — explain how ${county} market trends support a lower assessment
-6. Include a section "Legal Basis" — cite Texas Tax Code Section 41.41 (or applicable state law), equal and uniform assessment standards
-7. Calculate and compare price-per-sq-ft of subject property vs comparables
-8. Request a formal ARB hearing if the protest is not resolved administratively
-9. Close with owner full name, property address, and email
+OWNER NOTES: ${property.notes || "None."}
 
-ADDITIONAL NOTES FROM OWNER: ${property.notes || "None provided."}
+LETTER REQUIREMENTS — follow exactly:
+1. Address letter to: ${appraisalDistrict ? appraisalDistrict.districtName : county + " Appraisal District"}
+2. Date: June 2026
+3. Subject line referencing property address and tax year
+4. Section "SUBJECT PROPERTY DESCRIPTION": list every characteristic with its EXACT number — sq footage, year built, bedrooms, bathrooms, assessed value, price per sq ft. Never write "on file" — use the actual numbers.
+5. Section "PROPERTY DEFECTS & CONDITIONS": if any issues were selected above, cite each one by name and explain how each defect negatively impacts market value and supports a lower assessment. Be specific and persuasive.
+6. Section "COMPARABLE SALES EVIDENCE": cite 4-5 real recent sales from ZIP ${property.zip} with addresses, prices, dates, sq ft, and price per sq ft. Show the subject property's assessed price per sq ft exceeds comparable sales.
+7. Section "MARKET CONDITIONS": explain ${county} market trends supporting a lower valuation
+8. Section "LEGAL BASIS": cite Texas Tax Code §41.41 and §41.43 (or applicable state statute), equal and uniform assessment, and market value standard
+9. Demand 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}
+10. Request ARB hearing if protest is not resolved at informal level
+11. Professional closing with owner name, address, email, and signature line
 
 Output ONLY the complete formal letter.`;
 
@@ -343,7 +485,7 @@ Output ONLY the complete formal letter.`;
       <div style={S.card}>
         <h2 style={S.title}>Lookup failed</h2>
         <div style={S.err}>{errMsg}</div>
-        <p style={{ ...S.sub, marginBottom: 20 }}>Try again or enter your assessment details manually in the property step.</p>
+        <p style={{ ...S.sub, marginBottom: 20 }}>Try again or go back and enter your details manually.</p>
         <button style={S.btn} onClick={retry}>Try Again</button>
         <div style={{ marginTop: 11, textAlign: "center" }}>
           <button style={S.btnGhost} onClick={onRestart}>← Start over</button>
@@ -355,7 +497,7 @@ Output ONLY the complete formal letter.`;
   const pd = propData || {};
   return (
     <div style={S.card}>
-      <div style={S.badge(true)}>✓ Assessment Retrieved — Dispute Ready</div>
+      <div style={S.badge(true)}>✓ Dispute Letter Ready</div>
       <h2 style={S.title}>Your dispute letter</h2>
       <p style={S.sub}>{pd.rawAddress} — {pd.county}</p>
 
@@ -382,7 +524,7 @@ Output ONLY the complete formal letter.`;
       </div>
 
       {/* Property detail chips */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         {pd.sqft && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>📐 {Number(pd.sqft).toLocaleString()} sq ft</span>}
         {pd.yearBuilt && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🏗 Built {pd.yearBuilt}</span>}
         {pd.beds && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🛏 {pd.beds} bed</span>}
@@ -395,11 +537,24 @@ Output ONLY the complete formal letter.`;
         )}
       </div>
 
+      {/* Selected issues chips */}
+      {formData.issues && formData.issues.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontFamily: "'Arial',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Issues cited in letter</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {formData.issues.map(issue => (
+              <span key={issue} style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: 4, padding: "3px 9px", color: "#F1948A" }}>
+                {issue}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!pd.hasData && (
         <div style={S.warn}>⚠️ Limited data returned. The letter was drafted with available info — verify figures with your county assessor.</div>
       )}
 
-      {/* Letter */}
       <div style={S.letterBox}>{letter}</div>
 
       <div style={{ display: "flex", gap: 11, marginTop: 18 }}>
@@ -431,7 +586,7 @@ Output ONLY the complete formal letter.`;
           <div style={{ fontSize: 12.5, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
             Search <strong style={{ color: "rgba(255,255,255,0.8)" }}>"{pd.county} appraisal district"</strong> to find the filing address.<br />
             Most counties require filing <strong style={{ color: "rgba(255,255,255,0.8)" }}>30–90 days</strong> after the assessment notice.<br />
-            Send this letter by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> as supporting documentation.
+            Send by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> with tracking as proof of filing.
           </div>
         )}
       </div>
@@ -439,7 +594,6 @@ Output ONLY the complete formal letter.`;
       <div style={{ marginTop: 14, textAlign: "center" }}>
         <button style={S.btnGhost} onClick={onRestart}>Start a new dispute</button>
       </div>
-
       <div style={{ marginTop: 18, padding: "13px 16px", background: "rgba(201,168,76,0.05)", borderRadius: 8, border: "1px solid rgba(201,168,76,0.12)", fontSize: 11.5, color: "rgba(255,255,255,0.38)", fontFamily: "'Arial',sans-serif", lineHeight: 1.6 }}>
         ⚖️ <strong style={{ color: "rgba(255,255,255,0.5)" }}>Disclaimer:</strong> This letter is AI-generated for informational purposes and does not constitute legal advice. Consult a licensed property tax consultant for jurisdiction-specific filing requirements.
       </div>
@@ -454,9 +608,15 @@ export default function App() {
     street: "", city: "", state: "", zip: "",
     propType: "", yearBuilt: "", notes: "",
     manualAssessedValue: "", manualSqft: "", manualYearBuilt: "",
+    manualBeds: "", manualBaths: "",
   });
+  const [issues, setIssues] = useState([]);
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
+
+  const toggleIssue = (issue) => {
+    setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
+  };
 
   const restart = () => {
     setStep("account");
@@ -465,7 +625,9 @@ export default function App() {
       street: "", city: "", state: "", zip: "",
       propType: "", yearBuilt: "", notes: "",
       manualAssessedValue: "", manualSqft: "", manualYearBuilt: "",
+      manualBeds: "", manualBaths: "",
     });
+    setIssues([]);
   };
 
   return (
@@ -489,8 +651,9 @@ export default function App() {
       <main style={S.main}>
         <ProgressBar currentStep={step} />
         {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
-        {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("dispute")} onBack={() => setStep("account")} />}
-        {step === "dispute" && <StepDispute formData={{ account, property }} onRestart={restart} />}
+        {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} />}
+        {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} />}
+        {step === "dispute" && <StepDispute formData={{ account, property, issues }} onRestart={restart} />}
       </main>
     </div>
   );
