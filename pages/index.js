@@ -935,9 +935,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
         </div>
 
-        <div style={{ marginTop: 20, padding: "13px 16px", background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          ⚖️ This letter is AI-generated for informational purposes and does not constitute legal advice. Property data sourced from county assessor records and public databases.
-        </div>
+
       </div>
 
       {/* RIGHT SIDEBAR */}
