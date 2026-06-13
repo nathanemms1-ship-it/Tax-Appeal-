@@ -502,7 +502,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
 
   return (
     <>
-      {showPopup && checkedState && <DeadlinePopup stateCode={checkedState} onClose={() => { setShowPopup(false); onNext(); }} />}
+      {showPopup && checkedState && <DeadlinePopup stateCode={checkedState} onClose={() => { setShowPopup(false); window.scrollTo(0,0); onNext(); }} />}
       <div className="page-grid-sm">
         {/* LEFT */}
         <div>
@@ -834,8 +834,16 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
           <div className="two-col-summary">
             {[
-              [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : "Calculating...", "Estimated overvaluation"],
-              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.011).toLocaleString()}` : "—", "Potential annual savings"],
+              [pd.assessedValue && pd.targetReduction
+                ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}`
+                : pd.assessedValue
+                ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}`
+                : "—", "Estimated overvaluation"],
+              [pd.savings
+                ? `$${pd.savings.toLocaleString()}`
+                : pd.assessedValue
+                ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.011).toLocaleString()}`
+                : "—", "Potential annual savings"],
               ["4–5", "Comparable sales cited"],
               [issues.length.toString(), "Issues cited in letter"],
             ].map(([val, label]) => (
@@ -1173,9 +1181,9 @@ export default function App() {
         <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
       ) : (
         <>
-          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
-          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} onUnsupportedState={s => setUnsupportedState(s)} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues }} onRestart={restart} />}
         </>
       )}
