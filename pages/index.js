@@ -130,7 +130,7 @@ const disabledBtn = {
 // ─── ANNOUNCEMENT BAR ────────────────────────────────────────────────────────
 function AnnouncementBar() {
   return (
-    <div style={{ background: C.navy, color: C.white, textAlign: "center", padding: "10px 20px", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="announcement-bar-inner" style={{ background: C.navy, color: C.white, textAlign: "center", padding: "10px 20px", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
       In as little as 4 minutes, you could be on your way to saving thousands on your tax bill —{" "}
       <strong style={{ color: C.gold }}>we handle everything.</strong>
     </div>
@@ -141,7 +141,7 @@ function AnnouncementBar() {
 function NavBar({ step }) {
   const rightText = ["account", "property"].includes(step) ? "Have an account? Sign in" : "Need help? Contact us";
   return (
-    <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "18px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
         <div>
@@ -149,7 +149,7 @@ function NavBar({ step }) {
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
         </div>
       </div>
-      <a href="#" style={{ fontSize: 13, color: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>{rightText}</a>
+      <a href="#" className="nav-right" style={{ fontSize: 13, color: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>{rightText}</a>
     </div>
   );
 }
@@ -158,7 +158,7 @@ function NavBar({ step }) {
 function ProgressBar({ currentStep }) {
   const idx = STEPS.indexOf(currentStep);
   return (
-    <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
+    <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
       {STEPS.map((step, i) => {
         const done = i < idx;
         const active = i === idx;
@@ -168,7 +168,7 @@ function ProgressBar({ currentStep }) {
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? C.navy : active ? C.gold : C.white, border: done ? "none" : active ? "none" : `1.5px solid #C5D0E0`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, color: done ? C.white : active ? C.darkNavy : C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>
                 {done ? "✓" : i + 1}
               </div>
-              <div style={{ fontSize: 10, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textTransform: "uppercase", color: active ? C.navy : C.mutedGray, fontWeight: active ? 500 : 400, whiteSpace: "nowrap" }}>
+              <div className="step-label" style={{ fontSize: 10, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textTransform: "uppercase", color: active ? C.navy : C.mutedGray, fontWeight: active ? 500 : 400, whiteSpace: "nowrap" }}>
                 {stepLabels[step]}
               </div>
             </div>
@@ -371,13 +371,13 @@ function StepAccount({ data, onChange, onNext }) {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 360px", gap: 48, alignItems: "start" }}>
+    <div className="page-grid">
       {/* LEFT COLUMN */}
       <div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
           🛡️ We file on your behalf
         </div>
-        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>
+        <h1 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>
           We fight your property tax bill. You keep the savings.
         </h1>
         <p style={{ fontSize: 15, fontWeight: 500, color: "#3D5275", marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
@@ -388,7 +388,7 @@ function StepAccount({ data, onChange, onNext }) {
         </p>
 
         {/* 82% stat banner */}
-        <div style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+        <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>82%</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: C.white, marginBottom: 4 }}>of property tax disputes are approved</div>
@@ -405,7 +405,7 @@ function StepAccount({ data, onChange, onNext }) {
           <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
             Our system searches millions of comparable sales, calculates your property's fair market value, and builds a professional appeal — so when your dispute lands on a reviewer's desk, it's backed by real data and impossible to ignore.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="three-col-equal" style={{ marginBottom: 14 }}>
             {[["2.1M+", "Comparable sales searched"], ["Fair", "Market value calculated"], ["100%", "Code-compliant appeals"]].map(([n, l]) => (
               <div key={l} style={{ background: C.bg, borderRadius: 8, padding: "12px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.navy }}>{n}</div>
@@ -419,7 +419,7 @@ function StepAccount({ data, onChange, onNext }) {
         </div>
 
         {/* Price callout */}
-        <div style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+        <div className="price-flex" style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 4 }}>ONE-TIME FEE</div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$59</div>
@@ -444,7 +444,7 @@ function StepAccount({ data, onChange, onNext }) {
       </div>
 
       {/* RIGHT COLUMN — FORM CARD */}
-      <div style={{ ...cardStyle, position: "sticky", top: 20 }}>
+      <div className="mob-hide" className="card-padding" style={{ ...cardStyle, position: "sticky", top: 20 }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Create your account</h2>
         <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 12, fontFamily: "'DM Sans', sans-serif" }}>Currently available for residents of:</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -469,7 +469,7 @@ function StepAccount({ data, onChange, onNext }) {
 
         {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="two-col">
           <Field label="First Name" id="fn" value={data.firstName} onChange={e => onChange("firstName", e.target.value)} placeholder="Jane" />
           <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
         </div>
@@ -503,7 +503,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
   return (
     <>
       {showPopup && checkedState && <DeadlinePopup stateCode={checkedState} onClose={() => { setShowPopup(false); onNext(); }} />}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48, alignItems: "start" }}>
+      <div className="page-grid-sm">
         {/* LEFT */}
         <div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
@@ -520,7 +520,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>Property Address</div>
 
           <AddressAutocomplete value={data.street} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
+          <div className="three-col">
             <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>State</label>
@@ -547,11 +547,11 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
             <p style={{ fontSize: 12, color: C.bodyGray, marginBottom: 14, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
               Enter the values from your bill to override our lookup. Leave blank and we'll pull everything from public records automatically.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="two-col">
               <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
               <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div className="three-col-equal">
               <Field label="Year Built" id="yb" value={data.manualYearBuilt} onChange={e => onChange("manualYearBuilt", e.target.value)} placeholder="1998" />
               <Field label="Bedrooms" id="bd" value={data.manualBeds} onChange={e => onChange("manualBeds", e.target.value)} placeholder="4" />
               <Field label="Bathrooms" id="bt" value={data.manualBaths} onChange={e => onChange("manualBaths", e.target.value)} placeholder="2.5" />
@@ -576,7 +576,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
         </div>
 
         {/* RIGHT SIDEBAR */}
-        <div>
+        <div className="mob-hide">
           <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: "22px 24px", marginBottom: 16 }}>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.navy, marginBottom: 4 }}>$1,840</div>
             <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>avg. savings per homeowner</div>
@@ -614,7 +614,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
 function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange }) {
   const count = selectedIssues.length;
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 300px", gap: 48, alignItems: "start" }}>
+    <div className="page-grid-issues">
       {/* LEFT */}
       <div>
         {/* Deadline banner */}
@@ -672,7 +672,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
       </div>
 
       {/* RIGHT SIDEBAR */}
-      <div style={{ position: "sticky", top: 20 }}>
+      <div className="mob-hide" style={{ position: "sticky", top: 20 }}>
         <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: "22px 24px", marginBottom: 16, textAlign: "center" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.navy, lineHeight: 1 }}>{count}</div>
           <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 4 }}>{count === 1 ? "issue selected" : "issues selected"}</div>
@@ -739,7 +739,7 @@ function LoadingScreen({ addr }) {
   }, []);
 
   return (
-    <div style={{ maxWidth: 640, margin: "0 auto", padding: "80px 40px", textAlign: "center" }}>
+    <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px", textAlign: "center" }}>
       {/* Spinner */}
       <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 24px" }}>
         <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid transparent", borderTopColor: C.navy, borderRightColor: C.navy, animation: "spin 1.1s linear infinite" }} />
@@ -818,7 +818,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
   const blurredLines = lines.slice(30).join("\n");
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 48, alignItems: "start" }}>
+    <div className="page-grid-letter">
       {/* LEFT */}
       <div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#E6F4ED", color: C.green, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>
@@ -832,7 +832,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
         {/* Case summary card */}
         <div style={{ background: C.darkNavy, borderRadius: 12, padding: 24, marginBottom: 24 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div className="two-col-summary">
             {[
               [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : "—", "Estimated overvaluation"],
               [pd.savings ? `$${pd.savings.toLocaleString()}` : "—", "Potential annual savings"],
@@ -869,7 +869,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
             )}
           </div>
           {/* Visible section */}
-          <div style={{ padding: "20px 24px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, whiteSpace: "pre-wrap" }}>
+          <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, whiteSpace: "pre-wrap", overflowX: "hidden" }}>
             {visibleLines}
           </div>
           {/* Blurred section with gradient */}
@@ -939,7 +939,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
       </div>
 
       {/* RIGHT SIDEBAR */}
-      <div style={{ position: "sticky", top: 20 }}>
+      <div className="mob-hide" style={{ position: "sticky", top: 20 }}>
         {/* Filing destination */}
         <div style={{ ...cardStyle, marginBottom: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Where to File</div>
@@ -1106,6 +1106,40 @@ export default function App() {
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #C5D0E0; border-radius: 3px; }
         a { text-decoration: none; }
+
+        /* ── MOBILE RESPONSIVE ── */
+        .page-grid { display: grid; grid-template-columns: 1fr 360px; gap: 48px; align-items: start; max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+        .page-grid-sm { display: grid; grid-template-columns: 1fr 340px; gap: 48px; align-items: start; max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+        .page-grid-issues { display: grid; grid-template-columns: 1fr 300px; gap: 48px; align-items: start; max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+        .page-grid-letter { display: grid; grid-template-columns: 1fr 320px; gap: 48px; align-items: start; max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .three-col { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+        .three-col-equal { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .two-col-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .mob-hide { display: block; }
+        .stat-flex { display: flex; align-items: center; gap: 20px; }
+        .price-flex { display: flex; align-items: center; gap: 20px; }
+
+        @media (max-width: 768px) {
+          .page-grid, .page-grid-sm, .page-grid-issues, .page-grid-letter { grid-template-columns: 1fr !important; padding: 20px 16px !important; gap: 20px !important; }
+          .mob-hide { display: none !important; }
+          .three-col { grid-template-columns: 1fr 1fr !important; }
+          .three-col-equal { grid-template-columns: 1fr 1fr !important; }
+          .stat-flex { flex-direction: column !important; text-align: center !important; gap: 12px !important; }
+          .price-flex { flex-direction: column !important; gap: 12px !important; }
+          nav .nav-right { display: none !important; }
+          .step-label { display: none !important; }
+          .progress-bar-wrap { padding: 12px 16px !important; }
+          .announcement-bar-inner { font-size: 11px !important; padding: 8px 12px !important; }
+          .card-padding { padding: 20px 16px !important; }
+          h1.hero { font-size: 26px !important; }
+          h2.screen-title { font-size: 22px !important; }
+        }
+
+        @media (max-width: 480px) {
+          .two-col { grid-template-columns: 1fr !important; }
+          .three-col { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <AnnouncementBar />
