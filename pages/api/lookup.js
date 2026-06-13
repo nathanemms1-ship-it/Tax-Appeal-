@@ -225,6 +225,58 @@ Return ONLY this JSON object:
       console.log("Web search failed:", e.message);
     }
 
+    // ── STEP 3b: Dedicated assessed value search if still missing ────────────
+    if (!assessedValue) {
+      console.log("assessedValue still null — running dedicated tax value search");
+      try {
+        const taxSearchRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5",
+            max_tokens: 600,
+            tools: [{ type: "web_search_20250305", name: "web_search" }],
+            messages: [{
+              role: "user",
+              content: `Search for the property tax appraised value for ${fullAddress}.
+
+Try these sources in order:
+1. Search "${street} ${zip} property tax appraisal ${stateUpper}" on Google
+2. Search "${street} ${zip} ${countyName} appraisal district"
+3. Try searching on Realtor.com, Redfin, or Trulia which often show tax assessed values
+4. Try searching "site:${districtWebsite || (countyName.toLowerCase().replace(/ /g,'')+'.org')} ${street}"
+
+Find the COUNTY TAX APPRAISED VALUE (not Zillow estimate). This is the official value set by the county that determines property taxes.
+
+Return ONLY JSON: { "assessedValue": 450000, "annualTax": 9200, "taxYear": "2025", "source": "where you found it" }
+Use null for any field not found.`
+            }],
+          }),
+        });
+
+        const taxJson = await taxSearchRes.json();
+        if (taxJson.content) {
+          const taxText = taxJson.content.filter(b => b.type === "text").map(b => b.text).join("");
+          console.log("DEDICATED TAX SEARCH RESULT:", taxText.slice(0, 500));
+          const match = taxText.match(/\{[\s\S]*?\}/);
+          if (match) {
+            const taxData = JSON.parse(match[0]);
+            if (!assessedValue && taxData.assessedValue) {
+              assessedValue = Number(taxData.assessedValue);
+              console.log("ASSESSED VALUE FROM DEDICATED SEARCH:", assessedValue);
+            }
+            if (!annualTax && taxData.annualTax) annualTax = Number(taxData.annualTax);
+          }
+        }
+      } catch (e) {
+        console.log("Dedicated tax search failed:", e.message);
+      }
+    }
+
     // ── STEP 4: BatchData fallback ────────────────────────────────────────────
     if (!sqft || !yearBuilt || !assessedValue) {
       try {
