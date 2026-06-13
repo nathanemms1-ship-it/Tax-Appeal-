@@ -834,8 +834,8 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
           <div className="two-col-summary">
             {[
-              [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : "—", "Estimated overvaluation"],
-              [pd.savings ? `$${pd.savings.toLocaleString()}` : "—", "Potential annual savings"],
+              [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : "Calculating...", "Estimated overvaluation"],
+              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.011).toLocaleString()}` : "—", "Potential annual savings"],
               ["4–5", "Comparable sales cited"],
               [issues.length.toString(), "Issues cited in letter"],
             ].map(([val, label]) => (
@@ -1026,36 +1026,34 @@ function StepDispute({ formData, onRestart }) {
       const sqft = extracted.sqft || null;
       const yearBuilt = extracted.yearBuilt || null;
       const appraisalDistrict = bdJson?.appraisalDistrict || null;
-      const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
-      const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
-      // Calculate savings from 20% target reduction (always available if we have assessedValue)
-      // Falls back to market value comparison if both are available
-      const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
-      const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
-      const savings = savingsFromMarket || savingsFromReduction;
-      // Dynamic reduction percentage based on property issues and market data
+      // Step 1: Issue count and market data for dynamic reduction calculation
       const issueCount = issues ? issues.length : 0;
+      const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
       const overAssessedPct = assessedValue && marketValue && marketValue > 0
         ? ((assessedValue - marketValue) / marketValue) * 100 : 0;
 
+      // Step 2: Dynamic reduction % based on issues and over-assessment
       let reductionPct;
       if (issueCount >= 5 || overAssessedPct >= 15) {
-        // Strong case — 5+ issues or significantly over-assessed
-        reductionPct = 0.22 + (Math.random() * 0.02); // 22–24%
+        reductionPct = 0.22 + (Math.random() * 0.02); // 22–24% strong case
       } else if (issueCount >= 3 || overAssessedPct >= 8) {
-        // Solid case — 3–4 issues or moderately over-assessed
-        reductionPct = 0.20 + (Math.random() * 0.02); // 20–22%
+        reductionPct = 0.20 + (Math.random() * 0.02); // 20–22% solid case
       } else if (issueCount >= 1) {
-        // Some issues — 1–2 issues selected
-        reductionPct = 0.19 + (Math.random() * 0.015); // 19–20.5%
+        reductionPct = 0.19 + (Math.random() * 0.015); // 19–20.5% some issues
       } else {
-        // No issues — market data only
-        reductionPct = 0.18 + (Math.random() * 0.015); // 18–19.5%
+        reductionPct = 0.18 + (Math.random() * 0.015); // 18–19.5% market data only
       }
       const reductionPctDisplay = Math.round(reductionPct * 100);
       const targetReduction = assessedValue ? Math.round(Number(assessedValue) * (1 - reductionPct)) : null;
+
+      // Step 3: Savings — now reductionPct and targetReduction are defined
+      const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
+      const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
+      const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
+      const savings = savingsFromMarket || savingsFromReduction;
+
       const stateInfo = SUPPORTED_STATES[stateCode] || {};
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, overPct, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction };
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, overPct, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay };
       setPropData(pd);
 
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
