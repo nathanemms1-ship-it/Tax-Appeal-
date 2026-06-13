@@ -1,415 +1,201 @@
 import { useState, useEffect, useRef } from "react";
 
+// ─── GOOGLE FONTS ────────────────────────────────────────────────────────────
+const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+
+// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
+const C = {
+  navy:       "#1B3A6B",
+  gold:       "#FFC940",
+  darkNavy:   "#0F1F3D",
+  bg:         "#F4F7FC",
+  lightBlue:  "#EEF3FB",
+  bodyGray:   "#5A6B82",
+  mutedGray:  "#8596AF",
+  border:     "#E8EDF4",
+  white:      "#FFFFFF",
+  green:      "#2E7D52",
+  amber:      "#FFF8E6",
+  red:        "#C0392B",
+  orange:     "#E67E22",
+  blue:       "#2980B9",
+  teal:       "#27AE60",
+  purple:     "#8E44AD",
+};
+
 const STEPS = ["account", "property", "issues", "dispute"];
 const stepLabels = { account: "Create Account", property: "Your Property", issues: "Property Issues", dispute: "Dispute Letter" };
 
-const C = {
-  ink: "#1A1A2E", slate: "#2C2C4A", white: "#FFFFFF",
-  gold: "#C9A84C", goldDim: "#8B6F2E", red: "#C0392B",
-  green: "#1A7A4A",
-};
-
-const S = {
-  page: { minHeight: "100vh", background: `linear-gradient(160deg, ${C.ink} 0%, ${C.slate} 60%, #1E1E38 100%)`, fontFamily: "'Georgia','Times New Roman',serif", color: C.white },
-  header: { padding: "24px 40px 18px", borderBottom: "1px solid rgba(201,168,76,0.25)", display: "flex", alignItems: "center", gap: 14 },
-  logoMark: { width: 40, height: 40, background: `linear-gradient(135deg,${C.gold},${C.goldDim})`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 },
-  logoText: { fontSize: 21, fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1 },
-  logoSub: { fontSize: 10, color: C.gold, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 3, fontFamily: "'Arial',sans-serif" },
-  main: { maxWidth: 700, margin: "0 auto", padding: "36px 24px 80px" },
-  card: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 12, padding: "36px 40px", backdropFilter: "blur(8px)" },
-  title: { fontSize: 27, fontWeight: 700, marginBottom: 6, lineHeight: 1.2 },
-  sub: { fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 28, fontFamily: "'Arial',sans-serif", lineHeight: 1.5 },
-  label: { display: "block", fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: C.gold, marginBottom: 7 },
-  input: { width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 6, padding: "12px 15px", color: C.white, fontSize: 15, fontFamily: "'Georgia',serif", outline: "none", boxSizing: "border-box", transition: "border-color 0.2s" },
-  fieldGroup: { marginBottom: 18 },
-  row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 },
-  row3: { display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 15 },
-  btn: { background: `linear-gradient(135deg,${C.gold},${C.goldDim})`, color: C.ink, border: "none", borderRadius: 6, padding: "13px 26px", fontSize: 14, fontWeight: 700, fontFamily: "'Arial',sans-serif", letterSpacing: "0.05em", cursor: "pointer", width: "100%", marginTop: 6 },
-  btnGhost: { background: "transparent", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 6, padding: "10px 22px", fontSize: 13, fontFamily: "'Arial',sans-serif", cursor: "pointer" },
-  err: { background: "rgba(192,57,43,0.15)", border: "1px solid rgba(192,57,43,0.35)", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: "#F1948A", fontFamily: "'Arial',sans-serif", marginBottom: 18 },
-  warn: { background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.3)", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "'Arial',sans-serif", marginBottom: 18 },
-  badge: (ok) => ({ display: "inline-flex", alignItems: "center", gap: 5, background: ok ? "rgba(26,122,74,0.15)" : "rgba(201,168,76,0.12)", border: `1px solid ${ok ? "rgba(26,122,74,0.4)" : "rgba(201,168,76,0.35)"}`, borderRadius: 20, padding: "3px 11px", fontSize: 11, fontFamily: "'Arial',sans-serif", color: ok ? "#52C48A" : C.gold, marginBottom: 14 }),
-  letterBox: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 8, padding: "22px 26px", fontFamily: "'Georgia',serif", fontSize: 13.5, lineHeight: 1.85, color: "rgba(255,255,255,0.87)", whiteSpace: "pre-wrap", maxHeight: 460, overflowY: "auto" },
-  infoRow: { display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 22 },
-  infoBox: { flex: 1, minWidth: 130, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "14px 16px" },
-  infoLabel: { fontSize: 10, fontFamily: "'Arial',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 5 },
-  infoVal: { fontSize: 18, fontWeight: 700, color: C.gold },
-  timelineWrap: { marginBottom: 28 },
-  timelineItem: (done, active) => ({ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16, opacity: done || active ? 1 : 0.3, transition: "opacity 0.4s" }),
-  timelineDot: (done, active) => ({ width: 26, height: 26, borderRadius: "50%", background: done ? C.gold : "transparent", border: done ? "none" : `2px solid ${active ? C.gold : "rgba(255,255,255,0.15)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: done ? C.ink : active ? C.gold : "rgba(255,255,255,0.25)", fontFamily: "'Arial',sans-serif", flexShrink: 0, marginTop: 2, transition: "all 0.4s" }),
-  timelineText: (active) => ({ fontSize: 13, fontFamily: "'Arial',sans-serif", color: active ? C.white : "rgba(255,255,255,0.6)", lineHeight: 1.45 }),
-  timelineSub: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2, fontFamily: "'Arial',sans-serif" },
-};
-
-// State support configuration
+// ─── STATE CONFIG ─────────────────────────────────────────────────────────────
 const SUPPORTED_STATES = {
-  TX: {
-    name: "Texas",
-    deadlineType: "fixed",
-    deadlineMonth: 4, // May = month 4 (0-indexed)
-    deadlineDay: 15,
-    deadlineNote: "May 15 or 30 days after your appraisal notice, whichever is later",
-    filingNote: "Postmark by deadline counts in Texas",
-    board: "Appraisal Review Board (ARB)",
-  },
-  GA: {
-    name: "Georgia",
-    deadlineType: "rolling",
-    deadlineDaysAfterNotice: 45,
-    deadlineNote: "45 days from the date on your assessment notice",
-    filingNote: "Postmark by deadline counts in Georgia",
-    board: "Board of Equalization",
-  },
-  FL: {
-    name: "Florida",
-    deadlineType: "trim",
-    deadlineMonth: 8, // September = month 8 (0-indexed)
-    deadlineDay: 18,
-    deadlineNote: "25 days after your TRIM notice (typically mid-September)",
-    filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.",
-    board: "Value Adjustment Board (VAB)",
-  },
+  TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.43" },
+  GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
+  FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
 };
 
-// Calculate days until deadline for supported states
 function getDeadlineInfo(stateCode) {
   const today = new Date();
   const year = today.getFullYear();
-  const state = SUPPORTED_STATES[stateCode];
-  if (!state) return null;
-
   let deadline = null;
-  if (stateCode === "TX") {
-    deadline = new Date(year, 4, 15); // May 15
-    if (today > deadline) deadline = new Date(year + 1, 4, 15);
-  } else if (stateCode === "FL") {
-    deadline = new Date(year, 8, 18); // ~Sept 18
-    if (today > deadline) deadline = new Date(year + 1, 8, 18);
-  } else if (stateCode === "GA") {
-    // Georgia is rolling — use a typical spring deadline
-    deadline = new Date(year, 5, 1); // June 1 as approximate
-    if (today > deadline) deadline = new Date(year + 1, 5, 1);
-  }
-
+  if (stateCode === "TX") { deadline = new Date(year, 4, 15); if (today > deadline) deadline = new Date(year + 1, 4, 15); }
+  else if (stateCode === "FL") { deadline = new Date(year, 8, 18); if (today > deadline) deadline = new Date(year + 1, 8, 18); }
+  else if (stateCode === "GA") { deadline = new Date(year, 5, 1); if (today > deadline) deadline = new Date(year + 1, 5, 1); }
   if (!deadline) return null;
-  const msLeft = deadline - today;
-  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-  return { daysLeft, deadline, state };
+  const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+  return { daysLeft, deadline, state: SUPPORTED_STATES[stateCode] };
 }
 
-// Countdown banner component
-function CountdownBanner({ stateCode }) {
-  const info = getDeadlineInfo(stateCode);
-  if (!info) return null;
-  const { daysLeft, state } = info;
-
-  const urgent = daysLeft <= 14;
-  const warning = daysLeft <= 30 && daysLeft > 14;
-
-  const bgColor = urgent
-    ? "linear-gradient(135deg, rgba(192,57,43,0.25), rgba(192,57,43,0.15))"
-    : warning
-    ? "linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.1))"
-    : "linear-gradient(135deg, rgba(26,122,74,0.15), rgba(26,122,74,0.08))";
-
-  const borderColor = urgent
-    ? "rgba(192,57,43,0.5)"
-    : warning
-    ? "rgba(201,168,76,0.4)"
-    : "rgba(26,122,74,0.3)";
-
-  const textColor = urgent ? "#F1948A" : warning ? C.gold : "#52C48A";
-  const icon = urgent ? "🚨" : warning ? "⏰" : "📅";
-
-  const message = urgent
-    ? `Only ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left to file your ${state.name} protest — potentially save hundreds or thousands. Don't delay!`
-    : warning
-    ? `${daysLeft} days until the ${state.name} protest deadline. File now to protect your savings.`
-    : `${daysLeft} days until the ${state.name} protest deadline — ${state.deadlineNote}.`;
-
-  return (
-    <div style={{
-      background: bgColor,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 8,
-      padding: "12px 18px",
-      marginBottom: 24,
-      display: "flex",
-      alignItems: "flex-start",
-      gap: 10,
-    }}>
-      <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", fontWeight: 700, color: textColor, marginBottom: 2 }}>
-          {message}
-        </div>
-        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
-          {state.filingNote}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Unsupported state screen with waitlist
-function UnsupportedState({ stateCode, onBack }) {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const stateName = stateCode
-    ? stateCode.toUpperCase()
-    : "your state";
-
-  return (
-    <div style={S.card}>
-      <div style={{ fontSize: 48, marginBottom: 16, textAlign: "center" }}>🗺️</div>
-      <h2 style={{ ...S.title, textAlign: "center" }}>Coming Soon to {stateName}</h2>
-      <p style={{ ...S.sub, textAlign: "center" }}>
-        TaxAppeal currently serves homeowners in <strong style={{ color: C.gold }}>Texas</strong>, <strong style={{ color: C.gold }}>Georgia</strong>, and <strong style={{ color: C.gold }}>Florida</strong>. We're expanding rapidly — enter your email to be first in line when we launch in {stateName}.
-      </p>
-
-      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "18px 20px", marginBottom: 24 }}>
-        <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", fontWeight: 700, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-          Currently available in:
-        </div>
-        {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
-          <div key={code} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.7)" }}>
-            <span style={{ color: "#52C48A", fontSize: 14 }}>✓</span>
-            <strong style={{ color: C.white }}>{s.name}</strong>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>— {s.deadlineNote}</span>
-          </div>
-        ))}
-      </div>
-
-      {!submitted ? (
-        <>
-          <div style={S.fieldGroup}>
-            <label style={S.label}>Notify me when {stateName} launches</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              style={S.input}
-            />
-          </div>
-          <button
-            style={S.btn}
-            onClick={() => { if (email.includes("@")) setSubmitted(true); }}
-          >
-            Notify Me →
-          </button>
-        </>
-      ) : (
-        <div style={{ textAlign: "center", padding: "20px", background: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)", borderRadius: 8 }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
-          <div style={{ fontSize: 14, fontFamily: "'Arial',sans-serif", color: "#52C48A", fontWeight: 700 }}>You're on the list!</div>
-          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.45)", marginTop: 4 }}>We'll email you as soon as {stateName} is available.</div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 16, textAlign: "center" }}>
-        <button style={S.btnGhost} onClick={onBack}>← Back</button>
-      </div>
-    </div>
-  );
-}
-
-// Deadline popup modal
-function DeadlinePopup({ stateCode, onClose }) {
-  const info = getDeadlineInfo(stateCode);
-  const state = SUPPORTED_STATES[stateCode];
-  if (!info || !state) return null;
-  const { daysLeft } = info;
-  const urgent = daysLeft <= 14;
-  const accentColor = urgent ? "#F1948A" : C.gold;
-
-  return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000,
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
-    }}>
-      <div style={{
-        background: `linear-gradient(160deg, ${C.ink} 0%, ${C.slate} 100%)`,
-        border: `1px solid ${urgent ? "rgba(192,57,43,0.5)" : "rgba(201,168,76,0.3)"}`,
-        borderRadius: 14, padding: "36px 40px", maxWidth: 480, width: "100%",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
-      }}>
-        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>
-          {urgent ? "🚨" : "⏰"}
-        </div>
-        <h2 style={{ ...S.title, textAlign: "center", fontSize: 22, marginBottom: 8 }}>
-          {urgent ? `Only ${daysLeft} Days Left!` : `${daysLeft} Days Until Deadline`}
-        </h2>
-        <p style={{ ...S.sub, textAlign: "center", marginBottom: 20 }}>
-          {urgent
-            ? `The ${state.name} property tax protest deadline is almost here. Homeowners who file save an average of $800–$2,500 per year. Don't leave money on the table.`
-            : `The ${state.name} protest window is open. Most homeowners who file save hundreds or thousands per year.`}
-        </p>
-
-        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "16px 18px", marginBottom: 24 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, fontFamily: "'Arial',sans-serif" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>State</span>
-              <span style={{ color: C.white, fontWeight: 700 }}>{state.name}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>Filing Body</span>
-              <span style={{ color: C.white }}>{state.board}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>Deadline Rule</span>
-              <span style={{ color: accentColor, fontWeight: 700, textAlign: "right", maxWidth: 220 }}>{state.deadlineNote}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>Filing Note</span>
-              <span style={{ color: "rgba(255,255,255,0.6)", textAlign: "right", maxWidth: 220 }}>{state.filingNote}</span>
-            </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>Days Remaining</span>
-              <span style={{ color: accentColor, fontWeight: 700, fontSize: 16 }}>{daysLeft} days</span>
-            </div>
-          </div>
-        </div>
-
-        <button style={{ ...S.btn, marginTop: 0, marginBottom: 10 }} onClick={onClose}>
-          File My Protest Now →
-        </button>
-        <div style={{ textAlign: "center" }}>
-          <button style={{ ...S.btnGhost, fontSize: 12, padding: "7px 16px" }} onClick={onClose}>
-            I understand, continue
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// ─── ISSUE CATEGORIES ─────────────────────────────────────────────────────────
 const ISSUE_CATEGORIES = [
-  {
-    category: "Structural & Major Systems",
-    icon: "🏗",
-    issues: [
-      "Foundation cracks, settling, or structural damage",
-      "Roof damage or age (leaks, missing shingles, sagging)",
-      "Major water damage (ceiling/wall/floor stains, rot)",
-      "Mold or persistent mildew problems",
-      "Outdated or failed HVAC system",
-      "Failed or aging water heater",
-      "Outdated electrical service",
-      "Significant plumbing defects (leaks, corroded pipes)",
-      "Sewer or septic failure requiring replacement",
-    ],
-  },
-  {
-    category: "Safety, Health & Code",
-    icon: "⚠️",
-    issues: [
-      "Active pest infestation (termites, rodents)",
-      "Asbestos or lead paint present",
-      "Code violations or illegal additions",
-      "Unpermitted work or missing permits",
-      "Noncompliant electrical (knob-and-tube, overloaded panels)",
-      "Hazardous materials requiring remediation",
-    ],
-  },
-  {
-    category: "Functional & Livability",
-    icon: "🏠",
-    issues: [
-      "Cramped or poorly configured rooms",
-      "Illegally converted rooms with no egress",
-      "Inadequate insulation or energy inefficiency",
-      "Broken windows, doors, or security issues",
-      "No indoor laundry hookups",
-      "Only one bathroom for multiple bedrooms",
-      "Severely dated interiors requiring major renovation",
-    ],
-  },
-  {
-    category: "Exterior & Site",
-    icon: "🌿",
-    issues: [
-      "Poor drainage causing yard or foundation flooding",
-      "Floodplain location or high flood insurance costs",
-      "Erosion, steep unusable land, or poor lot configuration",
-      "Proximity to busy road, industrial site, or airport",
-      "Proximity to landfill or other nuisance",
-      "Unpermitted outbuildings, fences, or encroachments",
-    ],
-  },
-  {
-    category: "Appearance & Maintenance",
-    icon: "🔧",
-    issues: [
-      "Deferred maintenance (peeling paint, rotten trim)",
-      "Severely dated kitchen requiring full update",
-      "Severely dated bathrooms requiring full update",
-      "Significant curb appeal issues reducing buyer interest",
-      "Overgrown or neglected landscaping",
-    ],
-  },
+  { category: "Structural & Major Systems", color: C.red, icon: "🏗", issues: ["Foundation cracks, settling, or structural damage","Roof damage or age (leaks, missing shingles, sagging)","Major water damage (ceiling/wall/floor stains, rot)","Mold or persistent mildew problems","Outdated or failed HVAC system","Failed or aging water heater","Outdated electrical service","Significant plumbing defects (leaks, corroded pipes)","Sewer or septic failure requiring replacement"] },
+  { category: "Safety, Health & Code", color: C.orange, icon: "⚠️", issues: ["Active pest infestation (termites, rodents)","Asbestos or lead paint present","Code violations or illegal additions","Unpermitted work or missing permits","Noncompliant electrical (knob-and-tube, overloaded panels)","Hazardous materials requiring remediation"] },
+  { category: "Functional & Livability", color: C.blue, icon: "🏠", issues: ["Cramped or poorly configured rooms","Illegally converted rooms with no egress","Inadequate insulation or energy inefficiency","Broken windows, doors, or security issues","No indoor laundry hookups","Only one bathroom for multiple bedrooms","Severely dated interiors requiring major renovation"] },
+  { category: "Exterior & Site", color: C.teal, icon: "🌿", issues: ["Poor drainage causing yard or foundation flooding","Floodplain location or high flood insurance costs","Erosion, steep unusable land, or poor lot configuration","Proximity to busy road, industrial site, or airport","Proximity to landfill or other nuisance","Unpermitted outbuildings, fences, or encroachments"] },
+  { category: "Appearance & Maintenance", color: C.purple, icon: "🔧", issues: ["Deferred maintenance (peeling paint, rotten trim)","Severely dated kitchen requiring full update","Severely dated bathrooms requiring full update","Significant curb appeal issues reducing buyer interest","Overgrown or neglected landscaping"] },
 ];
 
-function Field({ label, id, type = "text", value, onChange, placeholder, mono }) {
-  const [f, setF] = useState(false);
+// ─── SHARED STYLES ────────────────────────────────────────────────────────────
+const base = {
+  fontFamily: "'DM Sans', sans-serif",
+  color: C.darkNavy,
+  background: C.bg,
+  minHeight: "100vh",
+};
+
+const cardStyle = {
+  background: C.white,
+  border: `1.5px solid ${C.border}`,
+  borderRadius: 12,
+  padding: "32px",
+};
+
+const inputStyle = {
+  width: "100%",
+  background: "#F8FAFD",
+  border: `1.5px solid #DDE4EE`,
+  borderRadius: 7,
+  padding: "10px 13px",
+  fontSize: 14,
+  fontFamily: "'DM Sans', sans-serif",
+  color: C.darkNavy,
+  outline: "none",
+  boxSizing: "border-box",
+  transition: "border-color 0.2s, background 0.2s",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: 11,
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: C.bodyGray,
+  fontWeight: 500,
+  marginBottom: 6,
+  fontFamily: "'DM Sans', sans-serif",
+};
+
+const primaryBtn = {
+  background: C.navy,
+  color: C.white,
+  border: "none",
+  borderRadius: 8,
+  padding: "14px 24px",
+  fontSize: 14,
+  fontWeight: 500,
+  fontFamily: "'DM Sans', sans-serif",
+  cursor: "pointer",
+  width: "100%",
+  transition: "background 0.2s, color 0.2s",
+};
+
+const secondaryBtn = {
+  background: "transparent",
+  color: C.mutedGray,
+  border: `1.5px solid ${C.border}`,
+  borderRadius: 8,
+  padding: "12px 24px",
+  fontSize: 14,
+  fontFamily: "'DM Sans', sans-serif",
+  cursor: "pointer",
+  width: "100%",
+  transition: "border-color 0.2s",
+};
+
+const disabledBtn = {
+  ...primaryBtn,
+  background: "#C5D0E0",
+  cursor: "not-allowed",
+};
+
+// ─── ANNOUNCEMENT BAR ────────────────────────────────────────────────────────
+function AnnouncementBar() {
   return (
-    <div style={S.fieldGroup}>
-      <label htmlFor={id} style={S.label}>{label}</label>
-      <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder}
-        style={{ ...S.input, ...(mono ? { fontFamily: "monospace", letterSpacing: "0.03em" } : {}), ...(f ? { borderColor: C.gold } : {}) }}
-        onFocus={() => setF(true)} onBlur={() => setF(false)} />
+    <div style={{ background: C.navy, color: C.white, textAlign: "center", padding: "10px 20px", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+      In as little as 4 minutes, you could be on your way to saving thousands on your tax bill —{" "}
+      <strong style={{ color: C.gold }}>we handle everything.</strong>
     </div>
   );
 }
 
+// ─── NAV BAR ─────────────────────────────────────────────────────────────────
+function NavBar({ step }) {
+  const rightText = ["account", "property"].includes(step) ? "Have an account? Sign in" : "Need help? Contact us";
+  return (
+    <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "18px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
+        <div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 19, color: C.darkNavy, lineHeight: 1 }}>TaxAppeal</div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
+        </div>
+      </div>
+      <a href="#" style={{ fontSize: 13, color: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>{rightText}</a>
+    </div>
+  );
+}
+
+// ─── PROGRESS BAR ─────────────────────────────────────────────────────────────
 function ProgressBar({ currentStep }) {
   const idx = STEPS.indexOf(currentStep);
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 36 }}>
-      {STEPS.map((step, i) => (
-        <div key={step} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-          {i < STEPS.length - 1 && (
-            <div style={{ position: "absolute", top: 14, left: "50%", width: "100%", height: 2, background: i < idx ? C.gold : "rgba(255,255,255,0.1)", zIndex: 0, transition: "background 0.4s" }} />
-          )}
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: i < idx ? C.gold : "transparent", border: i === idx ? `2px solid ${C.gold}` : i < idx ? "none" : "2px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: i < idx ? C.ink : i === idx ? C.gold : "rgba(255,255,255,0.25)", fontFamily: "'Arial',sans-serif", zIndex: 1, position: "relative", transition: "all 0.3s" }}>
-            {i < idx ? "✓" : i + 1}
+    <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
+      {STEPS.map((step, i) => {
+        const done = i < idx;
+        const active = i === idx;
+        return (
+          <div key={step} style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? C.navy : active ? C.gold : C.white, border: done ? "none" : active ? "none" : `1.5px solid #C5D0E0`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, color: done ? C.white : active ? C.darkNavy : C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>
+                {done ? "✓" : i + 1}
+              </div>
+              <div style={{ fontSize: 10, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textTransform: "uppercase", color: active ? C.navy : C.mutedGray, fontWeight: active ? 500 : 400, whiteSpace: "nowrap" }}>
+                {stepLabels[step]}
+              </div>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div style={{ width: 60, height: 1, background: i < idx ? C.navy : "#C5D0E0", margin: "0 8px", marginBottom: 20 }} />
+            )}
           </div>
-          <div style={{ fontSize: 9.5, fontFamily: "'Arial',sans-serif", letterSpacing: "0.06em", textTransform: "uppercase", color: i === idx ? C.gold : "rgba(255,255,255,0.28)", marginTop: 6, textAlign: "center", maxWidth: 72, lineHeight: 1.3 }}>
-            {stepLabels[step]}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function StepAccount({ data, onChange, onNext }) {
-  const [err, setErr] = useState("");
-  const go = () => {
-    if (!data.firstName || !data.lastName) return setErr("Enter your full name.");
-    if (!data.email.includes("@")) return setErr("Enter a valid email.");
-    if (data.password.length < 6) return setErr("Password needs at least 6 characters.");
-    setErr(""); onNext();
-  };
+// ─── FIELD COMPONENT ──────────────────────────────────────────────────────────
+function Field({ label, id, type = "text", value, onChange, placeholder }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <div style={S.card}>
-      <div style={S.badge(false)}>⚖️ Free Dispute Service</div>
-      <h2 style={S.title}>Create your account</h2>
-      <p style={S.sub}>We'll use this to deliver your dispute letter and track your case.</p>
-      {err && <div style={S.err}>{err}</div>}
-      <div style={S.row2}>
-        <Field label="First Name" id="fn" value={data.firstName} onChange={e => onChange("firstName", e.target.value)} placeholder="Jane" />
-        <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
-      </div>
-      <Field label="Email Address" id="email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="jane@example.com" />
-      <Field label="Password" id="pw" type="password" value={data.password} onChange={e => onChange("password", e.target.value)} placeholder="At least 6 characters" />
-      <button style={S.btn} onClick={go}>Continue →</button>
+    <div style={{ marginBottom: 14 }}>
+      <label htmlFor={id} style={labelStyle}>{label}</label>
+      <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ ...inputStyle, ...(focused ? { borderColor: C.navy, background: C.white } : {}) }}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
     </div>
   );
 }
 
-
+// ─── ADDRESS AUTOCOMPLETE ─────────────────────────────────────────────────────
 function AddressAutocomplete({ value, onChange, onSelect }) {
   const [suggestions, setSuggestions] = useState([]);
   const [show, setShow] = useState(false);
@@ -419,9 +205,7 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
   const wrapRef = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setShow(false);
-    };
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setShow(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -434,11 +218,7 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
     debounce.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/autocomplete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: val }),
-        });
+        const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
         const data = await res.json();
         setSuggestions(data.suggestions || []);
         setShow((data.suggestions || []).length > 0);
@@ -447,42 +227,26 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
     }, 300);
   };
 
-  const handleSelect = (s) => {
-    onSelect(s);
-    setShow(false);
-    setSuggestions([]);
-  };
-
   return (
-    <div ref={wrapRef} style={{ ...S.fieldGroup, position: "relative" }}>
-      <label style={S.label}>Street Address</label>
+    <div ref={wrapRef} style={{ marginBottom: 14, position: "relative" }}>
+      <label style={labelStyle}>Street Address</label>
       <div style={{ position: "relative" }}>
-        <input
-          type="text"
-          value={value}
-          onChange={handleChange}
-          placeholder="123 Maple Avenue"
-          style={{ ...S.input, ...(focused ? { borderColor: C.gold } : {}), paddingRight: 36 }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          autoComplete="off"
-        />
-        {loading && (
-          <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.gold}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />
-        )}
+        <input type="text" value={value} onChange={handleChange} placeholder="123 Maple Avenue" autoComplete="off"
+          style={{ ...inputStyle, ...(focused ? { borderColor: C.navy, background: C.white } : {}), paddingRight: 36 }}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
+        {loading && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.navy}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />}
       </div>
       {show && suggestions.length > 0 && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#1E1E38", border: `1px solid rgba(201,168,76,0.35)`, borderRadius: "0 0 8px 8px", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: "0 0 8px 8px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
           {suggestions.map((s, i) => (
-            <div key={i} onMouseDown={() => handleSelect(s)}
-              style={{ padding: "11px 15px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: 10 }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.1)"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <span style={{ color: C.gold, fontSize: 14, flexShrink: 0 }}>📍</span>
+            <div key={i} onMouseDown={() => { onSelect(s); setShow(false); setSuggestions([]); }}
+              style={{ padding: "11px 14px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? `1px solid ${C.border}` : "none", display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s" }}
+              onMouseEnter={e => e.currentTarget.style.background = C.lightBlue}
+              onMouseLeave={e => e.currentTarget.style.background = C.white}>
+              <span style={{ color: C.navy, fontSize: 14, flexShrink: 0 }}>📍</span>
               <div>
-                <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: C.white, lineHeight: 1.3 }}>{s.street}</div>
-                <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{[s.city, s.state, s.zip].filter(Boolean).join(", ")}</div>
+                <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.darkNavy }}>{s.street}</div>
+                <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", color: C.mutedGray, marginTop: 2 }}>{[s.city, s.state, s.zip].filter(Boolean).join(", ")}</div>
               </div>
             </div>
           ))}
@@ -492,6 +256,237 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
   );
 }
 
+// ─── DEADLINE POPUP ───────────────────────────────────────────────────────────
+function DeadlinePopup({ stateCode, onClose }) {
+  const info = getDeadlineInfo(stateCode);
+  const state = SUPPORTED_STATES[stateCode];
+  if (!info || !state) return null;
+  const { daysLeft } = info;
+  const urgent = daysLeft <= 14;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "36px 40px", maxWidth: 480, width: "100%", boxShadow: "0 24px 80px rgba(0,0,0,0.15)" }}>
+        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>{urgent ? "🚨" : "⏰"}</div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, textAlign: "center", color: C.darkNavy, marginBottom: 8 }}>
+          {urgent ? `Only ${daysLeft} Days Left!` : `${daysLeft} Days Until Deadline`}
+        </h2>
+        <p style={{ fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
+          {urgent ? `The ${state.name} protest deadline is almost here. Don't leave money on the table.` : `The ${state.name} protest window is open. Most homeowners who file save hundreds or thousands per year.`}
+        </p>
+        <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 24 }}>
+          {[["State", state.name], ["Filing Body", state.board], ["Deadline", state.deadlineNote], ["Important", state.filingNote], ["Days Remaining", `${daysLeft} days`]].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>
+              <span style={{ color: C.mutedGray }}>{k}</span>
+              <span style={{ color: C.darkNavy, fontWeight: 500, textAlign: "right", maxWidth: 240 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <button style={primaryBtn} onClick={onClose}>File My Protest Now →</button>
+        <div style={{ marginTop: 10, textAlign: "center" }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onClose}>I understand, continue</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── UNSUPPORTED STATE ────────────────────────────────────────────────────────
+function UnsupportedState({ stateCode, onBack }) {
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
+      <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>Coming Soon to {stateCode}</h2>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>
+          TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, and <strong style={{ color: C.navy }}>Florida</strong>. Enter your email to be first in line when we launch in {stateCode}.
+        </p>
+        <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
+          <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, color: C.navy, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Currently available in:</div>
+          {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
+            <div key={code} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, color: C.bodyGray }}>
+              <span style={{ color: C.green }}>✓</span>
+              <strong style={{ color: C.darkNavy }}>{s.name}</strong>
+              <span style={{ color: C.mutedGray, fontSize: 11 }}>— {s.deadlineNote}</span>
+            </div>
+          ))}
+        </div>
+        {!submitted ? (
+          <>
+            <Field label={`Notify me when ${stateCode} launches`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
+            <button style={primaryBtn} onClick={() => { if (email.includes("@")) setSubmitted(true); }}>Notify Me →</button>
+          </>
+        ) : (
+          <div style={{ padding: 20, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8 }}>
+            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>✓ You're on the list!</div>
+            <div style={{ fontSize: 12, color: C.bodyGray, marginTop: 4 }}>We'll email you as soon as {stateCode} is available.</div>
+          </div>
+        )}
+        <div style={{ marginTop: 16 }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COUNTDOWN BANNER ─────────────────────────────────────────────────────────
+function CountdownBanner({ stateCode }) {
+  const info = getDeadlineInfo(stateCode);
+  if (!info) return null;
+  const { daysLeft, state } = info;
+  const urgent = daysLeft <= 14;
+  const warning = daysLeft <= 30 && daysLeft > 14;
+  const bg = urgent ? "#FFF0EE" : C.amber;
+  const border = urgent ? "#F5C6C0" : "#FFD97A";
+  const color = urgent ? "#8B2E22" : "#7A5C10";
+  const icon = urgent ? "🚨" : "⏰";
+  const message = urgent
+    ? `Only ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left to file your ${state.name} protest — potentially save hundreds or thousands. Don't delay!`
+    : warning
+    ? `${daysLeft} days until the ${state.name} protest deadline. File now to protect your savings.`
+    : `${daysLeft} days until the ${state.name} protest deadline — ${state.deadlineNote}.`;
+
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10 }}>
+      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+      <div>
+        <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, color, marginBottom: 2 }}>{message}</div>
+        <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", color, opacity: 0.7 }}>{state.filingNote}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN 1: CREATE ACCOUNT ─────────────────────────────────────────────────
+function StepAccount({ data, onChange, onNext }) {
+  const [err, setErr] = useState("");
+  const go = () => {
+    if (!data.firstName || !data.lastName) return setErr("Enter your full name.");
+    if (!data.email.includes("@")) return setErr("Enter a valid email address.");
+    if (data.password.length < 6) return setErr("Password must be at least 6 characters.");
+    setErr(""); onNext();
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 360px", gap: 48, alignItems: "start" }}>
+      {/* LEFT COLUMN */}
+      <div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
+          🛡️ We file on your behalf
+        </div>
+        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>
+          We fight your property tax bill. You keep the savings.
+        </h1>
+        <p style={{ fontSize: 15, fontWeight: 500, color: "#3D5275", marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
+          No forms to mail. No county offices to call. We do it all.
+        </p>
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>
+          Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $59 fee.
+        </p>
+
+        {/* 82% stat banner */}
+        <div style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>82%</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.white, marginBottom: 4 }}>of property tax disputes are approved</div>
+            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.5 }}>The odds are in your favor — don't leave money on the table. File today and start saving.</div>
+          </div>
+        </div>
+
+        {/* Case builder */}
+        <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 28, height: 28, background: C.darkNavy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📊</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>We build your case</div>
+          </div>
+          <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
+            Our system searches millions of comparable sales, calculates your property's fair market value, and builds a professional appeal — so when your dispute lands on a reviewer's desk, it's backed by real data and impossible to ignore.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {[["2.1M+", "Comparable sales searched"], ["Fair", "Market value calculated"], ["100%", "Code-compliant appeals"]].map(([n, l]) => (
+              <div key={l} style={{ background: C.bg, borderRadius: 8, padding: "12px", textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.navy }}>{n}</div>
+                <div style={{ fontSize: 10, color: C.mutedGray, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>
+            ⚖️ Aligned with Texas Tax Code §41.43 · Georgia · Florida statutes
+          </div>
+        </div>
+
+        {/* Price callout */}
+        <div style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 4 }}>ONE-TIME FEE</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$59</div>
+            <div style={{ fontSize: 12, color: C.gold, fontFamily: "'DM Sans', sans-serif" }}>Flat rate. No hidden cuts.</div>
+          </div>
+          <div style={{ borderLeft: `2px solid #FFD97A`, paddingLeft: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, marginBottom: 4, fontFamily: "'DM Sans', sans-serif" }}>vs. the other guys</div>
+            <div style={{ fontSize: 12, color: C.bodyGray, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>Up to 50% of your savings — on a $2,000 win, that's $1,000 gone before it ever reaches you.</div>
+          </div>
+        </div>
+
+        {/* Checklist */}
+        {[["We file the appeal for you", "Your dispute is submitted via certified letter — no action needed on your end"], ["You get the certified mail receipt", "Official proof of submission sent directly to you"], ["Takes about 4 minutes", "Answer a few questions and we handle the rest"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
+          <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.navy, flexShrink: 0, marginTop: 2 }}>✓</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>{t}</div>
+              <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* RIGHT COLUMN — FORM CARD */}
+      <div style={{ ...cardStyle, position: "sticky", top: 20 }}>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Create your account</h2>
+        <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 12, fontFamily: "'DM Sans', sans-serif" }}>Currently available for residents of:</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
+            <div key={code} style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 20, padding: "5px 12px", fontSize: 12, color: C.navy, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+              📍 {s.name}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: "#A0AFBF", marginBottom: 20, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+          🕐 More states coming soon
+        </div>
+
+        {/* Price row */}
+        <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$59</span>
+            <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
+          </div>
+        </div>
+
+        {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="First Name" id="fn" value={data.firstName} onChange={e => onChange("firstName", e.target.value)} placeholder="Jane" />
+          <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
+        </div>
+        <Field label="Email Address" id="email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="jane@example.com" />
+        <Field label="Password" id="pw" type="password" value={data.password} onChange={e => onChange("password", e.target.value)} placeholder="At least 6 characters" />
+
+        <button style={primaryBtn} onClick={go}>Continue →</button>
+        <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>
+          🔒 Secure checkout · 256-bit encryption<br />
+          <span style={{ marginTop: 4, display: "block" }}>You won't be charged until your appeal is ready to file.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN 2: YOUR PROPERTY ──────────────────────────────────────────────────
 function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
   const [err, setErr] = useState("");
   const [showPopup, setShowPopup] = useState(false);
@@ -499,139 +494,499 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
 
   const go = () => {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
-    const stateCode = data.state.trim().toUpperCase();
-    if (!SUPPORTED_STATES[stateCode]) {
-      onUnsupportedState(stateCode);
-      return;
-    }
-    if (checkedState !== stateCode) {
-      setCheckedState(stateCode);
-      setShowPopup(true);
-      return;
-    }
+    const sc = data.state.trim().toUpperCase();
+    if (!SUPPORTED_STATES[sc]) { onUnsupportedState(sc); return; }
+    if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();
-  };
-
-  const handlePopupClose = () => {
-    setShowPopup(false);
-    onNext();
   };
 
   return (
     <>
-      {showPopup && checkedState && (
-        <DeadlinePopup stateCode={checkedState} onClose={handlePopupClose} />
-      )}
-      <div style={S.card}>
-        <h2 style={S.title}>Your property</h2>
-        <p style={S.sub}>Enter your address and we'll automatically pull your tax appraisal value, property details, and comparable sales from public records.</p>
-        {err && <div style={S.err}>{err}</div>}
-        <AddressAutocomplete
-          value={data.street}
-          onChange={(val) => onChange("street", val)}
-          onSelect={(s) => {
-            onChange("street", s.street);
-            if (s.city) onChange("city", s.city);
-            if (s.state) onChange("state", s.state);
-            if (s.zip) onChange("zip", s.zip);
-          }}
-        />
-        <div style={S.row3}>
-          <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
-          <Field label="State" id="state" value={data.state} onChange={e => onChange("state", e.target.value)} placeholder="TX" />
-          <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
+      {showPopup && checkedState && <DeadlinePopup stateCode={checkedState} onClose={() => { setShowPopup(false); onNext(); }} />}
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48, alignItems: "start" }}>
+        {/* LEFT */}
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
+            🏠 Step 2 of 4
+          </div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 8 }}>Tell us about your property</h2>
+
+          <div style={{ background: "#F0F7FF", border: "1px solid #C5D9F0", borderRadius: 8, padding: "10px 14px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#1B4D8E", fontFamily: "'DM Sans', sans-serif" }}>
+            🗄️ <span><strong>We auto-fill what we can.</strong> Enter your address and we'll pull your tax appraisal value, property details, and comparable sales from public records automatically.</span>
+          </div>
+
+          {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
+
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>Property Address</div>
+
+          <AddressAutocomplete value={data.street} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
+            <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>State</label>
+              <select value={data.state} onChange={e => onChange("state", e.target.value)}
+                style={{ ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235A6B82' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}>
+                <option value="">State</option>
+                <option value="TX">TX</option>
+                <option value="GA">GA</option>
+                <option value="FL">FL</option>
+              </select>
+            </div>
+            <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
+          </div>
+
+          {/* Optional override */}
+          <div style={{ background: "#FAFBFC", border: `1.5px dashed #C5D0E0`, borderRadius: 10, padding: 20, marginTop: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 16 }}>📋</span>
+              <div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Have your tax bill handy? </span>
+                <span style={{ fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>(Optional)</span>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: C.bodyGray, marginBottom: 14, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+              Enter the values from your bill to override our lookup. Leave blank and we'll pull everything from public records automatically.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
+              <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <Field label="Year Built" id="yb" value={data.manualYearBuilt} onChange={e => onChange("manualYearBuilt", e.target.value)} placeholder="1998" />
+              <Field label="Bedrooms" id="bd" value={data.manualBeds} onChange={e => onChange("manualBeds", e.target.value)} placeholder="4" />
+              <Field label="Bathrooms" id="bt" value={data.manualBaths} onChange={e => onChange("manualBaths", e.target.value)} placeholder="2.5" />
+            </div>
+            <div style={{ marginBottom: 0 }}>
+              <label style={labelStyle}>Property Type</label>
+              <select value={data.propType} onChange={e => onChange("propType", e.target.value)} style={{ ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235A6B82' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}>
+                <option value="">Select type</option>
+                <option>Single-family home</option>
+                <option>Townhouse</option>
+                <option>Condo</option>
+                <option>Multi-family</option>
+                <option>Commercial</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+            <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
+            <button style={{ ...primaryBtn }} onClick={go}>🔍 Look up my property & continue</button>
+          </div>
         </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 18, marginTop: 4, marginBottom: 4 }}>
-          <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>
-            Override (optional) — enter if you have your tax bill handy
+
+        {/* RIGHT SIDEBAR */}
+        <div>
+          <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: "22px 24px", marginBottom: 16 }}>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.navy, marginBottom: 4 }}>$1,840</div>
+            <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>avg. savings per homeowner</div>
+            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>82% of disputes are approved</div>
           </div>
-          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.3)", marginBottom: 14, lineHeight: 1.5 }}>
-            Leave blank and we'll look everything up automatically.
+          <div style={{ ...cardStyle, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What we look up</div>
+            {[["🏛️", "County appraisal records"], ["📊", "2.1M+ comparable sales"], ["🏠", "Property characteristics"], ["⚖️", "Tax code alignment"]].map(([icon, text]) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>
+                <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
+                {text}
+              </div>
+            ))}
           </div>
-          <div style={S.row2}>
-            <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
-            <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
+          <div style={{ background: C.darkNavy, borderRadius: 12, padding: 20 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Your Progress</div>
+            {STEPS.map((s, i) => {
+              const idx = STEPS.indexOf("property");
+              const done = i < idx; const active = i === idx;
+              return (
+                <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: done ? C.gold : active ? C.gold : "#1E2D45", flexShrink: 0 }} />
+                  <div style={{ fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: done || active ? C.white : "#3A4E6A" }}>{stepLabels[s]}</div>
+                </div>
+              );
+            })}
           </div>
-          <div style={S.row3}>
-            <Field label="Year Built" id="ybm" value={data.manualYearBuilt} onChange={e => onChange("manualYearBuilt", e.target.value)} placeholder="1998" />
-            <Field label="Bedrooms" id="bd" value={data.manualBeds} onChange={e => onChange("manualBeds", e.target.value)} placeholder="4" />
-            <Field label="Bathrooms" id="bt" value={data.manualBaths} onChange={e => onChange("manualBaths", e.target.value)} placeholder="2.5" />
-          </div>
-          <Field label="Property Type" id="pt" value={data.propType} onChange={e => onChange("propType", e.target.value)} placeholder="Single-family home" />
-        </div>
-        <div style={S.fieldGroup}>
-          <label style={S.label}>Additional Notes (optional)</label>
-          <textarea value={data.notes} onChange={e => onChange("notes", e.target.value)}
-            placeholder="Any other details about the property..."
-            style={{ ...S.input, minHeight: 72, resize: "vertical", lineHeight: 1.6 }} />
-        </div>
-        <button style={{ ...S.btn, marginTop: 20 }} onClick={go}>Next: Property Issues →</button>
-        <div style={{ marginTop: 11, textAlign: "center" }}>
-          <button style={S.btnGhost} onClick={onBack}>← Back</button>
         </div>
       </div>
     </>
   );
 }
 
-function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode }) {
+// ─── SCREEN 3: PROPERTY ISSUES ────────────────────────────────────────────────
+function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange }) {
   const count = selectedIssues.length;
   return (
-    <div style={S.card}>
-      {stateCode && <CountdownBanner stateCode={stateCode} />}
-      <div style={S.badge(false)}>💡 Optional but strengthens your case</div>
-      <h2 style={S.title}>Property issues</h2>
-      <p style={S.sub}>Select any problems that apply to your property. Each one will be cited as evidence in your dispute letter to support the lower valuation.</p>
-      {ISSUE_CATEGORIES.map((cat) => (
-        <div key={cat.category} style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.gold, marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
-            <span>{cat.icon}</span>{cat.category}
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 300px", gap: 48, alignItems: "start" }}>
+      {/* LEFT */}
+      <div>
+        {/* Deadline banner */}
+        <div style={{ background: C.amber, border: `1px solid #FFD97A`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
+          <div style={{ fontSize: 13, color: "#7A5C10", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia and Florida have similar windows. File now to protect your right to appeal.
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {cat.issues.map((issue) => {
-              const selected = selectedIssues.includes(issue);
-              return (
-                <div key={issue} onClick={() => onToggle(issue)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 7, border: `1px solid ${selected ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.08)"}`, background: selected ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 0.15s" }}>
-                  <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `2px solid ${selected ? C.gold : "rgba(255,255,255,0.2)"}`, background: selected ? C.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.ink, fontWeight: 700, transition: "all 0.15s" }}>
-                    {selected ? "✓" : ""}
+        </div>
+
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>
+          💡 Optional but strengthens your case
+        </div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>Property issues</h2>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Select any problems that apply. Each one will be cited as evidence in your dispute letter.</p>
+
+        {ISSUE_CATEGORIES.map((cat) => (
+          <div key={cat.category} style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: cat.color, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 7 }}>
+              <span>{cat.icon}</span>{cat.category}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {cat.issues.map((issue) => {
+                const selected = selectedIssues.includes(issue);
+                return (
+                  <div key={issue} onClick={() => onToggle(issue)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${selected ? C.navy : C.border}`, background: selected ? C.lightBlue : C.white, cursor: "pointer", transition: "all 0.15s" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected ? C.navy : "#C5D0E0"}`, background: selected ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700 }}>
+                      {selected ? "✓" : ""}
+                    </div>
+                    <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: selected ? C.darkNavy : "#3D4F66", fontWeight: selected ? 500 : 400 }}>{issue}</span>
                   </div>
-                  <span style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: selected ? C.white : "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>
-                    {issue}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
+        ))}
+
+        {/* Notes */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.bodyGray, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            📝 Additional notes
+          </div>
+          <p style={{ fontSize: 12, color: C.bodyGray, marginBottom: 8, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>Anything else that could strengthen your case — recent repairs, discrepancies you've spotted, neighbor comparisons, or issues not listed above.</p>
+          <textarea value={notes} onChange={e => onNotesChange(e.target.value)} placeholder="e.g. County records show 4 bedrooms but we only have 3. Roof was replaced in 2021 but assessed value didn't change..."
+            style={{ ...inputStyle, minHeight: 100, resize: "vertical", lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }} />
         </div>
-      ))}
-      {count > 0 && (
-        <div style={{ marginBottom: 20, padding: "10px 14px", background: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)", borderRadius: 7, fontSize: 12, fontFamily: "'Arial',sans-serif", color: "#52C48A" }}>
-          ✓ {count} issue{count !== 1 ? "s" : ""} selected — {count >= 3 ? "strong case" : "good start"}
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
+          <button style={primaryBtn} onClick={onNext}>
+            📄 {count > 0 ? `Save & generate my dispute letter (${count} issue${count !== 1 ? "s" : ""})` : "Skip & generate my dispute letter"}
+          </button>
         </div>
-      )}
-      <button style={S.btn} onClick={onNext}>
-        {count > 0 ? `Generate Letter with ${count} Issue${count !== 1 ? "s" : ""} →` : "Skip & Generate Letter →"}
-      </button>
-      <div style={{ marginTop: 11, textAlign: "center" }}>
-        <button style={S.btnGhost} onClick={onBack}>← Back</button>
+      </div>
+
+      {/* RIGHT SIDEBAR */}
+      <div style={{ position: "sticky", top: 20 }}>
+        <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: "22px 24px", marginBottom: 16, textAlign: "center" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.navy, lineHeight: 1 }}>{count}</div>
+          <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 4 }}>{count === 1 ? "issue selected" : "issues selected"}</div>
+          {count >= 3 && <div style={{ fontSize: 11, color: C.green, marginTop: 8, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>✓ Strong case</div>}
+          {count > 0 && count < 3 && <div style={{ fontSize: 11, color: C.bodyGray, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>Add {3 - count} more for a stronger case</div>}
+        </div>
+        <div style={{ background: C.darkNavy, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Your Progress</div>
+          {STEPS.map((s, i) => {
+            const idx = STEPS.indexOf("issues");
+            const done = i < idx; const active = i === idx;
+            return (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: done ? C.gold : active ? C.gold : "#1E2D45", flexShrink: 0 }} />
+                <div style={{ fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: done || active ? C.white : "#3A4E6A" }}>{stepLabels[s]}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ ...cardStyle }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Filing tips</div>
+          {["More issues = stronger case", "Be specific in your notes", "County data errors are common", "Comparable sales are powerful evidence"].map(tip => (
+            <div key={tip} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>
+              <div style={{ width: 16, height: 16, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.navy, flexShrink: 0 }}>✓</div>
+              {tip}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-const STAGES = [
-  { label: "Determining county", sub: "Looking up jurisdiction via Census geocoder" },
-  { label: "Retrieving assessment data", sub: "Searching county appraisal district records" },
-  { label: "Finding appraisal district", sub: "Locating where to file your dispute" },
-  { label: "Drafting dispute letter", sub: "Building legal arguments with comp evidence" },
+// ─── SCREEN 4a: LOADING ───────────────────────────────────────────────────────
+const LOAD_STAGES = [
+  { label: "Determining your county", desc: "Looking up jurisdiction via Census geocoder", ms: 2800 },
+  { label: "Retrieving appraisal data", desc: "Searching county appraisal district records", ms: 2200 },
+  { label: "Searching comparable sales", desc: "Scanning 2.1M+ recent transactions nearby", ms: 3500 },
+  { label: "Finding your appraisal district", desc: "Locating where to file your dispute", ms: 2000 },
+  { label: "Drafting your dispute letter", desc: "Building legal arguments with comp evidence", ms: 3000 },
 ];
 
+function LoadingScreen({ addr }) {
+  const [activeStage, setActiveStage] = useState(0);
+  const [doneStages, setDoneStages] = useState([]);
+  const [progress, setProgress] = useState(5);
+
+  useEffect(() => {
+    let stageIdx = 0;
+    const advance = () => {
+      if (stageIdx >= LOAD_STAGES.length) return;
+      const current = stageIdx;
+      stageIdx++;
+      setTimeout(() => {
+        setDoneStages(prev => [...prev, current]);
+        setActiveStage(stageIdx);
+        setProgress(Math.min(78, 5 + (stageIdx / LOAD_STAGES.length) * 73));
+        if (stageIdx < LOAD_STAGES.length) advance();
+      }, LOAD_STAGES[current].ms);
+    };
+    advance();
+    const progressTimer = setInterval(() => setProgress(p => Math.min(78, p + 0.5)), 200);
+    return () => clearInterval(progressTimer);
+  }, []);
+
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto", padding: "80px 40px", textAlign: "center" }}>
+      {/* Spinner */}
+      <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 24px" }}>
+        <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid transparent", borderTopColor: C.navy, borderRightColor: C.navy, animation: "spin 1.1s linear infinite" }} />
+        <div style={{ position: "absolute", inset: 13, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>📊</div>
+      </div>
+
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 20, padding: "5px 14px", fontSize: 13, color: "#3D5275", fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
+        📍 {addr}
+      </div>
+
+      <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 12 }}>Building your case</h2>
+      <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6, marginBottom: 32, fontFamily: "'DM Sans', sans-serif" }}>
+        We're pulling live data from county appraisal records, searching comparable sales, and drafting your dispute letter. This takes about 30 seconds.
+      </p>
+
+      {/* Steps */}
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24, textAlign: "left" }}>
+        {LOAD_STAGES.map((stage, i) => {
+          const done = doneStages.includes(i);
+          const active = i === activeStage;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < LOAD_STAGES.length - 1 ? `1px solid ${C.border}` : "none", background: active ? C.bg : C.white, opacity: i > activeStage && !done ? 0.45 : 1, transition: "all 0.3s" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: done ? C.navy : active ? C.gold : "#E8EDF4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, animation: active ? "pulse 1.5s ease-in-out infinite" : "none" }}>
+                {done ? <span style={{ color: C.white, fontSize: 14 }}>✓</span> : active ? "⟳" : i + 1}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>{stage.label}</div>
+                <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{stage.desc}</div>
+              </div>
+              <div style={{ fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: done ? C.green : active ? "#B8860B" : C.mutedGray, fontWeight: done || active ? 500 : 400 }}>
+                {done ? "Complete" : active ? "In progress..." : "Waiting"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ background: C.border, height: 6, borderRadius: 4, marginBottom: 8, overflow: "hidden" }}>
+        <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${C.navy}, #3A6BC4)`, width: `${progress}%`, transition: "width 0.5s ease-out" }} />
+      </div>
+      <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 28 }}>
+        {activeStage < LOAD_STAGES.length ? LOAD_STAGES[Math.min(activeStage, LOAD_STAGES.length - 1)].label : "Finalizing..."}
+      </div>
+
+      {/* Reassurance */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 28 }}>
+        {["🔒 256-bit encrypted", "🏛️ County records only", "⏱️ About 30 seconds"].map(item => (
+          <div key={item} style={{ fontSize: 12, color: "#A0AFBF", fontFamily: "'DM Sans', sans-serif" }}>{item}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN 4b: DISPUTE LETTER ────────────────────────────────────────────────
+function DisputeLetter({ propData, letter, issues, onRestart, account, property }) {
+  const [agreements, setAgreements] = useState([false, false, false]);
+  const [copied, setCopied] = useState(false);
+  const allAgreed = agreements.every(Boolean);
+  const pd = propData || {};
+  const stateCode = property.state.trim().toUpperCase();
+  const stateInfo = SUPPORTED_STATES[stateCode] || {};
+
+  const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
+  const doCopy = () => { navigator.clipboard.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 2500); };
+  const doPrint = () => {
+    const w = window.open("", "_blank");
+    w.document.write(`<html><body style="font-family:Georgia,serif;max-width:680px;margin:60px auto;font-size:15px;line-height:1.85;color:#111;">${letter.replace(/\n/g, "<br/>")}</body></html>`);
+    w.document.close(); w.print();
+  };
+
+  // Split letter for paywall
+  const lines = letter.split("\n");
+  const visibleLines = lines.slice(0, 12).join("\n");
+  const blurredLines = lines.slice(12).join("\n");
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 48, alignItems: "start" }}>
+      {/* LEFT */}
+      <div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#E6F4ED", color: C.green, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>
+          ✓ Your dispute letter is ready
+        </div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 6 }}>Your case is built.</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 24 }}>
+          📍 {pd.rawAddress} — {pd.county}
+        </div>
+
+        {/* Case summary card */}
+        <div style={{ background: C.darkNavy, borderRadius: 12, padding: 24, marginBottom: 24 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            {[
+              [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : "—", "Estimated overvaluation"],
+              [pd.savings ? `$${pd.savings.toLocaleString()}` : "—", "Potential annual savings"],
+              ["4–5", "Comparable sales cited"],
+              [issues.length.toString(), "Issues cited in letter"],
+            ].map(([val, label]) => (
+              <div key={label}>
+                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.gold }}>{val}</div>
+                <div style={{ fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          {issues.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+              {issues.slice(0, 4).map(issue => (
+                <span key={issue} style={{ background: "#1E2D45", color: C.mutedGray, fontSize: 11, padding: "3px 8px", borderRadius: 4, fontFamily: "'DM Sans', sans-serif" }}>
+                  {issue.length > 30 ? issue.slice(0, 30) + "..." : issue}
+                </span>
+              ))}
+              {issues.length > 4 && <span style={{ background: "#1E2D45", color: C.mutedGray, fontSize: 11, padding: "3px 8px", borderRadius: 4, fontFamily: "'DM Sans', sans-serif" }}>+{issues.length - 4} more</span>}
+            </div>
+          )}
+          <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 12, fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif', display: 'flex", alignItems: "center", gap: 6 }}>
+            ⚖️ Drafted under {stateInfo.statute || "applicable state statutes"} · {pd.appraisalDistrict?.districtName || pd.county}
+          </div>
+        </div>
+
+        {/* Letter preview with paywall */}
+        <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
+          <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Dispute Letter Preview</div>
+            {pd.appraisalDistrict && (
+              <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>{pd.appraisalDistrict.districtName}</div>
+            )}
+          </div>
+          {/* Visible section */}
+          <div style={{ padding: "20px 24px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white }}>
+            {visibleLines}
+          </div>
+          {/* Blurred section with gradient */}
+          <div style={{ position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none" }}>
+              {blurredLines || "The full dispute letter will be revealed after completing your order..."}
+            </div>
+          </div>
+        </div>
+
+        {/* Disclaimer & checkboxes */}
+        <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span>📋</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Terms & Disclaimer — Please read before filing</span>
+          </div>
+          <div style={{ maxHeight: 160, overflowY: "auto", padding: "14px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7 }}>
+            <p><strong>1. No guarantee of outcome.</strong> Your appraisal district determines the result, not TaxAppeal. We make no guarantee that your assessment will be reduced.</p>
+            <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only. We recommend consulting a licensed property tax consultant for complex disputes.</p>
+            <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy. We use data from public records and third-party sources.</p>
+            <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open before filing.</p>
+            <p><strong>5. No refunds after filing.</strong> The $59 fee is non-refundable once your certified mail has been sent. If we made an error, we'll correct it at no charge.</p>
+            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, and FL only. Letters are prepared under applicable state statutes.</p>
+          </div>
+        </div>
+
+        {[
+          "I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.",
+          "I confirm the property information I provided is accurate and I have reviewed the letter preview above.",
+          "I understand the $59 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service.",
+        ].map((text, i) => (
+          <div key={i} onClick={() => toggleAgreement(i)}
+            style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
+            <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[i] ? C.navy : "#C5D0E0"}`, background: agreements[i] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>
+              {agreements[i] ? "✓" : ""}
+            </div>
+            <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
+          </div>
+        ))}
+
+        {!allAgreed && (
+          <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: "center", marginBottom: 10 }}>
+            All three boxes must be checked to proceed
+          </div>
+        )}
+
+        <button
+          style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
+          onClick={allAgreed ? doCopy : undefined}
+          disabled={!allAgreed}>
+          <span>{allAgreed ? "📤" : "🔒"}</span>
+          <span>{allAgreed ? (copied ? "✓ Copied!" : `File my dispute  ·  $59`) : "Agree to all terms to continue"}</span>
+        </button>
+
+        {allAgreed && (
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <button style={{ ...secondaryBtn, flex: 1, padding: "12px" }} onClick={doPrint}>Print Letter</button>
+          </div>
+        )}
+
+        <div style={{ marginTop: 20, textAlign: "center" }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
+        </div>
+
+        <div style={{ marginTop: 20, padding: "13px 16px", background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          ⚖️ This letter is AI-generated for informational purposes and does not constitute legal advice. Property data sourced from county assessor records and public databases.
+        </div>
+      </div>
+
+      {/* RIGHT SIDEBAR */}
+      <div style={{ position: "sticky", top: 20 }}>
+        {/* Filing destination */}
+        <div style={{ ...cardStyle, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Where to File</div>
+          {pd.appraisalDistrict ? (
+            <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 700, color: C.darkNavy, marginBottom: 4, fontSize: 14 }}>{pd.appraisalDistrict.districtName}</div>
+              <div>{pd.appraisalDistrict.mailingAddress}</div>
+              <div>{pd.appraisalDistrict.city}, {pd.appraisalDistrict.state} {pd.appraisalDistrict.zip}</div>
+              {pd.appraisalDistrict.phone && <div style={{ marginTop: 4 }}>📞 {pd.appraisalDistrict.phone}</div>}
+              {pd.appraisalDistrict.website && <div>🌐 <a href={pd.appraisalDistrict.website} target="_blank" rel="noopener noreferrer" style={{ color: C.navy }}>{pd.appraisalDistrict.website}</a></div>}
+              <div style={{ marginTop: 10, background: C.amber, border: `1px solid #FFD97A`, borderRadius: 6, padding: "8px 10px", fontSize: 11, color: "#7A5C10" }}>
+                📅 {pd.appraisalDistrict.filingDeadlineNote}
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>
+              Search "{pd.county} appraisal district" to find the filing address.
+            </div>
+          )}
+        </div>
+
+        {/* What happens next */}
+        <div style={{ ...cardStyle }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
+          {[["💳", "Secure $59 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+            <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>{t}</div>
+                <div style={{ fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── STEP DISPUTE (orchestrates loading + result) ─────────────────────────────
 function StepDispute({ formData, onRestart }) {
-  const [stage, setStage] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [propData, setPropData] = useState(null);
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
-  const [copied, setCopied] = useState(false);
   const ran = useRef(false);
 
   const { account, property, issues } = formData;
@@ -645,16 +1000,13 @@ function StepDispute({ formData, onRestart }) {
   }, []);
 
   const run = async () => {
-    setStage(0); setErrMsg(""); setLetter(""); setPropData(null);
+    setLoading(true); setErrMsg(""); setLetter(""); setPropData(null);
     try {
       const res = await fetch("/api/lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          street: property.street,
-          city: property.city,
-          state: property.state,
-          zip: property.zip,
+          street: property.street, city: property.city, state: property.state, zip: property.zip,
           manualAssessedValue: property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null,
           manualSqft: property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null,
           manualYearBuilt: property.manualYearBuilt || null,
@@ -663,14 +1015,8 @@ function StepDispute({ formData, onRestart }) {
         }),
       });
 
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.error || `Lookup failed (${res.status}).`);
-      }
-
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
       const bdJson = await res.json();
-      setStage(1);
-
       const extracted = bdJson?.extractedData || {};
       const assessedValue = extracted.assessedValue || null;
       const marketValue = extracted.marketValue || null;
@@ -682,210 +1028,59 @@ function StepDispute({ formData, onRestart }) {
       const sqft = extracted.sqft || null;
       const yearBuilt = extracted.yearBuilt || null;
       const appraisalDistrict = bdJson?.appraisalDistrict || null;
-
-      setStage(2);
-
       const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
       const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
       const savings = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
       const targetReduction = assessedValue ? Math.round(Number(assessedValue) * 0.80) : null;
-
+      const stateInfo = SUPPORTED_STATES[stateCode] || {};
       const pd = { assessedValue, marketValue, annualTax, county, taxYear, overPct, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction };
       setPropData(pd);
 
-      await new Promise(r => setTimeout(r, 400));
-      setStage(3);
-
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
-      const stateInfo = SUPPORTED_STATES[stateCode] || {};
+      const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
+      const issuesBlock = issues && issues.length > 0 ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}` : "No specific property issues reported beyond general market value discrepancy.";
+      const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
 
-      const propDetails = [
-        sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null,
-        yearBuilt ? `Year Built: ${yearBuilt}` : null,
-        beds ? `Bedrooms: ${beds}` : null,
-        baths ? `Bathrooms: ${baths}` : null,
-        property.propType ? `Property Type: ${property.propType}` : null,
-        sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null,
-      ].filter(Boolean).join("\n");
+      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nEMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: 20% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}\n\nLETTER REQUIREMENTS:\n1. Address letter to: ${appraisalDistrict ? appraisalDistrict.districtName : county + " Appraisal District"}\n2. Date: June 2026\n3. Section "SUBJECT PROPERTY DESCRIPTION": list every characteristic with exact numbers — never write "on file"\n4. Section "PROPERTY DEFECTS & CONDITIONS": cite each selected issue, explain market value impact\n5. Section "COMPARABLE SALES EVIDENCE": 4-5 real recent sales from ZIP ${property.zip} with addresses, prices, dates, sq ft, price/sqft\n6. Section "MARKET CONDITIONS": local market trends supporting lower valuation\n7. Section "LEGAL BASIS": cite ${stateInfo.statute || "applicable state statutes"}, equal and uniform assessment\n8. Demand 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n9. Request formal hearing if not resolved administratively\n10. Professional closing with owner name, address, email, and signature line\n\nOutput ONLY the complete formal letter.`;
 
-      const issuesBlock = issues && issues.length > 0
-        ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}`
-        : "No specific property issues reported beyond general market value discrepancy.";
-
-      const districtBlock = appraisalDistrict
-        ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}\nFiling Method: ${appraisalDistrict.filingMethod || "mail"}`
-        : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
-
-      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.
-
-PROPERTY OWNER: ${account.firstName} ${account.lastName}
-EMAIL: ${account.email}
-PROPERTY ADDRESS: ${addr}
-COUNTY: ${county}
-STATE: ${property.state.toUpperCase()}
-TAX YEAR: ${taxYear}
-
-SUBJECT PROPERTY CHARACTERISTICS:
-${propDetails || "See county records"}
-Current Assessed Value: ${fmt(assessedValue) || "See records"}
-Estimated Market Value: ${fmt(marketValue) || "N/A"}
-Annual Tax Bill: ${fmt(annualTax) || "N/A"}
-Requested Reduction: 20% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}
-
-${issuesBlock}
-
-${districtBlock}
-
-OWNER NOTES: ${property.notes || "None."}
-
-LETTER REQUIREMENTS:
-1. Address letter to: ${appraisalDistrict ? appraisalDistrict.districtName : county + " Appraisal District"}
-2. Date: June 2026
-3. Subject line referencing property address and tax year
-4. Section "SUBJECT PROPERTY DESCRIPTION": list every characteristic with its EXACT number. Never write "on file."
-5. Section "PROPERTY DEFECTS & CONDITIONS": cite each selected issue by name, explain how it negatively impacts market value. Be specific and persuasive.
-6. Section "COMPARABLE SALES EVIDENCE": cite 4-5 real recent sales from ZIP ${property.zip} with addresses, prices, dates, sq ft, and price per sq ft. Show subject property's assessed price per sq ft exceeds comparable sales.
-7. Section "MARKET CONDITIONS": explain local market trends supporting a lower valuation.
-8. Section "LEGAL BASIS": cite applicable state statutes (Texas Tax Code §41.41/§41.43 for TX, O.C.G.A. §48-5-311 for GA, Florida Statute §194.011 for FL), equal and uniform assessment, and market value standard.
-9. Demand 20% reduction: from ${fmt(assessedValue)} to ${fmt(targetReduction)}.
-10. Request formal hearing if not resolved administratively.
-11. Professional closing with owner name, address, email, and signature line.
-
-Output ONLY the complete formal letter.`;
-
-      const claudeRes = await fetch("/api/generate-letter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }),
-      });
-
+      const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
       const claudeJson = await claudeRes.json();
       if (claudeJson.error) throw new Error(claudeJson.error);
       if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
       setLetter(claudeJson.letter);
-      setStage(4);
+      setLoading(false);
     } catch (e) {
       setErrMsg(e.message || "Something went wrong. Please try again.");
-      setStage(-1);
+      setLoading(false);
     }
   };
 
-  const retry = () => { ran.current = false; setStage(0); run(); ran.current = true; };
-  const doCopy = () => { navigator.clipboard.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 2500); };
-  const doPrint = () => {
-    const w = window.open("", "_blank");
-    w.document.write(`<html><body style="font-family:Georgia,serif;max-width:680px;margin:60px auto;font-size:15px;line-height:1.85;color:#111;">${letter.replace(/\n/g, "<br/>")}</body></html>`);
-    w.document.close(); w.print();
-  };
-
-  if (stage >= 0 && stage < 4) {
+  if (errMsg) {
     return (
-      <div style={S.card}>
-        <h2 style={S.title}>Looking up your property</h2>
-        <p style={S.sub}>Pulling live data from county assessor records for {addr}.</p>
-        <div style={S.timelineWrap}>
-          {STAGES.map((st, i) => {
-            const done = stage > i; const active = stage === i;
-            return (
-              <div key={i} style={S.timelineItem(done, active)}>
-                <div style={S.timelineDot(done, active)}>
-                  {done ? "✓" : active ? <div style={{ width: 9, height: 9, borderRadius: "50%", border: `2px solid ${C.gold}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} /> : i + 1}
-                </div>
-                <div>
-                  <div style={S.timelineText(active)}>{st.label}</div>
-                  <div style={S.timelineSub}>{st.sub}</div>
-                </div>
-              </div>
-            );
-          })}
+      <div style={{ maxWidth: 520, margin: "80px auto", padding: "0 24px" }}>
+        <div style={{ ...cardStyle, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 8 }}>Lookup failed</h2>
+          <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 20, textAlign: "left" }}>{errMsg}</div>
+          <button style={primaryBtn} onClick={() => { ran.current = false; run(); ran.current = true; }}>Try Again</button>
+          <div style={{ marginTop: 12 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Start over</button></div>
         </div>
       </div>
     );
   }
 
-  if (stage === -1) {
-    return (
-      <div style={S.card}>
-        <h2 style={S.title}>Lookup failed</h2>
-        <div style={S.err}>{errMsg}</div>
-        <p style={{ ...S.sub, marginBottom: 20 }}>Try again or go back and enter your details manually.</p>
-        <button style={S.btn} onClick={retry}>Try Again</button>
-        <div style={{ marginTop: 11, textAlign: "center" }}><button style={S.btnGhost} onClick={onRestart}>← Start over</button></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen addr={addr} />;
 
-  const pd = propData || {};
-  return (
-    <div style={S.card}>
-      {stateCode && <CountdownBanner stateCode={stateCode} />}
-      <div style={S.badge(true)}>✓ Dispute Letter Ready</div>
-      <h2 style={S.title}>Your dispute letter</h2>
-      <p style={S.sub}>{pd.rawAddress} — {pd.county}</p>
-      <div style={S.infoRow}>
-        {pd.assessedValue && <div style={S.infoBox}><div style={S.infoLabel}>Current Assessed Value</div><div style={S.infoVal}>${Number(pd.assessedValue).toLocaleString()}</div></div>}
-        {pd.targetReduction && <div style={S.infoBox}><div style={S.infoLabel}>Target Value (−20%)</div><div style={{ ...S.infoVal, color: "#52C48A" }}>${Number(pd.targetReduction).toLocaleString()}</div></div>}
-        {pd.savings && pd.savings > 0 && <div style={S.infoBox}><div style={S.infoLabel}>Est. Annual Savings</div><div style={{ ...S.infoVal, color: C.gold }}>${pd.savings.toLocaleString()}</div></div>}
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {pd.sqft && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>📐 {Number(pd.sqft).toLocaleString()} sq ft</span>}
-        {pd.yearBuilt && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🏗 Built {pd.yearBuilt}</span>}
-        {pd.beds && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🛏 {pd.beds} bed</span>}
-        {pd.baths && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>🚿 {pd.baths} bath</span>}
-        {pd.annualTax && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "4px 10px", color: "rgba(255,255,255,0.7)" }}>💰 ${Number(pd.annualTax).toLocaleString()}/yr tax</span>}
-        {pd.sqft && pd.assessedValue && <span style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(201,168,76,0.1)", borderRadius: 4, padding: "4px 10px", color: C.gold }}>📊 ${Math.round(Number(pd.assessedValue) / Number(pd.sqft))}/sqft assessed</span>}
-      </div>
-      {formData.issues && formData.issues.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontFamily: "'Arial',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Issues cited in letter</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {formData.issues.map(issue => (
-              <span key={issue} style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: 4, padding: "3px 9px", color: "#F1948A" }}>{issue}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      {!pd.hasData && <div style={S.warn}>⚠️ Limited data returned. Verify figures with your county assessor.</div>}
-      <div style={S.letterBox}>{letter}</div>
-      <div style={{ display: "flex", gap: 11, marginTop: 18 }}>
-        <button style={{ ...S.btn, flex: 1, marginTop: 0 }} onClick={doCopy}>{copied ? "✓ Copied!" : "Copy Letter"}</button>
-        <button style={{ ...S.btn, flex: 1, marginTop: 0, background: "rgba(255,255,255,0.08)", color: C.white }} onClick={doPrint}>Print Letter</button>
-      </div>
-      <div style={{ marginTop: 22, padding: "16px 18px", background: "rgba(26,122,74,0.07)", border: "1px solid rgba(26,122,74,0.2)", borderRadius: 8 }}>
-        <div style={{ fontSize: 11, fontFamily: "'Arial',sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52C48A", marginBottom: 10 }}>Where to File Your Dispute</div>
-        {pd.appraisalDistrict ? (
-          <div style={{ fontSize: 13, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.75)", lineHeight: 1.9 }}>
-            <div style={{ fontWeight: 700, color: C.white, fontSize: 14, marginBottom: 4 }}>{pd.appraisalDistrict.districtName}</div>
-            <div>{pd.appraisalDistrict.mailingAddress}</div>
-            <div>{pd.appraisalDistrict.city}, {pd.appraisalDistrict.state} {pd.appraisalDistrict.zip}</div>
-            {pd.appraisalDistrict.phone && <div style={{ marginTop: 4 }}>📞 {pd.appraisalDistrict.phone}</div>}
-            {pd.appraisalDistrict.website && <div>🌐 <a href={pd.appraisalDistrict.website} target="_blank" rel="noopener noreferrer" style={{ color: C.gold }}>{pd.appraisalDistrict.website}</a></div>}
-            <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(201,168,76,0.08)", borderRadius: 6, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.7 }}>
-              <strong style={{ color: C.gold }}>Filing Method:</strong> {pd.appraisalDistrict.filingMethod}<br />
-              <strong style={{ color: C.gold }}>Deadline:</strong> {pd.appraisalDistrict.filingDeadlineNote}<br />
-              <strong style={{ color: C.gold }}>Tip:</strong> Send via certified mail and keep your tracking number as proof of filing.
-            </div>
-          </div>
-        ) : (
-          <div style={{ fontSize: 12.5, fontFamily: "'Arial',sans-serif", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
-            Search <strong style={{ color: "rgba(255,255,255,0.8)" }}>"{pd.county} appraisal district"</strong> to find the filing address.<br />
-            Send by <strong style={{ color: "rgba(255,255,255,0.8)" }}>certified mail</strong> with tracking as proof of filing.
-          </div>
-        )}
-      </div>
-      <div style={{ marginTop: 14, textAlign: "center" }}><button style={S.btnGhost} onClick={onRestart}>Start a new dispute</button></div>
-      <div style={{ marginTop: 18, padding: "13px 16px", background: "rgba(201,168,76,0.05)", borderRadius: 8, border: "1px solid rgba(201,168,76,0.12)", fontSize: 11.5, color: "rgba(255,255,255,0.38)", fontFamily: "'Arial',sans-serif", lineHeight: 1.6 }}>
-        ⚖️ <strong style={{ color: "rgba(255,255,255,0.5)" }}>Disclaimer:</strong> This letter is AI-generated for informational purposes and does not constitute legal advice. Consult a licensed property tax consultant for jurisdiction-specific filing requirements.
-      </div>
-    </div>
-  );
+  return <DisputeLetter propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} />;
 }
 
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [step, setStep] = useState("account");
   const [account, setAccount] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
   const [issues, setIssues] = useState([]);
+  const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
@@ -895,43 +1090,40 @@ export default function App() {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]);
-    setUnsupportedState(null);
+    setIssues([]); setNotes(""); setUnsupportedState(null);
   };
 
-  const stateCode = property.state.trim().toUpperCase();
-
   return (
-    <div style={S.page}>
+    <div style={base}>
       <style>{`
+        ${FONT_IMPORT}
         @keyframes spin { to { transform: rotate(360deg); } }
-        input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.22); }
-        input:focus, textarea:focus { outline: none; border-color: #C9A84C !important; }
-        button:hover { opacity: 0.86; } button:active { transform: scale(0.98); }
-        * { box-sizing: border-box; } textarea { font-family: 'Georgia',serif !important; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        input::placeholder, textarea::placeholder { color: #B0BECF; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #1B3A6B !important; background: #FFFFFF !important; }
+        button:hover:not(:disabled) { opacity: 0.88; }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        textarea { font-family: 'DM Sans', sans-serif !important; }
         ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #C5D0E0; border-radius: 3px; }
+        a { text-decoration: none; }
       `}</style>
-      <header style={S.header}>
-        <div style={S.logoMark}>⚖</div>
-        <div>
-          <div style={S.logoText}>TaxAppeal</div>
-          <div style={S.logoSub}>Property Tax Dispute Service</div>
-        </div>
-      </header>
-      <main style={S.main}>
-        {unsupportedState ? (
-          <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
-        ) : (
-          <>
-            <ProgressBar currentStep={step} />
-            {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
-            {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} onUnsupportedState={(s) => setUnsupportedState(s)} />}
-            {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} stateCode={stateCode} />}
-            {step === "dispute" && <StepDispute formData={{ account, property, issues }} onRestart={restart} />}
-          </>
-        )}
-      </main>
+
+      <AnnouncementBar />
+      <NavBar step={step} />
+      {!unsupportedState && <ProgressBar currentStep={step} />}
+
+      {unsupportedState ? (
+        <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
+      ) : (
+        <>
+          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => setStep("property")} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => setStep("issues")} onBack={() => setStep("account")} onUnsupportedState={s => setUnsupportedState(s)} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => setStep("dispute")} onBack={() => setStep("property")} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues }} onRestart={restart} />}
+        </>
+      )}
     </div>
   );
 }
