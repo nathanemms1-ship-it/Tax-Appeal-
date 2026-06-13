@@ -812,10 +812,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
     w.document.close(); w.print();
   };
 
-  // Split letter for paywall
+  // Split letter for paywall — show first 30 lines, blur the rest
   const lines = letter.split("\n");
-  const visibleLines = lines.slice(0, 12).join("\n");
-  const blurredLines = lines.slice(12).join("\n");
+  const visibleLines = lines.slice(0, 30).join("\n");
+  const blurredLines = lines.slice(30).join("\n");
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 48, alignItems: "start" }}>
@@ -869,13 +869,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
             )}
           </div>
           {/* Visible section */}
-          <div style={{ padding: "20px 24px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white }}>
+          <div style={{ padding: "20px 24px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, whiteSpace: "pre-wrap" }}>
             {visibleLines}
           </div>
           {/* Blurred section with gradient */}
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none" }}>
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "pre-wrap" }}>
               {blurredLines || "The full dispute letter will be revealed after completing your order..."}
             </div>
           </div>
