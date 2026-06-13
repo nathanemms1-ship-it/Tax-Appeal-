@@ -152,7 +152,7 @@ export default async function handler(req, res) {
       const searchPrompt = appraisalDistrict
         ? `Do TWO searches for the property at ${fullAddress}:
 
-SEARCH 1: Search Zillow, Redfin, or Realtor.com for this property to find square footage, bedrooms, bathrooms, year built, and estimated market value.
+SEARCH 1: Search Redfin.com for this property to find square footage, bedrooms, bathrooms, year built, and estimated market value. Also check the Tax History section on the property page which often shows county assessed values.
 
 SEARCH 2: Go to ${districtWebsite ? districtWebsite : `"${countyName} appraisal district property search"`} and search for "${fullAddress}" to find the OFFICIAL TAX APPRAISED VALUE (also called appraised value or assessed value) and annual property tax amount for this exact address. This is the value set by the county appraisal district, NOT the Zillow estimate.
 
@@ -165,7 +165,13 @@ Return ONLY this JSON object:
 
 SEARCH 1: Search Zillow, Redfin, or Realtor.com for this property: square footage, bedrooms, bathrooms, year built, estimated market value.
 
-SEARCH 2: Go to ${districtWebsite ? districtWebsite : `the ${countyName} Appraisal District website`} and search for "${fullAddress}" to find the OFFICIAL TAX APPRAISED VALUE and annual property tax amount. This is the county's official appraisal, not an estimate.
+SEARCH 2: To find the OFFICIAL COUNTY TAX APPRAISED VALUE, check these sources in order:
+- Redfin.com property page "Tax History" section for "${fullAddress}"
+- Realtor.com property page "Tax History" for "${fullAddress}"
+- Trulia.com "Tax History" tab for "${fullAddress}"
+- Propertyshark.com for "${fullAddress}"
+- ${stateUpper === 'TX' ? `truthintaxes.com for "${street} ${zip}"` : `"${street} ${city} ${stateUpper} county assessed value"`}
+Only return values actually found from these sources — do not estimate.
 
 SEARCH 3: Find the official mailing address, phone, website, and protest filing deadline for the ${countyName} Appraisal District in ${stateUpper}.
 
@@ -242,18 +248,21 @@ Return ONLY this JSON object:
             tools: [{ type: "web_search_20250305", name: "web_search" }],
             messages: [{
               role: "user",
-              content: `Search for the property tax appraised value for ${fullAddress}.
+              content: `I need the official county tax appraised value for ${fullAddress} in ${countyName}, ${stateUpper}. This is NOT the Zillow estimate — it is the value set by the county appraisal district that determines property taxes.
 
-Try these sources in order:
-1. Search "${street} ${zip} property tax appraisal ${stateUpper}" on Google
-2. Search "${street} ${zip} ${countyName} appraisal district"
-3. Try searching on Realtor.com, Redfin, or Trulia which often show tax assessed values
-4. Try searching "site:${districtWebsite || (countyName.toLowerCase().replace(/ /g,'')+'.org')} ${street}"
+Search these sources in this exact order until you find it:
 
-Find the COUNTY TAX APPRAISED VALUE (not Zillow estimate). This is the official value set by the county that determines property taxes.
+1. Search Redfin.com for "${fullAddress}" — look for "Property Taxes" or "Tax History" section which shows the county assessed value
+2. Search Realtor.com for "${fullAddress}" — look for "Tax History" or "Assessment" section
+3. Search Trulia.com for "${fullAddress}" — look for "Tax History" tab
+4. Search Propertyshark.com for "${fullAddress}" — they aggregate county tax records
+5. ${stateUpper === 'TX' ? `Search truthintaxes.com for "${street} ${zip}" — this is Texas' official Truth in Taxation portal that lists all county appraisal values` : `Search "${street} ${zip} ${countyName} tax assessed value site:gov OR site:org"`}
+6. Search Google for "${street} ${city} ${stateUpper} ${zip} county appraised value ${new Date().getFullYear()}"
 
-Return ONLY JSON: { "assessedValue": 450000, "annualTax": 9200, "taxYear": "2025", "source": "where you found it" }
-Use null for any field not found.`
+The value I need is labeled "Assessed Value", "Appraised Value", "County Assessed Value", or "Tax Assessment" — it will typically be LOWER than the Zillow market estimate in Texas.
+
+Return ONLY JSON: { "assessedValue": 450000, "annualTax": 9200, "taxYear": "2025", "source": "Redfin/Realtor/Trulia/etc" }
+Use null for any field not found. Do not guess or estimate — only return values you actually found from these sources.`
             }],
           }),
         });
