@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { getCountyPortal } from './county_portals';
 
 // Initialize Redis — gracefully handle missing credentials
 let redis = null;
@@ -142,19 +143,31 @@ export default async function handler(req, res) {
 
     // ── STEP 3: Web search for property + tax + district ──────────────────────
     try {
+      // Look up the county portal from our database first
+      const portalInfo = getCountyPortal(stateUpper, county);
+      const districtWebsite = portalInfo?.searchUrl || appraisalDistrict?.website || null;
+      const districtName = portalInfo?.name || appraisalDistrict?.districtName || `${countyName} Appraisal District`;
+      console.log("PORTAL INFO:", { county, portalInfo, districtWebsite });
+
       const searchPrompt = appraisalDistrict
-        ? `Search Zillow, Redfin, or Realtor.com for the property at ${fullAddress}. Also search the ${countyName} appraisal district or county tax assessor website for the current appraised/assessed value and annual tax amount for this specific property.
+        ? `Do TWO searches for the property at ${fullAddress}:
+
+SEARCH 1: Search Zillow, Redfin, or Realtor.com for this property to find square footage, bedrooms, bathrooms, year built, and estimated market value.
+
+SEARCH 2: Go to ${districtWebsite ? districtWebsite : `"${countyName} appraisal district property search"`} and search for "${fullAddress}" to find the OFFICIAL TAX APPRAISED VALUE (also called appraised value or assessed value) and annual property tax amount for this exact address. This is the value set by the county appraisal district, NOT the Zillow estimate.
 
 Return ONLY this JSON object:
 {
   "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null, "source": null },
   "tax": { "assessedValue": null, "annualTax": null, "taxYear": null, "source": null }
 }`
-        : `I need information about ${fullAddress} in ${countyName}, ${stateUpper}:
+        : `Do THREE searches for ${fullAddress} in ${countyName}, ${stateUpper}:
 
-1. Property details from Zillow, Redfin, or Realtor.com: square footage, bedrooms, bathrooms, year built, estimated market value.
-2. Current tax appraised value and annual tax from the ${countyName} Appraisal District public records.
-3. Official mailing address of the ${countyName} Appraisal District where property owners file tax protests — include phone, website, and protest deadline.
+SEARCH 1: Search Zillow, Redfin, or Realtor.com for this property: square footage, bedrooms, bathrooms, year built, estimated market value.
+
+SEARCH 2: Go to ${districtWebsite ? districtWebsite : `the ${countyName} Appraisal District website`} and search for "${fullAddress}" to find the OFFICIAL TAX APPRAISED VALUE and annual property tax amount. This is the county's official appraisal, not an estimate.
+
+SEARCH 3: Find the official mailing address, phone, website, and protest filing deadline for the ${countyName} Appraisal District in ${stateUpper}.
 
 Return ONLY this JSON object:
 {
@@ -172,7 +185,7 @@ Return ONLY this JSON object:
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
-          max_tokens: 800,
+          max_tokens: 1200,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: searchPrompt }],
         }),
