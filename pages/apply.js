@@ -842,7 +842,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
               [pd.savings
                 ? `$${pd.savings.toLocaleString()}`
                 : pd.assessedValue
-                ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.011).toLocaleString()}`
+                ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}`
                 : "—", "Potential annual savings"],
               ["4–5", "Comparable sales cited"],
               [issues.length.toString(), "Issues cited in letter"],
@@ -1024,16 +1024,25 @@ function StepDispute({ formData, onRestart }) {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
       const bdJson = await res.json();
       const extracted = bdJson?.extractedData || {};
-      const assessedValue = extracted.assessedValue || null;
+
+      // Pull from API first, then fall back to manual fields entered by user
+      const manualAV = property.manualAssessedValue
+        ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null;
+      const manualSqftNum = property.manualSqft
+        ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null;
+
+      const assessedValue = extracted.assessedValue || manualAV || null;
       const marketValue = extracted.marketValue || null;
       const annualTax = extracted.annualTax || null;
       const county = bdJson?.resolvedCounty || `${property.city} County`;
       const taxYear = extracted.taxYear || new Date().getFullYear().toString();
-      const beds = extracted.beds || null;
-      const baths = extracted.baths || null;
-      const sqft = extracted.sqft || null;
-      const yearBuilt = extracted.yearBuilt || null;
+      const beds = extracted.beds || (property.manualBeds ? Number(property.manualBeds) : null) || null;
+      const baths = extracted.baths || (property.manualBaths ? Number(property.manualBaths) : null) || null;
+      const sqft = extracted.sqft || manualSqftNum || null;
+      const yearBuilt = extracted.yearBuilt || property.manualYearBuilt || null;
       const appraisalDistrict = bdJson?.appraisalDistrict || null;
+
+      console.log("CLIENT EXTRACTED:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax });
       // Step 1: Issue count and market data for dynamic reduction calculation
       const issueCount = issues ? issues.length : 0;
       const overPct = assessedValue && marketValue && marketValue > 0 ? Math.round(((assessedValue - marketValue) / marketValue) * 100) : null;
