@@ -1,3 +1,10 @@
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -7,6 +14,12 @@ export default async function handler(req, res) {
   }
 
   const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+  const stateUpper = state.trim().toUpperCase();
+  const TTL_SECONDS = 180 * 24 * 60 * 60; // 180 days
+
+  // County cached by full address + zip to handle split-ZIP counties
+  const addrSlug = `${street.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}:${zip.trim()}`;
+  const countyKey = `county:${stateUpper}:${addrSlug}`;
 
   try {
     let assessedValue = manualAssessedValue ? Number(String(manualAssessedValue).replace(/[^0-9.]/g, "")) || null : null;
@@ -18,24 +31,43 @@ export default async function handler(req, res) {
     let marketValue = null;
     let county = null;
 
-    // Step 1: Resolve county via US Census Geocoder (free, no API key needed)
+    // ── STEP 1: County — cache by full address ────────────────────────────────
     try {
-      const censusRes = await fetch(
-        `https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`
-      );
-      if (censusRes.ok) {
-        const censusData = await censusRes.json();
-        const countyGeo = censusData?.result?.addressMatches?.[0]?.geographies?.Counties?.[0];
-        if (countyGeo?.NAME) {
-          county = countyGeo.NAME.replace(/ County$/i, "").trim();
-          console.log("COUNTY FROM CENSUS:", county);
-        }
+      const cachedCounty = await redis.get(countyKey);
+      if (cachedCounty) {
+        county = cachedCounty;
+        console.log(`COUNTY FROM CACHE (${countyKey}):`, county);
       }
     } catch (e) {
-      console.log("Census lookup failed:", e.message);
+      console.log("Redis county read failed:", e.message);
     }
 
-    // Step 2: Claude county fallback if census failed
+    if (!county) {
+      // Census geocoder (free, no API cost)
+      try {
+        const censusRes = await fetch(
+          `https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`
+        );
+        if (censusRes.ok) {
+          const censusData = await censusRes.json();
+          const countyGeo = censusData?.result?.addressMatches?.[0]?.geographies?.Counties?.[0];
+          if (countyGeo?.NAME) {
+            county = countyGeo.NAME.replace(/ County$/i, "").trim();
+            console.log("COUNTY FROM CENSUS:", county);
+            try {
+              await redis.set(countyKey, county, { ex: TTL_SECONDS });
+              console.log(`CACHED county for ${countyKey} (180 days)`);
+            } catch (e) {
+              console.log("Redis county write failed:", e.message);
+            }
+          }
+        }
+      } catch (e) {
+        console.log("Census lookup failed:", e.message);
+      }
+    }
+
+    // Claude county fallback
     if (!county) {
       try {
         const countyRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -46,30 +78,65 @@ export default async function handler(req, res) {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-5",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 100,
-            messages: [{
-              role: "user",
-              content: `What county is ${fullAddress} in? Return ONLY JSON: {"county": "Name"} — name only, no word "County".`
-            }],
+            messages: [{ role: "user", content: `What county is ${fullAddress} in? Return ONLY JSON: {"county": "Name"} — name only, no word "County".` }],
           }),
         });
         const countyJson = await countyRes.json();
         const countyText = (countyJson.content || []).map(b => b.text || "").join("");
         const match = countyText.match(/\{[\s\S]*?\}/);
-        if (match) county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
-        console.log("COUNTY FROM CLAUDE:", county);
+        if (match) {
+          county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
+          console.log("COUNTY FROM CLAUDE:", county);
+          if (county) {
+            try { await redis.set(countyKey, county, { ex: TTL_SECONDS }); } catch (e) {}
+          }
+        }
       } catch (e) {
         console.log("Claude county fallback failed:", e.message);
       }
     }
 
     const countyName = county ? `${county} County` : `${city} County`;
-    const taxYear = new Date().getFullYear().toString();
 
-    // Step 3: Single combined web search for ALL property data at once
+    // ── STEP 2: Appraisal district — cache by state + county ──────────────────
+    const districtKey = `district:${stateUpper}:${(county || city).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     let appraisalDistrict = null;
+
     try {
+      const cachedDistrict = await redis.get(districtKey);
+      if (cachedDistrict) {
+        appraisalDistrict = cachedDistrict;
+        console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
+      }
+    } catch (e) {
+      console.log("Redis district read failed:", e.message);
+    }
+
+    // ── STEP 3: Web search for property + tax + district ──────────────────────
+    try {
+      const searchPrompt = appraisalDistrict
+        ? `Search Zillow, Redfin, or Realtor.com for the property at ${fullAddress}. Also search the ${countyName} appraisal district or county tax assessor website for the current appraised/assessed value and annual tax amount for this specific property.
+
+Return ONLY this JSON object:
+{
+  "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null, "source": null },
+  "tax": { "assessedValue": null, "annualTax": null, "taxYear": null, "source": null }
+}`
+        : `I need information about ${fullAddress} in ${countyName}, ${stateUpper}:
+
+1. Property details from Zillow, Redfin, or Realtor.com: square footage, bedrooms, bathrooms, year built, estimated market value.
+2. Current tax appraised value and annual tax from the ${countyName} Appraisal District public records.
+3. Official mailing address of the ${countyName} Appraisal District where property owners file tax protests — include phone, website, and protest deadline.
+
+Return ONLY this JSON object:
+{
+  "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null, "source": null },
+  "tax": { "assessedValue": null, "annualTax": null, "taxYear": null, "source": null },
+  "district": { "districtName": null, "mailingAddress": null, "city": null, "state": "${stateUpper}", "zip": null, "phone": null, "website": null, "filingDeadlineNote": null, "filingMethod": null }
+}`;
+
       const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -79,60 +146,20 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
-          max_tokens: 1500,
+          max_tokens: 800,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `I need three pieces of information about ${fullAddress} in ${countyName}, ${state.toUpperCase()}. Please search for all three and return a single JSON object.
-
-1. Property details from Zillow, Redfin, or Realtor.com: square footage, bedrooms, bathrooms, year built, estimated market value
-2. Current tax appraised value from the ${countyName} Appraisal District public records or county tax assessor website
-3. The official mailing address of the ${countyName} Appraisal District where property owners file tax protests, including phone, website, and protest deadline
-
-Return ONLY this JSON object with no other text:
-{
-  "property": {
-    "sqft": 2150,
-    "beds": 4,
-    "baths": 2.5,
-    "yearBuilt": 1998,
-    "marketValue": 425000,
-    "source": "Zillow"
-  },
-  "tax": {
-    "assessedValue": 389000,
-    "annualTax": 8200,
-    "taxYear": "2025",
-    "source": "Tarrant Appraisal District"
-  },
-  "district": {
-    "districtName": "Tarrant Appraisal District",
-    "mailingAddress": "2500 Handley-Ederville Rd",
-    "city": "Fort Worth",
-    "state": "TX",
-    "zip": "76118",
-    "phone": "817-284-0024",
-    "website": "https://www.tad.org",
-    "filingDeadlineNote": "May 15 or 30 days after notice, whichever is later",
-    "filingMethod": "mail or online"
-  }
-}
-Use null for any field you cannot find. Return ONLY the JSON object.`
-          }],
+          messages: [{ role: "user", content: searchPrompt }],
         }),
       });
 
       const searchJson = await searchRes.json();
-      console.log("COMBINED SEARCH RESPONSE:", JSON.stringify(searchJson?.content?.filter(b => b.type === "text"), null, 2));
-
       if (searchJson.content) {
         const text = searchJson.content.filter(b => b.type === "text").map(b => b.text).join("");
         const match = text.match(/\{[\s\S]*\}/);
         if (match) {
           const data = JSON.parse(match[0]);
-          console.log("PARSED COMBINED DATA:", JSON.stringify(data, null, 2));
+          console.log("SEARCH DATA:", JSON.stringify(data));
 
-          // Property details
           const prop = data.property || {};
           if (!sqft && prop.sqft) sqft = Number(prop.sqft);
           if (!beds && prop.beds) beds = Number(prop.beds);
@@ -140,22 +167,26 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
           if (!yearBuilt && prop.yearBuilt) yearBuilt = String(prop.yearBuilt);
           if (!marketValue && prop.marketValue) marketValue = Number(prop.marketValue);
 
-          // Tax data
           const tax = data.tax || {};
           if (!assessedValue && tax.assessedValue) assessedValue = Number(tax.assessedValue);
           if (!annualTax && tax.annualTax) annualTax = Number(tax.annualTax);
 
-          // Appraisal district
-          if (data.district && data.district.districtName) {
+          if (!appraisalDistrict && data.district && data.district.districtName) {
             appraisalDistrict = data.district;
+            try {
+              await redis.set(districtKey, appraisalDistrict, { ex: TTL_SECONDS });
+              console.log(`CACHED district for ${districtKey} (180 days)`);
+            } catch (e) {
+              console.log("Redis district write failed:", e.message);
+            }
           }
         }
       }
     } catch (e) {
-      console.log("Combined search failed:", e.message);
+      console.log("Web search failed:", e.message);
     }
 
-    // Step 4: BatchData as fallback for any still-missing property fields
+    // ── STEP 4: BatchData fallback ────────────────────────────────────────────
     if (!sqft || !yearBuilt || !assessedValue) {
       try {
         const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
@@ -165,12 +196,7 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
             "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
           },
           body: JSON.stringify({
-            requests: [{
-              street: street.trim(),
-              city: city.trim(),
-              state: state.trim().toUpperCase(),
-              zip: zip.trim(),
-            }],
+            requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
             options: {}
           }),
         });
@@ -183,7 +209,6 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
             const ai = prop?.assessmentInfo || prop?.assessment || {};
             const bi = prop?.buildingInfo || prop?.building || {};
             const vi = prop?.valuationInfo || prop?.valuation || {};
-
             if (!assessedValue) assessedValue = ai?.assessedValue ?? ai?.totalAssessedValue ?? ai?.taxableValue ?? null;
             if (!marketValue) marketValue = vi?.estimatedValue ?? vi?.value ?? ai?.marketValue ?? null;
             if (!sqft) sqft = bi?.livingArea ?? bi?.squareFeet ?? bi?.buildingArea ?? null;
@@ -198,7 +223,7 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
       }
     }
 
-    // Step 5: Appraisal district Claude fallback if web search missed it
+    // ── STEP 5: District Claude fallback ──────────────────────────────────────
     if (!appraisalDistrict) {
       try {
         const fallbackRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -209,16 +234,16 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-5",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 400,
             messages: [{
               role: "user",
-              content: `What is the official mailing address of the ${countyName} Appraisal District in ${state.toUpperCase()} where property owners file tax protests? Return ONLY JSON:
+              content: `What is the official mailing address of the ${countyName} Appraisal District in ${stateUpper} where property owners file tax protests? Return ONLY JSON:
 {
   "districtName": "Official name",
   "mailingAddress": "Street address",
   "city": "City",
-  "state": "${state.toUpperCase()}",
+  "state": "${stateUpper}",
   "zip": "ZIP",
   "phone": "Phone or null",
   "website": "URL or null",
@@ -231,13 +256,20 @@ Use null for any field you cannot find. Return ONLY the JSON object.`
         const fallbackJson = await fallbackRes.json();
         const fallbackText = (fallbackJson.content || []).map(b => b.text || "").join("");
         const match = fallbackText.match(/\{[\s\S]*\}/);
-        if (match) appraisalDistrict = JSON.parse(match[0]);
+        if (match) {
+          appraisalDistrict = JSON.parse(match[0]);
+          try {
+            await redis.set(districtKey, appraisalDistrict, { ex: TTL_SECONDS });
+            console.log(`CACHED district (fallback) for ${districtKey} (180 days)`);
+          } catch (e) {}
+        }
       } catch (e) {
         console.log("District fallback failed:", e.message);
       }
     }
 
-    console.log("FINAL DATA:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county: countyName });
+    const taxYear = new Date().getFullYear().toString();
+    console.log("FINAL:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county: countyName });
 
     return res.status(200).json({
       extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear },
