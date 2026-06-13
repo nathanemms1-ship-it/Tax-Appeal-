@@ -1,9 +1,35 @@
 import { Redis } from '@upstash/redis';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+// Initialize Redis — gracefully handle missing credentials
+let redis = null;
+try {
+  // Support both Upstash variable naming conventions
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+  if (redisUrl && redisToken) {
+    redis = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    });
+    console.log("Redis initialized successfully");
+  } else {
+    console.log("Redis credentials not found — caching disabled, continuing without cache");
+  }
+} catch (e) {
+  console.log("Redis init failed:", e.message, "— continuing without cache");
+  redis = null;
+}
+
+// Safe cache helpers — silently skip if Redis unavailable
+async function cacheGet(key) {
+  if (!redis) return null;
+  try { return await redis.get(key); } catch (e) { console.log("Cache get failed:", e.message); return null; }
+}
+async function cacheSet(key, value, ttl) {
+  if (!redis) return;
+  try { await redis.set(key, value, { ex: ttl }); } catch (e) { console.log("Cache set failed:", e.message); }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -33,7 +59,7 @@ export default async function handler(req, res) {
 
     // ── STEP 1: County — cache by full address ────────────────────────────────
     try {
-      const cachedCounty = await redis.get(countyKey);
+      const cachedCounty = await cacheGet(countyKey);
       if (cachedCounty) {
         county = cachedCounty;
         console.log(`COUNTY FROM CACHE (${countyKey}):`, county);
@@ -55,7 +81,7 @@ export default async function handler(req, res) {
             county = countyGeo.NAME.replace(/ County$/i, "").trim();
             console.log("COUNTY FROM CENSUS:", county);
             try {
-              await redis.set(countyKey, county, { ex: TTL_SECONDS });
+              await cacheSet(countyKey, county, TTL_SECONDS);
               console.log(`CACHED county for ${countyKey} (180 days)`);
             } catch (e) {
               console.log("Redis county write failed:", e.message);
@@ -90,7 +116,7 @@ export default async function handler(req, res) {
           county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
           console.log("COUNTY FROM CLAUDE:", county);
           if (county) {
-            try { await redis.set(countyKey, county, { ex: TTL_SECONDS }); } catch (e) {}
+            try { await cacheSet(countyKey, county, TTL_SECONDS); } catch (e) {}
           }
         }
       } catch (e) {
@@ -105,7 +131,7 @@ export default async function handler(req, res) {
     let appraisalDistrict = null;
 
     try {
-      const cachedDistrict = await redis.get(districtKey);
+      const cachedDistrict = await cacheGet(districtKey);
       if (cachedDistrict) {
         appraisalDistrict = cachedDistrict;
         console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
@@ -174,7 +200,7 @@ Return ONLY this JSON object:
           if (!appraisalDistrict && data.district && data.district.districtName) {
             appraisalDistrict = data.district;
             try {
-              await redis.set(districtKey, appraisalDistrict, { ex: TTL_SECONDS });
+              await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
               console.log(`CACHED district for ${districtKey} (180 days)`);
             } catch (e) {
               console.log("Redis district write failed:", e.message);
@@ -259,7 +285,7 @@ Return ONLY this JSON object:
         if (match) {
           appraisalDistrict = JSON.parse(match[0]);
           try {
-            await redis.set(districtKey, appraisalDistrict, { ex: TTL_SECONDS });
+            await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
             console.log(`CACHED district (fallback) for ${districtKey} (180 days)`);
           } catch (e) {}
         }
