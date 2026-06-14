@@ -110,6 +110,12 @@ export default async function handler(req, res) {
     // ── STEP 2: BatchData PRIMARY lookup with Core + Valuation datasets ───────
     try {
       console.log("Calling BatchData with Core dataset...");
+      // Parse street number and name separately as BatchData may need them split
+      const streetParts = street.trim().match(/^(\d+)\s+(.+)$/);
+      const streetNumber = streetParts ? streetParts[1] : "";
+      const streetName = streetParts ? streetParts[2] : street.trim();
+      console.log("ADDRESS FORMAT:", { street: street.trim(), streetNumber, streetName, city: city.trim(), state: stateUpper, zip: zip.trim() });
+
       const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
         method: "POST",
         headers: {
@@ -117,7 +123,14 @@ export default async function handler(req, res) {
           "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
         },
         body: JSON.stringify({
-          requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
+          requests: [{
+            address: {
+              street: street.trim(),
+              city: city.trim(),
+              state: stateUpper,
+              zip: zip.trim(),
+            }
+          }],
           options: {
             datasets: ["core", "valuation"]
           }
@@ -238,13 +251,11 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({
             requests: [{
-              searchCriteria: {
-                address: {
-                  street: street.trim(),
-                  city: city.trim(),
-                  state: stateUpper,
-                  zip: zip.trim(),
-                }
+              address: {
+                street: street.trim(),
+                city: city.trim(),
+                state: stateUpper,
+                zip: zip.trim(),
               }
             }],
             options: {
