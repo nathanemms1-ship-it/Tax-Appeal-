@@ -297,7 +297,9 @@ Use null for any field not found. Do not guess or estimate — only return value
           },
           body: JSON.stringify({
             requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
-            options: {   datasets: ["core", "valuation"] }
+            options: {
+              datasets: ["core", "valuation"]
+            }
           }),
         });
 
@@ -309,13 +311,62 @@ Use null for any field not found. Do not guess or estimate — only return value
             const ai = prop?.assessmentInfo || prop?.assessment || {};
             const bi = prop?.buildingInfo || prop?.building || {};
             const vi = prop?.valuationInfo || prop?.valuation || {};
-            if (!assessedValue) assessedValue = ai?.assessedValue ?? ai?.totalAssessedValue ?? ai?.taxableValue ?? null;
-            if (!marketValue) marketValue = vi?.estimatedValue ?? vi?.value ?? ai?.marketValue ?? null;
-            if (!sqft) sqft = bi?.livingArea ?? bi?.squareFeet ?? bi?.buildingArea ?? null;
-            if (!yearBuilt) yearBuilt = bi?.yearBuilt ? String(bi.yearBuilt) : null;
-            if (!beds) beds = bi?.bedrooms ?? bi?.beds ?? null;
-            if (!baths) baths = bi?.bathrooms ?? bi?.totalBaths ?? null;
-            if (!annualTax) annualTax = ai?.annualTaxAmount ?? ai?.taxAmount ?? null;
+            // Core dataset schema from BatchData
+            const coreAssessment = prop?.assessment || ai;
+            const coreBuilding = prop?.building || prop?.structure || bi;
+            const coreValuation = prop?.valuation || prop?.avm || vi;
+
+            console.log("CORE ASSESSMENT:", JSON.stringify(coreAssessment));
+            console.log("CORE BUILDING:", JSON.stringify(coreBuilding));
+            console.log("CORE VALUATION:", JSON.stringify(coreValuation));
+
+            if (!assessedValue) assessedValue =
+              coreAssessment?.totalAssessedValue ??
+              coreAssessment?.assessedValue ??
+              coreAssessment?.appraisedValue ??
+              coreAssessment?.taxableValue ??
+              coreAssessment?.assessedTotalValue ??
+              prop?.assessedValue ??
+              null;
+
+            if (!marketValue) marketValue =
+              coreValuation?.estimatedValue ??
+              coreValuation?.value ??
+              coreValuation?.amount ??
+              coreAssessment?.marketValue ??
+              prop?.marketValue ??
+              null;
+
+            if (!sqft) sqft =
+              coreBuilding?.livingArea ??
+              coreBuilding?.squareFeet ??
+              coreBuilding?.buildingArea ??
+              coreBuilding?.totalArea ??
+              prop?.livingArea ??
+              prop?.squareFeet ??
+              null;
+
+            if (!yearBuilt) yearBuilt =
+              coreBuilding?.yearBuilt ? String(coreBuilding.yearBuilt) :
+              prop?.yearBuilt ? String(prop.yearBuilt) : null;
+
+            if (!beds) beds =
+              coreBuilding?.bedrooms ??
+              coreBuilding?.beds ??
+              coreBuilding?.bedroomsCount ??
+              prop?.bedrooms ?? null;
+
+            if (!baths) baths =
+              coreBuilding?.bathrooms ??
+              coreBuilding?.totalBaths ??
+              coreBuilding?.bathroomsCount ??
+              prop?.bathrooms ?? null;
+
+            if (!annualTax) annualTax =
+              coreAssessment?.annualTaxAmount ??
+              coreAssessment?.taxAmount ??
+              coreAssessment?.annualTax ??
+              prop?.annualTaxAmount ?? null;
           }
         }
       } catch (e) {
