@@ -805,6 +805,39 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
 
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  const doCheckout = async () => {
+    if (!allAgreed) return;
+    setCheckingOut(true);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: account.email,
+          firstName: account.firstName,
+          lastName: account.lastName,
+          address: pd.rawAddress,
+          county: pd.county,
+          assessedValue: pd.assessedValue,
+          targetReduction: pd.targetReduction,
+          savings: pd.savings,
+          letter,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Checkout failed');
+      }
+    } catch (e) {
+      alert('Payment error: ' + e.message);
+      setCheckingOut(false);
+    }
+  };
+
   const doCopy = () => { navigator.clipboard.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 2500); };
   const doPrint = () => {
     const w = window.open("", "_blank");
@@ -927,10 +960,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
 
         <button
           style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
-          onClick={allAgreed ? doCopy : undefined}
-          disabled={!allAgreed}>
-          <span>{allAgreed ? "📤" : "🔒"}</span>
-          <span>{allAgreed ? (copied ? "✓ Copied!" : `File my dispute  ·  $79`) : "Agree to all terms to continue"}</span>
+          onClick={allAgreed ? doCheckout : undefined}
+          disabled={!allAgreed || checkingOut}>
+          <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
+          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $79"}</span>
         </button>
 
         {allAgreed && (
