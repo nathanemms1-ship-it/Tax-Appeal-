@@ -1,35 +1,29 @@
 import { Redis } from '@upstash/redis';
 import { getCountyPortal } from './county_portals';
 
-// Initialize Redis — gracefully handle missing credentials
+// Initialize Redis gracefully
 let redis = null;
 try {
-  // Support both Upstash variable naming conventions
   const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-
   if (redisUrl && redisToken) {
-    redis = new Redis({
-      url: redisUrl,
-      token: redisToken,
-    });
+    redis = new Redis({ url: redisUrl, token: redisToken });
     console.log("Redis initialized successfully");
   } else {
-    console.log("Redis credentials not found — caching disabled, continuing without cache");
+    console.log("Redis credentials not found — caching disabled");
   }
 } catch (e) {
-  console.log("Redis init failed:", e.message, "— continuing without cache");
+  console.log("Redis init failed:", e.message);
   redis = null;
 }
 
-// Safe cache helpers — silently skip if Redis unavailable
 async function cacheGet(key) {
   if (!redis) return null;
-  try { return await redis.get(key); } catch (e) { console.log("Cache get failed:", e.message); return null; }
+  try { return await redis.get(key); } catch (e) { return null; }
 }
 async function cacheSet(key, value, ttl) {
   if (!redis) return;
-  try { await redis.set(key, value, { ex: ttl }); } catch (e) { console.log("Cache set failed:", e.message); }
+  try { await redis.set(key, value, { ex: ttl }); } catch (e) {}
 }
 
 export default async function handler(req, res) {
@@ -44,7 +38,6 @@ export default async function handler(req, res) {
   const stateUpper = state.trim().toUpperCase();
   const TTL_SECONDS = 180 * 24 * 60 * 60; // 180 days
 
-  // County cached by full address + zip to handle split-ZIP counties
   const addrSlug = `${street.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}:${zip.trim()}`;
   const countyKey = `county:${stateUpper}:${addrSlug}`;
 
@@ -58,19 +51,14 @@ export default async function handler(req, res) {
     let marketValue = null;
     let county = null;
 
-    // ── STEP 1: County — cache by full address ────────────────────────────────
-    try {
-      const cachedCounty = await cacheGet(countyKey);
-      if (cachedCounty) {
-        county = cachedCounty;
-        console.log(`COUNTY FROM CACHE (${countyKey}):`, county);
-      }
-    } catch (e) {
-      console.log("Redis county read failed:", e.message);
+    // ── STEP 1: County via Census geocoder ────────────────────────────────────
+    const cachedCounty = await cacheGet(countyKey);
+    if (cachedCounty) {
+      county = cachedCounty;
+      console.log(`COUNTY FROM CACHE (${countyKey}):`, county);
     }
 
     if (!county) {
-      // Census geocoder (free, no API cost)
       try {
         const censusRes = await fetch(
           `https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`
@@ -81,12 +69,7 @@ export default async function handler(req, res) {
           if (countyGeo?.NAME) {
             county = countyGeo.NAME.replace(/ County$/i, "").trim();
             console.log("COUNTY FROM CENSUS:", county);
-            try {
-              await cacheSet(countyKey, county, TTL_SECONDS);
-              console.log(`CACHED county for ${countyKey} (180 days)`);
-            } catch (e) {
-              console.log("Redis county write failed:", e.message);
-            }
+            await cacheSet(countyKey, county, TTL_SECONDS);
           }
         }
       } catch (e) {
@@ -99,11 +82,7 @@ export default async function handler(req, res) {
       try {
         const countyRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
           body: JSON.stringify({
             model: "claude-haiku-4-5-20251001",
             max_tokens: 100,
@@ -116,9 +95,7 @@ export default async function handler(req, res) {
         if (match) {
           county = JSON.parse(match[0])?.county?.replace(/ County$/i, "").trim() || null;
           console.log("COUNTY FROM CLAUDE:", county);
-          if (county) {
-            try { await cacheSet(countyKey, county, TTL_SECONDS); } catch (e) {}
-          }
+          if (county) await cacheSet(countyKey, county, TTL_SECONDS);
         }
       } catch (e) {
         console.log("Claude county fallback failed:", e.message);
@@ -126,264 +103,195 @@ export default async function handler(req, res) {
     }
 
     const countyName = county ? `${county} County` : `${city} County`;
-
-    // ── STEP 2: Appraisal district — cache by state + county ──────────────────
     const districtKey = `district:${stateUpper}:${(county || city).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    let appraisalDistrict = null;
+    let appraisalDistrict = await cacheGet(districtKey);
+    if (appraisalDistrict) console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
 
+    // ── STEP 2: BatchData PRIMARY lookup with Core + Valuation datasets ───────
     try {
-      const cachedDistrict = await cacheGet(districtKey);
-      if (cachedDistrict) {
-        appraisalDistrict = cachedDistrict;
-        console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
-      }
-    } catch (e) {
-      console.log("Redis district read failed:", e.message);
-    }
-
-    // ── STEP 3: Web search for property + tax + district ──────────────────────
-    try {
-      // Look up the county portal from our database first
-      const portalInfo = getCountyPortal(stateUpper, county);
-      const districtWebsite = portalInfo?.searchUrl || appraisalDistrict?.website || null;
-      const districtName = portalInfo?.name || appraisalDistrict?.districtName || `${countyName} Appraisal District`;
-      console.log("PORTAL INFO:", { county, portalInfo, districtWebsite });
-
-      const searchPrompt = appraisalDistrict
-        ? `Do TWO searches for the property at ${fullAddress}:
-
-SEARCH 1: Search Redfin.com for this property to find square footage, bedrooms, bathrooms, year built, and estimated market value. Also check the Tax History section on the property page which often shows county assessed values.
-
-SEARCH 2: Go to ${districtWebsite ? districtWebsite : `"${countyName} appraisal district property search"`} and search for "${fullAddress}" to find the OFFICIAL TAX APPRAISED VALUE (also called appraised value or assessed value) and annual property tax amount for this exact address. This is the value set by the county appraisal district, NOT the Zillow estimate.
-
-Return ONLY this JSON object:
-{
-  "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null, "source": null },
-  "tax": { "assessedValue": null, "annualTax": null, "taxYear": null, "source": null }
-}`
-        : `Do THREE searches for ${fullAddress} in ${countyName}, ${stateUpper}:
-
-SEARCH 1: Search Zillow, Redfin, or Realtor.com for this property: square footage, bedrooms, bathrooms, year built, estimated market value.
-
-SEARCH 2: To find the OFFICIAL COUNTY TAX APPRAISED VALUE, check these sources in order:
-- Redfin.com property page "Tax History" section for "${fullAddress}"
-- Realtor.com property page "Tax History" for "${fullAddress}"
-- Trulia.com "Tax History" tab for "${fullAddress}"
-- Propertyshark.com for "${fullAddress}"
-- ${stateUpper === 'TX' ? `truthintaxes.com for "${street} ${zip}"` : `"${street} ${city} ${stateUpper} county assessed value"`}
-Only return values actually found from these sources — do not estimate.
-
-SEARCH 3: Find the official mailing address, phone, website, and protest filing deadline for the ${countyName} Appraisal District in ${stateUpper}.
-
-Return ONLY this JSON object:
-{
-  "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null, "source": null },
-  "tax": { "assessedValue": null, "annualTax": null, "taxYear": null, "source": null },
-  "district": { "districtName": null, "mailingAddress": null, "city": null, "state": "${stateUpper}", "zip": null, "phone": null, "website": null, "filingDeadlineNote": null, "filingMethod": null }
-}`;
-
-      const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
+      console.log("Calling BatchData with Core dataset...");
+      const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
+          "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 1200,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: searchPrompt }],
+          requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
+          options: {
+            datasets: ["core", "valuation"]
+          }
         }),
       });
 
-      const searchJson = await searchRes.json();
-      if (searchJson.content) {
-        const text = searchJson.content.filter(b => b.type === "text").map(b => b.text).join("");
-        const match = text.match(/\{[\s\S]*\}/);
-        if (match) {
-          const data = JSON.parse(match[0]);
-          console.log("SEARCH DATA:", JSON.stringify(data));
+      if (bdRes.ok) {
+        const bdData = await bdRes.json();
+        console.log("BATCHDATA FULL RESPONSE:", JSON.stringify(bdData, null, 2));
 
-          const prop = data.property || {};
-          if (!sqft && prop.sqft) sqft = Number(prop.sqft);
-          if (!beds && prop.beds) beds = Number(prop.beds);
-          if (!baths && prop.baths) baths = Number(prop.baths);
-          if (!yearBuilt && prop.yearBuilt) yearBuilt = String(prop.yearBuilt);
-          if (!marketValue && prop.marketValue) marketValue = Number(prop.marketValue);
+        const properties = bdData?.results?.properties || [];
+        if (properties.length > 0) {
+          const prop = properties[0];
+          console.log("PROPERTY KEYS:", Object.keys(prop));
 
-          const tax = data.tax || {};
-          if (!assessedValue && tax.assessedValue) assessedValue = Number(tax.assessedValue);
-          if (!annualTax && tax.annualTax) annualTax = Number(tax.annualTax);
+          // Log every nested object so we can see exact field names
+          const allKeys = JSON.stringify(prop);
+          console.log("FULL PROPERTY:", allKeys);
 
-          if (!appraisalDistrict && data.district && data.district.districtName) {
-            appraisalDistrict = data.district;
-            try {
-              await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
-              console.log(`CACHED district for ${districtKey} (180 days)`);
-            } catch (e) {
-              console.log("Redis district write failed:", e.message);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.log("Web search failed:", e.message);
-    }
+          // Try every possible path for assessment data
+          const assess =
+            prop?.assessment ||
+            prop?.assessmentInfo ||
+            prop?.taxAssessment ||
+            prop?.tax ||
+            {};
 
-    // ── STEP 3b: Dedicated assessed value search if still missing ────────────
-    if (!assessedValue) {
-      console.log("assessedValue still null — running dedicated tax value search");
-      try {
-        const taxSearchRes = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-5",
-            max_tokens: 600,
-            tools: [{ type: "web_search_20250305", name: "web_search" }],
-            messages: [{
-              role: "user",
-              content: `I need the official county tax appraised value for ${fullAddress} in ${countyName}, ${stateUpper}. This is NOT the Zillow estimate — it is the value set by the county appraisal district that determines property taxes.
+          const build =
+            prop?.building ||
+            prop?.buildingInfo ||
+            prop?.structure ||
+            prop?.improvements ||
+            {};
 
-Search these sources in this exact order until you find it:
+          const val =
+            prop?.valuation ||
+            prop?.valuationInfo ||
+            prop?.avm ||
+            {};
 
-1. Search Redfin.com for "${fullAddress}" — look for "Property Taxes" or "Tax History" section which shows the county assessed value
-2. Search Realtor.com for "${fullAddress}" — look for "Tax History" or "Assessment" section
-3. Search Trulia.com for "${fullAddress}" — look for "Tax History" tab
-4. Search Propertyshark.com for "${fullAddress}" — they aggregate county tax records
-5. ${stateUpper === 'TX' ? `Search truthintaxes.com for "${street} ${zip}" — this is Texas' official Truth in Taxation portal that lists all county appraisal values` : `Search "${street} ${zip} ${countyName} tax assessed value site:gov OR site:org"`}
-6. Search Google for "${street} ${city} ${stateUpper} ${zip} county appraised value ${new Date().getFullYear()}"
+          console.log("ASSESSMENT OBJECT:", JSON.stringify(assess));
+          console.log("BUILDING OBJECT:", JSON.stringify(build));
+          console.log("VALUATION OBJECT:", JSON.stringify(val));
 
-The value I need is labeled "Assessed Value", "Appraised Value", "County Assessed Value", or "Tax Assessment" — it will typically be LOWER than the Zillow market estimate in Texas.
-
-Return ONLY JSON: { "assessedValue": 450000, "annualTax": 9200, "taxYear": "2025", "source": "Redfin/Realtor/Trulia/etc" }
-Use null for any field not found. Do not guess or estimate — only return values you actually found from these sources.`
-            }],
-          }),
-        });
-
-        const taxJson = await taxSearchRes.json();
-        if (taxJson.content) {
-          const taxText = taxJson.content.filter(b => b.type === "text").map(b => b.text).join("");
-          console.log("DEDICATED TAX SEARCH RESULT:", taxText.slice(0, 500));
-          const match = taxText.match(/\{[\s\S]*?\}/);
-          if (match) {
-            const taxData = JSON.parse(match[0]);
-            if (!assessedValue && taxData.assessedValue) {
-              assessedValue = Number(taxData.assessedValue);
-              console.log("ASSESSED VALUE FROM DEDICATED SEARCH:", assessedValue);
-            }
-            if (!annualTax && taxData.annualTax) annualTax = Number(taxData.annualTax);
-          }
-        }
-      } catch (e) {
-        console.log("Dedicated tax search failed:", e.message);
-      }
-    }
-
-    // ── STEP 4: BatchData fallback ────────────────────────────────────────────
-    if (!sqft || !yearBuilt || !assessedValue) {
-      try {
-        const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
-          },
-          body: JSON.stringify({
-            requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
-            options: {
-              datasets: ["core", "valuation"]
-            }
-          }),
-        });
-
-        if (bdRes.ok) {
-          const bdData = await bdRes.json();
-          const properties = bdData?.results?.properties || [];
-          if (properties.length > 0) {
-            const prop = properties[0];
-            const ai = prop?.assessmentInfo || prop?.assessment || {};
-            const bi = prop?.buildingInfo || prop?.building || {};
-            const vi = prop?.valuationInfo || prop?.valuation || {};
-            // Core dataset schema from BatchData
-            const coreAssessment = prop?.assessment || ai;
-            const coreBuilding = prop?.building || prop?.structure || bi;
-            const coreValuation = prop?.valuation || prop?.avm || vi;
-
-            console.log("CORE ASSESSMENT:", JSON.stringify(coreAssessment));
-            console.log("CORE BUILDING:", JSON.stringify(coreBuilding));
-            console.log("CORE VALUATION:", JSON.stringify(coreValuation));
-
-            if (!assessedValue) assessedValue =
-              coreAssessment?.totalAssessedValue ??
-              coreAssessment?.assessedValue ??
-              coreAssessment?.appraisedValue ??
-              coreAssessment?.taxableValue ??
-              coreAssessment?.assessedTotalValue ??
+          // Extract assessed value — try every known field name
+          if (!assessedValue) {
+            assessedValue =
+              assess?.totalAssessedValue ??
+              assess?.assessedValue ??
+              assess?.appraisedValue ??
+              assess?.taxableValue ??
+              assess?.assessedTotalValue ??
+              assess?.landValue ??
               prop?.assessedValue ??
+              prop?.totalAssessedValue ??
+              prop?.appraisedValue ??
               null;
+            console.log("ASSESSED VALUE EXTRACTED:", assessedValue);
+          }
 
-            if (!marketValue) marketValue =
-              coreValuation?.estimatedValue ??
-              coreValuation?.value ??
-              coreValuation?.amount ??
-              coreAssessment?.marketValue ??
+          if (!marketValue) {
+            marketValue =
+              val?.estimatedValue ??
+              val?.value ??
+              val?.amount ??
+              val?.avm ??
+              assess?.marketValue ??
               prop?.marketValue ??
               null;
+          }
 
-            if (!sqft) sqft =
-              coreBuilding?.livingArea ??
-              coreBuilding?.squareFeet ??
-              coreBuilding?.buildingArea ??
-              coreBuilding?.totalArea ??
+          if (!sqft) {
+            sqft =
+              build?.livingArea ??
+              build?.squareFeet ??
+              build?.buildingArea ??
+              build?.totalArea ??
+              build?.finishedArea ??
               prop?.livingArea ??
               prop?.squareFeet ??
               null;
+          }
 
-            if (!yearBuilt) yearBuilt =
-              coreBuilding?.yearBuilt ? String(coreBuilding.yearBuilt) :
-              prop?.yearBuilt ? String(prop.yearBuilt) : null;
+          if (!yearBuilt) {
+            const yb = build?.yearBuilt ?? prop?.yearBuilt ?? null;
+            yearBuilt = yb ? String(yb) : null;
+          }
 
-            if (!beds) beds =
-              coreBuilding?.bedrooms ??
-              coreBuilding?.beds ??
-              coreBuilding?.bedroomsCount ??
-              prop?.bedrooms ?? null;
+          if (!beds) beds = build?.bedrooms ?? build?.beds ?? build?.bedroomsCount ?? prop?.bedrooms ?? null;
+          if (!baths) baths = build?.bathrooms ?? build?.totalBaths ?? build?.bathroomsCount ?? prop?.bathrooms ?? null;
+          if (!annualTax) annualTax = assess?.annualTaxAmount ?? assess?.taxAmount ?? assess?.annualTax ?? prop?.annualTaxAmount ?? null;
 
-            if (!baths) baths =
-              coreBuilding?.bathrooms ??
-              coreBuilding?.totalBaths ??
-              coreBuilding?.bathroomsCount ??
-              prop?.bathrooms ?? null;
+          // Get county from BatchData if we don't have it
+          if (!county) {
+            const bdCounty = prop?.address?.county || prop?.county || null;
+            if (bdCounty) county = bdCounty.replace(/ County$/i, "").trim();
+          }
+        } else {
+          console.log("BatchData returned 0 properties");
+        }
+      } else {
+        const errText = await bdRes.text();
+        console.log("BatchData error response:", bdRes.status, errText.slice(0, 300));
+      }
+    } catch (e) {
+      console.log("BatchData error:", e.message);
+    }
 
-            if (!annualTax) annualTax =
-              coreAssessment?.annualTaxAmount ??
-              coreAssessment?.taxAmount ??
-              coreAssessment?.annualTax ??
-              prop?.annualTaxAmount ?? null;
+    console.log("AFTER BATCHDATA:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax });
+
+    // ── STEP 3: Web search for district info + any still-missing property data ─
+    if (!appraisalDistrict || !assessedValue || !sqft) {
+      try {
+        const portalInfo = getCountyPortal(stateUpper, county);
+        const districtName = portalInfo?.name || `${countyName} Appraisal District`;
+
+        const searchPrompt = `Search for TWO things about ${fullAddress} in ${countyName}, ${stateUpper}:
+
+${!assessedValue ? `1. The OFFICIAL COUNTY TAX APPRAISED VALUE — search Redfin.com, Realtor.com, or Trulia.com for "${fullAddress}" and look in the "Tax History" or "Public Facts" section for the county assessed/appraised value. This is NOT the Zillow estimate — it is the value set by the county.` : "1. Property details already found — skip this."}
+
+${!appraisalDistrict ? `2. The official mailing address of the ${districtName} in ${stateUpper} where property owners file tax protests — include phone, website, and protest deadline.` : "2. District already found — skip this."}
+
+Return ONLY this JSON:
+{
+  "tax": { "assessedValue": null, "annualTax": null, "taxYear": null },
+  "property": { "sqft": null, "beds": null, "baths": null, "yearBuilt": null, "marketValue": null },
+  "district": { "districtName": null, "mailingAddress": null, "city": null, "state": "${stateUpper}", "zip": null, "phone": null, "website": null, "filingDeadlineNote": null, "filingMethod": null }
+}`;
+
+        const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5",
+            max_tokens: 1000,
+            tools: [{ type: "web_search_20250305", name: "web_search" }],
+            messages: [{ role: "user", content: searchPrompt }],
+          }),
+        });
+
+        const searchJson = await searchRes.json();
+        if (searchJson.content) {
+          const text = searchJson.content.filter(b => b.type === "text").map(b => b.text).join("");
+          const match = text.match(/\{[\s\S]*\}/);
+          if (match) {
+            const data = JSON.parse(match[0]);
+            console.log("WEB SEARCH DATA:", JSON.stringify(data));
+
+            if (!assessedValue && data.tax?.assessedValue) assessedValue = Number(data.tax.assessedValue);
+            if (!annualTax && data.tax?.annualTax) annualTax = Number(data.tax.annualTax);
+            if (!sqft && data.property?.sqft) sqft = Number(data.property.sqft);
+            if (!beds && data.property?.beds) beds = Number(data.property.beds);
+            if (!baths && data.property?.baths) baths = Number(data.property.baths);
+            if (!yearBuilt && data.property?.yearBuilt) yearBuilt = String(data.property.yearBuilt);
+            if (!marketValue && data.property?.marketValue) marketValue = Number(data.property.marketValue);
+
+            if (!appraisalDistrict && data.district?.districtName) {
+              appraisalDistrict = data.district;
+              await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
+              console.log(`CACHED district for ${districtKey} (180 days)`);
+            }
           }
         }
       } catch (e) {
-        console.log("BatchData fallback error:", e.message);
+        console.log("Web search failed:", e.message);
       }
     }
 
-    // ── STEP 5: District Claude fallback ──────────────────────────────────────
+    // ── STEP 4: District Claude fallback ──────────────────────────────────────
     if (!appraisalDistrict) {
       try {
         const fallbackRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
           body: JSON.stringify({
             model: "claude-haiku-4-5-20251001",
             max_tokens: 400,
@@ -409,10 +317,7 @@ Use null for any field not found. Do not guess or estimate — only return value
         const match = fallbackText.match(/\{[\s\S]*\}/);
         if (match) {
           appraisalDistrict = JSON.parse(match[0]);
-          try {
-            await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
-            console.log(`CACHED district (fallback) for ${districtKey} (180 days)`);
-          } catch (e) {}
+          await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
         }
       } catch (e) {
         console.log("District fallback failed:", e.message);
