@@ -28,7 +28,7 @@ const stepLabels = { account: "Create Account", property: "Your Property", issue
 
 // ─── STATE CONFIG ─────────────────────────────────────────────────────────────
 const SUPPORTED_STATES = {
-  TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.43" },
+  TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
   GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
 };
@@ -414,7 +414,7 @@ function StepAccount({ data, onChange, onNext }) {
             ))}
           </div>
           <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>
-            ⚖️ Aligned with Texas Tax Code §41.43 · Georgia · Florida statutes
+            ⚖️ Aligned with Texas Tax Code §41.41 & §41.43 · Georgia O.C.G.A. §48-5-311 · Florida Statute §194.011
           </div>
         </div>
 
