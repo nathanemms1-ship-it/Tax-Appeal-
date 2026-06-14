@@ -384,7 +384,7 @@ function StepAccount({ data, onChange, onNext }) {
           No forms to mail. No county offices to call. We do it all.
         </p>
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>
-          Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $59 fee.
+          Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $79 fee.
         </p>
 
         {/* 82% stat banner */}
@@ -422,7 +422,7 @@ function StepAccount({ data, onChange, onNext }) {
         <div className="price-flex" style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 4 }}>ONE-TIME FEE</div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$59</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$79</div>
             <div style={{ fontSize: 12, color: C.gold, fontFamily: "'DM Sans', sans-serif" }}>Flat rate. No hidden cuts.</div>
           </div>
           <div style={{ borderLeft: `2px solid #FFD97A`, paddingLeft: 16 }}>
@@ -462,7 +462,7 @@ function StepAccount({ data, onChange, onNext }) {
         <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$59</span>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$79</span>
             <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
           </div>
         </div>
@@ -900,7 +900,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
             <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only. We recommend consulting a licensed property tax consultant for complex disputes.</p>
             <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy. We use data from public records and third-party sources.</p>
             <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open before filing.</p>
-            <p><strong>5. No refunds after filing.</strong> The $59 fee is non-refundable once your certified mail has been sent. If we made an error, we'll correct it at no charge.</p>
+            <p><strong>5. No refunds after filing.</strong> The $79 fee is non-refundable once your certified mail has been sent. If we made an error, we'll correct it at no charge.</p>
             <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, and FL only. Letters are prepared under applicable state statutes.</p>
           </div>
         </div>
@@ -908,7 +908,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
         {[
           "I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.",
           "I confirm the property information I provided is accurate and I have reviewed the letter preview above.",
-          "I understand the $59 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service.",
+          "I understand the $79 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service.",
         ].map((text, i) => (
           <div key={i} onClick={() => toggleAgreement(i)}
             style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
@@ -930,7 +930,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           onClick={allAgreed ? doCopy : undefined}
           disabled={!allAgreed}>
           <span>{allAgreed ? "📤" : "🔒"}</span>
-          <span>{allAgreed ? (copied ? "✓ Copied!" : `File my dispute  ·  $59`) : "Agree to all terms to continue"}</span>
+          <span>{allAgreed ? (copied ? "✓ Copied!" : `File my dispute  ·  $79`) : "Agree to all terms to continue"}</span>
         </button>
 
         {allAgreed && (
@@ -972,7 +972,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
         {/* What happens next */}
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", "Secure $59 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+          {[["💳", "Secure $79 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
               <div>
