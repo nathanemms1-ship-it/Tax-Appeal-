@@ -297,7 +297,7 @@ Use null for any field not found. Do not guess or estimate — only return value
           },
           body: JSON.stringify({
             requests: [{ street: street.trim(), city: city.trim(), state: stateUpper, zip: zip.trim() }],
-            options: {}
+            options: {   datasets: ["core", "valuation"] }
           }),
         });
 
