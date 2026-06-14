@@ -226,6 +226,82 @@ export default async function handler(req, res) {
       console.log("BatchData error:", e.message);
     }
 
+    // ── STEP 2b: BatchData Property SEARCH fallback (more forgiving than Lookup) ─
+    if (!assessedValue && !sqft) {
+      try {
+        console.log("Trying BatchData Property Search endpoint...");
+        const bdSearchRes = await fetch("https://api.batchdata.com/api/v1/property/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.BATCHDATA_API_KEY}`,
+          },
+          body: JSON.stringify({
+            requests: [{
+              searchCriteria: {
+                address: {
+                  street: street.trim(),
+                  city: city.trim(),
+                  state: stateUpper,
+                  zip: zip.trim(),
+                }
+              }
+            }],
+            options: {
+              datasets: ["core", "valuation"],
+              take: 1
+            }
+          }),
+        });
+
+        if (bdSearchRes.ok) {
+          const bdSearchData = await bdSearchRes.json();
+          console.log("BATCHDATA SEARCH RESPONSE:", JSON.stringify(bdSearchData, null, 2));
+
+          const searchProps = bdSearchData?.results?.properties || [];
+          if (searchProps.length > 0) {
+            const prop = searchProps[0];
+            console.log("SEARCH PROPERTY FULL:", JSON.stringify(prop));
+
+            const assess = prop?.assessment || prop?.assessmentInfo || prop?.taxAssessment || {};
+            const build = prop?.building || prop?.buildingInfo || prop?.structure || {};
+            const val = prop?.valuation || prop?.valuationInfo || prop?.avm || {};
+
+            console.log("SEARCH ASSESSMENT:", JSON.stringify(assess));
+            console.log("SEARCH BUILDING:", JSON.stringify(build));
+
+            if (!assessedValue) assessedValue =
+              assess?.totalAssessedValue ?? assess?.assessedValue ??
+              assess?.appraisedValue ?? assess?.taxableValue ??
+              prop?.assessedValue ?? null;
+
+            if (!marketValue) marketValue =
+              val?.estimatedValue ?? val?.value ?? val?.amount ??
+              assess?.marketValue ?? prop?.marketValue ?? null;
+
+            if (!sqft) sqft =
+              build?.livingArea ?? build?.squareFeet ?? build?.buildingArea ??
+              prop?.livingArea ?? prop?.squareFeet ?? null;
+
+            if (!yearBuilt) {
+              const yb = build?.yearBuilt ?? prop?.yearBuilt ?? null;
+              yearBuilt = yb ? String(yb) : null;
+            }
+
+            if (!beds) beds = build?.bedrooms ?? build?.beds ?? prop?.bedrooms ?? null;
+            if (!baths) baths = build?.bathrooms ?? build?.totalBaths ?? prop?.bathrooms ?? null;
+            if (!annualTax) annualTax = assess?.annualTaxAmount ?? assess?.taxAmount ?? prop?.annualTaxAmount ?? null;
+
+            console.log("AFTER SEARCH:", { assessedValue, sqft, yearBuilt, beds, baths });
+          } else {
+            console.log("BatchData Search also returned 0 properties");
+          }
+        }
+      } catch (e) {
+        console.log("BatchData Search fallback error:", e.message);
+      }
+    }
+
     console.log("AFTER BATCHDATA:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax });
 
     // ── STEP 3: Web search for district info + any still-missing property data ─
