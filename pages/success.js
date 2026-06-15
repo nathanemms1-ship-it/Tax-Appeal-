@@ -18,6 +18,62 @@ const C = {
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
+// Inline email builder for confirmation
+function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, lobPreviewUrl }) {
+  const firstName = customerName ? customerName.split(' ')[0] : 'there';
+  const isTest = !!lobPreviewUrl;
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F4F7FC;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <tr><td style="background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;">
+          <div style="font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;">🏠 TaxAppeal</div>
+          <div style="font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;">Property Tax Dispute</div>
+        </td></tr>
+        <tr><td style="background:#2E7D52;padding:16px 36px;text-align:center;">
+          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">✓ Your dispute has been filed!</div>
+        </td></tr>
+        <tr><td style="background:#FFFFFF;padding:36px;">
+          <p style="font-size:16px;color:#0F1F3D;margin:0 0 16px;">Hi ${firstName},</p>
+          <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;">
+            Your property tax protest has been filed and your certified dispute letter ${trackingNumber ? 'has been dispatched' : 'is being sent'} via <strong>USPS certified mail with return receipt</strong> to the ${districtName || county + ' Appraisal District'}.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;">
+            <tr><td>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:14px;">DISPUTE SUMMARY</div>
+              <table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Property</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">${address}</td></tr></table>
+              <table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Filed with</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">${districtName || county + ' Appraisal District'}</td></tr></table>
+              ${assessedValue ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Current assessed value</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">$${Number(assessedValue).toLocaleString()}</td></tr></table>` : ''}
+              ${targetReduction ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Reduction requested</td><td style="font-size:13px;color:#2E7D52;font-weight:500;text-align:right;">Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
+              ${savings ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Potential annual savings</td><td style="font-size:13px;color:#2E7D52;font-weight:700;text-align:right;">$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
+              ${trackingNumber ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">USPS Tracking</td><td style="font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;">${trackingNumber}</td></tr></table>` : ''}
+              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$79.00</td></tr></table>
+            </td></tr>
+          </table>
+          ${isTest ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#EEF3FB;border-radius:8px;padding:16px;margin-bottom:24px;"><tr><td><div style="font-size:13px;color:#1B3A6B;"><strong>🔍 Test Mode — <a href="${lobPreviewUrl}" style="color:#1B3A6B;">Preview your printed letter →</a></strong></div></td></tr></table>` : ''}
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;">
+            <tr><td>
+              <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
+              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong> as your filing agent.</div>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
+          <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
+          <a href="mailto:disputes@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">disputes@taxappealusa.com</a>
+          <div style="font-size:11px;color:#3A4E6A;margin-top:16px;">© 2026 TaxAppeal USA · taxappealusa.com</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export default function Success() {
   const router = useRouter();
   const { session_id } = router.query;
@@ -75,6 +131,33 @@ export default function Success() {
               setMailStatus('sent');
               setTrackingNumber(mailData.trackingNumber);
               setLobPreviewUrl(mailData.url);
+
+              // Send confirmation email
+              try {
+                await fetch('/api/send-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    to: data.email,
+                    subject: `Your property tax dispute has been filed — ${data.address}`,
+                    html: buildConfirmationEmail({
+                      customerName: data.customerName,
+                      address: data.address,
+                      county: data.county,
+                      districtName: data.districtName,
+                      assessedValue: data.assessedValue,
+                      targetReduction: data.targetReduction,
+                      savings: data.savings,
+                      trackingNumber: mailData.trackingNumber,
+                      lobPreviewUrl: mailData.url,
+                    }),
+                    text: `Your property tax dispute for ${data.address} has been filed. Tracking: ${mailData.trackingNumber || 'Pending'}`,
+                  }),
+                });
+                console.log('Confirmation email sent to:', data.email);
+              } catch (emailErr) {
+                console.error('Email send failed:', emailErr);
+              }
             } else {
               console.error('Mail send failed:', mailData.error);
               setMailStatus('error');
