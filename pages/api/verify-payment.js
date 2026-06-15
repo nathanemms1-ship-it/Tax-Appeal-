@@ -1,6 +1,18 @@
 import Stripe from 'stripe';
+import { Redis } from '@upstash/redis';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+let redis = null;
+try {
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (redisUrl && redisToken) {
+    redis = new Redis({ url: redisUrl, token: redisToken });
+  }
+} catch (e) {
+  console.log("Redis init failed:", e.message);
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -16,6 +28,17 @@ export default async function handler(req, res) {
     }
 
     const meta = session.metadata || {};
+
+    // Retrieve full letter from Redis using the letterKey
+    let letter = null;
+    if (meta.letterKey && redis) {
+      try {
+        letter = await redis.get(meta.letterKey);
+        console.log("Letter retrieved from Redis:", meta.letterKey, "length:", letter?.length);
+      } catch (e) {
+        console.log("Redis letter retrieval failed:", e.message);
+      }
+    }
 
     return res.status(200).json({
       paid: true,
@@ -38,8 +61,8 @@ export default async function handler(req, res) {
       ownerCity: meta.ownerCity || null,
       ownerState: meta.ownerState || null,
       ownerZip: meta.ownerZip || null,
-      // Letter content
-      letter: meta.letter || null,
+      // Full letter content retrieved from Redis
+      letter,
     });
   } catch (err) {
     console.error('Verify payment error:', err);
