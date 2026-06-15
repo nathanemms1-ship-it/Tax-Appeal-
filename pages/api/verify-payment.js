@@ -15,16 +15,31 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Payment not completed' });
     }
 
+    const meta = session.metadata || {};
+
     return res.status(200).json({
       paid: true,
-      customerName: session.metadata?.customerName || '',
+      customerName: meta.customerName || '',
       email: session.customer_email || '',
-      address: session.metadata?.address || '',
-      county: session.metadata?.county || '',
-      assessedValue: session.metadata?.assessedValue || null,
-      targetReduction: session.metadata?.targetReduction || null,
-      savings: session.metadata?.savings || null,
+      address: meta.address || '',
+      county: meta.county || '',
+      assessedValue: meta.assessedValue || null,
+      targetReduction: meta.targetReduction || null,
+      savings: meta.savings || null,
       amountPaid: session.amount_total,
+      // District info for Lob mailing
+      districtName: meta.districtName || null,
+      districtAddress: meta.districtAddress || null,
+      districtCity: meta.districtCity || null,
+      districtState: meta.districtState || null,
+      districtZip: meta.districtZip || null,
+      // Owner address for return address on envelope
+      ownerStreet: meta.ownerStreet || null,
+      ownerCity: meta.ownerCity || null,
+      ownerState: meta.ownerState || null,
+      ownerZip: meta.ownerZip || null,
+      // Letter content
+      letter: meta.letter || null,
     });
   } catch (err) {
     console.error('Verify payment error:', err);
