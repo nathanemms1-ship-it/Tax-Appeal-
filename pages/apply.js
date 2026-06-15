@@ -823,7 +823,8 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           assessedValue: pd.assessedValue,
           targetReduction: pd.targetReduction,
           savings: pd.savings,
-          letter,
+          letter: null, // Too large for Stripe metadata — stored in Redis
+          letterKey: pd.letterKey || null, // Redis key to retrieve letter on success page
           // District info for certified mail
           districtName: pd.appraisalDistrict?.districtName || null,
           districtAddress: pd.appraisalDistrict?.mailingAddress || null,
@@ -1143,6 +1144,10 @@ Justification basis: ${issueCount} property issue${issueCount !== 1 ? "s" : ""} 
       if (claudeJson.error) throw new Error(claudeJson.error);
       if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
       setLetter(claudeJson.letter);
+      // Store letterKey for passing to checkout
+      if (claudeJson.letterKey) {
+        pd.letterKey = claudeJson.letterKey;
+      }
       setLoading(false);
     } catch (e) {
       setErrMsg(e.message || "Something went wrong. Please try again.");
