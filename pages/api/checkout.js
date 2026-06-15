@@ -5,9 +5,35 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, firstName, lastName, address, county, assessedValue, targetReduction, savings, letter } = req.body;
+  const {
+    email,
+    firstName,
+    lastName,
+    address,
+    county,
+    assessedValue,
+    targetReduction,
+    savings,
+    letter,
+    // District info
+    districtName,
+    districtAddress,
+    districtCity,
+    districtState,
+    districtZip,
+    // Owner address
+    ownerStreet,
+    ownerCity,
+    ownerState,
+    ownerZip,
+  } = req.body;
 
   try {
+    // Stripe metadata values must be strings under 500 chars
+    // Letter content can be very long so we truncate for metadata
+    // Full letter is stored separately if needed
+    const letterPreview = letter ? letter.slice(0, 490) : '';
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -17,10 +43,9 @@ export default async function handler(req, res) {
           currency: 'usd',
           product_data: {
             name: 'TaxAppeal — Property Tax Dispute Filing',
-            description: `Property dispute filing for ${address}. We draft and mail your certified protest letter to ${county}.`,
-            images: [],
+            description: `Certified mail protest filing for ${address} — ${county}`,
           },
-          unit_amount: 7900, // $79.00 in cents
+          unit_amount: 7900, // $79.00
         },
         quantity: 1,
       }],
@@ -32,6 +57,19 @@ export default async function handler(req, res) {
         assessedValue: assessedValue ? String(assessedValue) : '',
         targetReduction: targetReduction ? String(targetReduction) : '',
         savings: savings ? String(savings) : '',
+        // District
+        districtName: districtName || '',
+        districtAddress: districtAddress || '',
+        districtCity: districtCity || '',
+        districtState: districtState || '',
+        districtZip: districtZip || '',
+        // Owner address
+        ownerStreet: ownerStreet || '',
+        ownerCity: ownerCity || '',
+        ownerState: ownerState || '',
+        ownerZip: ownerZip || '',
+        // Letter preview (Stripe metadata limit is 500 chars per value)
+        letterPreview,
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,
