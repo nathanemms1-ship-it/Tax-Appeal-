@@ -824,6 +824,17 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           targetReduction: pd.targetReduction,
           savings: pd.savings,
           letter,
+          // District info for certified mail
+          districtName: pd.appraisalDistrict?.districtName || null,
+          districtAddress: pd.appraisalDistrict?.mailingAddress || null,
+          districtCity: pd.appraisalDistrict?.city || null,
+          districtState: pd.appraisalDistrict?.state || null,
+          districtZip: pd.appraisalDistrict?.zip || null,
+          // Owner address for return address on envelope
+          ownerStreet: property.street,
+          ownerCity: property.city,
+          ownerState: property.state,
+          ownerZip: property.zip,
         }),
       });
       const data = await res.json();
