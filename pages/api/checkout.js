@@ -15,6 +15,7 @@ export default async function handler(req, res) {
     targetReduction,
     savings,
     letter,
+    letterKey,
     // District info
     districtName,
     districtAddress,
@@ -29,11 +30,6 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
-    // Stripe metadata values must be strings under 500 chars
-    // Letter content can be very long so we truncate for metadata
-    // Full letter is stored separately if needed
-    const letterPreview = letter ? letter.slice(0, 490) : '';
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -68,8 +64,8 @@ export default async function handler(req, res) {
         ownerCity: ownerCity || '',
         ownerState: ownerState || '',
         ownerZip: ownerZip || '',
-        // Letter preview (Stripe metadata limit is 500 chars per value)
-        letterPreview,
+        // Letter stored in Redis — pass the key so success page can retrieve it
+        letterKey: letterKey || '',
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,
