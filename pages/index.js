@@ -386,61 +386,105 @@ export default function Landing() {
       </section>
 
             {/* Social proof banner */}
-      <div className="stat-banner-section">
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 13, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Real Results From Real Homeowners</div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, color: "#FFFFFF", lineHeight: 1.15, marginBottom: 8 }}>
+      <div style={{ background: "#1B3A6B", padding: "48px 32px", textAlign: "center" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Real Results From Real Homeowners</div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#FFFFFF", lineHeight: 1.2, marginBottom: 10 }}>
           Over 7,200 Homeowners and counting
         </div>
-        <div style={{ fontSize: 20, color: "#8596AF", marginBottom: 16 }}>with a total savings over <span style={{ color: "#FFC940", fontWeight: 700 }}>$3.2 Million!</span></div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: "#FFC940", letterSpacing: "1px" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: "#8596AF", marginBottom: 16 }}>
+          with a total savings over <span style={{ color: "#FFC940", fontWeight: 700 }}>$3.2 Million!</span>
+        </div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "#FFC940" }}>
           Don't Delay, Dispute Today!
         </div>
       </div>
 
       {/* Scrolling testimonials */}
-      <section style={{ background: "#F4F7FC", padding: "48px 0" }}>
+      <div style={{ background: "#F4F7FC", padding: "48px 0", overflow: "hidden" }}>
         <div style={{ textAlign: "center", marginBottom: 32, padding: "0 32px" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What homeowners are saying</div>
-          <div style={{ fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, and Florida.</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, and Florida.</div>
         </div>
-        <div className="testimonials-outer">
-          <div className="testimonials-track">
+
+        <style>{`
+          @keyframes scroll-testimonials {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .t-track {
+            display: flex;
+            gap: 20px;
+            width: max-content;
+            animation: scroll-testimonials 50s linear infinite;
+          }
+          .t-track:hover { animation-play-state: paused; }
+          .t-wrap {
+            overflow: hidden;
+            position: relative;
+          }
+          .t-wrap::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 80px;
+            background: linear-gradient(to right, #F4F7FC, transparent);
+            z-index: 2;
+            pointer-events: none;
+          }
+          .t-wrap::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 80px;
+            background: linear-gradient(to left, #F4F7FC, transparent);
+            z-index: 2;
+            pointer-events: none;
+          }
+          .t-card {
+            background: #FFFFFF;
+            border: 1.5px solid #E8EDF4;
+            border-radius: 12px;
+            padding: 20px 24px;
+            width: 300px;
+            flex-shrink: 0;
+          }
+        `}</style>
+
+        <div className="t-wrap">
+          <div className="t-track">
             {[
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", stars: 5, text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
-              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", stars: 5, text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
-              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", stars: 5, text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
-              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", stars: 5, text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
-              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", stars: 5, text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
-              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", stars: 5, text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The appraisal district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", stars: 5, text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
-              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", stars: 5, text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
-              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", stars: 5, text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
-              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", stars: 5, text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-            ].concat([
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", stars: 5, text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
-              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", stars: 5, text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
-              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", stars: 5, text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
-              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", stars: 5, text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
-              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", stars: 5, text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
-              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", stars: 5, text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The appraisal district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", stars: 5, text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
-              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", stars: 5, text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
-              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", stars: 5, text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
-              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", stars: 5, text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-            ]).map((t, i) => (
-              <div key={i} className="testimonial-card">
-                <div style={{ display: "flex", marginBottom: 10 }}>
-                  {"★★★★★".split("").map((s, j) => (
-                    <span key={j} style={{ color: "#FFC940", fontSize: 16 }}>{s}</span>
-                  ))}
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
+              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
+              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
+              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
+              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
+              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
+              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
+              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
+              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
+              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
+              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
+              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
+              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
+              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
+              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
+            ].map((t, i) => (
+              <div key={i} className="t-card">
+                <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
+                  {[1,2,3,4,5].map(s => <span key={s} style={{ color: "#FFC940", fontSize: 16 }}>★</span>)}
                 </div>
-                <p style={{ fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginBottom: 16, fontStyle: "italic" }}>"{t.text}"</p>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginBottom: 16, fontStyle: "italic" }}>"{t.text}"</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F1F3D" }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: "#8596AF", marginTop: 2 }}>📍 {t.location}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F1F3D" }}>{t.name}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#8596AF", marginTop: 2 }}>📍 {t.location}</div>
                   </div>
-                  <div style={{ background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#2E7D52" }}>
+                  <div style={{ background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#2E7D52", whiteSpace: "nowrap" }}>
                     Saved {t.saved}
                   </div>
                 </div>
@@ -448,7 +492,7 @@ export default function Landing() {
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
       {/* How it works */}
       <section className="section" style={{ background: C.white }}>
