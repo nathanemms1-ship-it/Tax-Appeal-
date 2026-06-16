@@ -798,7 +798,7 @@ function LoadingScreen({ addr }) {
 // ─── SCREEN 4b: DISPUTE LETTER ────────────────────────────────────────────────
 function DisputeLetter({ propData, letter, issues, onRestart, account, property }) {
   const [agreements, setAgreements] = useState([false, false, false]);
-  const [copied, setCopied] = useState(false);
+
   const allAgreed = agreements.every(Boolean);
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
@@ -850,12 +850,8 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
     }
   };
 
-  const doCopy = () => { navigator.clipboard.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 2500); };
-  const doPrint = () => {
-    const w = window.open("", "_blank");
-    w.document.write(`<html><body style="font-family:Georgia,serif;max-width:680px;margin:60px auto;font-size:15px;line-height:1.85;color:#111;">${letter.replace(/\n/g, "<br/>")}</body></html>`);
-    w.document.close(); w.print();
-  };
+
+
 
   // Split letter for paywall — show first 30 lines, blur the rest
   const lines = letter.split("\n");
@@ -929,7 +925,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
             <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "pre-wrap" }}>
-              {blurredLines || "The full dispute letter will be revealed after completing your order..."}
+              {blurredLines || "Your complete dispute letter will be emailed to you after payment..."}
             </div>
           </div>
         </div>
@@ -975,14 +971,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           onClick={allAgreed ? doCheckout : undefined}
           disabled={!allAgreed || checkingOut}>
           <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
-          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $79"}</span>
+          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $79 — Your letter will be emailed to you"}</span>
         </button>
 
-        {allAgreed && (
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <button style={{ ...secondaryBtn, flex: 1, padding: "12px" }} onClick={doPrint}>Print Letter</button>
-          </div>
-        )}
+
 
         <div style={{ marginTop: 20, textAlign: "center" }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
