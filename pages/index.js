@@ -506,8 +506,8 @@ export default function Landing() {
         <p>© 2026 TaxAppeal USA · <a href="mailto:disputes@taxappealusa.com">disputes@taxappealusa.com</a></p>
         <p>Available in TX · GA · FL · More states coming soon</p>
         <p>
-          <a href="#" style={{ marginRight: 16 }}>Terms of Service</a>
-          <a href="#">Privacy Policy</a>
+          <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
+          <a href="/privacy">Privacy Policy</a>
         </p>
       </footer>
     </>
