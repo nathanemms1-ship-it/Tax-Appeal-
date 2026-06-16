@@ -19,9 +19,8 @@ const C = {
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
 // Inline email builder for confirmation
-function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, lobPreviewUrl }) {
+function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter }) {
   const firstName = customerName ? customerName.split(' ')[0] : 'there';
-  const isTest = !!lobPreviewUrl;
   return `
 <!DOCTYPE html>
 <html>
@@ -54,13 +53,25 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
               <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$79.00</td></tr></table>
             </td></tr>
           </table>
-          ${isTest ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#EEF3FB;border-radius:8px;padding:16px;margin-bottom:24px;"><tr><td><div style="font-size:13px;color:#1B3A6B;"><strong>🔍 Test Mode — <a href="${lobPreviewUrl}" style="color:#1B3A6B;">Preview your printed letter →</a></strong></div></td></tr></table>` : ''}
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;">
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
             <tr><td>
               <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
               <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong> as your filing agent.</div>
             </td></tr>
           </table>
+
+          ${letter ? `
+          <!-- Full letter content -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8EDF4;border-radius:8px;overflow:hidden;margin-bottom:8px;">
+            <tr><td style="background:#F4F7FC;padding:12px 20px;border-bottom:1px solid #E8EDF4;">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;">YOUR DISPUTE LETTER — FOR YOUR RECORDS</div>
+            </td></tr>
+            <tr><td style="background:#FFFFFF;padding:28px 32px;font-family:Georgia,serif;font-size:12px;line-height:1.85;color:#111;white-space:pre-wrap;">${letter}</td></tr>
+          </table>
+          <div style="font-size:11px;color:#8596AF;text-align:center;margin-bottom:8px;">Keep this email as your official record of the dispute letter filed on your behalf.</div>
+          ` : ''}
+
         </td></tr>
         <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
           <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
@@ -149,7 +160,7 @@ export default function Success() {
                       targetReduction: data.targetReduction,
                       savings: data.savings,
                       trackingNumber: mailData.trackingNumber,
-                      lobPreviewUrl: mailData.url,
+                      letter: data.letter,
                     }),
                     text: `Your property tax dispute for ${data.address} has been filed. Tracking: ${mailData.trackingNumber || 'Pending'}`,
                   }),
@@ -298,12 +309,7 @@ export default function Success() {
               </div>
             )}
 
-            {/* Lob preview link (test mode only) */}
-            {lobPreviewUrl && (
-              <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: C.navy }}>
-                🔍 <strong>Test mode:</strong> <a href={lobPreviewUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.navy }}>Preview your letter as it will appear when printed →</a>
-              </div>
-            )}
+
 
             {/* Order summary */}
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
