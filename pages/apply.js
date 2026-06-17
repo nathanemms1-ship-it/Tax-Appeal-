@@ -321,12 +321,36 @@ function DeadlinePopup({ stateCode, onClose }) {
 }
 
 // ─── UNSUPPORTED STATE ────────────────────────────────────────────────────────
-function FilingWindowClosed({ stateCode, windowStatus, onBack }) {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property }) {
+  const [email, setEmail] = useState(account?.email || "");
+  const [name, setName] = useState(account ? `${account.firstName} ${account.lastName}` : "");
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const state = SUPPORTED_STATES[stateCode];
+  const autoSaved = useRef(false);
+
+  // Auto-save customer info to waitlist immediately
+  useEffect(() => {
+    if (autoSaved.current) return;
+    if (!account?.email) return;
+    autoSaved.current = true;
+    fetch("/api/join-waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: account.email,
+        name: `${account.firstName} ${account.lastName}`,
+        state: stateCode,
+        county: null,
+        propertyAddress: property ? `${property.street}, ${property.city}, ${property.state} ${property.zip}` : null,
+        notifyDate: windowStatus?.openDate ? windowStatus.openDate.toISOString().split("T")[0] : null,
+      }),
+    }).then(() => {
+      console.log("Auto-saved to waitlist:", account.email);
+      setSubmitted(true);
+    }).catch(e => console.error("Auto-save waitlist error:", e));
+  }, []);
+
   if (!state || !windowStatus) return null;
 
   const doSubmit = async () => {
@@ -382,10 +406,10 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack }) {
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>
             {isTooClose ? windowStatus.daysUntilHard : windowStatus.daysUntilOpen}
           </div>
-          <div style={{ fontSize: 13, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
             {isTooClose ? "days until deadline" : "days until filing season opens"}
           </div>
-          <div style={{ fontSize: 11, color: "#3A4E6A", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: "#8596AF", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
             {state.deadlineNote}
           </div>
         </div>
@@ -1422,7 +1446,7 @@ export default function App() {
       {!unsupportedState && <ProgressBar currentStep={step} />}
 
       {closedWindow ? (
-        <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} />
+        <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} account={account} property={property} />
       ) : unsupportedState ? (
         <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
       ) : (
