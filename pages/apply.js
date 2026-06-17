@@ -397,7 +397,7 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
         ) : (
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
             The {state.name} protest filing window is currently closed. The next filing season opens in <strong style={{ color: C.navy, fontSize: 20 }}>{windowStatus.daysUntilOpen} days</strong>.
-            Enter your email below and we will notify you the moment filing season opens so you can be first in line.
+            Don't worry — we've saved your information and will email you the moment filing season opens so you can be first in line to file.
           </p>
         )}
 
@@ -432,26 +432,31 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
           ))}
         </div>
 
-        {/* Waitlist form */}
-        {!submitted ? (
-          <div style={{ textAlign: "left" }}>
-            <Field label="Your Name" id="wl-name" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" />
-            <Field label="Email Address" id="wl-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" />
-            <button style={primaryBtn} onClick={doSubmit} disabled={sending}>
-              {sending ? "Saving..." : "Notify Me When Filing Opens →"}
-            </button>
-            <div style={{ fontSize: 11, color: C.mutedGray, textAlign: "center", marginTop: 10, fontFamily: "'DM Sans', sans-serif" }}>
-              We will email you the day filing season opens. No spam, ever.
-            </div>
+        {/* Confirmation */}
+        <div style={{ padding: 20, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8, textAlign: "left" }}>
+          <div style={{ fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 8 }}>✓ You're all set!</div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
+            We will email <strong>{account?.email || "you"}</strong> the day the {state.name} filing window opens — approximately {windowStatus.daysUntilOpen} days from now. No action needed on your end.
           </div>
-        ) : (
-          <div style={{ padding: 20, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>✓ You are on the list!</div>
-            <div style={{ fontSize: 12, color: C.bodyGray, marginTop: 4 }}>
-              We will email you {windowStatus.daysUntilOpen > 0 ? `in approximately ${windowStatus.daysUntilOpen} days` : "when"} the {state.name} filing window opens.
+        </div>
+
+        {/* What to do in the meantime */}
+        <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "20px 24px", marginTop: 16, textAlign: "left" }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>While You Wait</div>
+          {[
+            ["📋", "Gather your tax notice", "When your appraisal notice arrives, keep it handy. This is helpful but not required — we can look up your assessed value automatically."],
+            ["📸", "Document property issues", "Take photos of any damage, deferred maintenance, or problems that affect your home's value. This is helpful but not required — you can describe issues during the filing process."],
+            ["📧", "Watch your inbox", "We will send you a reminder email with a direct link to file when the window opens."],
+          ].map(([icon, title, desc]) => (
+            <div key={title} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 32, height: 32, background: C.lightBlue, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{icon}</div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>{title}</div>
+                <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2, lineHeight: 1.5 }}>{desc}</div>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
 
         <div style={{ marginTop: 16 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
