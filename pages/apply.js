@@ -33,6 +33,37 @@ const SUPPORTED_STATES = {
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
 };
 
+// Filing window configuration
+const FILING_WINDOWS = {
+  TX: { openMonth: 4, openDay: 1, closeMonth: 5, closeDay: 31, hardMonth: 5, hardDay: 15, minDays: 3, receiptRequired: false },
+  GA: { openMonth: 4, openDay: 1, closeMonth: 7, closeDay: 31, hardMonth: 7, hardDay: 31, minDays: 3, receiptRequired: false },
+  FL: { openMonth: 8, openDay: 15, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
+};
+
+function getFilingWindowStatus(stateCode) {
+  const fw = FILING_WINDOWS[stateCode];
+  if (!fw) return null;
+  const today = new Date();
+  const year = today.getFullYear();
+  let openDate = new Date(year, fw.openMonth - 1, fw.openDay);
+  let closeDate = new Date(year, fw.closeMonth - 1, fw.closeDay);
+  let hardDeadline = new Date(year, fw.hardMonth - 1, fw.hardDay);
+  // If past this years close, use next year
+  if (today > closeDate) {
+    openDate = new Date(year + 1, fw.openMonth - 1, fw.openDay);
+    closeDate = new Date(year + 1, fw.closeMonth - 1, fw.closeDay);
+    hardDeadline = new Date(year + 1, fw.hardMonth - 1, fw.hardDay);
+  }
+  const isOpen = today >= openDate && today <= closeDate;
+  const daysUntilOpen = !isOpen ? Math.ceil((openDate - today) / (1000 * 60 * 60 * 24)) : 0;
+  const daysUntilClose = isOpen ? Math.ceil((closeDate - today) / (1000 * 60 * 60 * 24)) : 0;
+  const daysUntilHard = isOpen ? Math.ceil((hardDeadline - today) / (1000 * 60 * 60 * 24)) : 0;
+  const tooClose = isOpen && daysUntilHard < fw.minDays;
+  const canFile = isOpen && !tooClose;
+  const urgency = !isOpen ? "closed" : daysUntilClose <= 7 ? "critical" : daysUntilClose <= 14 ? "urgent" : daysUntilClose <= 30 ? "warning" : "normal";
+  return { isOpen, canFile, daysUntilOpen, daysUntilClose, daysUntilHard, tooClose, urgency, receiptRequired: fw.receiptRequired, openDate, closeDate };
+}
+
 function getDeadlineInfo(stateCode) {
   const today = new Date();
   const year = today.getFullYear();
@@ -290,6 +321,122 @@ function DeadlinePopup({ stateCode, onClose }) {
 }
 
 // ─── UNSUPPORTED STATE ────────────────────────────────────────────────────────
+function FilingWindowClosed({ stateCode, windowStatus, onBack }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const state = SUPPORTED_STATES[stateCode];
+  if (!state || !windowStatus) return null;
+
+  const doSubmit = async () => {
+    if (!email.includes("@")) return;
+    setSending(true);
+    try {
+      await fetch("/api/join-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          name,
+          state: stateCode,
+          notifyDate: windowStatus.openDate.toISOString().split("T")[0],
+        }),
+      });
+      setSubmitted(true);
+    } catch (e) {
+      console.error("Waitlist error:", e);
+    }
+    setSending(false);
+  };
+
+  const isTooClose = windowStatus.isOpen && windowStatus.tooClose;
+  const isClosed = !windowStatus.isOpen;
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
+      <div style={{ ...cardStyle, maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>{isTooClose ? "⏰" : "📅"}</div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 10 }}>
+          {isTooClose
+            ? `${state.name} Filing Deadline Too Close`
+            : `${state.name} Filing Season Opens Soon`}
+        </h2>
+
+        {isTooClose ? (
+          <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
+            The {state.name} filing deadline is in {windowStatus.daysUntilHard} days
+            {windowStatus.receiptRequired ? " and Florida requires RECEIPT by the deadline (not just postmark)" : ""}.
+            To protect you from a missed deadline, we cannot accept new filings this close to the cutoff.
+            Join the waitlist and we will notify you when the next filing season opens.
+          </p>
+        ) : (
+          <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
+            The {state.name} protest filing window is currently closed. The next filing season opens in <strong style={{ color: C.navy, fontSize: 20 }}>{windowStatus.daysUntilOpen} days</strong>.
+            Enter your email below and we will notify you the moment filing season opens so you can be first in line.
+          </p>
+        )}
+
+        {/* Countdown card */}
+        <div style={{ background: C.darkNavy, borderRadius: 12, padding: "24px", marginBottom: 24, display: "inline-block", width: "100%" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>
+            {isTooClose ? windowStatus.daysUntilHard : windowStatus.daysUntilOpen}
+          </div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif" }}>
+            {isTooClose ? "days until deadline" : "days until filing season opens"}
+          </div>
+          <div style={{ fontSize: 11, color: "#3A4E6A", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
+            {state.deadlineNote}
+          </div>
+        </div>
+
+        {/* Info box */}
+        <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
+          <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, color: C.navy, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+            {state.name} Filing Details
+          </div>
+          {[
+            ["Filing Body", state.board],
+            ["Deadline", state.deadlineNote],
+            ["Important", state.filingNote],
+            ["Statute", state.statute],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>
+              <span style={{ color: C.mutedGray }}>{k}</span>
+              <span style={{ color: C.darkNavy, fontWeight: 500, textAlign: "right", maxWidth: 260 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Waitlist form */}
+        {!submitted ? (
+          <div style={{ textAlign: "left" }}>
+            <Field label="Your Name" id="wl-name" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" />
+            <Field label="Email Address" id="wl-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" />
+            <button style={primaryBtn} onClick={doSubmit} disabled={sending}>
+              {sending ? "Saving..." : "Notify Me When Filing Opens →"}
+            </button>
+            <div style={{ fontSize: 11, color: C.mutedGray, textAlign: "center", marginTop: 10, fontFamily: "'DM Sans', sans-serif" }}>
+              We will email you the day filing season opens. No spam, ever.
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 20, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8 }}>
+            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>✓ You are on the list!</div>
+            <div style={{ fontSize: 12, color: C.bodyGray, marginTop: 4 }}>
+              We will email you {windowStatus.daysUntilOpen > 0 ? `in approximately ${windowStatus.daysUntilOpen} days` : "when"} the {state.name} filing window opens.
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 16 }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UnsupportedState({ stateCode, onBack }) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -332,27 +479,56 @@ function UnsupportedState({ stateCode, onBack }) {
 
 // ─── COUNTDOWN BANNER ─────────────────────────────────────────────────────────
 function CountdownBanner({ stateCode }) {
-  const info = getDeadlineInfo(stateCode);
-  if (!info) return null;
-  const { daysLeft, state } = info;
-  const urgent = daysLeft <= 14;
-  const warning = daysLeft <= 30 && daysLeft > 14;
-  const bg = urgent ? "#FFF0EE" : C.amber;
-  const border = urgent ? "#F5C6C0" : "#FFD97A";
-  const color = urgent ? "#8B2E22" : "#7A5C10";
-  const icon = urgent ? "🚨" : "⏰";
-  const message = urgent
-    ? `Only ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left to file your ${state.name} protest — potentially save hundreds or thousands. Don't delay!`
-    : warning
-    ? `${daysLeft} days until the ${state.name} protest deadline. File now to protect your savings.`
-    : `${daysLeft} days until the ${state.name} protest deadline — ${state.deadlineNote}.`;
+  const state = SUPPORTED_STATES[stateCode];
+  const ws = getFilingWindowStatus(stateCode);
+  if (!state || !ws) return null;
+
+  let bg, border, color, icon, message, subtext;
+
+  if (!ws.isOpen) {
+    // Window closed — show days until opens
+    bg = "#EEF3FB";
+    border = "#C5D3E8";
+    color = "#1B3A6B";
+    icon = "📅";
+    message = `${state.name} filing season opens in ${ws.daysUntilOpen} days. Get ready — we will notify you when it is time to file.`;
+    subtext = state.deadlineNote;
+  } else if (ws.urgency === "critical") {
+    bg = "#FFF0EE";
+    border = "#F5C6C0";
+    color = "#8B2E22";
+    icon = "🚨";
+    message = `Only ${ws.daysUntilClose} day${ws.daysUntilClose !== 1 ? "s" : ""} left in the ${state.name} filing window! File now or wait until next year.`;
+    subtext = state.filingNote;
+  } else if (ws.urgency === "urgent") {
+    bg = "#FFF0EE";
+    border = "#F5C6C0";
+    color = "#8B2E22";
+    icon = "⏰";
+    message = `${ws.daysUntilClose} days until the ${state.name} filing window closes. Don't wait — file today and start saving.`;
+    subtext = state.filingNote;
+  } else if (ws.urgency === "warning") {
+    bg = C.amber;
+    border = "#FFD97A";
+    color = "#7A5C10";
+    icon = "⏰";
+    message = `${ws.daysUntilClose} days remaining in the ${state.name} filing window. File now to protect your savings.`;
+    subtext = state.deadlineNote;
+  } else {
+    bg = "#E6F4ED";
+    border = "#B7DEC8";
+    color = "#2E7D52";
+    icon = "✅";
+    message = `${state.name} filing season is OPEN — ${ws.daysUntilClose} days remaining. Now is the perfect time to file your protest.`;
+    subtext = state.deadlineNote;
+  }
 
   return (
     <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10 }}>
       <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
       <div>
         <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, color, marginBottom: 2 }}>{message}</div>
-        <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", color, opacity: 0.7 }}>{state.filingNote}</div>
+        <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", color, opacity: 0.7 }}>{subtext}</div>
       </div>
     </div>
   );
@@ -485,7 +661,7 @@ function StepAccount({ data, onChange, onNext }) {
 }
 
 // ─── SCREEN 2: YOUR PROPERTY ──────────────────────────────────────────────────
-function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
+function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onClosedWindow }) {
   const [err, setErr] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [checkedState, setCheckedState] = useState(null);
@@ -494,6 +670,12 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState }) {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
     const sc = data.state.trim().toUpperCase();
     if (!SUPPORTED_STATES[sc]) { onUnsupportedState(sc); return; }
+    // Check filing window
+    const ws = getFilingWindowStatus(sc);
+    if (ws && !ws.canFile) {
+      onClosedWindow(sc, ws);
+      return;
+    }
     if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();
   };
@@ -1172,6 +1354,7 @@ export default function App() {
   const [issues, setIssues] = useState([]);
   const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
+  const [closedWindow, setClosedWindow] = useState(null);
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
@@ -1180,7 +1363,7 @@ export default function App() {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]); setNotes(""); setUnsupportedState(null);
+    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null);
   };
 
   return (
@@ -1238,12 +1421,14 @@ export default function App() {
       <NavBar step={step} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
 
-      {unsupportedState ? (
+      {closedWindow ? (
+        <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} />
+      ) : unsupportedState ? (
         <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues }} onRestart={restart} />}
         </>
