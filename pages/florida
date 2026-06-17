@@ -20,18 +20,8 @@ const faqs = [
   ["How does TaxAppeal compare to other Florida tax appeal firms?", "Most Florida firms charge 25–40% of your savings. On a $2,000 reduction, that's $500–$800 in fees every year. TaxAppeal charges $79 flat — you keep every dollar."],
 ];
 
-const counties = [
-  "Harris County (Houston)", "Dallas County (Dallas)", "Tarrant County (Fort Worth)",
-  "Bexar County (San Antonio)", "Travis County (Austin)", "Collin County (Plano)",
-  "Denton County (Denton)", "Fort Bend County (Sugar Land)", "Williamson County (Round Rock)",
-  "Montgomery County (Conroe)", "Hidalgo County (McAllen)", "El Paso County (El Paso)",
-  "Galveston County", "Brazoria County", "Bell County (Killeen)",
-  "McLennan County (Waco)", "Lubbock County", "Smith County (Tyler)",
-  "Johnson County", "Parker County", "Kaufman County", "Rockwall County",
-  "Hays County (San Marcos)", "Comal County (New Braunfels)", "Midland County",
-];
 
-export default function Texas() {
+export default function Florida() {
   const router = useRouter();
   const go = () => router.push('/apply');
 
