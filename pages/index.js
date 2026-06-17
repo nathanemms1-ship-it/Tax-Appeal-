@@ -37,9 +37,50 @@ export default function Landing() {
   return (
     <>
       <Head>
-        <title>TaxAppeal — We fight your property tax bill. You keep the savings.</title>
-        <meta name="description" content="Flat $79 fee. No percentage cuts. We draft and file your property tax protest via certified mail. Takes 4 minutes. Available in TX, GA, and FL." />
+        <title>Property Tax Protest Service — File Online for $79 | TaxAppeal</title>
+        <meta name="description" content="Protest your property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, and FL." />
+        <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
+        <meta property="og:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
+        <meta property="og:description" content="We fight your property tax bill. Flat $79 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL." />
+        <meta property="og:url" content="https://www.taxappealusa.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="TaxAppeal USA" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $79 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="canonical" href="https://www.taxappealusa.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
+        <meta property="og:description" content="Flat $79 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:url" content="https://www.taxappealusa.com" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
+            { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
+            { "@type": "Question", "name": "How is $79 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $79 regardless of outcome — you keep everything you save." }},
+            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, and Florida. More states are coming soon." }},
+            { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
+          ]
+        })}} />
+        <link rel="canonical" href="https://www.taxappealusa.com" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "TaxAppeal USA",
+          "url": "https://www.taxappealusa.com",
+          "email": "disputes@taxappealusa.com",
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, and Florida. Flat $79 fee, certified mail filing, 82% approval rate.",
+          "areaServed": ["Texas", "Georgia", "Florida"],
+          "offers": {
+            "@type": "Offer",
+            "price": "79",
+            "priceCurrency": "USD",
+            "description": "Property tax protest filing via certified mail"
+          }
+        }) }} />
       </Head>
 
       <style>{`
