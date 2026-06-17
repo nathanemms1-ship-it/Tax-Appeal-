@@ -36,17 +36,71 @@ const SUPPORTED_STATES = {
 // Filing window configuration
 const FILING_WINDOWS = {
   TX: { openMonth: 4, openDay: 1, closeMonth: 5, closeDay: 31, hardMonth: 5, hardDay: 15, minDays: 3, receiptRequired: false },
-  GA: { openMonth: 4, openDay: 1, closeMonth: 7, closeDay: 31, hardMonth: 7, hardDay: 31, minDays: 3, receiptRequired: false },
+  GA: {
+    openMonth: 4, openDay: 1, closeMonth: 7, closeDay: 15, hardMonth: 7, hardDay: 15, minDays: 3, receiptRequired: false,
+    // Georgia county-specific windows based on when each county mails notices
+    // 45 days from notice mailing date
+    countyWindows: {
+      "Fulton":    { openMonth: 5, openDay: 1,  closeMonth: 7, closeDay: 15 }, // Notices mailed May-June
+      "Cobb":      { openMonth: 5, openDay: 15, closeMonth: 7, closeDay: 15 }, // Notices mailed late May-June
+      "Gwinnett":  { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 15 }, // Notices mailed April-May
+      "DeKalb":    { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 1  }, // Notices mailed April
+      "Cherokee":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Forsyth":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Hall":      { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Henry":     { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Chatham":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Richmond":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Columbia":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Clayton":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Muscogee":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Bibb":      { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Houston":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Douglas":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Coweta":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Fayette":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Paulding":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Lowndes":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Bartow":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Clarke":    { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Jackson":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
+      "Walton":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Newton":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+      "Rockdale":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
+    },
+  },
   FL: { openMonth: 8, openDay: 15, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
 };
 
-function getFilingWindowStatus(stateCode) {
+function getFilingWindowStatus(stateCode, countyName) {
   const fw = FILING_WINDOWS[stateCode];
   if (!fw) return null;
   const today = new Date();
   const year = today.getFullYear();
-  let openDate = new Date(year, fw.openMonth - 1, fw.openDay);
-  let closeDate = new Date(year, fw.closeMonth - 1, fw.closeDay);
+
+  // Check county-specific window for Georgia
+  let openMonth = fw.openMonth;
+  let openDay = fw.openDay;
+  let closeMonth = fw.closeMonth;
+  let closeDay = fw.closeDay;
+
+  if (stateCode === "GA" && countyName && fw.countyWindows) {
+    const countyClean = countyName.replace(/ County$/i, "").trim();
+    const cw = fw.countyWindows[countyClean];
+    if (cw) {
+      openMonth = cw.openMonth;
+      openDay = cw.openDay;
+      closeMonth = cw.closeMonth;
+      closeDay = cw.closeDay;
+    } else {
+      // Unknown GA county — use conservative default (closed by June 15)
+      closeMonth = 6;
+      closeDay = 15;
+    }
+  }
+
+  let openDate = new Date(year, openMonth - 1, openDay);
+  let closeDate = new Date(year, closeMonth - 1, closeDay);
   let hardDeadline = new Date(year, fw.hardMonth - 1, fw.hardDay);
   // If past this years close, use next year
   if (today > closeDate) {
@@ -64,17 +118,7 @@ function getFilingWindowStatus(stateCode) {
   return { isOpen, canFile, daysUntilOpen, daysUntilClose, daysUntilHard, tooClose, urgency, receiptRequired: fw.receiptRequired, openDate, closeDate };
 }
 
-function getDeadlineInfo(stateCode) {
-  const today = new Date();
-  const year = today.getFullYear();
-  let deadline = null;
-  if (stateCode === "TX") { deadline = new Date(year, 4, 15); if (today > deadline) deadline = new Date(year + 1, 4, 15); }
-  else if (stateCode === "FL") { deadline = new Date(year, 8, 18); if (today > deadline) deadline = new Date(year + 1, 8, 18); }
-  else if (stateCode === "GA") { deadline = new Date(year, 5, 1); if (today > deadline) deadline = new Date(year + 1, 5, 1); }
-  if (!deadline) return null;
-  const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-  return { daysLeft, deadline, state: SUPPORTED_STATES[stateCode] };
-}
+// getDeadlineInfo removed — replaced by getFilingWindowStatus
 
 // ─── ISSUE CATEGORIES ─────────────────────────────────────────────────────────
 const ISSUE_CATEGORIES = [
@@ -289,24 +333,33 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
 
 // ─── DEADLINE POPUP ───────────────────────────────────────────────────────────
 function DeadlinePopup({ stateCode, onClose }) {
-  const info = getDeadlineInfo(stateCode);
   const state = SUPPORTED_STATES[stateCode];
-  if (!info || !state) return null;
-  const { daysLeft } = info;
-  const urgent = daysLeft <= 14;
+  const ws = getFilingWindowStatus(stateCode);
+  if (!state || !ws || !ws.isOpen) return null;
+
+  const daysLeft = ws.daysUntilClose;
+  const urgent = ws.urgency === "critical" || ws.urgency === "urgent";
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "36px 40px", maxWidth: 480, width: "100%", boxShadow: "0 24px 80px rgba(0,0,0,0.15)" }}>
-        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>{urgent ? "🚨" : "⏰"}</div>
+        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>{urgent ? "🚨" : "✅"}</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, textAlign: "center", color: C.darkNavy, marginBottom: 8 }}>
-          {urgent ? `Only ${daysLeft} Days Left!` : `${daysLeft} Days Until Deadline`}
+          {urgent ? `Only ${daysLeft} Days Left to File!` : `Filing Season is Open — ${daysLeft} Days Remaining`}
         </h2>
         <p style={{ fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
-          {urgent ? `The ${state.name} protest deadline is almost here. Don't leave money on the table.` : `The ${state.name} protest window is open. Most homeowners who file save hundreds or thousands per year.`}
+          {urgent
+            ? `The ${state.name} filing window closes in ${daysLeft} days. Don’t leave money on the table — file now.`
+            : `The ${state.name} filing window is open. Most homeowners who file save hundreds or thousands per year. Now is the perfect time to dispute.`}
         </p>
         <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 24 }}>
-          {[["State", state.name], ["Filing Body", state.board], ["Deadline", state.deadlineNote], ["Important", state.filingNote], ["Days Remaining", `${daysLeft} days`]].map(([k, v]) => (
+          {[
+            ["State", state.name],
+            ["Filing Body", state.board],
+            ["Deadline", state.deadlineNote],
+            ["Important", state.filingNote],
+            ["Filing Window", `${daysLeft} days remaining`],
+          ].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>
               <span style={{ color: C.mutedGray }}>{k}</span>
               <span style={{ color: C.darkNavy, fontWeight: 500, textAlign: "right", maxWidth: 240 }}>{v}</span>
@@ -314,7 +367,6 @@ function DeadlinePopup({ stateCode, onClose }) {
           ))}
         </div>
         <button style={primaryBtn} onClick={onClose}>File My Protest Now →</button>
-
       </div>
     </div>
   );
@@ -695,12 +747,36 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
   const [showPopup, setShowPopup] = useState(false);
   const [checkedState, setCheckedState] = useState(null);
 
-  const go = () => {
+  const [checking, setChecking] = useState(false);
+
+  const go = async () => {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
     const sc = data.state.trim().toUpperCase();
     if (!SUPPORTED_STATES[sc]) { onUnsupportedState(sc); return; }
-    // Check filing window
-    const ws = getFilingWindowStatus(sc);
+
+    // For Georgia, look up the specific county first since windows vary
+    let countyName = null;
+    if (sc === "GA") {
+      setChecking(true);
+      try {
+        const censusRes = await fetch(
+          `https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(data.street)}&city=${encodeURIComponent(data.city)}&state=${encodeURIComponent(data.state)}&zip=${encodeURIComponent(data.zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`
+        );
+        if (censusRes.ok) {
+          const censusData = await censusRes.json();
+          const countyGeo = censusData?.result?.addressMatches?.[0]?.geographies?.Counties?.[0];
+          if (countyGeo?.NAME) {
+            countyName = countyGeo.NAME.replace(/ County$/i, "").trim();
+          }
+        }
+      } catch (e) {
+        console.log("County check failed:", e.message);
+      }
+      setChecking(false);
+    }
+
+    // Check filing window (with county for GA)
+    const ws = getFilingWindowStatus(sc, countyName);
     if (ws && !ws.canFile) {
       onClosedWindow(sc, ws);
       return;
@@ -780,7 +856,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
 
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
-            <button style={{ ...primaryBtn }} onClick={go}>🔍 Look up my property & continue</button>
+            <button style={{ ...primaryBtn }} onClick={go} disabled={checking}>{checking ? "Checking filing window..." : "🔍 Look up my property & continue"}</button>
           </div>
         </div>
 
