@@ -110,7 +110,9 @@ function AnnouncementBar() {
 }
 
 function NavBar({ step }) {
-  const rightText = ["account", "property"].includes(step) ? "Have an account? Sign in" : "Need help? Contact us";
+  const isAccountStep = ["account", "property"].includes(step);
+  const rightText = isAccountStep ? "Have an account? Sign in" : "Need help? Contact us";
+  const rightHref = isAccountStep ? "/portal" : "mailto:support@taxappealusa.com";
   return (
     <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -120,7 +122,7 @@ function NavBar({ step }) {
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
         </div>
       </div>
-      <a href="#" className="nav-right" style={{ fontSize: 13, color: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>{rightText}</a>
+      <a href={rightHref} className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s" }}>{rightText}</a>
     </div>
   );
 }
