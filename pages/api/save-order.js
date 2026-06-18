@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from './supabase';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -6,6 +7,8 @@ export default async function handler(req, res) {
   const {
     customerName,
     customerEmail,
+    customerPassword,  // raw password (if coming directly)
+    passwordHash,      // pre-hashed password (if coming via Stripe metadata)
     propertyAddress,
     county,
     state,
@@ -43,11 +46,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, orderId: existing.id, duplicate: true });
     }
 
+    // Handle password:
+    // - If passwordHash is provided (pre-hashed by checkout.js via Stripe metadata) → use directly
+    // - If customerPassword is provided (raw) → hash it now
+    // - If neither → null
+    let password_hash = null;
+    if (passwordHash) {
+      password_hash = passwordHash;
+    } else if (customerPassword) {
+      password_hash = await bcrypt.hash(customerPassword, 10);
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .insert({
         customer_name: customerName,
         customer_email: customerEmail,
+        password_hash,
         property_address: propertyAddress,
         county,
         state,
@@ -79,6 +94,7 @@ export default async function handler(req, res) {
 
     console.log('Order saved to database:', data.id);
     return res.status(200).json({ success: true, orderId: data.id });
+
   } catch (err) {
     console.error('Save order error:', err);
     return res.status(500).json({ error: err.message });
