@@ -18,22 +18,25 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  // Look up the most recent order for this email
+  // Look up by customer_email (actual column name)
   const { data: orders, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('email', email.toLowerCase().trim())
+    .eq('customer_email', email.toLowerCase().trim())
     .order('created_at', { ascending: false })
     .limit(1);
 
   if (error || !orders?.length) {
-    // Return generic error to avoid email enumeration
     return res.status(401).json({ error: 'No account found with that email address.' });
   }
 
   const order = orders[0];
 
   // Verify password against stored bcrypt hash
+  if (!order.password_hash) {
+    return res.status(401).json({ error: 'No password set for this account. Please contact support.' });
+  }
+
   const valid = await bcrypt.compare(password, order.password_hash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid email or password.' });
@@ -41,12 +44,12 @@ export default async function handler(req, res) {
 
   // Sign a 7-day JWT
   const token = jwt.sign(
-    { orderId: order.id, email: order.email },
+    { orderId: order.id, email: order.customer_email },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 
-  // Return token + sanitized order (strip password hash)
+  // Strip sensitive fields before returning
   const { password_hash, ...safeOrder } = order;
 
   return res.status(200).json({ token, order: safeOrder });
