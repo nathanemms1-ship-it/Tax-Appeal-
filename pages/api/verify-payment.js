@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       targetReduction: meta.targetReduction || null,
       savings: meta.savings || null,
       amountPaid: session.amount_total,
+      passwordHash: meta.passwordHash || null,
       // District info for Lob mailing
       districtName: meta.districtName || null,
       districtAddress: meta.districtAddress || null,
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
       // Full letter content retrieved from Redis
       letter,
     });
+
   } catch (err) {
     console.error('Verify payment error:', err);
     return res.status(500).json({ error: err.message });
