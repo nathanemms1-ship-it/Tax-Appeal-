@@ -18,7 +18,6 @@ const C = {
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
-// Inline email builder for confirmation
 function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter }) {
   const firstName = customerName ? customerName.split(' ')[0] : 'there';
   return `
@@ -53,16 +52,13 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
               <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$79.00</td></tr></table>
             </td></tr>
           </table>
-
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
             <tr><td>
               <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
               <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong> as your filing agent.</div>
             </td></tr>
           </table>
-
           ${letter ? `
-          <!-- Full letter content -->
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8EDF4;border-radius:8px;overflow:hidden;margin-bottom:8px;">
             <tr><td style="background:#F4F7FC;padding:12px 20px;border-bottom:1px solid #E8EDF4;">
               <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;">YOUR DISPUTE LETTER — FOR YOUR RECORDS</div>
@@ -71,7 +67,6 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
           </table>
           <div style="font-size:11px;color:#8596AF;text-align:center;margin-bottom:8px;">Keep this email as your official record of the dispute letter filed on your behalf.</div>
           ` : ''}
-
         </td></tr>
         <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
           <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
@@ -90,7 +85,7 @@ export default function Success() {
   const { session_id } = router.query;
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
-  const [mailStatus, setMailStatus] = useState(null); // 'sending' | 'sent' | 'error'
+  const [mailStatus, setMailStatus] = useState(null);
   const [trackingNumber, setTrackingNumber] = useState(null);
   const [lobPreviewUrl, setLobPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
@@ -98,7 +93,6 @@ export default function Success() {
   useEffect(() => {
     if (!session_id) return;
 
-    // Step 1: Verify payment
     fetch(`/api/verify-payment?session_id=${session_id}`)
       .then(r => r.json())
       .then(async data => {
@@ -111,7 +105,6 @@ export default function Success() {
         setSession(data);
         setLoading(false);
 
-        // Step 2: Trigger certified mail if we have district info and letter
         if (data.districtName && data.districtAddress && data.letter && data.ownerStreet) {
           setMailStatus('sending');
           try {
@@ -143,7 +136,7 @@ export default function Success() {
               setTrackingNumber(mailData.trackingNumber);
               setLobPreviewUrl(mailData.url);
 
-              // Save order to database
+              // Save order to database — passwordHash passed through from Stripe metadata
               try {
                 await fetch('/api/save-order', {
                   method: 'POST',
@@ -151,6 +144,7 @@ export default function Success() {
                   body: JSON.stringify({
                     customerName: data.customerName,
                     customerEmail: data.email,
+                    passwordHash: data.passwordHash,
                     propertyAddress: data.address,
                     county: data.county,
                     state: data.ownerState,
@@ -199,6 +193,7 @@ export default function Success() {
               } catch (emailErr) {
                 console.error('Email send failed:', emailErr);
               }
+
             } else {
               console.error('Mail send failed:', mailData.error);
               setMailStatus('error');
@@ -208,7 +203,6 @@ export default function Success() {
             setMailStatus('error');
           }
         } else {
-          // Missing some data — flag for manual dispatch
           setMailStatus('manual');
           console.log('Missing data for auto-mail:', {
             hasDistrict: !!data.districtName,
@@ -226,57 +220,22 @@ export default function Success() {
 
   const getMailStatusBadge = () => {
     switch (mailStatus) {
-      case 'sending':
-        return { icon: '⏳', text: 'Dispatching certified letter...', color: C.bodyGray, bg: C.bg };
-      case 'sent':
-        return { icon: '📬', text: 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
-      case 'error':
-        return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
-      case 'manual':
-        return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
-      default:
-        return null;
+      case 'sending': return { icon: '⏳', text: 'Dispatching certified letter...', color: C.bodyGray, bg: C.bg };
+      case 'sent':    return { icon: '📬', text: 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
+      case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
+      case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
+      default: return null;
     }
   };
 
   const badge = getMailStatusBadge();
 
   const steps = [
-    {
-      icon: '✓',
-      title: 'Payment confirmed',
-      desc: 'Your $79 payment has been processed successfully.',
-      done: true,
-    },
-    {
-      icon: '📄',
-      title: 'Dispute letter prepared',
-      desc: 'Your formal property tax protest letter has been finalized.',
-      done: true,
-    },
-    {
-      icon: '📬',
-      title: 'Certified mail dispatch',
-      desc: mailStatus === 'sent'
-        ? `Your letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}`
-        : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.',
-      done: mailStatus === 'sent',
-      active: mailStatus === 'sending',
-    },
-    {
-      icon: '🧾',
-      title: 'Tracking receipt',
-      desc: trackingNumber
-        ? `USPS tracking number: ${trackingNumber}`
-        : 'Your USPS certified mail tracking number will be emailed to you once dispatched.',
-      done: !!trackingNumber,
-    },
-    {
-      icon: '⏳',
-      title: 'Await district response',
-      desc: 'Appraisal districts typically respond within 30–90 days.',
-      done: false,
-    },
+    { icon: '✓', title: 'Payment confirmed', desc: 'Your $79 payment has been processed successfully.', done: true },
+    { icon: '📄', title: 'Dispute letter prepared', desc: 'Your formal property tax protest letter has been finalized.', done: true },
+    { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
+    { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS certified mail tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
+    { icon: '⏳', title: 'Await district response', desc: 'Appraisal districts typically respond within 30–90 days.', done: false },
   ];
 
   return (
@@ -320,18 +279,14 @@ export default function Success() {
           </div>
         ) : (
           <>
-            {/* Success header */}
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
-              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>
-                Your dispute is filed!
-              </h1>
+              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your dispute is filed!</h1>
               <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
                 Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. Your property tax protest letter is being sent via USPS certified mail with return receipt.
               </p>
             </div>
 
-            {/* Mail status badge */}
             {badge && (
               <div style={{ background: badge.bg, border: `1px solid ${badge.color}30`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 20, flexShrink: 0, animation: mailStatus === 'sending' ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>{badge.icon}</span>
@@ -339,9 +294,6 @@ export default function Success() {
               </div>
             )}
 
-
-
-            {/* Order summary */}
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 14, fontWeight: 500 }}>Order Summary</div>
               {[
@@ -363,7 +315,6 @@ export default function Success() {
               </div>
             </div>
 
-            {/* What happens next */}
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 16, fontWeight: 500 }}>What Happens Next</div>
               {steps.map((step, i) => (
@@ -379,7 +330,6 @@ export default function Success() {
               ))}
             </div>
 
-            {/* Email notice */}
             <div style={{ background: C.amber, border: "1px solid #FFD97A", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#7A5C10", marginBottom: 6 }}>📧 Confirmation email sent</div>
               <div style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.6 }}>
@@ -387,7 +337,6 @@ export default function Success() {
               </div>
             </div>
 
-            {/* Important note */}
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
@@ -395,7 +344,16 @@ export default function Success() {
               </div>
             </div>
 
-            {/* Contact */}
+            <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>🔐 Your Appeal Portal</div>
+              <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 12 }}>
+                Track your appeal status, view your letter, and see your decision when it arrives — all in one place.
+              </div>
+              <a href="/portal" style={{ display: "inline-block", background: C.navy, color: C.white, textDecoration: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 500 }}>
+                Go to My Portal →
+              </a>
+            </div>
+
             <div style={{ textAlign: "center", fontSize: 13, color: C.mutedGray, lineHeight: 1.8 }}>
               Questions? Email <a href="mailto:disputes@taxappealusa.com" style={{ color: C.navy }}>disputes@taxappealusa.com</a>
               <br />
