@@ -18,7 +18,6 @@ export default async function handler(req, res) {
 
   const token = authHeader.split(' ')[1];
 
-  // Verify JWT
   let payload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET);
@@ -26,13 +25,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
   }
 
-  // Fetch the order — only return safe fields, never password_hash
+  // Select using actual Supabase column names
   const { data: order, error } = await supabase
     .from('orders')
     .select(
-      'id, name, email, property_address, state, county, ' +
-      'dispute_status, decision_date, decision_detail, savings_amount, ' +
-      'created_at, lob_id, mailed_at'
+      'id, customer_name, customer_email, property_address, state, county, ' +
+      'dispute_status, decision_date, decision_detail, savings_amount, actual_savings, ' +
+      'created_at, lob_letter_id, lob_tracking_number, lob_status, mailed_at, ' +
+      'assessed_value, estimated_savings, outcome'
     )
     .eq('id', payload.orderId)
     .single();
