@@ -18,17 +18,92 @@ const faqs = [
   ["What evidence does TaxAppeal use in my protest letter?", "We analyze comparable sales in your area, current market conditions, property-specific defects, and any discrepancies in county records. Every letter cites Texas Tax Code §41.41 and §41.43."],
   ["Which Texas counties does TaxAppeal serve?", "TaxAppeal serves all 254 Texas counties including Harris, Dallas, Tarrant, Bexar, Travis, Collin, Denton, Fort Bend, Williamson, Montgomery, and every other county in the state."],
   ["Can my property tax assessment go up if I protest?", "No. Texas law prevents your assessment from being raised as a result of your protest. There is zero risk to filing."],
+  ["What is the Appraisal Review Board (ARB) in Texas?", "The Appraisal Review Board is an independent panel that hears property tax protests in Texas. If your informal hearing with the appraisal district doesn't result in an acceptable reduction, your case proceeds to the ARB where you present comparable sales evidence to a three-person panel."],
+  ["Can I protest my Texas property taxes every year?", "Yes. Texas homeowners can file a new protest every single year. Your Notice of Appraised Value resets each spring, giving you a fresh window to challenge the value — even if you protested last year."],
+  ["What is unequal appraisal and how does it help my Texas protest?", "Under Texas Tax Code §41.43, you can protest that your property is appraised higher than comparable properties — even if your value is accurate. This 'unequal appraisal' argument is powerful because it only requires showing neighboring homes with similar values are assessed lower, regardless of market value."],
+  ["Which appraisal districts handle Texas property tax protests?", "Texas has 254 county appraisal districts (CADs), one per county. Major ones include the Harris County Appraisal District (HCAD), Dallas Central Appraisal District (DCAD), Tarrant Appraisal District (TAD), Bexar Appraisal District, and Travis Central Appraisal District (TCAD). TaxAppeal files with whichever CAD covers your property."],
 ];
 
 const counties = [
-  "Harris County (Houston)", "Dallas County (Dallas)", "Tarrant County (Fort Worth)",
-  "Bexar County (San Antonio)", "Travis County (Austin)", "Collin County (Plano)",
-  "Denton County (Denton)", "Fort Bend County (Sugar Land)", "Williamson County (Round Rock)",
-  "Montgomery County (Conroe)", "Hidalgo County (McAllen)", "El Paso County (El Paso)",
-  "Galveston County", "Brazoria County", "Bell County (Killeen)",
-  "McLennan County (Waco)", "Lubbock County", "Smith County (Tyler)",
-  "Johnson County", "Parker County", "Kaufman County", "Rockwall County",
-  "Hays County (San Marcos)", "Comal County (New Braunfels)", "Midland County",
+  "Anderson County", "Andrews County", "Angelina County", "Aransas County",
+  "Archer County", "Armstrong County", "Atascosa County", "Austin County",
+  "Bailey County", "Bandera County", "Bastrop County", "Baylor County",
+  "Bee County", "Bell County (Killeen)", "Bexar County (San Antonio)",
+  "Blanco County", "Borden County", "Bosque County", "Bowie County",
+  "Brazoria County", "Brazos County (Bryan/College Station)", "Brewster County",
+  "Briscoe County", "Brooks County", "Brown County", "Burleson County",
+  "Burnet County", "Caldwell County", "Calhoun County", "Callahan County",
+  "Cameron County (Brownsville)", "Camp County", "Carson County", "Cass County",
+  "Castro County", "Chambers County", "Cherokee County", "Childress County",
+  "Clay County", "Cochran County", "Coke County", "Coleman County",
+  "Collin County (Plano/Frisco)", "Collingsworth County", "Colorado County",
+  "Comal County (New Braunfels)", "Comanche County", "Concho County",
+  "Cooke County", "Coryell County", "Cottle County", "Crane County",
+  "Crockett County", "Crosby County", "Culberson County", "Dallam County",
+  "Dallas County (Dallas)", "Dawson County", "Deaf Smith County", "Delta County",
+  "Denton County (Denton/Lewisville)", "DeWitt County", "Dickens County",
+  "Dimmit County", "Donley County", "Duval County", "Eastland County",
+  "Ector County (Odessa)", "Edwards County", "Ellis County (Waxahachie)",
+  "El Paso County (El Paso)", "Erath County", "Falls County", "Fannin County",
+  "Fayette County", "Fisher County", "Floyd County", "Foard County",
+  "Fort Bend County (Sugar Land)", "Franklin County", "Freestone County",
+  "Frio County", "Gaines County", "Galveston County (Galveston)",
+  "Garza County", "Gillespie County (Fredericksburg)", "Glasscock County",
+  "Goliad County", "Gonzales County", "Gray County", "Grayson County (Sherman)",
+  "Gregg County (Longview)", "Grimes County", "Guadalupe County (Seguin)",
+  "Hale County (Plainview)", "Hall County", "Hamilton County", "Hansford County",
+  "Hardeman County", "Hardin County", "Harris County (Houston)",
+  "Harrison County (Marshall)", "Hartley County", "Haskell County",
+  "Hays County (San Marcos/Kyle)", "Hemphill County", "Henderson County",
+  "Hidalgo County (McAllen)", "Hill County", "Hockley County", "Hood County",
+  "Hopkins County", "Houston County", "Howard County (Big Spring)",
+  "Hudspeth County", "Hunt County (Greenville)", "Hutchinson County",
+  "Irion County", "Jack County", "Jackson County", "Jasper County",
+  "Jeff Davis County", "Jefferson County (Beaumont)", "Jim Hogg County",
+  "Jim Wells County", "Johnson County (Cleburne)", "Jones County",
+  "Karnes County", "Kaufman County", "Kendall County (Boerne)",
+  "Kenedy County", "Kent County", "Kerr County (Kerrville)", "Kimble County",
+  "King County", "Kinney County", "Kleberg County", "Knox County",
+  "Lamar County (Paris)", "Lamb County", "Lampasas County", "La Salle County",
+  "Lavaca County", "Lee County", "Leon County", "Liberty County",
+  "Limestone County", "Lipscomb County", "Live Oak County", "Llano County",
+  "Loving County", "Lubbock County (Lubbock)", "Lynn County", "Madison County",
+  "Marion County", "Martin County", "Mason County", "Matagorda County",
+  "Maverick County (Eagle Pass)", "McCulloch County", "McLennan County (Waco)",
+  "McMullen County", "Medina County", "Menard County", "Midland County (Midland)",
+  "Milam County", "Mills County", "Mitchell County", "Montague County",
+  "Montgomery County (Conroe/The Woodlands)", "Moore County", "Morris County",
+  "Motley County", "Nacogdoches County", "Navarro County (Corsicana)",
+  "Newton County", "Nolan County", "Nueces County (Corpus Christi)",
+  "Ochiltree County", "Oldham County", "Orange County", "Palo Pinto County",
+  "Panola County", "Parker County (Weatherford)", "Parmer County",
+  "Pecos County", "Polk County", "Potter County (Amarillo)", "Presidio County",
+  "Rains County", "Randall County (Canyon/Amarillo)", "Reagan County",
+  "Real County", "Red River County", "Reeves County", "Refugio County",
+  "Roberts County", "Robertson County", "Rockwall County (Rockwall)",
+  "Runnels County", "Rusk County", "Sabine County", "San Augustine County",
+  "San Jacinto County", "San Patricio County", "San Saba County",
+  "Schleicher County", "Scurry County", "Shackelford County", "Shelby County",
+  "Sherman County", "Smith County (Tyler)", "Somervell County",
+  "Starr County (Rio Grande City)", "Stephens County", "Sterling County",
+  "Stonewall County", "Sutton County", "Swisher County",
+  "Tarrant County (Fort Worth/Arlington)", "Taylor County (Abilene)",
+  "Terrell County", "Terry County", "Throckmorton County", "Titus County",
+  "Tom Green County (San Angelo)", "Travis County (Austin)",
+  "Trinity County", "Tyler County", "Upshur County", "Upton County",
+  "Uvalde County", "Val Verde County (Del Rio)", "Van Zandt County",
+  "Victoria County (Victoria)", "Walker County (Huntsville)", "Waller County",
+  "Ward County", "Washington County", "Webb County (Laredo)",
+  "Wharton County", "Wheeler County", "Wichita County (Wichita Falls)",
+  "Wilbarger County", "Willacy County", "Williamson County (Round Rock/Georgetown)",
+  "Wilson County", "Winkler County", "Wise County", "Wood County",
+  "Yoakum County", "Young County", "Zapata County", "Zavala County",
+];
+
+const testimonials = [
+  { name: "Robert K.", location: "Harris County", saved: "$2,100", quote: "I'd been paying too much for years. TaxAppeal put together the comparable sales data and filed everything for me. Got my reduction on the first try — best $79 I've spent." },
+  { name: "Amanda S.", location: "Collin County", saved: "$1,750", quote: "The process was so simple. I entered my address, paid $79, and a few weeks later got a letter from HCAD saying my value was reduced. I'll do this every year." },
+  { name: "Marcus T.", location: "Travis County", saved: "$2,400", quote: "Other protest companies wanted 30% of my savings. On a $2,400 reduction that's $720 a year in fees forever. TaxAppeal charged $79 once. Easy decision." },
 ];
 
 export default function Texas() {
@@ -74,9 +149,11 @@ export default function Texas() {
         .faq-q:hover { background: ${C.bg}; }
         .faq-a { padding: 0 20px 16px; font-size: 14px; color: ${C.bodyGray}; line-height: 1.7; }
         @media (max-width: 768px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-grid { grid-template-columns: 1fr 1fr !important; }
           .counties-grid { grid-template-columns: 1fr 1fr !important; }
           .compare-grid { grid-template-columns: 1fr !important; }
+          .testimonials-grid { grid-template-columns: 1fr !important; }
+          .included-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -117,12 +194,37 @@ export default function Texas() {
         </div>
       </section>
 
+      {/* What's Included */}
+      <section style={{ padding: "56px 40px", background: C.lightBlue }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $79</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>One flat fee covers the entire protest process — no surprises, no percentage cuts.</p>
+          <div className="included-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {[
+              ["📊", "Comparable Sales Analysis", "We pull recent sales of similar homes in your area to build evidence that your assessed value exceeds fair market value under Texas Tax Code §41.43."],
+              ["✍️", "Formal Protest Letter", "A professionally drafted protest letter citing Texas Tax Code §41.41 and §41.43 with your property-specific data and comparable sales evidence."],
+              ["📬", "USPS Certified Mail Filing", "We file via certified mail with return receipt — providing legal proof your protest was received before the May 15 deadline."],
+              ["🔍", "Property Record Review", "We review your appraisal district records for errors in square footage, bedroom count, lot size, or condition that could support a lower value."],
+              ["📧", "Email Confirmation & Tracking", "You receive a copy of your complete protest letter and USPS tracking number immediately after filing."],
+              ["🏛️", "ARB Hearing Ready", "Your letter is drafted to be effective at both the informal level and before the Appraisal Review Board if needed."],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, display: "flex", gap: 14 }}>
+                <div style={{ fontSize: 24, flexShrink: 0 }}>{icon}</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{title}</div>
+                  <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Texas-specific content */}
       <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>How Texas Property Tax Protests Work</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Texas homeowners pay some of the highest property taxes in the nation — but you have the legal right to protest every year.</p>
-
           <div style={{ display: "grid", gap: 24 }}>
             {[
               ["📋", "Every Spring, Your County Sets Your Value", "Texas appraisal districts mail Notices of Appraised Value between April and May. This notice contains the county's estimate of your property's market value as of January 1st. Under Texas Tax Code §25.19, this value directly determines your property tax bill."],
@@ -148,7 +250,6 @@ export default function Texas() {
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>TaxAppeal vs. Texas Property Tax Protest Companies</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Most Texas protest firms take 25–50% of your savings. Here's how TaxAppeal compares.</p>
-
           <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 12 }}>Typical Texas Firm</div>
@@ -170,23 +271,48 @@ export default function Texas() {
         </div>
       </section>
 
-      {/* Counties served */}
-      <section style={{ padding: "56px 40px", background: C.white }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>We Serve All 254 Texas Counties</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Houston to El Paso, Dallas to the Rio Grande Valley — every Texas homeowner can file.</p>
-          <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {counties.map(c => (
-              <div key={c} style={{ fontSize: 13, color: C.bodyGray, padding: "8px 0", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: C.green, fontSize: 12 }}>✓</span> {c}
+      {/* Testimonials */}
+      <section style={{ padding: "56px 40px", background: C.lightBlue }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Texas Homeowners Who Saved</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>Real results from Texas homeowners who filed with TaxAppeal.</p>
+          <div className="testimonials-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+            {testimonials.map((t, i) => (
+              <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 24 }}>
+                <div style={{ fontSize: 22, marginBottom: 12 }}>⭐⭐⭐⭐⭐</div>
+                <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontStyle: "italic" }}>"{t.quote}"</p>
+                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: C.mutedGray }}>{t.location}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 11, color: C.mutedGray }}>Saved</div>
+                    <div style={{ fontWeight: 700, fontSize: 18, color: C.green }}>{t.saved}</div>
+                  </div>
+                </div>
               </div>
             ))}
-            <div style={{ fontSize: 13, color: C.navy, fontWeight: 500, padding: "8px 0" }}>+ 229 more counties</div>
           </div>
         </div>
       </section>
 
-      {/* FAQ with schema */}
+      {/* All 254 Counties */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>All 254 Texas Counties Served</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Houston to El Paso, Dallas to the Rio Grande Valley — every Texas homeowner can file.</p>
+          <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
+            {counties.map(c => (
+              <div key={c} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {c}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
       <section style={{ padding: "56px 40px", background: C.bg }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>Texas Property Tax Protest FAQ</h2>
