@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import bcrypt from 'bcryptjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -9,6 +10,7 @@ export default async function handler(req, res) {
     email,
     firstName,
     lastName,
+    password,
     address,
     county,
     assessedValue,
@@ -30,6 +32,12 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
+    // Hash the password before storing in Stripe metadata
+    let passwordHash = '';
+    if (password) {
+      passwordHash = await bcrypt.hash(password, 10);
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -48,6 +56,7 @@ export default async function handler(req, res) {
       metadata: {
         customerName: `${firstName} ${lastName}`,
         email,
+        passwordHash,
         address,
         county,
         assessedValue: assessedValue ? String(assessedValue) : '',
