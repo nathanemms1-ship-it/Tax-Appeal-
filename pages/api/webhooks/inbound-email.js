@@ -122,7 +122,7 @@ ${emailBody.substring(0, 4000)}`
 
   try {
     await resend.emails.send({
-      from: 'TaxAppeal USA <results@taxappealusa.com>',
+      from: 'TaxAppeal USA <disputes@taxappealusa.com>',
       to: order.customer_email,
       subject: isGoodNews
         ? `🎉 Your appeal was ${parsed.decision === 'approved' ? 'approved' : 'partially approved'}!`
