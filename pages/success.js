@@ -131,41 +131,42 @@ export default function Success() {
             });
 
             const mailData = await mailRes.json();
+
+            // Always save the order regardless of mail status
+            try {
+              await fetch('/api/save-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  customerName: data.customerName,
+                  customerEmail: data.email,
+                  passwordHash: data.passwordHash,
+                  propertyAddress: data.address,
+                  county: data.county,
+                  state: data.ownerState,
+                  assessedValue: data.assessedValue,
+                  targetReduction: data.targetReduction,
+                  estimatedSavings: data.savings,
+                  stripeSessionId: session_id,
+                  amountPaid: 7900,
+                  lobLetterId: mailData.letterId || null,
+                  lobTrackingNumber: mailData.trackingNumber || null,
+                  districtName: data.districtName,
+                  districtAddress: data.districtAddress,
+                  districtCity: data.districtCity,
+                  districtState: data.districtState,
+                  districtZip: data.districtZip,
+                }),
+              });
+              console.log('Order saved to database');
+            } catch (dbErr) {
+              console.error('Database save failed:', dbErr);
+            }
+
             if (mailData.success) {
               setMailStatus('sent');
               setTrackingNumber(mailData.trackingNumber);
               setLobPreviewUrl(mailData.url);
-
-              // Save order to database — passwordHash passed through from Stripe metadata
-              try {
-                await fetch('/api/save-order', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    customerName: data.customerName,
-                    customerEmail: data.email,
-                    passwordHash: data.passwordHash,
-                    propertyAddress: data.address,
-                    county: data.county,
-                    state: data.ownerState,
-                    assessedValue: data.assessedValue,
-                    targetReduction: data.targetReduction,
-                    estimatedSavings: data.savings,
-                    stripeSessionId: session_id,
-                    amountPaid: 7900,
-                    lobLetterId: mailData.letterId,
-                    lobTrackingNumber: mailData.trackingNumber,
-                    districtName: data.districtName,
-                    districtAddress: data.districtAddress,
-                    districtCity: data.districtCity,
-                    districtState: data.districtState,
-                    districtZip: data.districtZip,
-                  }),
-                });
-                console.log('Order saved to database');
-              } catch (dbErr) {
-                console.error('Database save failed:', dbErr);
-              }
 
               // Send confirmation email
               try {
