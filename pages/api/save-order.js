@@ -7,8 +7,8 @@ export default async function handler(req, res) {
   const {
     customerName,
     customerEmail,
-    customerPassword,  // raw password (if coming directly)
-    passwordHash,      // pre-hashed password (if coming via Stripe metadata)
+    customerPassword,
+    passwordHash,
     propertyAddress,
     county,
     state,
@@ -29,12 +29,10 @@ export default async function handler(req, res) {
   } = req.body;
 
   const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return res.status(500).json({ error: 'Database unavailable' });
-  }
+  if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
   try {
-    // Check if order already exists (prevent duplicates on page refresh)
+    // Prevent duplicate orders
     const { data: existing } = await supabase
       .from('orders')
       .select('id')
@@ -42,14 +40,10 @@ export default async function handler(req, res) {
       .single();
 
     if (existing) {
-      console.log('Order already exists for session:', stripeSessionId);
       return res.status(200).json({ success: true, orderId: existing.id, duplicate: true });
     }
 
-    // Handle password:
-    // - If passwordHash is provided (pre-hashed by checkout.js via Stripe metadata) → use directly
-    // - If customerPassword is provided (raw) → hash it now
-    // - If neither → null
+    // Handle password
     let password_hash = null;
     if (passwordHash) {
       password_hash = passwordHash;
@@ -57,6 +51,7 @@ export default async function handler(req, res) {
       password_hash = await bcrypt.hash(customerPassword, 10);
     }
 
+    // Save the order
     const { data, error } = await supabase
       .from('orders')
       .insert({
@@ -92,7 +87,40 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    console.log('Order saved to database:', data.id);
+    console.log('Order saved:', data.id);
+
+    // ── Auto-enroll in NEXT YEAR'S waitlist ──
+    // This ensures returning customers get reminded again next filing season
+    try {
+      const nextYear = new Date().getFullYear() + 1;
+
+      // Check if already enrolled for next year
+      const { data: alreadyEnrolled } = await supabase
+        .from('waitlist')
+        .select('id')
+        .eq('email', customerEmail.toLowerCase())
+        .eq('state', state)
+        .eq('filing_year', nextYear)
+        .limit(1);
+
+      if (!alreadyEnrolled?.length) {
+        await supabase.from('waitlist').insert({
+          email: customerEmail.toLowerCase(),
+          name: customerName,
+          state,
+          county: county || null,
+          property_address: propertyAddress || null,
+          filing_year: nextYear,
+          notified_count: 0,
+          enrolled_from_order: true,
+        });
+        console.log(`Auto-enrolled ${customerEmail} in ${nextYear} waitlist`);
+      }
+    } catch (waitlistErr) {
+      // Non-fatal — order already saved, waitlist enrollment is best-effort
+      console.error('Waitlist enrollment failed:', waitlistErr.message);
+    }
+
     return res.status(200).json({ success: true, orderId: data.id });
 
   } catch (err) {
