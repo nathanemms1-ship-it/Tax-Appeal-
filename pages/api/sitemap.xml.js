@@ -1,25 +1,51 @@
 export default function handler(req, res) {
   const baseUrl = 'https://www.taxappealusa.com';
+  const today = new Date().toISOString().split('T')[0];
+
   const pages = [
-    { url: '/', priority: '1.0', changefreq: 'weekly' },
-    { url: '/apply', priority: '0.9', changefreq: 'monthly' },
-    { url: '/texas', priority: '0.9', changefreq: 'weekly' },
-    { url: '/georgia', priority: '0.9', changefreq: 'weekly' },
-    { url: '/florida', priority: '0.9', changefreq: 'weekly' },
-    { url: '/terms', priority: '0.3', changefreq: 'yearly' },
-    { url: '/privacy', priority: '0.3', changefreq: 'yearly' },
+    // Core pages — highest priority
+    { path: '/',           changefreq: 'weekly',  priority: '1.0' },
+    { path: '/apply',      changefreq: 'monthly', priority: '0.9' },
+    { path: '/terms',      changefreq: 'yearly',  priority: '0.3' },
+    { path: '/privacy',    changefreq: 'yearly',  priority: '0.3' },
+
+    // State landing pages
+    { path: '/texas',      changefreq: 'weekly',  priority: '0.9' },
+    { path: '/georgia',    changefreq: 'weekly',  priority: '0.9' },
+    { path: '/florida',    changefreq: 'weekly',  priority: '0.9' },
+
+    // Texas city pages
+    { path: '/houston',    changefreq: 'weekly',  priority: '0.8' },
+    { path: '/dallas',     changefreq: 'weekly',  priority: '0.8' },
+    { path: '/fort-worth', changefreq: 'weekly',  priority: '0.8' },
+    { path: '/austin',     changefreq: 'weekly',  priority: '0.8' },
+
+    // Georgia city pages
+    { path: '/atlanta',    changefreq: 'weekly',  priority: '0.8' },
+
+    // Florida city pages
+    { path: '/miami',      changefreq: 'weekly',  priority: '0.8' },
+    { path: '/tampa',      changefreq: 'weekly',  priority: '0.8' },
   ];
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  const urls = pages
+    .map(
+      ({ path, changefreq, priority }) => `
+  <url>
+    <loc>${baseUrl}${path}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`
+    )
+    .join('');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pages.map(p => `  <url>
-    <loc>${baseUrl}${p.url}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${p.changefreq}</changefreq>
-    <priority>${p.priority}</priority>
-  </url>`).join('\n')}
+${urls}
 </urlset>`;
 
   res.setHeader('Content-Type', 'application/xml');
-  res.status(200).send(sitemap);
+  res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=43200');
+  res.status(200).send(xml);
 }
