@@ -228,8 +228,13 @@ export default async function handler(req, res) {
       const { id, email, name, state, county, property_address, last_notified_at } = entry;
 
       // Check if this state/county window is currently open
-      const windowStatus = getWindowStatus(state, county, currentYear);
+      const stateUpper = (state || '').toUpperCase().trim();
+      const windowStatus = getWindowStatus(stateUpper, county, currentYear);
+
+      console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysLeft}`);
+
       if (!windowStatus || !windowStatus.isOpen) {
+        console.log(`[notify-waitlist] Skipping ${email} — window not open`);
         totalSkipped++;
         continue;
       }
