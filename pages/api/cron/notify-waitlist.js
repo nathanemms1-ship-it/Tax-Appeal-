@@ -51,15 +51,16 @@ function getWindowStatus(state, county, year) {
   let closeDay = fw.closeDay;
 
   if (state === 'GA' && county && fw.countyWindows) {
-    const clean = county.replace(/ County$/i, '').trim();
-    const cw = fw.countyWindows[clean];
+    const clean = county.replace(/ County$/i, '').trim().toLowerCase();
+    const cw = Object.entries(fw.countyWindows).find(([k]) => k.toLowerCase() === clean)?.[1];
     if (cw) {
       openMonth = cw.openMonth;
       openDay = cw.openDay;
       closeMonth = cw.closeMonth;
       closeDay = cw.closeDay;
     } else {
-      closeMonth = 6;
+      // Unknown GA county — use full statewide window (July 15)
+      closeMonth = 7;
       closeDay = 15;
     }
   }
