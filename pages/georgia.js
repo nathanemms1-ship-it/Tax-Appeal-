@@ -79,6 +79,16 @@ const testimonials = [
   { name: "Linda R.", location: "Cobb County", saved: "$1,560", quote: "Other companies wanted 30% of my savings. TaxAppeal charged $79 flat and I kept every dollar. I'll be filing again next year for sure." },
 ];
 
+const cities = [
+  {
+    name: "Atlanta",
+    slug: "/atlanta",
+    county: "Fulton County Board of Assessors",
+    stats: ["$1,960 avg savings", "Fulton County BOA", "Fast-rising assessments"],
+    desc: "Atlanta and Fulton County property values have surged dramatically. The county's mass-appraisal process can't keep pace with neighborhood-level changes — making appeals especially effective.",
+  },
+];
+
 export default function Georgia() {
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
@@ -119,6 +129,8 @@ export default function Georgia() {
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
         .btn-primary { background: ${C.navy}; color: #fff; border: none; border-radius: 8px; padding: 16px 36px; font-size: 16px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.2s; }
         .btn-primary:hover { background: ${C.gold}; color: ${C.darkNavy}; }
+        .city-card { background: ${C.white}; border: 1.5px solid ${C.border}; border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: block; transition: box-shadow 0.2s, border-color 0.2s; }
+        .city-card:hover { box-shadow: 0 6px 24px rgba(27,58,107,0.10); border-color: ${C.navy}; }
         @media (max-width: 768px) {
           .hero-stats { grid-template-columns: 1fr 1fr !important; }
           .counties-grid { grid-template-columns: 1fr 1fr !important; }
@@ -284,8 +296,43 @@ export default function Georgia() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ── CITY PAGES SECTION ── */}
       <section style={{ padding: "56px 40px", background: C.white }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            Georgia City-Specific Appeal Guides
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            Different Georgia metros have different appraisal boards, market trends, and local nuances. Select your city for a tailored guide.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20, maxWidth: 540, margin: "0 auto" }}>
+            {cities.map(city => (
+              <a key={city.slug} href={city.slug} className="city-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.5px", color: C.gold, fontWeight: 600, marginBottom: 4 }}>
+                      {city.county}
+                    </div>
+                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy }}>
+                      {city.name} Property Tax Appeal
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: 20, flexShrink: 0, marginLeft: 8 }}>→</span>
+                </div>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 14 }}>{city.desc}</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {city.stats.map(s => (
+                    <span key={s} style={{ fontSize: 11, background: C.lightBlue, color: C.navy, borderRadius: 6, padding: "4px 10px", fontWeight: 500 }}>{s}</span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>Georgia Property Tax Appeal FAQ</h2>
           {faqs.map(([q, a], i) => (
@@ -309,14 +356,20 @@ export default function Georgia() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
-        <div style={{ display: "flex", gap: 20 }}>
-          <a href="/texas" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Texas</a>
-          <a href="/georgia" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Georgia</a>
-          <a href="/florida" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Florida</a>
-          <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
-          <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
+      <footer style={{ background: C.darkNavy, padding: "24px 40px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+          <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <a href="/texas" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Texas</a>
+            <a href="/georgia" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Georgia</a>
+            <a href="/florida" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Florida</a>
+            <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
+            <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
+          </div>
+        </div>
+        <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <span style={{ color: "#3A4F6A", fontSize: 11 }}>Georgia cities:</span>
+          <a href="/atlanta" style={{ color: "#3A4F6A", fontSize: 11, textDecoration: "none" }}>Atlanta</a>
         </div>
       </footer>
     </>
