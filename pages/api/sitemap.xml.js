@@ -23,12 +23,20 @@ export default function handler(req, res) {
     // Florida city pages
     { path: '/miami',      changefreq: 'weekly',  priority: '0.8' },
     { path: '/tampa',      changefreq: 'weekly',  priority: '0.8' },
-    // Blog posts
+    // Blog posts - Batch 1
     { path: '/blog/harris-county-property-tax-protest-guide-2026',  changefreq: 'monthly', priority: '0.7' },
     { path: '/blog/tarrant-county-property-tax-protest-guide-2026', changefreq: 'monthly', priority: '0.7' },
     { path: '/blog/dallas-county-property-tax-protest-guide-2026',  changefreq: 'monthly', priority: '0.7' },
     { path: '/blog/texas-property-tax-protest-deadline-2026',       changefreq: 'monthly', priority: '0.7' },
     { path: '/blog/flat-fee-vs-contingency-property-tax-protest',   changefreq: 'monthly', priority: '0.7' },
+    // Blog posts - Batch 2
+    { path: '/blog/travis-county-property-tax-protest-guide-2026',  changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/fulton-county-property-tax-appeal-guide-2026',   changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/miami-dade-property-tax-appeal-guide-2026',      changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/hillsborough-county-property-tax-appeal-2026',   changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/how-to-read-texas-notice-of-appraised-value',    changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/georgia-property-tax-appeal-deadline-2026',      changefreq: 'monthly', priority: '0.7' },
+    { path: '/blog/florida-trim-notice-deadline-2026',              changefreq: 'monthly', priority: '0.7' },
   ];
 
   const urls = pages.map(({ path, changefreq, priority }) => `
