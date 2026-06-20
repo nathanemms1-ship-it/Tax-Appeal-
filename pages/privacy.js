@@ -1,180 +1,110 @@
+// pages/privacy.js
 import Head from 'next/head';
-
-const C = {
-  navy:     "#1B3A6B",
-  darkNavy: "#0F1F3D",
-  bg:       "#F4F7FC",
-  bodyGray: "#5A6B82",
-  mutedGray:"#8596AF",
-  border:   "#E8EDF4",
-  white:    "#FFFFFF",
-  gold:     "#FFC940",
-};
-
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+import Link from 'next/link';
 
 export default function Privacy() {
   return (
     <>
       <Head>
-        <title>Privacy Policy — TaxAppeal</title>
-        <meta name="description" content="TaxAppeal Privacy Policy" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Privacy Policy | TaxAppeal USA</title>
+        <meta name="description" content="Privacy Policy for TaxAppeal USA property tax protest service." />
+        <meta name="robots" content="noindex" />
       </Head>
-      <style>{`
-        ${FONT_IMPORT}
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
-        h1 { font-family: 'DM Serif Display', serif; }
-        h2 { font-family: 'DM Serif Display', serif; font-size: 22px; color: ${C.darkNavy}; margin: 36px 0 12px; }
-        h3 { font-size: 16px; font-weight: 500; color: ${C.darkNavy}; margin: 20px 0 8px; }
-        p { font-size: 14px; color: ${C.bodyGray}; line-height: 1.8; margin-bottom: 14px; }
-        ul { margin: 0 0 14px 20px; }
-        ul li { font-size: 14px; color: ${C.bodyGray}; line-height: 1.8; margin-bottom: 6px; }
-        a { color: ${C.navy}; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th { background: #F4F7FC; padding: 10px 14px; font-size: 13px; font-weight: 500; color: ${C.darkNavy}; text-align: left; border: 1px solid ${C.border}; }
-        td { padding: 10px 14px; font-size: 13px; color: ${C.bodyGray}; border: 1px solid ${C.border}; vertical-align: top; line-height: 1.6; }
-      `}</style>
+      <div style={{ background: '#f4f6f9', minHeight: '100vh', padding: '40px 20px', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', background: '#fff', borderRadius: 8, padding: '48px 52px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
 
-      {/* Nav */}
-      <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <div style={{ width: 34, height: 34, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
-          <div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal</div>
-            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>TaxAppeal USA</div>
+            </Link>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1B2A4A', margin: '16px 0 8px' }}>Privacy Policy</h1>
+            <p style={{ fontSize: 13, color: '#999' }}>Last updated: June 2025</p>
           </div>
-        </a>
-        <a href="/apply" style={{ background: C.navy, color: C.white, padding: "9px 18px", borderRadius: 7, fontSize: 13, fontWeight: 500 }}>Start my dispute →</a>
-      </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "56px 24px 80px" }}>
-        <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 38, color: C.darkNavy, marginBottom: 12 }}>Privacy Policy</h1>
-          <p style={{ fontSize: 13, color: C.mutedGray }}>Last updated: June 15, 2026</p>
-        </div>
+          <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
 
-        <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "20px 24px", marginBottom: 36 }}>
-          <p style={{ margin: 0, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            TaxAppeal USA ("TaxAppeal," "we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service at taxappealusa.com.
-          </p>
-        </div>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>1. Information We Collect</h2>
+            <p>We collect the following information when you use our service:</p>
+            <ul>
+              <li><strong>Identity:</strong> First name, last name, email address</li>
+              <li><strong>Property:</strong> Property address, county, state, assessed value, property characteristics</li>
+              <li><strong>Payment:</strong> Payment is processed by Stripe — we never see or store your full card number</li>
+              <li><strong>Dispute details:</strong> Issues selected, protest letter content</li>
+              <li><strong>Usage:</strong> IP address, browser type, pages visited (via server logs)</li>
+            </ul>
 
-        <h2>1. Information We Collect</h2>
-        <h3>Information you provide directly:</h3>
-        <ul>
-          <li>Name and email address (account creation)</li>
-          <li>Property address (for dispute filing)</li>
-          <li>Payment information (processed securely by Stripe — we never store card numbers)</li>
-          <li>Property details you manually enter (assessed value, square footage, etc.)</li>
-          <li>Property issues and notes you select during the dispute process</li>
-        </ul>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. How We Use Your Information</h2>
+            <ul>
+              <li>To prepare and mail your property tax protest letter</li>
+              <li>To send you order confirmation and tracking information</li>
+              <li>To send filing deadline reminders and outcome follow-up emails</li>
+              <li>To maintain records of filings for legal and business purposes</li>
+              <li>To improve our service and detect fraud</li>
+            </ul>
 
-        <h3>Information we collect automatically:</h3>
-        <ul>
-          <li>Property data from public records via BatchData and county assessor databases</li>
-          <li>Comparable sales data from public real estate records</li>
-          <li>County and appraisal district information from public government sources</li>
-          <li>Basic usage data (pages visited, time on site) via analytics</li>
-        </ul>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. Third Parties We Share Data With</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginTop: 8 }}>
+              <thead>
+                <tr style={{ background: '#f0f2f7' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Service</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Purpose</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Data Shared</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Stripe', 'Payment processing', 'Name, email, payment amount'],
+                  ['Lob.com', 'Certified mail dispatch', 'Name, property address, letter content'],
+                  ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
+                  ['BatchData', 'Property data lookup', 'Property address'],
+                  ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
+                  ['Google', 'Address autocomplete', 'Address input (partial)'],
+                  ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],
+                  ['Supabase', 'Order database storage', 'Full order record'],
+                  ['Vercel', 'Application hosting', 'Server logs, IP addresses'],
+                ].map(([svc, purpose, data], i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', fontWeight: 600, color: '#1B2A4A' }}>{svc}</td>
+                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{purpose}</td>
+                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{data}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ marginTop: 12 }}>We do not sell your personal information to advertisers or third parties for marketing purposes.</p>
 
-        <h2>2. How We Use Your Information</h2>
-        <table>
-          <thead>
-            <tr><th>Purpose</th><th>Data Used</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Generate your dispute letter</td><td>Name, property address, assessed value, property details, issues selected</td></tr>
-            <tr><td>File your dispute via certified mail</td><td>Name, property address, appraisal district address</td></tr>
-            <tr><td>Process your payment</td><td>Email address (passed to Stripe)</td></tr>
-            <tr><td>Send confirmation emails</td><td>Email address, order details, dispute letter</td></tr>
-            <tr><td>Improve our service</td><td>Aggregated, anonymized usage data</td></tr>
-            <tr><td>Customer support</td><td>Email address, order details</td></tr>
-          </tbody>
-        </table>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Data Retention</h2>
+            <ul>
+              <li><strong>Order records:</strong> Retained for 7 years for legal and tax purposes</li>
+              <li><strong>Letter content:</strong> Temporarily cached for 2 hours, then purged from Redis</li>
+              <li><strong>Email logs:</strong> Retained by Resend per their data policy (90 days)</li>
+              <li><strong>Waitlist entries:</strong> Retained until you unsubscribe or filing season opens</li>
+            </ul>
 
-        <h2>3. Information We Share</h2>
-        <p>We do not sell, trade, or rent your personal information to third parties. We share your information only as necessary to provide our service:</p>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Your Rights</h2>
+            <p>You may request access to, correction of, or deletion of your personal data by contacting us at <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a>. Note that we may be required to retain certain records for legal compliance.</p>
 
-        <table>
-          <thead>
-            <tr><th>Third Party</th><th>Purpose</th><th>Data Shared</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><strong>Stripe</strong></td><td>Payment processing</td><td>Email address, payment amount</td></tr>
-            <tr><td><strong>Lob.com</strong></td><td>Certified mail dispatch</td><td>Your name and address, district address, letter content</td></tr>
-            <tr><td><strong>Resend</strong></td><td>Email delivery</td><td>Email address, letter content</td></tr>
-            <tr><td><strong>BatchData</strong></td><td>Property data lookup</td><td>Property address</td></tr>
-            <tr><td><strong>Anthropic</strong></td><td>Letter generation (Claude AI)</td><td>Property details, issues selected, prompt data</td></tr>
-            <tr><td><strong>Google</strong></td><td>Address autocomplete</td><td>Address search queries</td></tr>
-            <tr><td><strong>Upstash</strong></td><td>Data caching</td><td>County and district lookup results</td></tr>
-            <tr><td><strong>County Appraisal Districts</strong></td><td>Filing your protest</td><td>Your name, address, dispute letter</td></tr>
-          </tbody>
-        </table>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>6. Security</h2>
+            <p>We use industry-standard encryption (TLS/HTTPS) for all data in transit. Payment data is handled entirely by Stripe and never touches our servers. We use row-level security on our database to protect your records.</p>
 
-        <p>We may also disclose your information if required by law, court order, or government authority, or to protect the rights, property, or safety of TaxAppeal, our users, or others.</p>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. Cookies</h2>
+            <p>We use minimal session cookies required for the checkout flow. We do not use advertising or tracking cookies.</p>
 
-        <h2>4. Data Retention</h2>
-        <p>We retain your personal information for as long as necessary to provide our service and comply with legal obligations:</p>
-        <ul>
-          <li><strong>Account data:</strong> Retained while your account is active and for 3 years after</li>
-          <li><strong>Payment records:</strong> Retained for 7 years for tax and accounting purposes</li>
-          <li><strong>Dispute letters:</strong> Retained for 3 years as proof of filing</li>
-          <li><strong>Cached lookup data:</strong> Automatically expires after 180 days</li>
-          <li><strong>Temporary letter storage:</strong> Automatically expires after 2 hours (Redis)</li>
-        </ul>
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>8. Contact</h2>
+            <p>
+              For privacy requests or questions, contact us at:<br />
+              <strong>Customer Service:</strong> <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a><br />
+              <strong>Dispute Filings only:</strong> <a href="mailto:disputes@taxappealusa.com" style={{ color: '#C9A84C' }}>disputes@taxappealusa.com</a>
+            </p>
 
-        <h2>5. Data Security</h2>
-        <p>We implement industry-standard security measures to protect your information:</p>
-        <ul>
-          <li>All data transmitted via HTTPS/TLS encryption</li>
-          <li>Payment processing handled entirely by Stripe — we never store card numbers</li>
-          <li>API keys and credentials stored as encrypted environment variables</li>
-          <li>Access to customer data restricted to authorized personnel only</li>
-        </ul>
-        <p>No method of transmission over the internet is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.</p>
+          </div>
 
-        <h2>6. Your Rights</h2>
-        <p>Depending on your location, you may have the following rights regarding your personal data:</p>
-        <ul>
-          <li><strong>Access:</strong> Request a copy of the personal data we hold about you</li>
-          <li><strong>Correction:</strong> Request correction of inaccurate or incomplete data</li>
-          <li><strong>Deletion:</strong> Request deletion of your personal data (subject to legal retention requirements)</li>
-          <li><strong>Portability:</strong> Request your data in a portable format</li>
-          <li><strong>Opt-out:</strong> Opt out of any marketing communications</li>
-        </ul>
-        <p>To exercise any of these rights, contact us at <a href="mailto:disputes@taxappealusa.com">disputes@taxappealusa.com</a>.</p>
-
-        <h2>7. Cookies</h2>
-        <p>TaxAppeal uses minimal cookies necessary for the service to function, including session management and security tokens. We do not use advertising or tracking cookies. We do not display ads and do not share data with advertisers.</p>
-
-        <h2>8. Children's Privacy</h2>
-        <p>TaxAppeal is not directed at children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us immediately.</p>
-
-        <h2>9. Third-Party Links</h2>
-        <p>Our service may contain links to third-party websites (such as your county appraisal district). We are not responsible for the privacy practices of those sites and encourage you to review their privacy policies.</p>
-
-        <h2>10. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify you of material changes by updating the "Last updated" date at the top of this page. Your continued use of our service after changes constitutes acceptance of the updated policy.</p>
-
-        <h2>11. Contact Us</h2>
-        <p>If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
-        <p>
-          <strong>TaxAppeal USA</strong><br />
-          Email: <a href="mailto:disputes@taxappealusa.com">disputes@taxappealusa.com</a><br />
-          Website: <a href="https://taxappealusa.com">taxappealusa.com</a>
-        </p>
-      </div>
-
-      {/* Footer */}
-      <div style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <p style={{ color: C.mutedGray, fontSize: 12, margin: 0 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
-        <div style={{ display: "flex", gap: 20 }}>
-          <a href="/terms" style={{ color: C.mutedGray, fontSize: 12 }}>Terms of Service</a>
-          <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12 }}>Privacy Policy</a>
+          <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid #eee', textAlign: 'center' }}>
+            <Link href="/" style={{ fontSize: 14, color: '#1B2A4A', textDecoration: 'none', fontWeight: 600 }}>← Back to TaxAppeal USA</Link>
+            <span style={{ margin: '0 16px', color: '#ccc' }}>|</span>
+            <Link href="/terms" style={{ fontSize: 14, color: '#1B2A4A', textDecoration: 'none' }}>Terms of Service</Link>
+          </div>
         </div>
       </div>
     </>
