@@ -1,5 +1,7 @@
 // pages/portal/reset-password.js
-import { useState, useEffect } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
