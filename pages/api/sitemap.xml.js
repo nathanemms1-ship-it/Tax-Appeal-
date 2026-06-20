@@ -22,8 +22,7 @@ export default function handler(req, res) {
     { path: '/tampa',      changefreq: 'weekly',  priority: '0.8' },
   ];
 
-  const blogSlugs = getAllSlugs();
-  const blogPages = blogSlugs.map(slug => ({
+  const blogPages = getAllSlugs().map(slug => ({
     path: `/blog/${slug}`,
     changefreq: 'monthly',
     priority: '0.7',
