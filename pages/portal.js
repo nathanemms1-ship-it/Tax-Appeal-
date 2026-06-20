@@ -242,8 +242,11 @@ export default function Portal() {
                 </form>
               </div>
               <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
-                Use the email & password you created when you filed.{' '}
-                <a href={`mailto:${C_EMAIL}`} style={{ color: '#22c55e', textDecoration: 'none' }}>Need help?</a>
+                Use the email & password you created when you filed.
+              </p>
+              <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 8 }}>
+                Need help? Contact Customer Service:{' '}
+                <a href={`mailto:${C_EMAIL}`} style={{ color: '#22c55e', textDecoration: 'none' }}>{C_EMAIL}</a>
               </p>
             </>
           )}
