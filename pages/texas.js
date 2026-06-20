@@ -106,6 +106,37 @@ const testimonials = [
   { name: "Marcus T.", location: "Travis County", saved: "$2,400", quote: "Other protest companies wanted 30% of my savings. On a $2,400 reduction that's $720 a year in fees forever. TaxAppeal charged $79 once. Easy decision." },
 ];
 
+const cities = [
+  {
+    name: "Houston",
+    slug: "/houston",
+    county: "Harris County (HCAD)",
+    stats: ["$2,300 avg savings", "Harris County HCAD", "~880K protests/yr"],
+    desc: "Houston homeowners face some of the highest effective property tax rates in the nation. We file directly with the Harris County Appraisal District.",
+  },
+  {
+    name: "Dallas",
+    slug: "/dallas",
+    county: "Dallas County (DCAD)",
+    stats: ["$1,950 avg savings", "Dallas County DCAD", "~519K eligible homes"],
+    desc: "Dallas property values have surged in recent years, making the appraisal district's mass-appraisal estimates increasingly inaccurate — and increasingly protestable.",
+  },
+  {
+    name: "Fort Worth",
+    slug: "/fort-worth",
+    county: "Tarrant County (TAD)",
+    stats: ["$1,800 avg savings", "Tarrant Appraisal District", "Fast-growing market"],
+    desc: "Fort Worth and the greater Tarrant County area have seen rapid appreciation. We file your protest with the Tarrant Appraisal District before the May 15 deadline.",
+  },
+  {
+    name: "Austin",
+    slug: "/austin",
+    county: "Travis County (TCAD)",
+    stats: ["$2,600 avg savings", "Travis County TCAD", "Among highest TX rates"],
+    desc: "Austin homeowners pay some of the highest property taxes in Texas. Travis County assessments have struggled to keep pace with volatile market swings — in both directions.",
+  },
+];
+
 export default function Texas() {
   const router = useRouter();
   const go = () => router.push('/apply');
@@ -148,12 +179,18 @@ export default function Texas() {
         .faq-q { padding: 16px 20px; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .faq-q:hover { background: ${C.bg}; }
         .faq-a { padding: 0 20px 16px; font-size: 14px; color: ${C.bodyGray}; line-height: 1.7; }
+        .city-card { background: ${C.white}; border: 1.5px solid ${C.border}; border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: block; transition: box-shadow 0.2s, border-color 0.2s; }
+        .city-card:hover { box-shadow: 0 6px 24px rgba(27,58,107,0.10); border-color: ${C.navy}; }
         @media (max-width: 768px) {
           .hero-grid { grid-template-columns: 1fr 1fr !important; }
           .counties-grid { grid-template-columns: 1fr 1fr !important; }
           .compare-grid { grid-template-columns: 1fr !important; }
           .testimonials-grid { grid-template-columns: 1fr !important; }
           .included-grid { grid-template-columns: 1fr !important; }
+          .cities-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .cities-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -312,8 +349,43 @@ export default function Texas() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ── CITY PAGES SECTION ── */}
       <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            Texas City-Specific Protest Guides
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            Each major Texas metro has its own appraisal district, deadlines, and local market data. Select your city for a tailored guide.
+          </p>
+          <div className="cities-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            {cities.map(city => (
+              <a key={city.slug} href={city.slug} className="city-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.5px", color: C.gold, fontWeight: 600, marginBottom: 4 }}>
+                      {city.county}
+                    </div>
+                    <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy }}>
+                      {city.name} Property Tax Protest
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: 20, flexShrink: 0, marginLeft: 8 }}>→</span>
+                </div>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 14 }}>{city.desc}</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {city.stats.map(s => (
+                    <span key={s} style={{ fontSize: 11, background: C.lightBlue, color: C.navy, borderRadius: 6, padding: "4px 10px", fontWeight: 500 }}>{s}</span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>Texas Property Tax Protest FAQ</h2>
           {faqs.map(([q, a], i) => (
@@ -335,14 +407,22 @@ export default function Texas() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
-        <div style={{ display: "flex", gap: 20 }}>
-          <a href="/texas" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Texas</a>
-          <a href="/georgia" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Georgia</a>
-          <a href="/florida" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Florida</a>
-          <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
-          <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
+      <footer style={{ background: C.darkNavy, padding: "24px 40px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+          <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <a href="/texas" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Texas</a>
+            <a href="/georgia" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Georgia</a>
+            <a href="/florida" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Florida</a>
+            <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
+            <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
+          </div>
+        </div>
+        <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <span style={{ color: "#3A4F6A", fontSize: 11 }}>Texas cities:</span>
+          {[["Houston", "/houston"], ["Dallas", "/dallas"], ["Fort Worth", "/fort-worth"], ["Austin", "/austin"]].map(([name, href]) => (
+            <a key={href} href={href} style={{ color: "#3A4F6A", fontSize: 11, textDecoration: "none" }}>{name}</a>
+          ))}
         </div>
       </footer>
     </>
