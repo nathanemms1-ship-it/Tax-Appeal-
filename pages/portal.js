@@ -205,7 +205,7 @@ export default function Portal() {
               </div>
               <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
                 Use the email & password you created when you filed.{' '}
-                <a href="mailto:support@taxappealusa.com" style={{ color: '#22c55e', textDecoration: 'none' }}>Need help?</a>
+                <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#22c55e', textDecoration: 'none' }}>Need help?</a>
               </p>
             </>
           )}
