@@ -4,6 +4,8 @@ import { confirmationEmailTemplate } from './email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const TRUSTPILOT_BCC = 'taxappealusa.com+73f5a040d9@invite.trustpilot.com';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -43,13 +45,20 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await resend.emails.send({
+    const emailPayload = {
       from: 'TaxAppeal USA <disputes@taxappealusa.com>',
       reply_to: 'customerservice@taxappealusa.com',
       to: [to],
       subject,
       html,
-    });
+    };
+
+    // BCC Trustpilot on confirmation emails only (not delivery notifications)
+    if (type === 'confirmation') {
+      emailPayload.bcc = [TRUSTPILOT_BCC];
+    }
+
+    const response = await resend.emails.send(emailPayload);
 
     console.log('Resend response:', JSON.stringify(response));
     return res.status(200).json({ success: true, id: response?.data?.id || response?.id });
