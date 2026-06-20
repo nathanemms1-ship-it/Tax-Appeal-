@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 
+const C_EMAIL = 'customerservice@taxappealusa.com';
+
 const STATUS_CONFIG = {
   pending: {
     label: 'Under Review',
@@ -41,6 +43,12 @@ export default function Portal() {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Password recovery state
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoverySent, setRecoverySent] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('portal_token');
@@ -94,6 +102,24 @@ export default function Portal() {
     setLoading(false);
   };
 
+  const handleRecovery = async (e) => {
+    e.preventDefault();
+    setRecoveryError('');
+    setRecoveryLoading(true);
+    try {
+      const res = await fetch('/api/portal/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recoveryEmail.trim().toLowerCase() })
+      });
+      // Always show success to avoid email enumeration
+      setRecoverySent(true);
+    } catch {
+      setRecoveryError('Something went wrong. Please try again.');
+    }
+    setRecoveryLoading(false);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('portal_token');
     setOrder(null);
@@ -102,7 +128,6 @@ export default function Portal() {
     setView('login');
   };
 
-  // Use actual column names: customer_name, customer_email
   const status = order ? (STATUS_CONFIG[order.dispute_status] || STATUS_CONFIG.filed) : null;
   const displaySavings = order?.savings_amount || order?.actual_savings || order?.estimated_savings || 0;
 
@@ -149,7 +174,8 @@ export default function Portal() {
     label: { color: '#64748b', fontSize: 13, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' },
     input: { width: '100%', padding: '13px 16px', background: '#0b1120', border: '1px solid #1e293b', borderRadius: 10, color: '#e2e8f0', fontSize: 16, outline: 'none', boxSizing: 'border-box' },
     btn: { width: '100%', padding: '14px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
-    outlineBtn: { background: 'none', border: '1px solid #1e293b', color: '#64748b', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }
+    outlineBtn: { background: 'none', border: '1px solid #1e293b', color: '#64748b', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
+    linkBtn: { background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'none' }
   };
 
   if (view === 'loading') {
@@ -171,6 +197,9 @@ export default function Portal() {
           <a href="/" style={styles.logo}><span style={{ color: '#22c55e' }}>Tax</span>Appeal USA</a>
           {view === 'dashboard' && (
             <button onClick={handleLogout} style={styles.outlineBtn}>Sign Out</button>
+          )}
+          {view === 'forgot' && (
+            <button onClick={() => { setView('login'); setRecoverySent(false); setRecoveryEmail(''); setRecoveryError(''); }} style={styles.outlineBtn}>← Back to Login</button>
           )}
         </header>
 
@@ -194,9 +223,18 @@ export default function Portal() {
                     <label style={{ ...styles.label, display: 'block', marginBottom: 8 }}>Email Address</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" required style={styles.input} />
                   </div>
-                  <div style={{ marginBottom: 28 }}>
+                  <div style={{ marginBottom: 8 }}>
                     <label style={{ ...styles.label, display: 'block', marginBottom: 8 }}>Password</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={styles.input} />
+                  </div>
+                  <div style={{ textAlign: 'right', marginBottom: 24 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setView('forgot'); setRecoveryEmail(email); setRecoveryError(''); setRecoverySent(false); }}
+                      style={styles.linkBtn}
+                    >
+                      Forgot password?
+                    </button>
                   </div>
                   <button type="submit" disabled={loading} style={{ ...styles.btn, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
                     {loading ? 'Signing In…' : 'View My Appeal Status →'}
@@ -205,8 +243,63 @@ export default function Portal() {
               </div>
               <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
                 Use the email & password you created when you filed.{' '}
-                <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#22c55e', textDecoration: 'none' }}>Need help?</a>
+                <a href={`mailto:${C_EMAIL}`} style={{ color: '#22c55e', textDecoration: 'none' }}>Need help?</a>
               </p>
+            </>
+          )}
+
+          {/* FORGOT PASSWORD */}
+          {view === 'forgot' && (
+            <>
+              <div style={{ marginBottom: 36 }}>
+                <h1 style={{ color: '#fff', fontSize: 30, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.5px' }}>Reset Your Password</h1>
+                <p style={{ color: '#475569', margin: 0, fontSize: 16 }}>Enter your email and we'll send a reset link.</p>
+              </div>
+              <div style={styles.card}>
+                {recoverySent ? (
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
+                    <div style={{ color: '#22c55e', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Check your inbox</div>
+                    <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
+                      If an account exists for <strong style={{ color: '#94a3b8' }}>{recoveryEmail}</strong>, you'll receive a password reset link within a few minutes. Check your spam folder if you don't see it.
+                    </p>
+                    <button
+                      onClick={() => { setView('login'); setRecoverySent(false); setRecoveryEmail(''); }}
+                      style={{ ...styles.btn, width: 'auto', padding: '12px 32px' }}
+                    >
+                      Back to Login
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {recoveryError && (
+                      <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '13px 16px', borderRadius: 10, marginBottom: 24, fontSize: 14 }}>
+                        {recoveryError}
+                      </div>
+                    )}
+                    <form onSubmit={handleRecovery}>
+                      <div style={{ marginBottom: 24 }}>
+                        <label style={{ ...styles.label, display: 'block', marginBottom: 8 }}>Email Address</label>
+                        <input
+                          type="email"
+                          value={recoveryEmail}
+                          onChange={e => setRecoveryEmail(e.target.value)}
+                          placeholder="you@email.com"
+                          required
+                          style={styles.input}
+                        />
+                      </div>
+                      <button type="submit" disabled={recoveryLoading} style={{ ...styles.btn, opacity: recoveryLoading ? 0.6 : 1, cursor: recoveryLoading ? 'not-allowed' : 'pointer' }}>
+                        {recoveryLoading ? 'Sending…' : 'Send Reset Link →'}
+                      </button>
+                    </form>
+                    <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 20 }}>
+                      Still having trouble?{' '}
+                      <a href={`mailto:${C_EMAIL}`} style={{ color: '#22c55e', textDecoration: 'none' }}>Contact customer service</a>
+                    </p>
+                  </>
+                )}
+              </div>
             </>
           )}
 
@@ -292,9 +385,9 @@ export default function Portal() {
                 ))}
               </div>
 
-              <p style={{ color: '#1e293b', fontSize: 13, textAlign: 'center', marginTop: 28 }}>
+              <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 28 }}>
                 Questions?{' '}
-                <a href="mailto:support@taxappealusa.com" style={{ color: '#22c55e', textDecoration: 'none' }}>support@taxappealusa.com</a>
+                <a href={`mailto:${C_EMAIL}`} style={{ color: '#22c55e', textDecoration: 'none' }}>{C_EMAIL}</a>
               </p>
             </>
           )}
