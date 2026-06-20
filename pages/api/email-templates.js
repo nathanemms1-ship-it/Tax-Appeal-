@@ -1,229 +1,217 @@
-// ── EMAIL TEMPLATES ───────────────────────────────────────────────────────────
+// pages/api/email-templates.js
 
-export function confirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, lobPreviewUrl, reductionPct }) {
-  const firstName = customerName ? customerName.split(' ')[0] : 'there';
-  const isTest = !!lobPreviewUrl;
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter }) {
+  const fullName = `${firstName} ${lastName}`;
+  const year = new Date().getFullYear();
 
-  return {
-    subject: `Your property tax dispute has been filed — ${address}`,
-    html: `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaxAppeal Confirmation</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Property Tax Dispute Has Been Filed</title>
 </head>
-<body style="margin:0;padding:0;background:#F4F7FC;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
 
-        <!-- Header -->
-        <tr><td style="background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:6px;">🏠</div>
-          <div style="font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;">TaxAppeal</div>
-          <div style="font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;">Property Tax Dispute</div>
-        </td></tr>
+          <!-- Header -->
+          <tr>
+            <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
+              <div style="font-size:22px;font-weight:700;color:#C9A84C;letter-spacing:0.05em;">TaxAppeal USA</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
+            </td>
+          </tr>
 
-        <!-- Success banner -->
-        <tr><td style="background:#2E7D52;padding:16px 36px;text-align:center;">
-          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">✓ Your dispute has been filed!</div>
-        </td></tr>
+          <!-- Success Banner -->
+          <tr>
+            <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#ffffff;">✅ Your Dispute Has Been Filed</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;">Your certified letter is on its way to the county appraisal district</div>
+            </td>
+          </tr>
 
-        <!-- Body -->
-        <tr><td style="background:#FFFFFF;padding:36px;">
-          <p style="font-size:16px;color:#0F1F3D;margin:0 0 16px;">Hi ${firstName},</p>
-          <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;">
-            Your property tax protest has been filed and your certified dispute letter ${trackingNumber ? 'has been dispatched' : 'is being sent'} via <strong>USPS certified mail with return receipt</strong> to the ${districtName || county + ' Appraisal District'}.
-          </p>
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="margin:0 0 20px;font-size:16px;color:#1B2A4A;">Hi ${firstName},</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
+                Your property tax dispute letter has been professionally prepared and dispatched via USPS Certified Mail to the ${county} Appraisal District. Here is a summary of your filing.
+              </p>
 
-          <!-- Order summary box -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;">
-            <tr><td>
-              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:14px;">DISPUTE SUMMARY</div>
-              ${[
-                ['Property', address],
-                ['Filed with', districtName || (county + ' Appraisal District')],
-                assessedValue ? ['Current assessed value', '$' + Number(assessedValue).toLocaleString()] : null,
-                targetReduction ? ['Reduction requested', 'Down to $' + Number(targetReduction).toLocaleString()] : null,
-                savings ? ['Potential annual savings', '$' + Number(savings).toLocaleString()] : null,
-                trackingNumber ? ['USPS tracking number', trackingNumber] : null,
-              ].filter(Boolean).map(([label, value]) => `
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+              <!-- Order Summary Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fc;border:1px solid #e5e8ef;border-radius:6px;margin-bottom:28px;">
                 <tr>
-                  <td style="font-size:13px;color:#8596AF;width:50%;">${label}</td>
-                  <td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">${value}</td>
-                </tr>
-              </table>`).join('')}
-              <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:4px;">
-                <tr>
-                  <td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td>
-                  <td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$79.00</td>
+                  <td style="padding:20px 24px;">
+                    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:16px;">Filing Summary</div>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">Property Owner</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${fullName}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">Property Address</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${address}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">County</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${county}</td>
+                      </tr>
+                      ${trackingNumber ? `
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">USPS Tracking</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${trackingNumber}</td>
+                      </tr>` : ''}
+                      ${lobId ? `
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">Letter ID</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${lobId}</td>
+                      </tr>` : ''}
+                      <tr>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">Filing Fee Paid</td>
+                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$79.00</td>
+                      </tr>
+                    </table>
+                  </td>
                 </tr>
               </table>
-            </td></tr>
-          </table>
 
-          ${isTest ? `
-          <!-- Test mode preview -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#EEF3FB;border-radius:8px;padding:16px;margin-bottom:24px;">
-            <tr><td>
-              <div style="font-size:13px;color:#1B3A6B;margin-bottom:8px;"><strong>🔍 Test Mode — Letter Preview</strong></div>
-              <a href="${lobPreviewUrl}" style="font-size:13px;color:#1B3A6B;">View how your letter will appear when printed →</a>
-            </td></tr>
-          </table>` : ''}
-
-          <!-- What happens next -->
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:16px;">WHAT HAPPENS NEXT</div>
-          ${[
-            ['📬', 'Certified mail dispatch', trackingNumber ? 'Your letter has been dispatched via USPS certified mail with return receipt.' : 'Your letter will be dispatched via USPS certified mail within 1 business day.'],
-            ['🧾', 'Tracking receipt', trackingNumber ? `Your USPS tracking number is: ${trackingNumber}` : 'Your USPS tracking number will be emailed to you once dispatched.'],
-            ['📮', 'District receives your protest', `${districtName || 'Your appraisal district'} will process your protest and schedule a review.`],
-            ['⏳', 'Await the decision', 'Districts typically respond within 30–90 days. We\'ll be copied on all correspondence at disputes@taxappealusa.com.'],
-          ].map(([icon, title, desc]) => `
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
-            <tr>
-              <td width="40" valign="top" style="padding-top:2px;">
-                <div style="width:32px;height:32px;background:#EEF3FB;border-radius:50%;text-align:center;line-height:32px;font-size:14px;">${icon}</div>
-              </td>
-              <td style="padding-left:12px;">
-                <div style="font-size:14px;font-weight:600;color:#0F1F3D;margin-bottom:3px;">${title}</div>
-                <div style="font-size:13px;color:#5A6B82;line-height:1.5;">${desc}</div>
-              </td>
-            </tr>
-          </table>`).join('')}
-
-          <!-- Important note -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-top:8px;">
-            <tr><td>
-              <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ Important</div>
-              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">
-                Your appraisal district will contact you directly with their decision. A copy of all correspondence will also be sent to <strong>disputes@taxappealusa.com</strong> as your filing agent on record.
+              <!-- What Happens Next -->
+              <div style="margin-bottom:28px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:14px;">What Happens Next</div>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align:top;padding:0 0 14px 0;">
+                      <span style="display:inline-block;width:24px;height:24px;background:#C9A84C;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#1B2A4A;margin-right:10px;">1</span>
+                      <span style="font-size:14px;color:#444;">Your certified letter arrives at the appraisal district (3–7 business days)</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="vertical-align:top;padding:0 0 14px 0;">
+                      <span style="display:inline-block;width:24px;height:24px;background:#C9A84C;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#1B2A4A;margin-right:10px;">2</span>
+                      <span style="font-size:14px;color:#444;">The district reviews your protest (typically 30–90 days)</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="vertical-align:top;padding:0 0 14px 0;">
+                      <span style="display:inline-block;width:24px;height:24px;background:#C9A84C;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#1B2A4A;margin-right:10px;">3</span>
+                      <span style="font-size:14px;color:#444;">You may receive a written decision by mail or email — watch for it</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="vertical-align:top;">
+                      <span style="display:inline-block;width:24px;height:24px;background:#C9A84C;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#1B2A4A;margin-right:10px;">4</span>
+                      <span style="font-size:14px;color:#444;">Log in to your portal anytime to update your dispute outcome</span>
+                    </td>
+                  </tr>
+                </table>
               </div>
-            </td></tr>
-          </table>
-        </td></tr>
 
-        <!-- Footer -->
-        <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
-          <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
-          <a href="mailto:disputes@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">disputes@taxappealusa.com</a>
-          <div style="font-size:11px;color:#3A4E6A;margin-top:16px;">© 2026 TaxAppeal USA · taxappealusa.com</div>
-          <div style="font-size:11px;color:#3A4E6A;margin-top:4px;">TX · GA · FL · Property Tax Dispute Service</div>
-        </td></tr>
+              ${trackingNumber ? `
+              <!-- Track Your Letter -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td align="center" style="padding:16px;background:#1B2A4A;border-radius:6px;">
+                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}"
+                       style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
+                      📦 Track Your Letter on USPS.com →
+                    </a>
+                  </td>
+                </tr>
+              </table>` : ''}
 
-      </table>
-    </td></tr>
+              ${letter ? `
+              <!-- Full Letter -->
+              <div style="margin-bottom:28px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:14px;">Your Dispute Letter — For Your Records</div>
+                <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:28px 32px;font-family:Georgia,serif;font-size:13px;color:#222;line-height:1.8;white-space:pre-wrap;">${letter}</div>
+                <div style="margin-top:10px;font-size:11px;color:#999;text-align:center;">Keep this email as your official record of the dispute letter filed on your behalf.</div>
+              </div>` : ''}
+
+              <!-- Questions -->
+              <div style="background:#fff8e7;border:1px solid #f0d98a;border-radius:6px;padding:16px 20px;margin-bottom:8px;">
+                <div style="font-size:13px;color:#7a6010;line-height:1.6;">
+                  <strong>Questions about your filing?</strong><br/>
+                  Reply to this email or contact us at
+                  <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
+                  — we're happy to help.
+                </div>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
+              <div style="font-size:12px;color:#999;">
+                TaxAppeal USA · taxappealusa.com<br/>
+                Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
+                Filing disputes handled exclusively at <a href="mailto:disputes@taxappealusa.com" style="color:#1B2A4A;">disputes@taxappealusa.com</a>
+              </div>
+              <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
-</html>`,
-    text: `Hi ${firstName},
-
-Your property tax dispute has been filed!
-
-Property: ${address}
-Filed with: ${districtName || county + ' Appraisal District'}
-${assessedValue ? 'Current assessed value: $' + Number(assessedValue).toLocaleString() : ''}
-${targetReduction ? 'Reduction requested: Down to $' + Number(targetReduction).toLocaleString() : ''}
-${savings ? 'Potential annual savings: $' + Number(savings).toLocaleString() : ''}
-${trackingNumber ? 'USPS Tracking: ' + trackingNumber : ''}
-Amount paid: $79.00
-
-Your certified dispute letter ${trackingNumber ? 'has been dispatched' : 'will be dispatched within 1 business day'} via USPS certified mail with return receipt.
-
-What happens next:
-1. Your letter is mailed to ${districtName || county + ' Appraisal District'}
-2. You'll receive your USPS tracking number by email
-3. The district will review your protest and respond within 30-90 days
-4. All correspondence will be copied to disputes@taxappealusa.com
-
-Questions? Email disputes@taxappealusa.com
-
-© 2026 TaxAppeal USA · taxappealusa.com`
-  };
+</html>`;
 }
 
-export function deliveryConfirmationEmail({ customerName, address, districtName, deliveredDate, trackingNumber }) {
-  const firstName = customerName ? customerName.split(' ')[0] : 'there';
-
-  return {
-    subject: `✓ Your protest letter was delivered — ${address}`,
-    html: `
-<!DOCTYPE html>
+export function deliveryEmailTemplate({ firstName, trackingNumber, address, county }) {
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#F4F7FC;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-        <tr><td style="background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:6px;">🏠</div>
-          <div style="font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;">TaxAppeal</div>
-          <div style="font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;">Property Tax Dispute</div>
-        </td></tr>
-
-        <tr><td style="background:#2E7D52;padding:16px 36px;text-align:center;">
-          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">📬 Your protest letter was delivered!</div>
-        </td></tr>
-
-        <tr><td style="background:#FFFFFF;padding:36px;">
-          <p style="font-size:16px;color:#0F1F3D;margin:0 0 16px;">Hi ${firstName},</p>
-          <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;">
-            Great news — your certified protest letter has been delivered to and signed for at <strong>${districtName}</strong>${deliveredDate ? ' on ' + deliveredDate : ''}.
-          </p>
-
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#E6F4ED;border:1px solid #B7DEC8;border-radius:8px;padding:20px;margin-bottom:24px;">
-            <tr><td>
-              <div style="font-size:14px;font-weight:700;color:#2E7D52;margin-bottom:10px;">✓ Delivery Confirmed</div>
-              <div style="font-size:13px;color:#2E7D52;margin-bottom:6px;">Property: <strong>${address}</strong></div>
-              <div style="font-size:13px;color:#2E7D52;margin-bottom:6px;">Delivered to: <strong>${districtName}</strong></div>
-              ${deliveredDate ? `<div style="font-size:13px;color:#2E7D52;margin-bottom:6px;">Delivery date: <strong>${deliveredDate}</strong></div>` : ''}
-              ${trackingNumber ? `<div style="font-size:13px;color:#2E7D52;">USPS Tracking: <strong>${trackingNumber}</strong></div>` : ''}
-            </td></tr>
-          </table>
-
-          <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 16px;">
-            The appraisal district will now review your protest. Most districts respond within <strong>30–90 days</strong>. Their decision will be mailed directly to you and a copy will be sent to <strong>disputes@taxappealusa.com</strong>.
-          </p>
-
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;">
-            <tr><td>
-              <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">📋 Keep this email</div>
-              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">
-                This serves as your proof of delivery. The certified mail return receipt is your legal documentation that the protest was received by the appraisal district before the filing deadline.
+<head><meta charset="utf-8" /><title>Your Dispute Letter Has Been Delivered</title></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
+              <div style="font-size:22px;font-weight:700;color:#C9A84C;">TaxAppeal USA</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#ffffff;">📬 Letter Delivered to the County</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${firstName},</p>
+              <p style="font-size:15px;color:#444;line-height:1.6;">
+                Your property tax protest letter for <strong>${address}</strong> has been successfully delivered to the <strong>${county}</strong> Appraisal District via USPS Certified Mail.
+              </p>
+              <p style="font-size:15px;color:#444;line-height:1.6;">
+                The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
+              </p>
+              ${trackingNumber ? `<p style="font-size:13px;color:#888;">USPS Tracking: <strong>${trackingNumber}</strong></p>` : ''}
+              <p style="font-size:14px;color:#444;">
+                Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
+              <div style="font-size:12px;color:#999;">
+                TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
+                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
               </div>
-            </td></tr>
-          </table>
-        </td></tr>
-
-        <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
-          <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Contact us at</div>
-          <a href="mailto:disputes@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">disputes@taxappealusa.com</a>
-          <div style="font-size:11px;color:#3A4E6A;margin-top:16px;">© 2026 TaxAppeal USA · taxappealusa.com</div>
-        </td></tr>
-
-      </table>
-    </td></tr>
+              <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
-</html>`,
-    text: `Hi ${firstName},
-
-Your certified protest letter has been delivered to ${districtName}${deliveredDate ? ' on ' + deliveredDate : ''}.
-
-Property: ${address}
-Delivered to: ${districtName}
-${deliveredDate ? 'Delivery date: ' + deliveredDate : ''}
-${trackingNumber ? 'USPS Tracking: ' + trackingNumber : ''}
-
-The appraisal district will review your protest and respond within 30-90 days.
-
-Keep this email as proof of delivery.
-
-Questions? Email disputes@taxappealusa.com
-
-© 2026 TaxAppeal USA`
-  };
+</html>`;
 }
