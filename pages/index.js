@@ -71,7 +71,7 @@ export default function Landing() {
           "@type": "Organization",
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
-          "email": "disputes@taxappealusa.com",
+          "email": "Support: customerservice@taxappealusa.com",
           "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, and Florida. Flat $79 fee, certified mail filing, 82% approval rate.",
           "areaServed": ["Texas", "Georgia", "Florida"],
           "offers": {
