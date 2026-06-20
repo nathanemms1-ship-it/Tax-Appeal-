@@ -95,7 +95,7 @@ export default function Privacy() {
             <p>
               For privacy requests or questions, contact us at:<br />
               <strong>Customer Service:</strong> <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a><br />
-              <strong>Dispute Filings only:</strong> <a href="mailto:disputes@taxappealusa.com" style={{ color: '#C9A84C' }}>disputes@taxappealusa.com</a>
+             
             </p>
 
           </div>
