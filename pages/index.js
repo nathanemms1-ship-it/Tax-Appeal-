@@ -653,7 +653,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="footer">
-        <p>© 2026 TaxAppeal USA · <a href="mailto:Support: customerservice@taxappealusa.com">disputes@taxappealusa.com</a></p>
+     <p>© 2026 TaxAppeal USA · Support: <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
         <p>Available in TX · GA · FL · More states coming soon</p>
         <p>
           <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
