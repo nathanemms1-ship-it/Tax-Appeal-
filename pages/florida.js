@@ -281,8 +281,117 @@ export default function Florida() {
           ))}
         </div>
       </section>
+{/* ── FLORIDA GUIDES SECTION ── */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida Property Tax Guides</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>Everything you need to know about Florida VAB petitions, TRIM notices, and county-specific deadlines.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+            {[
+              { href: "/blog/when-do-florida-trim-notices-arrive-2026", label: "When Do Florida TRIM Notices Arrive in 2026?" },
+              { href: "/blog/how-to-read-florida-trim-notice-2026", label: "How to Read Your Florida TRIM Notice" },
+              { href: "/blog/florida-homestead-exemption-vs-property-tax-appeal", label: "Homestead Exemption vs. Property Tax Appeal" },
+              { href: "/blog/how-to-appeal-florida-property-tax-trim-notice-guide", label: "How to Appeal Your Florida Property Tax" },
+              { href: "/blog/florida-trim-notice-deadline-2026", label: "Florida TRIM Notice Deadline 2026" },
+              { href: "/blog/what-is-a-vab-petition-florida-homeowners-guide", label: "What Is a VAB Petition?" },
+              { href: "/blog/florida-property-tax-appeal-letter-what-to-include-to-win", label: "Florida Appeal Letter: What to Include" },
+              { href: "/blog/how-much-can-i-save-appealing-florida-property-tax", label: "How Much Can I Save Appealing Florida Taxes?" },
+              { href: "/blog/miami-dade-property-tax-appeal-guide-2026", label: "Miami-Dade Property Tax Appeal Guide" },
+              { href: "/blog/hillsborough-county-property-tax-appeal-2026", label: "Hillsborough County Appeal Guide" },
+              { href: "/blog/broward-county-property-tax-appeal-guide-2026", label: "Broward County Appeal Guide" },
+              { href: "/blog/palm-beach-county-property-tax-appeal-guide-2026", label: "Palm Beach County Appeal Guide" },
+              { href: "/blog/orange-county-florida-property-tax-appeal-guide-2026", label: "Orange County FL Appeal Guide" },
+              { href: "/blog/pinellas-county-florida-property-tax-appeal-guide-2026", label: "Pinellas County Appeal Guide" },
+              { href: "/blog/sarasota-county-florida-property-tax-appeal-guide-2026", label: "Sarasota County Appeal Guide" },
+              { href: "/blog/lee-county-florida-property-tax-appeal-guide-2026", label: "Lee County Appeal Guide" },
+              { href: "/blog/collier-county-florida-property-tax-appeal-guide-2026", label: "Collier County Appeal Guide" },
+              { href: "/blog/okaloosa-county-florida-property-tax-appeal-guide-2026", label: "Okaloosa County Appeal Guide" },
+            ].map(({ href, label }) => (
+              <a key={href} href={href} style={{ display: "block", padding: "12px 16px", background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500, lineHeight: 1.4, transition: "border-color 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = C.navy}
+                onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                → {label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      {/* CTA */}
+      {/* ── TOP NEIGHBORHOODS SECTION ── */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Appeal by Florida Neighborhood</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>We serve all 110+ Florida communities. Here are the most popular.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+            {[
+              ["Palm Beach", "/florida/palm-beach-fl"],
+              ["30A", "/florida/30a-fl"],
+              ["Bal Harbour", "/florida/bal-harbour"],
+              ["Key Biscayne", "/florida/key-biscayne"],
+              ["Surfside", "/florida/surfside-fl"],
+              ["Longboat Key", "/florida/longboat-key-fl"],
+              ["Siesta Key", "/florida/siesta-key-fl"],
+              ["Windermere", "/florida/windermere-fl"],
+              ["Coral Gables", "/florida/coral-gables"],
+              ["Naples", "/florida/naples-fl"],
+              ["Marco Island", "/florida/marco-island"],
+              ["Ponte Vedra Beach", "/florida/ponte-vedra-beach"],
+              ["Boca Raton", "/florida/boca-raton"],
+              ["Jupiter", "/florida/jupiter-fl"],
+              ["Palm Beach Gardens", "/florida/palm-beach-gardens"],
+              ["Parkland", "/florida/parkland-fl"],
+              ["Weston", "/florida/weston"],
+              ["Pinecrest", "/florida/pinecrest-fl"],
+              ["South Tampa", "/florida/south-tampa-fl"],
+              ["Westchase", "/florida/westchase-fl"],
+              ["Coconut Grove", "/florida/coconut-grove"],
+              ["Aventura", "/florida/aventura"],
+              ["Miami Beach", "/florida/miami-beach"],
+              ["Sunny Isles Beach", "/florida/sunny-isles-beach"],
+              ["Winter Park", "/florida/winter-park-fl"],
+              ["Lake Nona", "/florida/lake-nona"],
+              ["Nocatee", "/florida/nocatee-fl"],
+              ["Sarasota", "/florida/sarasota-fl"],
+              ["Fort Lauderdale", "/florida/fort-lauderdale"],
+              ["Clearwater", "/florida/clearwater-fl"],
+            ].map(([name, href]) => (
+              <a key={href} href={href} style={{ display: "block", padding: "10px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500, textAlign: "center" }}>
+                {name}
+              </a>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <a href="/florida" style={{ fontSize: 13, color: C.bodyGray, textDecoration: "underline" }}>View all 110 Florida neighborhoods →</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── COUNTIES SECTION ── */}
+      <section style={{ padding: "40px 40px", background: C.bg }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, textAlign: "center", marginBottom: 28 }}>Appeal by Florida County</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+            {[
+              ["Miami-Dade County", "/counties/miami-dade-county-fl"],
+              ["Broward County", "/counties/broward-county-fl"],
+              ["Palm Beach County", "/counties/palm-beach-county-fl"],
+              ["Hillsborough County", "/counties/hillsborough-county-fl"],
+              ["Orange County", "/counties/orange-county-fl"],
+              ["Pinellas County", "/counties/pinellas-county-fl"],
+              ["Duval County", "/counties/duval-county-fl"],
+              ["Brevard County", "/counties/brevard-county-fl"],
+              ["Lee County", "/counties/lee-county-fl"],
+              ["Polk County", "/counties/polk-county-fl"],
+              ["Sarasota County", "/counties/sarasota-county-fl"],
+              ["Collier County", "/counties/collier-county-fl"],
+            ].map(([name, href]) => (
+              <a key={href} href={href} style={{ display: "block", padding: "10px 14px", background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500 }}>
+                → {name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>      {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Florida property taxes?</h2>
         <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Florida homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
