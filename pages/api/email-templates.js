@@ -215,3 +215,89 @@ export function deliveryEmailTemplate({ firstName, trackingNumber, address, coun
 </body>
 </html>`;
 }
+
+// Called by pages/api/lob-webhook.js when Lob reports a certified-mail delivery.
+// The webhook destructures { subject, html, text } from the return value, so this
+// function MUST return an object with those three keys (not a raw HTML string like
+// the two templates above). Field names here match the webhook's call exactly:
+//   deliveryConfirmationEmail({ customerName, address, districtName, deliveredDate, trackingNumber })
+export function deliveryConfirmationEmail({ customerName, address, districtName, deliveredDate, trackingNumber }) {
+  const year = new Date().getFullYear();
+  const name = customerName || 'there';
+  const district = districtName || 'the County Appraisal District';
+  const deliveredLine = deliveredDate ? ` on <strong>${deliveredDate}</strong>` : '';
+
+  const subject = '📬 Your Dispute Letter Has Been Delivered';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Your Dispute Letter Has Been Delivered</title></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
+              <div style="font-size:22px;font-weight:700;color:#C9A84C;">TaxAppeal USA</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#ffffff;">📬 Letter Delivered to the County</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${name},</p>
+              <p style="font-size:15px;color:#444;line-height:1.6;">
+                Good news — your property tax protest letter${address ? ` for <strong>${address}</strong>` : ''} has been successfully delivered to <strong>${district}</strong> via USPS Certified Mail${deliveredLine}.
+              </p>
+              <p style="font-size:15px;color:#444;line-height:1.6;">
+                The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
+              </p>
+              ${trackingNumber ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
+                <tr>
+                  <td align="center" style="padding:14px;background:#1B2A4A;border-radius:6px;">
+                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}" style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
+                      📦 View USPS Delivery Confirmation →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:13px;color:#888;">USPS Tracking: <strong>${trackingNumber}</strong></p>` : ''}
+              <p style="font-size:14px;color:#444;">
+                Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
+              <div style="font-size:12px;color:#999;">
+                TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
+                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
+              </div>
+              <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Hi ${name},
+
+Good news — your property tax protest letter${address ? ` for ${address}` : ''} has been successfully delivered to ${district} via USPS Certified Mail${deliveredDate ? ` on ${deliveredDate}` : ''}.
+
+The district will review your protest and send their decision — typically within 30-90 days. Watch your mail and email for a notice from the appraisal district.
+${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}\n` : ''}
+Questions? Email us at customerservice@taxappealusa.com
+
+© ${year} TaxAppeal USA`;
+
+  return { subject, html, text };
+}
