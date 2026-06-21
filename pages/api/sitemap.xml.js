@@ -1,7 +1,8 @@
 // pages/api/sitemap.xml.js
-// Self-contained sitemap â do not import from external files
+// Self-contained sitemap — do not import from external files
 
 const floridaCitySlugs = [
+  // Batch 1 — original 50
   "miami-beach","coral-gables","coconut-grove","brickell","aventura","doral","kendall","hialeah",
   "boca-raton","fort-lauderdale","pompano-beach","hollywood-fl","weston","coral-springs","pembroke-pines","miramar",
   "west-palm-beach","boynton-beach","delray-beach","palm-beach-gardens","jupiter-fl","wellington-fl",
@@ -12,6 +13,20 @@ const floridaCitySlugs = [
   "sarasota-fl","venice-fl","north-port-fl",
   "jacksonville-beach","ponte-vedra-beach","fleming-island",
   "daytona-beach","new-smyrna-beach",
+  // Batch 2 — 30 new slugs
+  "parkland-fl","davie-fl","cooper-city-fl","plantation-fl","deerfield-beach",
+  "lighthouse-point","sunny-isles-beach","hallandale-beach","surfside-fl","bal-harbour",
+  "key-biscayne","pinecrest-fl","homestead-fl","westchase-fl","south-tampa-fl",
+  "carrollwood-fl","siesta-key-fl","lakewood-ranch-fl","bradenton-fl","port-st-lucie-fl",
+  "vero-beach-fl","lakeland-fl","doctor-phillips-fl","windermere-fl","hunters-creek-fl",
+  "new-tampa-fl","longboat-key-fl","golden-gate-fl","melbourne-fl",
+  // Batch 3 — 30 new slugs
+  "destin-fl","30a-fl","fort-walton-beach","niceville-fl","pensacola-beach",
+  "panama-city-beach","navarre-fl","nocatee-fl","st-johns-fl","orange-park-fl",
+  "fernandina-beach","amelia-island-fl","celebration-fl","altamonte-springs","lake-mary-fl",
+  "sanford-fl","longwood-fl","clermont-fl","minneola-fl","the-villages-fl",
+  "ocala-fl","gainesville-fl","viera-fl","rockledge-fl","palm-bay-fl",
+  "stuart-fl","jensen-beach-fl","tradition-fl","palm-beach-fl","north-miami-beach",
 ];
 
 const texasCountySlugs = [
@@ -38,19 +53,41 @@ const citySlugs = [
   "miami-fl","tampa-fl","orlando-fl","jacksonville-fl","fort-lauderdale-fl",
 ];
 
+// All 33 live blog posts — actual slugs from lib/blogPosts.js
 const blogSlugs = [
-  "how-to-protest-property-taxes-texas",
-  "harris-county-property-tax-protest-guide",
-  "dallas-county-appraisal-protest-deadline",
-  "tarrant-county-property-tax-appeal",
-  "travis-county-property-tax-protest",
-  "how-to-appeal-property-taxes-georgia",
-  "fulton-county-property-tax-appeal-guide",
-  "cobb-county-property-tax-protest",
-  "florida-trim-notice-explained",
-  "how-to-file-vab-petition-florida",
-  "miami-dade-property-tax-appeal",
-  "broward-county-property-tax-appeal",
+  "harris-county-property-tax-protest-guide-2026",
+  "tarrant-county-property-tax-protest-guide-2026",
+  "dallas-county-property-tax-protest-guide-2026",
+  "texas-property-tax-protest-deadline-2026",
+  "flat-fee-vs-contingency-property-tax-protest",
+  "travis-county-property-tax-protest-guide-2026",
+  "fulton-county-property-tax-appeal-guide-2026",
+  "miami-dade-property-tax-appeal-guide-2026",
+  "hillsborough-county-property-tax-appeal-2026",
+  "how-to-read-texas-notice-of-appraised-value",
+  "georgia-property-tax-appeal-deadline-2026",
+  "florida-trim-notice-deadline-2026",
+  "collin-county-property-tax-protest-guide-2026",
+  "bexar-county-property-tax-protest-guide-2026",
+  "dekalb-county-property-tax-appeal-guide-2026",
+  "how-much-can-i-save-protesting-property-taxes-texas",
+  "texas-property-tax-protest-letter-what-to-include",
+  "denton-county-property-tax-protest-guide-2026",
+  "gwinnett-county-property-tax-appeal-guide-2026",
+  "broward-county-property-tax-appeal-guide-2026",
+  "fort-bend-county-property-tax-protest-guide-2026",
+  "montgomery-county-property-tax-protest-guide-2026",
+  "palm-beach-county-property-tax-appeal-guide-2026",
+  "how-to-appeal-florida-property-tax-trim-notice-guide",
+  "orange-county-florida-property-tax-appeal-guide-2026",
+  "pinellas-county-florida-property-tax-appeal-guide-2026",
+  "sarasota-county-florida-property-tax-appeal-guide-2026",
+  "lee-county-florida-property-tax-appeal-guide-2026",
+  "collier-county-florida-property-tax-appeal-guide-2026",
+  "what-is-a-vab-petition-florida-homeowners-guide",
+  "how-much-can-i-save-appealing-florida-property-tax",
+  "florida-property-tax-appeal-letter-what-to-include-to-win",
+  "okaloosa-county-florida-property-tax-appeal-guide-2026",
 ];
 
 export default function handler(req, res) {
@@ -62,6 +99,14 @@ export default function handler(req, res) {
     { url: "/texas", priority: "0.9", changefreq: "monthly" },
     { url: "/georgia", priority: "0.9", changefreq: "monthly" },
     { url: "/florida", priority: "0.9", changefreq: "monthly" },
+    { url: "/houston", priority: "0.8", changefreq: "monthly" },
+    { url: "/dallas", priority: "0.8", changefreq: "monthly" },
+    { url: "/fort-worth", priority: "0.8", changefreq: "monthly" },
+    { url: "/austin", priority: "0.8", changefreq: "monthly" },
+    { url: "/atlanta", priority: "0.8", changefreq: "monthly" },
+    { url: "/miami", priority: "0.8", changefreq: "monthly" },
+    { url: "/tampa", priority: "0.8", changefreq: "monthly" },
+    { url: "/blog", priority: "0.8", changefreq: "weekly" },
     { url: "/terms", priority: "0.3", changefreq: "yearly" },
     { url: "/privacy", priority: "0.3", changefreq: "yearly" },
   ];
@@ -72,8 +117,6 @@ export default function handler(req, res) {
     ...floridaCountySlugs.map((s) => ({ url: `/counties/${s}`, priority: "0.8", changefreq: "monthly" })),
   ];
 
-  const cityPages = citySlugs.map((s) => ({ url: `/cities/${s}`, priority: "0.8", changefreq: "monthly" }));
-
   const floridaNeighborhoodPages = floridaCitySlugs.map((s) => ({
     url: `/florida/${s}`,
     priority: "0.85",
@@ -82,7 +125,7 @@ export default function handler(req, res) {
 
   const blogPages = blogSlugs.map((s) => ({ url: `/blog/${s}`, priority: "0.7", changefreq: "monthly" }));
 
-  const allPages = [...staticPages, ...countyPages, ...cityPages, ...floridaNeighborhoodPages, ...blogPages];
+  const allPages = [...staticPages, ...countyPages, ...floridaNeighborhoodPages, ...blogPages];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
