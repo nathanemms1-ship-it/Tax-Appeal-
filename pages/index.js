@@ -381,10 +381,17 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* Announcement bar */}
+{/* Announcement bar — TRIM countdown for Florida */}
       <div className="ann-bar">
-        In as little as 4 minutes, you could be saving thousands on your tax bill —{' '}
-        <strong>we handle everything.</strong>
+        {(() => {
+          const trimDate = new Date('2026-08-15');
+          const today = new Date();
+          const days = Math.ceil((trimDate - today) / (1000 * 60 * 60 * 24));
+          if (days > 0) {
+            return <>🚨 Florida TRIM notices arrive in <strong>{days} days</strong> — file your VAB petition before the 25-day deadline or wait a full year.</>;
+          }
+          return <>🚨 Florida TRIM notices are arriving now — you have <strong>25 days</strong> to file your VAB petition. Don&apos;t miss your window.</>;
+        })()}
       </div>
 
       {/* Nav */}
