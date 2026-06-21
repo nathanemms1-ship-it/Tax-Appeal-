@@ -88,6 +88,9 @@ const blogSlugs = [
   "how-much-can-i-save-appealing-florida-property-tax",
   "florida-property-tax-appeal-letter-what-to-include-to-win",
   "okaloosa-county-florida-property-tax-appeal-guide-2026",
+  "when-do-florida-trim-notices-arrive-2026",
+  "how-to-read-florida-trim-notice-2026",
+  "florida-homestead-exemption-vs-property-tax-appeal",
 ];
 
 export default function handler(req, res) {
