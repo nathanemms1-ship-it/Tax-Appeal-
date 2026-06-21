@@ -59,6 +59,31 @@ const testimonials = [
   { name: "David L.", location: "Palm Beach County", saved: "$3,100", quote: "Other firms wanted 35% of my savings. On a $3,100 reduction that would have been over $1,000 in fees every year. TaxAppeal charged $79 flat. Not a hard decision." },
 ];
 
+const floridaGuides = [
+  { href: "/blog/when-do-florida-trim-notices-arrive-2026", label: "When Do Florida TRIM Notices Arrive in 2026?" },
+  { href: "/blog/how-to-read-florida-trim-notice-2026", label: "How to Read Your Florida TRIM Notice" },
+  { href: "/blog/florida-homestead-exemption-vs-property-tax-appeal", label: "Homestead Exemption vs. Property Tax Appeal" },
+  { href: "/blog/do-i-need-a-lawyer-to-appeal-florida-property-taxes", label: "Do I Need a Lawyer to Appeal?" },
+  { href: "/blog/florida-property-tax-appeal-success-rate", label: "Florida Appeal Success Rate" },
+  { href: "/blog/how-to-appeal-florida-property-tax-trim-notice-guide", label: "How to Appeal Your Florida Property Tax" },
+  { href: "/blog/florida-trim-notice-deadline-2026", label: "Florida TRIM Notice Deadline 2026" },
+  { href: "/blog/what-is-a-vab-petition-florida-homeowners-guide", label: "What Is a VAB Petition?" },
+  { href: "/blog/florida-property-tax-appeal-letter-what-to-include-to-win", label: "Florida Appeal Letter: What to Include" },
+  { href: "/blog/how-much-can-i-save-appealing-florida-property-tax", label: "How Much Can I Save Appealing Florida Taxes?" },
+  { href: "/blog/non-homestead-property-tax-appeal-florida", label: "Non-Homestead Property Tax Appeal FL" },
+  { href: "/blog/miami-dade-property-tax-appeal-guide-2026", label: "Miami-Dade Property Tax Appeal Guide" },
+  { href: "/blog/hillsborough-county-property-tax-appeal-2026", label: "Hillsborough County Appeal Guide" },
+  { href: "/blog/broward-county-property-tax-appeal-guide-2026", label: "Broward County Appeal Guide" },
+  { href: "/blog/palm-beach-county-property-tax-appeal-guide-2026", label: "Palm Beach County Appeal Guide" },
+  { href: "/blog/orange-county-florida-property-tax-appeal-guide-2026", label: "Orange County FL Appeal Guide" },
+  { href: "/blog/pinellas-county-florida-property-tax-appeal-guide-2026", label: "Pinellas County Appeal Guide" },
+  { href: "/blog/sarasota-county-florida-property-tax-appeal-guide-2026", label: "Sarasota County Appeal Guide" },
+  { href: "/blog/lee-county-florida-property-tax-appeal-guide-2026", label: "Lee County Appeal Guide" },
+  { href: "/blog/collier-county-florida-property-tax-appeal-guide-2026", label: "Collier County Appeal Guide" },
+  { href: "/blog/duval-county-jacksonville-property-tax-appeal-guide-2026", label: "Duval County (Jacksonville) Appeal Guide" },
+  { href: "/blog/okaloosa-county-florida-property-tax-appeal-guide-2026", label: "Okaloosa County Appeal Guide" },
+];
+
 export default function Florida() {
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
@@ -145,7 +170,7 @@ export default function Florida() {
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
             File My Florida Appeal — $79 →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your petition is ready.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won&apos;t be charged until your petition is ready.</div>
         </div>
       </section>
 
@@ -209,7 +234,7 @@ export default function Florida() {
             {testimonials.map((t, i) => (
               <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 24 }}>
                 <div style={{ fontSize: 22, marginBottom: 12 }}>⭐⭐⭐⭐⭐</div>
-                <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontStyle: "italic" }}>"{t.quote}"</p>
+                <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontStyle: "italic" }}>&ldquo;{t.quote}&rdquo;</p>
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
@@ -281,32 +306,14 @@ export default function Florida() {
           ))}
         </div>
       </section>
-{/* ── FLORIDA GUIDES SECTION ── */}
+
+      {/* ── FLORIDA GUIDES SECTION ── */}
       <section style={{ padding: "56px 40px", background: C.bg }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida Property Tax Guides</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>Everything you need to know about Florida VAB petitions, TRIM notices, and county-specific deadlines.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-            {[
-              { href: "/blog/when-do-florida-trim-notices-arrive-2026", label: "When Do Florida TRIM Notices Arrive in 2026?" },
-              { href: "/blog/how-to-read-florida-trim-notice-2026", label: "How to Read Your Florida TRIM Notice" },
-              { href: "/blog/florida-homestead-exemption-vs-property-tax-appeal", label: "Homestead Exemption vs. Property Tax Appeal" },
-              { href: "/blog/how-to-appeal-florida-property-tax-trim-notice-guide", label: "How to Appeal Your Florida Property Tax" },
-              { href: "/blog/florida-trim-notice-deadline-2026", label: "Florida TRIM Notice Deadline 2026" },
-              { href: "/blog/what-is-a-vab-petition-florida-homeowners-guide", label: "What Is a VAB Petition?" },
-              { href: "/blog/florida-property-tax-appeal-letter-what-to-include-to-win", label: "Florida Appeal Letter: What to Include" },
-              { href: "/blog/how-much-can-i-save-appealing-florida-property-tax", label: "How Much Can I Save Appealing Florida Taxes?" },
-              { href: "/blog/miami-dade-property-tax-appeal-guide-2026", label: "Miami-Dade Property Tax Appeal Guide" },
-              { href: "/blog/hillsborough-county-property-tax-appeal-2026", label: "Hillsborough County Appeal Guide" },
-              { href: "/blog/broward-county-property-tax-appeal-guide-2026", label: "Broward County Appeal Guide" },
-              { href: "/blog/palm-beach-county-property-tax-appeal-guide-2026", label: "Palm Beach County Appeal Guide" },
-              { href: "/blog/orange-county-florida-property-tax-appeal-guide-2026", label: "Orange County FL Appeal Guide" },
-              { href: "/blog/pinellas-county-florida-property-tax-appeal-guide-2026", label: "Pinellas County Appeal Guide" },
-              { href: "/blog/sarasota-county-florida-property-tax-appeal-guide-2026", label: "Sarasota County Appeal Guide" },
-              { href: "/blog/lee-county-florida-property-tax-appeal-guide-2026", label: "Lee County Appeal Guide" },
-              { href: "/blog/collier-county-florida-property-tax-appeal-guide-2026", label: "Collier County Appeal Guide" },
-              { href: "/blog/okaloosa-county-florida-property-tax-appeal-guide-2026", label: "Okaloosa County Appeal Guide" },
-            ].map(({ href, label }) => (
+            {floridaGuides.map(({ href, label }) => (
               <a key={href} href={href} style={{ display: "block", padding: "12px 16px", background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500, lineHeight: 1.4, transition: "border-color 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.navy}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
@@ -391,7 +398,9 @@ export default function Florida() {
             ))}
           </div>
         </div>
-      </section>      {/* CTA */}
+      </section>
+
+      {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Florida property taxes?</h2>
         <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Florida homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
