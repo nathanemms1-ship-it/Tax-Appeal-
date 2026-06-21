@@ -1,163 +1,372 @@
-// lib/texasCities.js
-// Texas neighborhood/suburb pages data
-// Used by pages/texas/[city].js dynamic route
-// ~70 high-value suburbs across DFW, Houston, Austin, San Antonio metros
-
-export const texasCities = [
-
-  // ─── DFW METRO ───────────────────────────────────────────────────────────
-
-  { slug: "plano-tx", name: "Plano", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 520000, avgSavings: 1900, pop: "high", description: "Plano is one of DFW's most affluent suburbs with some of the highest home values in Collin County. CCAD mass-appraisal models frequently over-value homes in Plano's premium neighborhoods including Legacy West, Willow Bend, and West Plano." },
-
-  { slug: "frisco-tx", name: "Frisco", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 580000, avgSavings: 2100, pop: "high", description: "Frisco is one of America's fastest-growing cities and consistently ranks among DFW's highest-value markets. Rapid appreciation followed by rate-driven corrections means thousands of Frisco homeowners are over-assessed relative to today's market." },
-
-  { slug: "mckinney-tx", name: "McKinney", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 480000, avgSavings: 1750, pop: "high", description: "McKinney combines historic downtown charm with booming suburban growth. CCAD valuations in McKinney's newer master-planned communities often lag actual market corrections, creating strong protest opportunities for homeowners." },
-
-  { slug: "allen-tx", name: "Allen", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 460000, avgSavings: 1680, pop: "high", description: "Allen is a highly desirable Collin County suburb bordering Plano with top-rated schools and strong home values. Mass-appraisal methods applied to Allen's diverse housing stock frequently produce inaccurate assessments." },
-
-  { slug: "southlake-tx", name: "Southlake", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 920000, avgSavings: 3200, pop: "high", description: "Southlake is one of the wealthiest communities in all of Texas with median home values approaching $1M. At TAD's effective tax rate, even a modest over-assessment produces thousands in excess annual taxes — making protest highly valuable." },
-
-  { slug: "keller-tx", name: "Keller", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 520000, avgSavings: 1900, pop: "high", description: "Keller sits in the heart of the DFW suburban corridor with excellent schools and strong demand. TAD mass-appraisal models frequently over-value Keller homes, especially in established neighborhoods where condition and updates vary widely." },
-
-  { slug: "grapevine-tx", name: "Grapevine", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 480000, avgSavings: 1750, pop: "high", description: "Grapevine's location between DFW Airport and Lake Grapevine makes it one of Tarrant County's most desirable markets. Its diverse housing stock — from historic cottages to lakefront estates — creates significant mass-appraisal inconsistencies." },
-
-  { slug: "colleyville-tx", name: "Colleyville", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 720000, avgSavings: 2600, pop: "high", description: "Colleyville is one of Tarrant County's premier luxury communities with large lots and custom homes. High-value properties are especially prone to over-assessment because comparable sales are sparse and TAD relies on broad neighborhood models." },
-
-  { slug: "flower-mound-tx", name: "Flower Mound", county: "Denton", countySlug: "denton-county-tx", district: "Denton Central Appraisal District", districtUrl: "https://www.dentoncad.com", metro: "Dallas-Fort Worth", medianValue: 540000, avgSavings: 1950, pop: "high", description: "Flower Mound is one of Denton County's most established and affluent suburbs, consistently ranked among the best places to live in Texas. DCAD valuations in Flower Mound frequently over-shoot corrected market values." },
-
-  { slug: "lewisville-tx", name: "Lewisville", county: "Denton", countySlug: "denton-county-tx", district: "Denton Central Appraisal District", districtUrl: "https://www.dentoncad.com", metro: "Dallas-Fort Worth", medianValue: 380000, avgSavings: 1400, pop: "high", description: "Lewisville offers DFW affordability with Denton County location, making it a high-volume protest market. DCAD's mass-appraisal models applied to Lewisville's mixed housing stock create consistent over-assessment opportunities." },
-
-  { slug: "denton-tx", name: "Denton", county: "Denton", countySlug: "denton-county-tx", district: "Denton Central Appraisal District", districtUrl: "https://www.dentoncad.com", metro: "Dallas-Fort Worth", medianValue: 360000, avgSavings: 1320, pop: "high", description: "Home to two major universities, Denton has seen rapid appreciation driven by population growth. DCAD valuations frequently lag real-time market corrections, making protest particularly effective for Denton homeowners." },
-
-  { slug: "arlington-tx", name: "Arlington", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 320000, avgSavings: 1180, pop: "high", description: "Arlington sits at the center of DFW between Dallas and Fort Worth with one of the region's largest and most diverse housing markets. TAD mass-appraisal across Arlington's varied neighborhoods creates widespread over-assessment." },
-
-  { slug: "mansfield-tx", name: "Mansfield", county: "Tarrant", countySlug: "tarrant-county-tx", district: "Tarrant Appraisal District", districtUrl: "https://www.tad.org", metro: "Dallas-Fort Worth", medianValue: 400000, avgSavings: 1460, pop: "high", description: "Mansfield is one of Tarrant County's fastest-growing cities with top-rated schools and strong community appeal. Rapid new construction creates assessment inconsistencies that make protest highly effective for Mansfield homeowners." },
-
-  { slug: "garland-tx", name: "Garland", county: "Dallas", countySlug: "dallas-county-tx", district: "Dallas Central Appraisal District", districtUrl: "https://www.dallascad.org", metro: "Dallas-Fort Worth", medianValue: 300000, avgSavings: 1100, pop: "high", description: "Garland is one of DFW's larger suburban cities with a high volume of protest activity each year. Dallas CAD mass-appraisal across Garland's established neighborhoods frequently produces inflated assessments compared to actual market values." },
-
-  { slug: "irving-tx", name: "Irving", county: "Dallas", countySlug: "dallas-county-tx", district: "Dallas Central Appraisal District", districtUrl: "https://www.dallascad.org", metro: "Dallas-Fort Worth", medianValue: 340000, avgSavings: 1250, pop: "high", description: "Irving's location adjacent to DFW Airport and the Las Colinas urban center makes it one of Dallas County's most strategically located markets. Diverse property types create significant mass-appraisal inconsistencies at Dallas CAD." },
-
-  { slug: "grand-prairie-tx", name: "Grand Prairie", county: "Dallas", countySlug: "dallas-county-tx", district: "Dallas Central Appraisal District", districtUrl: "https://www.dallascad.org", metro: "Dallas-Fort Worth", medianValue: 300000, avgSavings: 1100, pop: "high", description: "Grand Prairie spans Dallas, Tarrant, and Ellis counties and offers DFW affordability with great access to both urban cores. Cross-county valuations create assessment inconsistencies that make protest effective for Grand Prairie homeowners." },
-
-  { slug: "rockwall-tx", name: "Rockwall", county: "Rockwall", countySlug: "rockwall-county-tx", district: "Rockwall Central Appraisal District", districtUrl: "https://www.rockwallcad.com", metro: "Dallas-Fort Worth", medianValue: 480000, avgSavings: 1750, pop: "mid", description: "Rockwall sits on Lake Ray Hubbard east of Dallas and has seen explosive growth driven by lakefront appeal and DFW overflow. Rapid appreciation in Rockwall County followed by market corrections creates strong protest opportunities." },
-
-  { slug: "weatherford-tx", name: "Weatherford", county: "Parker", countySlug: "parker-county-tx", district: "Parker County Appraisal District", districtUrl: "https://www.parkercad.org", metro: "Dallas-Fort Worth", medianValue: 380000, avgSavings: 1390, pop: "mid", description: "Weatherford is Parker County's seat and a rapidly growing DFW exurb attracting homeowners priced out of Tarrant County. PCAD valuations in Weatherford's newer developments frequently exceed corrected market values." },
-
-  { slug: "prosper-tx", name: "Prosper", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 620000, avgSavings: 2250, pop: "mid", description: "Prosper is one of the fastest-growing and highest-value communities in Collin County with large luxury homes and master-planned developments. CCAD valuations in Prosper's premium communities frequently over-assess relative to current market conditions." },
-
-  { slug: "celina-tx", name: "Celina", county: "Collin", countySlug: "collin-county-tx", district: "Collin Central Appraisal District", districtUrl: "https://www.collincad.org", metro: "Dallas-Fort Worth", medianValue: 520000, avgSavings: 1900, pop: "mid", description: "Celina has transformed from a small town to one of DFW's hottest growth corridors. Rapid development and shifting market conditions make CCAD's mass-appraisal valuations especially prone to error for Celina homeowners." },
-
-  { slug: "waxahachie-tx", name: "Waxahachie", county: "Ellis", countySlug: "ellis-county-tx", district: "Ellis County Appraisal District", districtUrl: "https://www.elliscad.com", metro: "Dallas-Fort Worth", medianValue: 340000, avgSavings: 1250, pop: "mid", description: "Waxahachie is Ellis County's seat and a rapidly growing southern DFW suburb. As homebuyers move south from Tarrant and Dallas counties, Ellis CAD valuations increasingly over-assess relative to actual transaction prices." },
-
-  // ─── HOUSTON METRO ───────────────────────────────────────────────────────
-
-  { slug: "sugar-land-tx", name: "Sugar Land", county: "Fort Bend", countySlug: "fort-bend-county-tx", district: "Fort Bend Central Appraisal District", districtUrl: "https://www.fbcad.org", metro: "Houston", medianValue: 500000, avgSavings: 1820, pop: "high", description: "Sugar Land is Fort Bend County's premier city and one of the most affluent suburbs in the Houston metro. FBCAD valuations in Sugar Land's established communities often exceed corrected market values, making protest highly effective." },
-
-  { slug: "the-woodlands-tx", name: "The Woodlands", county: "Montgomery", countySlug: "montgomery-county-tx", district: "Montgomery Central Appraisal District", districtUrl: "https://www.mcad-tx.org", metro: "Houston", medianValue: 520000, avgSavings: 1900, pop: "high", description: "The Woodlands is one of America's most celebrated master-planned communities and Montgomery County's highest-value market. MCAD's mass-appraisal models frequently over-value homes in The Woodlands' premium villages." },
-
-  { slug: "katy-tx", name: "Katy", county: "Fort Bend", countySlug: "fort-bend-county-tx", district: "Fort Bend Central Appraisal District", districtUrl: "https://www.fbcad.org", metro: "Houston", medianValue: 380000, avgSavings: 1390, pop: "high", description: "Katy spans Fort Bend, Harris, and Waller counties and is one of the Houston area's most active real estate markets. Cross-county assessment inconsistencies and rapid new construction make protest particularly valuable for Katy homeowners." },
-
-  { slug: "pearland-tx", name: "Pearland", county: "Brazoria", countySlug: "brazoria-county-tx", district: "Brazoria County Appraisal District", districtUrl: "https://www.brazoriacad.org", metro: "Houston", medianValue: 360000, avgSavings: 1320, pop: "high", description: "Pearland is one of the Houston metro's fastest-growing cities with a young, high-income population and strong school districts. Brazoria CAD valuations in Pearland's newer master-planned communities frequently exceed market-corrected values." },
-
-  { slug: "league-city-tx", name: "League City", county: "Galveston", countySlug: "galveston-county-tx", district: "Galveston Central Appraisal District", districtUrl: "https://www.galvestoncad.org", metro: "Houston", medianValue: 380000, avgSavings: 1390, pop: "high", description: "League City is Galveston County's largest city and a major Clear Lake area suburb. Strong demand from NASA and petrochemical employees keeps values high — and Galveston CAD assessments frequently over-shoot market reality." },
-
-  { slug: "friendswood-tx", name: "Friendswood", county: "Galveston", countySlug: "galveston-county-tx", district: "Galveston Central Appraisal District", districtUrl: "https://www.galvestoncad.org", metro: "Houston", medianValue: 400000, avgSavings: 1460, pop: "mid", description: "Friendswood is one of the Houston area's most desirable suburbs with top-rated schools and a strong sense of community. Galveston CAD mass-appraisal in Friendswood's established neighborhoods consistently over-values relative to actual market conditions." },
-
-  { slug: "conroe-tx", name: "Conroe", county: "Montgomery", countySlug: "montgomery-county-tx", district: "Montgomery Central Appraisal District", districtUrl: "https://www.mcad-tx.org", metro: "Houston", medianValue: 340000, avgSavings: 1250, pop: "high", description: "Conroe is Montgomery County's seat and one of the Houston metro's fastest-growing cities. Rapid development and shifting market conditions create consistent over-assessment opportunities for Conroe homeowners through MCAD." },
-
-  { slug: "spring-tx", name: "Spring", county: "Harris", countySlug: "harris-county-tx", district: "Harris Central Appraisal District", districtUrl: "https://hcad.org", metro: "Houston", medianValue: 300000, avgSavings: 1100, pop: "high", description: "Spring is one of northwest Houston's largest unincorporated communities with a high volume of single-family homes. HCAD mass-appraisal across Spring's diverse neighborhoods creates widespread over-assessment opportunities." },
-
-  { slug: "cypress-tx", name: "Cypress", county: "Harris", countySlug: "harris-county-tx", district: "Harris Central Appraisal District", districtUrl: "https://hcad.org", metro: "Houston", medianValue: 360000, avgSavings: 1320, pop: "high", description: "Cypress is one of northwest Houston's most desirable and fastest-growing unincorporated communities. HCAD's mass-appraisal models frequently over-value Cypress homes in rapidly developing areas where condition and finish-out vary widely." },
-
-  { slug: "humble-tx", name: "Humble", county: "Harris", countySlug: "harris-county-tx", district: "Harris Central Appraisal District", districtUrl: "https://hcad.org", metro: "Houston", medianValue: 280000, avgSavings: 1030, pop: "mid", description: "Humble and the surrounding northeast Houston communities offer Houston-metro affordability with convenient airport access. HCAD valuations in Humble's established and newer communities frequently exceed corrected market values." },
-
-  { slug: "baytown-tx", name: "Baytown", county: "Harris", countySlug: "harris-county-tx", district: "Harris Central Appraisal District", districtUrl: "https://hcad.org", metro: "Houston", medianValue: 220000, avgSavings: 810, pop: "mid", description: "Baytown serves the Houston petrochemical corridor and has a large homeowner population. HCAD mass-appraisal across Baytown's working-class and mid-range neighborhoods frequently produces inflated assessments relative to true market values." },
-
-  { slug: "richmond-tx", name: "Richmond", county: "Fort Bend", countySlug: "fort-bend-county-tx", district: "Fort Bend Central Appraisal District", districtUrl: "https://www.fbcad.org", metro: "Houston", medianValue: 340000, avgSavings: 1250, pop: "mid", description: "Richmond is Fort Bend County's seat and a rapidly growing southwest Houston suburb. FBCAD valuations in Richmond's booming master-planned communities consistently over-assess relative to current transaction prices." },
-
-  { slug: "rosenberg-tx", name: "Rosenberg", county: "Fort Bend", countySlug: "fort-bend-county-tx", district: "Fort Bend Central Appraisal District", districtUrl: "https://www.fbcad.org", metro: "Houston", medianValue: 280000, avgSavings: 1030, pop: "mid", description: "Rosenberg is Fort Bend County's second-largest city offering Houston-area affordability. FBCAD mass-appraisal in Rosenberg's growing residential areas frequently over-values relative to comparable actual sales." },
-
-  { slug: "missouri-city-tx", name: "Missouri City", county: "Fort Bend", countySlug: "fort-bend-county-tx", district: "Fort Bend Central Appraisal District", districtUrl: "https://www.fbcad.org", metro: "Houston", medianValue: 360000, avgSavings: 1320, pop: "mid", description: "Missouri City bridges Fort Bend and Harris counties with established communities popular with Houston professionals. FBCAD and HCAD cross-county valuations create assessment inconsistencies that make protest effective for Missouri City homeowners." },
-
-  // ─── AUSTIN METRO ─────────────────────────────────────────────────────────
-
-  { slug: "round-rock-tx", name: "Round Rock", county: "Williamson", countySlug: "williamson-county-tx", district: "Williamson Central Appraisal District", districtUrl: "https://www.wcad.org", metro: "Austin", medianValue: 440000, avgSavings: 1610, pop: "high", description: "Round Rock is Williamson County's largest city and a major Dell Technologies employment hub. WCAD valuations in Round Rock's established and newer communities frequently over-assess following Austin's rapid appreciation cycle and subsequent correction." },
-
-  { slug: "cedar-park-tx", name: "Cedar Park", county: "Williamson", countySlug: "williamson-county-tx", district: "Williamson Central Appraisal District", districtUrl: "https://www.wcad.org", metro: "Austin", medianValue: 480000, avgSavings: 1750, pop: "high", description: "Cedar Park sits at the nexus of Williamson and Travis counties and has been one of Austin's fastest-growing suburbs for a decade. WCAD mass-appraisal in Cedar Park's tech-corridor communities frequently exceeds corrected market values." },
-
-  { slug: "georgetown-tx", name: "Georgetown", county: "Williamson", countySlug: "williamson-county-tx", district: "Williamson Central Appraisal District", districtUrl: "https://www.wcad.org", metro: "Austin", medianValue: 460000, avgSavings: 1680, pop: "high", description: "Georgetown is Williamson County's seat and one of the fastest-growing cities in America. Sun City retirement community and booming master-planned developments create significant over-assessment opportunities through WCAD." },
-
-  { slug: "pflugerville-tx", name: "Pflugerville", county: "Travis", countySlug: "travis-county-tx", district: "Travis Central Appraisal District", districtUrl: "https://www.traviscad.org", metro: "Austin", medianValue: 380000, avgSavings: 1390, pop: "high", description: "Pflugerville is one of northeast Austin's fastest-growing suburbs offering Travis County affordability relative to closer-in neighborhoods. TCAD valuations in Pflugerville's booming subdivisions frequently over-shoot corrected market prices." },
-
-  { slug: "kyle-tx", name: "Kyle", county: "Hays", countySlug: "hays-county-tx", district: "Hays Central Appraisal District", districtUrl: "https://www.hayscad.com", metro: "Austin", medianValue: 360000, avgSavings: 1320, pop: "high", description: "Kyle is one of Hays County's fastest-growing cities and a major beneficiary of Austin's southward expansion. HCAD valuations in Kyle's extensive master-planned communities frequently exceed post-correction market values." },
-
-  { slug: "buda-tx", name: "Buda", county: "Hays", countySlug: "hays-county-tx", district: "Hays Central Appraisal District", districtUrl: "https://www.hayscad.com", metro: "Austin", medianValue: 380000, avgSavings: 1390, pop: "mid", description: "Buda sits just south of Austin on I-35 and has exploded with growth as Austin-area homebuyers seek affordability. Hays CAD mass-appraisal in Buda's rapidly developing communities creates strong protest opportunities." },
-
-  { slug: "lakeway-tx", name: "Lakeway", county: "Travis", countySlug: "travis-county-tx", district: "Travis Central Appraisal District", districtUrl: "https://www.traviscad.org", metro: "Austin", medianValue: 680000, avgSavings: 2480, pop: "mid", description: "Lakeway sits on Lake Travis west of Austin and is one of Travis County's premier lakefront communities. High-value lake and hill country properties are especially susceptible to TCAD over-assessment due to limited comparable sales." },
-
-  { slug: "bee-cave-tx", name: "Bee Cave", county: "Travis", countySlug: "travis-county-tx", district: "Travis Central Appraisal District", districtUrl: "https://www.traviscad.org", metro: "Austin", medianValue: 720000, avgSavings: 2620, pop: "mid", description: "Bee Cave is one of Austin's most affluent western suburbs anchored by the Hill Country Galleria. Premium home values in Bee Cave make TCAD over-assessment especially costly — and protest especially valuable." },
-
-  { slug: "dripping-springs-tx", name: "Dripping Springs", county: "Hays", countySlug: "hays-county-tx", district: "Hays Central Appraisal District", districtUrl: "https://www.hayscad.com", metro: "Austin", medianValue: 580000, avgSavings: 2120, pop: "mid", description: "Dripping Springs is the gateway to the Texas Hill Country and one of Hays County's fastest-growing luxury markets. Hays CAD mass-appraisal across diverse acreage properties and luxury subdivisions creates consistent over-assessment opportunities." },
-
-  { slug: "leander-tx", name: "Leander", county: "Williamson", countySlug: "williamson-county-tx", district: "Williamson Central Appraisal District", districtUrl: "https://www.wcad.org", metro: "Austin", medianValue: 440000, avgSavings: 1610, pop: "high", description: "Leander is one of Austin's fastest-growing northern suburbs connected to downtown by the MetroRail. WCAD valuations in Leander's booming new developments frequently over-assess as the market corrects from pandemic-era highs." },
-
-  { slug: "liberty-hill-tx", name: "Liberty Hill", county: "Williamson", countySlug: "williamson-county-tx", district: "Williamson Central Appraisal District", districtUrl: "https://www.wcad.org", metro: "Austin", medianValue: 480000, avgSavings: 1750, pop: "mid", description: "Liberty Hill has transformed from a small Hill Country town to one of Williamson County's fastest-growing communities. Explosive growth and volatile valuations make WCAD protest highly effective for Liberty Hill homeowners." },
-
-  // ─── SAN ANTONIO METRO ───────────────────────────────────────────────────
-
-  { slug: "new-braunfels-tx", name: "New Braunfels", county: "Comal", countySlug: "comal-county-tx", district: "Comal Appraisal District", districtUrl: "https://www.comalad.org", metro: "San Antonio", medianValue: 380000, avgSavings: 1390, pop: "high", description: "New Braunfels is one of the fastest-growing cities in America, sitting on I-35 between San Antonio and Austin. Comal Appraisal District valuations in New Braunfels' booming master-planned communities frequently exceed corrected market values." },
-
-  { slug: "boerne-tx", name: "Boerne", county: "Kendall", countySlug: "kendall-county-tx", district: "Kendall County Appraisal District", districtUrl: "https://www.kendallcad.org", metro: "San Antonio", medianValue: 520000, avgSavings: 1900, pop: "mid", description: "Boerne is one of the Texas Hill Country's premier communities and Kendall County's seat, popular with San Antonio professionals seeking luxury living outside the city. Kendall CAD over-assessment is common in Boerne's premium neighborhoods." },
-
-  { slug: "schertz-tx", name: "Schertz", county: "Guadalupe", countySlug: "guadalupe-county-tx", district: "Guadalupe Appraisal District", districtUrl: "https://www.guadalupead.org", metro: "San Antonio", medianValue: 320000, avgSavings: 1170, pop: "mid", description: "Schertz is one of the fastest-growing cities in the San Antonio metro and a major military family community near Randolph AFB. Guadalupe Appraisal District valuations in Schertz's high-volume subdivisions frequently over-assess." },
-
-  { slug: "converse-tx", name: "Converse", county: "Bexar", countySlug: "bexar-county-tx", district: "Bexar Appraisal District", districtUrl: "https://www.bcad.org", metro: "San Antonio", medianValue: 260000, avgSavings: 960, pop: "mid", description: "Converse is a northeast San Antonio suburb near Randolph Air Force Base with a large active-duty and veteran homeowner population. BCAD mass-appraisal in Converse's established neighborhoods frequently produces inflated assessments." },
-
-  { slug: "universal-city-tx", name: "Universal City", county: "Bexar", countySlug: "bexar-county-tx", district: "Bexar Appraisal District", districtUrl: "https://www.bcad.org", metro: "San Antonio", medianValue: 260000, avgSavings: 960, pop: "mid", description: "Universal City surrounds Randolph AFB on the northeast side of San Antonio with dense single-family housing. BCAD valuations in Universal City's military-adjacent communities frequently exceed actual market transaction prices." },
-
-  { slug: "helotes-tx", name: "Helotes", county: "Bexar", countySlug: "bexar-county-tx", district: "Bexar Appraisal District", districtUrl: "https://www.bcad.org", metro: "San Antonio", medianValue: 420000, avgSavings: 1540, pop: "mid", description: "Helotes is one of northwest San Antonio's most desirable communities with Hill Country views and top-rated Northside ISD schools. BCAD mass-appraisal in Helotes' premium neighborhoods consistently over-values relative to comparable sales." },
-
-  { slug: "seguin-tx", name: "Seguin", county: "Guadalupe", countySlug: "guadalupe-county-tx", district: "Guadalupe Appraisal District", districtUrl: "https://www.guadalupead.org", metro: "San Antonio", medianValue: 280000, avgSavings: 1030, pop: "mid", description: "Seguin is Guadalupe County's seat and a fast-growing I-10 corridor city east of San Antonio. Guadalupe Appraisal District mass-appraisal in Seguin's expanding residential areas creates consistent over-assessment opportunities." },
-
-  // ─── OTHER MAJOR TX METROS ────────────────────────────────────────────────
-
-  { slug: "waco-tx", name: "Waco", county: "McLennan", countySlug: "mclennan-county-tx", district: "McLennan County Appraisal District", districtUrl: "https://www.mclennancad.org", metro: "Waco", medianValue: 260000, avgSavings: 960, pop: "mid", description: "Waco has experienced significant growth and attention in recent years, driving home values to record levels. McLennan County Appraisal District valuations frequently over-assess in a market where values rose rapidly then stabilized." },
-
-  { slug: "temple-tx", name: "Temple", county: "Bell", countySlug: "bell-county-tx", district: "Bell County Appraisal District", districtUrl: "https://www.bellcad.org", metro: "Waco", medianValue: 240000, avgSavings: 880, pop: "mid", description: "Temple is one of Central Texas's major medical and military communities anchored by Baylor Scott & White and Fort Cavazos. Bell CAD mass-appraisal in Temple's high-volume residential areas creates consistent protest opportunities." },
-
-  { slug: "killeen-tx", name: "Killeen", county: "Bell", countySlug: "bell-county-tx", district: "Bell County Appraisal District", districtUrl: "https://www.bellcad.org", metro: "Waco", medianValue: 220000, avgSavings: 810, pop: "mid", description: "Killeen is home to Fort Cavazos and one of Central Texas's largest cities. Bell CAD valuations in Killeen's high-turnover military housing market frequently over-assess relative to actual transaction prices." },
-
-  { slug: "lubbock-tx", name: "Lubbock", county: "Lubbock", countySlug: "lubbock-county-tx", district: "Lubbock Central Appraisal District", districtUrl: "https://www.lubbockcad.org", metro: "Lubbock", medianValue: 220000, avgSavings: 810, pop: "high", description: "Lubbock is West Texas's largest city and home to Texas Tech University. Lubbock CAD mass-appraisal across the city's diverse neighborhoods creates consistent over-assessment opportunities, especially in established west-side areas." },
-
-  { slug: "amarillo-tx", name: "Amarillo", county: "Potter", countySlug: "potter-county-tx", district: "Potter County Appraisal District", districtUrl: "https://www.pottercad.org", metro: "Amarillo", medianValue: 200000, avgSavings: 740, pop: "high", description: "Amarillo is the Texas Panhandle's largest city with a large and diverse housing market. Potter and Randall county appraisal districts frequently over-value in a market where actual transaction prices can vary widely by neighborhood." },
-
-  { slug: "midland-tx", name: "Midland", county: "Midland", countySlug: "midland-county-tx", district: "Midland Central Appraisal District", districtUrl: "https://www.midlandcad.org", metro: "Midland-Odessa", medianValue: 300000, avgSavings: 1100, pop: "mid", description: "Midland is the energy capital of West Texas with home values that swing dramatically with oil prices. Midland CAD valuations often lag market corrections following oil busts, creating strong protest opportunities for Midland homeowners." },
-
-  { slug: "odessa-tx", name: "Odessa", county: "Ector", countySlug: "ector-county-tx", district: "Ector County Appraisal District", districtUrl: "https://www.ectorcad.org", metro: "Midland-Odessa", medianValue: 240000, avgSavings: 880, pop: "mid", description: "Odessa's property values are closely tied to Permian Basin oil activity. Ector County Appraisal District valuations frequently over-assess during post-boom corrections, making protest highly effective for Odessa homeowners." },
-
-  { slug: "el-paso-tx", name: "El Paso", county: "El Paso", countySlug: "el-paso-county-tx", district: "El Paso Central Appraisal District", districtUrl: "https://www.epcad.org", metro: "El Paso", medianValue: 200000, avgSavings: 740, pop: "high", description: "El Paso is the largest city on the US-Mexico border and Texas's westernmost major city. El Paso CAD mass-appraisal across the city's large and diverse housing stock creates consistent over-assessment opportunities for homeowners." },
-
-  { slug: "abilene-tx", name: "Abilene", county: "Taylor", countySlug: "taylor-county-tx", district: "Taylor County Appraisal District", districtUrl: "https://www.taylorcad.org", metro: "Abilene", medianValue: 200000, avgSavings: 740, pop: "mid", description: "Abilene is West Texas's fourth-largest city and home to Dyess Air Force Base. Taylor County Appraisal District valuations in Abilene's established residential areas frequently exceed corrected market values." },
-
-  { slug: "corpus-christi-tx", name: "Corpus Christi", county: "Nueces", countySlug: "nueces-county-tx", district: "Nueces County Appraisal District", districtUrl: "https://www.nuecescad.net", metro: "Corpus Christi", medianValue: 240000, avgSavings: 880, pop: "high", description: "Corpus Christi is the Texas Gulf Coast's largest city with a diverse housing market ranging from beachfront to suburban. Nueces CAD mass-appraisal frequently over-values in a market influenced by coastal demand and oil industry cycles." },
-
-  { slug: "laredo-tx", name: "Laredo", county: "Webb", countySlug: "webb-county-tx", district: "Webb County Appraisal District", districtUrl: "https://www.webbcad.com", metro: "Laredo", medianValue: 180000, avgSavings: 660, pop: "mid", description: "Laredo is one of the nation's busiest inland ports and Webb County's only major city. Webb CAD valuations in Laredo's growing residential areas frequently over-assess relative to actual comparable sales." },
-
-  { slug: "mcallen-tx", name: "McAllen", county: "Hidalgo", countySlug: "hidalgo-county-tx", district: "Hidalgo County Appraisal District", districtUrl: "https://www.hidalgocad.org", metro: "McAllen-Edinburg", medianValue: 220000, avgSavings: 810, pop: "high", description: "McAllen is the largest city in the Rio Grande Valley and Hidalgo County's economic hub. Rapid growth and real estate investment activity create significant over-assessment opportunities through Hidalgo County Appraisal District." },
-
-  { slug: "beaumont-tx", name: "Beaumont", county: "Jefferson", countySlug: "jefferson-county-tx", district: "Jefferson County Appraisal District", districtUrl: "https://www.jcad.org", metro: "Beaumont", medianValue: 180000, avgSavings: 660, pop: "mid", description: "Beaumont is the Golden Triangle's largest city and a major petrochemical corridor community. Jefferson County Appraisal District mass-appraisal in Beaumont's diverse neighborhoods frequently produces inflated assessments." },
-
-  { slug: "tyler-tx", name: "Tyler", county: "Smith", countySlug: "smith-county-tx", district: "Smith County Appraisal District", districtUrl: "https://www.smithcad.org", metro: "Tyler", medianValue: 280000, avgSavings: 1030, pop: "mid", description: "Tyler is East Texas's largest city and the Rose Capital of America with a growing economy and rising home values. Smith County Appraisal District valuations in Tyler's established and newer communities create consistent protest opportunities." },
-
-  { slug: "longview-tx", name: "Longview", county: "Gregg", countySlug: "gregg-county-tx", district: "Gregg County Appraisal District", districtUrl: "https://www.greggcad.com", metro: "Longview", medianValue: 220000, avgSavings: 810, pop: "mid", description: "Longview is a major East Texas hub with a diversified economy. Gregg County Appraisal District mass-appraisal across Longview's varied neighborhoods creates consistent over-assessment opportunities for homeowners." },
-
-  { slug: "wichita-falls-tx", name: "Wichita Falls", county: "Wichita", countySlug: "wichita-county-tx", district: "Wichita Appraisal District", districtUrl: "https://www.wichitacad.org", metro: "Wichita Falls", medianValue: 180000, avgSavings: 660, pop: "mid", description: "Wichita Falls is North Texas's major city near the Oklahoma border, home to Sheppard Air Force Base. Wichita Appraisal District valuations in the city's diverse military and civilian housing stock create protest opportunities annually." },
-];
-
-export function getTxCityBySlug(slug) {
-  return texasCities.find(c => c.slug === slug) || null;
+// pages/texas/[city].js
+// Dynamic neighborhood/suburb pages for Texas property tax protests
+// Creates 69 pages at /texas/[city-slug] e.g. /texas/plano-tx
+
+import Head from 'next/head';
+import Link from 'next/link';
+import { useState } from 'react';
+import { texasCities, getTxCityBySlug, getAllTxCitySlugs } from '../../lib/texasCities';
+
+const C = {
+  navy: "#1B3A6B",
+  gold: "#FFC940",
+  darkNavy: "#0F1F3D",
+  bg: "#F4F7FC",
+  lightBlue: "#EEF3FB",
+  bodyGray: "#5A6B82",
+  mutedGray: "#8596AF",
+  border: "#E8EDF4",
+  white: "#FFFFFF",
+};
+
+export default function TexasCityPage({ city }) {
+  const [openFaq, setOpenFaq] = useState(null);
+
+  if (!city) return <div>City not found</div>;
+
+  const formattedSavings = city.avgSavings.toLocaleString();
+  const formattedValue = city.medianValue.toLocaleString();
+
+  const faqs = [
+    {
+      q: `How do I protest my ${city.name} property taxes?`,
+      a: `You file a formal protest with the ${city.district} by May 15 or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA prepares your protest letter with comparable sales evidence and mails it via USPS certified mail â creating legal proof of timely filing.`,
+    },
+    {
+      q: `How much can ${city.name} homeowners save by protesting?`,
+      a: `${city.name} homeowners who protest successfully save an average of $${formattedSavings} per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings â unlike contingency firms that take 25â40% of what you save.`,
+    },
+    {
+      q: `What is the ${city.name} property tax protest deadline?`,
+      a: `The deadline is May 15, 2026, or 30 days after the ${city.district} mails your Notice of Appraised Value â whichever is later. Missing this deadline means waiting a full year to challenge your assessment.`,
+    },
+    {
+      q: `Do I need to go to a hearing to protest my ${city.name} property taxes?`,
+      a: `No. Many protests are resolved at the informal hearing level before a formal Appraisal Review Board (ARB) hearing. TaxAppeal's certified mail filing puts your protest on record and our evidence package is designed to win at the informal stage.`,
+    },
+    {
+      q: `What evidence do I need to protest in ${city.name}?`,
+      a: `The strongest evidence is comparable sales â homes similar to yours that sold for less than your assessed value. TaxAppeal uses real MLS and public records data to build your comparable sales case automatically based on your property details.`,
+    },
+    {
+      q: `Is TaxAppeal USA's $79 fee worth it for ${city.name} homeowners?`,
+      a: `With average savings of $${formattedSavings} per year, TaxAppeal pays for itself many times over. Contingency firms charge 25â40% of savings â on a $${formattedSavings} win that's up to $${Math.round(city.avgSavings * 0.35).toLocaleString()} gone. TaxAppeal charges $79 flat.`,
+    },
+  ];
+
+  const steps = [
+    { step: "1", title: "Enter Your Address", desc: `Provide your ${city.name} property address. TaxAppeal pulls your current ${city.district} assessed value and property details automatically.` },
+    { step: "2", title: "We Build Your Case", desc: "Our system compiles comparable sales evidence from your neighborhood and generates a formal protest letter citing Texas Tax Code Â§41.41 and Â§41.43." },
+    { step: "3", title: "We Mail via Certified Mail", desc: `Your protest is printed and mailed to the ${city.district} via USPS Certified Mail with Return Receipt â creating irrefutable legal proof of timely filing.` },
+    { step: "4", title: "You Save Money", desc: `The appraisal district reviews your evidence and typically responds within 30â90 days. ${city.name} homeowners who protest save an average of $${formattedSavings} per year.` },
+  ];
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a }
+    }))
+  };
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "TaxAppeal USA",
+    "description": `Property tax protest service for ${city.name}, ${city.county} County, Texas`,
+    "url": `https://www.taxappealusa.com/texas/${city.slug}`,
+    "areaServed": { "@type": "City", "name": city.name, "containedInPlace": { "@type": "State", "name": "Texas" } },
+    "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" },
+    "priceRange": "$79"
+  };
+
+  return (
+    <>
+      <Head>
+        <title>{city.name} Property Tax Protest Service | File for $79 | TaxAppeal USA</title>
+        <meta name="description" content={`Protest your ${city.name} property taxes for $79 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. No percentage cuts.`} />
+        <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} />
+        <meta property="og:title" content={`${city.name} Property Tax Protest â $79 Flat Fee | TaxAppeal USA`} />
+        <meta property="og:description" content={`Protest your ${city.name} property taxes for $79 flat. Average savings $${formattedSavings}/year. Certified mail filing. No percentage cuts.`} />
+        <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
+      </Head>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
+        .container{max-width:900px;margin:0 auto;padding:0 24px;}
+        .btn-primary{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;}
+        .btn-primary:hover{background:${C.gold};color:${C.darkNavy};}
+        .btn-gold{background:${C.gold};color:${C.darkNavy};border:none;border-radius:8px;padding:18px 44px;font-size:17px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+        @media(max-width:768px){
+          .hero-stats{grid-template-columns:1fr 1fr !important;}
+          .hero-title{font-size:28px !important;}
+          .steps-grid{grid-template-columns:1fr 1fr !important;}
+          .compare-grid{grid-template-columns:1fr !important;}
+          .info-grid{grid-template-columns:1fr !important;}
+        }
+      `}</style>
+
+      {/* Nav */}
+      <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <div style={{ width: 34, height: 34, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>ð </div>
+          <div>
+            <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal USA</div>
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
+          </div>
+        </a>
+        <Link href="/apply"><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>Start my protest â</button></Link>
+      </div>
+
+      {/* Breadcrumb */}
+      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "10px 40px" }}>
+        <div className="container" style={{ padding: 0 }}>
+          <p style={{ fontSize: 13, color: C.mutedGray }}>
+            <a href="/" style={{ color: C.mutedGray, textDecoration: "none" }}>Home</a>
+            {" â "}
+            <a href="/texas" style={{ color: C.mutedGray, textDecoration: "none" }}>Texas</a>
+            {" â "}
+            <a href={`/counties/${city.countySlug}`} style={{ color: C.mutedGray, textDecoration: "none" }}>{city.county} County</a>
+            {" â "}
+            <span style={{ color: C.darkNavy }}>{city.name}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Hero */}
+      <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
+        <div className="container">
+          <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>
+            {city.name}, Texas â {city.metro} Metro â Property Tax Protest
+          </div>
+          <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display',serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
+            {city.name} Property Tax Protest â $79 Flat Fee
+          </h1>
+          <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
+            {city.description} TaxAppeal files your formal protest with the {city.district} â backed by comparable sales data and certified mail â for a flat $79.
+          </p>
+          <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+            {[
+              ["82%", "Protest success rate"],
+              [`$${formattedSavings}`, "Avg. annual savings"],
+              ["$79", "Flat fee"],
+              [city.county + " Co.", "Service area"],
+            ].map(([n, l]) => (
+              <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: n.length > 8 ? 14 : 26, color: C.gold }}>{n}</div>
+                <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <Link href="/apply">
+            <button className="btn-gold" style={{ fontSize: 17, padding: "18px 44px" }}>
+              File My {city.name} Protest â $79 â
+            </button>
+          </Link>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won&apos;t be charged until your letter is ready.</div>
+        </div>
+      </section>
+
+      {/* Why Protest */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            Why {city.name} Homeowners Should Protest
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            82% of Texas property tax protests result in a reduction. {city.name} homeowners have strong grounds â here&apos;s why.
+          </p>
+          <div style={{ display: "grid", gap: 24 }}>
+            {[
+              ["ð", `${city.district} Uses Mass Appraisal`, `The ${city.district} appraises thousands of properties using statistical models that apply broad market trends to entire neighborhoods. Your home's specific condition, updates, and location nuances are often missed â leading to inflated assessments.`],
+              ["ð", "Median Home Value Creates High Stakes", `With a median home value of $${formattedValue} in ${city.name}, even a 5% over-assessment means $${Math.round(city.medianValue * 0.05 * 0.025).toLocaleString()} in excess annual taxes. Protesting is one of the highest-ROI financial decisions a homeowner can make.`],
+              ["âï¸", "Texas Law Guarantees Your Right to Protest", `Under Texas Tax Code Â§41.41, every ${city.county} County homeowner has the legal right to protest their assessed value every single year. You don't need an attorney. TaxAppeal handles the evidence, the letter, and the certified mail filing.`],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ display: "flex", gap: 16 }}>
+                <div style={{ width: 44, height: 44, background: C.lightBlue, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 500, marginBottom: 6 }}>{title}</h3>
+                  <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section style={{ padding: "56px 40px", background: C.lightBlue }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            How TaxAppeal Works in {city.name}
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            Four steps. About 4 minutes of your time. We handle everything else.
+          </p>
+          <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 20 }}>
+            {steps.map(s => (
+              <div key={s.step} style={{ background: C.white, borderRadius: 12, padding: 24, textAlign: "center", border: `1px solid ${C.border}` }}>
+                <div style={{ width: 44, height: 44, background: C.navy, color: C.gold, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Serif Display',serif", fontSize: 20, margin: "0 auto 16px" }}>{s.step}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>{s.title}</h3>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* District Info */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            About the {city.district}
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            The {city.district} handles property valuations for {city.name} and surrounding {city.county} County communities.
+          </p>
+          <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            {[
+              ["ð", "2026 Protest Deadline", "May 15, 2026, or 30 days from your Notice of Appraised Value mailing date â whichever is later. File early; informal hearing slots fill up fast."],
+              ["ð¬", "How TaxAppeal Files", `We mail your protest letter with comparable sales evidence via USPS Certified Mail with Return Receipt to the ${city.district} â creating irrefutable legal proof of timely filing.`],
+              ["ð", "The ARB Process", "If your protest isn't resolved at the informal level, it goes to the Appraisal Review Board (ARB) â an independent panel. TaxAppeal notifies you and provides guidance at each stage."],
+              ["ð", "Appraisal District Website", `Visit the ${city.district}'s website to look up your current assessed value, download your property record card, and verify your account number before filing.`],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ background: C.lightBlue, borderRadius: 12, padding: 24 }}>
+                <div style={{ fontSize: 24, marginBottom: 10 }}>{icon}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>{title}</h3>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Fee Comparison */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
+            $79 Flat vs. Contingency Firms
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
+            Every other {city.name} property tax protest service charges a percentage of your savings â every year.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15, background: C.white, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}` }}>
+              <thead>
+                <tr style={{ background: C.navy, color: C.white }}>
+                  <th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th>
+                  <th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th>
+                  <th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on ${formattedSavings} Win</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ fontWeight: 600 }}>
+                  <td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, color: C.navy }}>â TaxAppeal USA</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>$79 flat fee</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#16a34a" }}>$79</td>
+                </tr>
+                <tr style={{ background: C.bg }}>
+                  <td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>Ownwell</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>25â35% of savings</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#dc2626" }}>${Math.round(city.avgSavings * 0.30).toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>O&apos;Connor / CutMyTaxes</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>30â50% of savings</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#dc2626" }}>${Math.round(city.avgSavings * 0.40).toLocaleString()}</td>
+                </tr>
+                <tr style={{ background: C.bg }}>
+                  <td style={{ padding: "14px 20px" }}>Local Tax Attorney</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center" }}>$300â$800+</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", color: "#dc2626" }}>$500+</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Legal */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 28, marginBottom: 20 }}>
+            Texas Property Tax Protest Law
+          </h2>
+          <div style={{ background: C.lightBlue, borderRadius: 12, padding: "28px 32px", borderLeft: `4px solid ${C.navy}` }}>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy, marginBottom: 16 }}>
+              Under <strong>Texas Tax Code Â§41.41</strong>, every {city.county} County homeowner has the legal right to protest their assessed value annually â on grounds of market value (Â§41.43(a)) or unequal appraisal (Â§41.43(b)).
+            </p>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy, marginBottom: 16 }}>
+              The protest deadline is <strong>May 15 or 30 days from your notice mailing date</strong> â whichever is later. Texas Tax Code Â§41.44 governs timely filing requirements.
+            </p>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy }}>
+              TaxAppeal USA prepares your formal protest and sends it to the {city.district} via USPS Certified Mail with Return Receipt â so you have legally admissible proof of timely filing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>
+            {city.name} Property Tax Protest FAQ
+          </h2>
+          {faqs.map((faq, i) => (
+            <div key={i} style={{ background: C.white, border: `1.5px solid ${openFaq === i ? C.navy : C.border}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+              <div onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ padding: "16px 20px", fontSize: 15, fontWeight: 500, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {faq.q}
+                <span style={{ color: C.mutedGray, transform: openFaq === i ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0, marginLeft: 12 }}>â¾</span>
+              </div>
+              {openFaq === i && <div style={{ padding: "0 20px 16px", fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>{faq.a}</div>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
+        <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 34, color: C.white, marginBottom: 12 }}>
+          Ready to protest your {city.name} property taxes?
+        </h2>
+        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>
+          Join {city.name} homeowners saving an average of ${formattedSavings}/year. $79 flat â no hidden fees, no percentage cuts.
+        </p>
+        <Link href="/apply">
+          <button className="btn-gold">Start My {city.name} Protest â $79 â</button>
+        </Link>
+        <p style={{ fontSize: 13, color: "#5A7A9F", marginTop: 16 }}>
+          Texas Tax Code Â§41.41 Â· {city.district} Â· USPS Certified Mail Filing
+        </p>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <p style={{ color: C.mutedGray, fontSize: 12 }}>Â© 2026 TaxAppeal USA Â· disputes@taxappealusa.com</p>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {[["Texas", "/texas"], ["Georgia", "/georgia"], ["Florida", "/florida"], ["Houston", "/houston"], ["Dallas", "/dallas"], ["Fort Worth", "/fort-worth"], ["Austin", "/austin"], ["San Antonio", "/san-antonio"], ["Atlanta", "/atlanta"], ["Miami", "/miami"], ["Tampa", "/tampa"], ["Terms", "/terms"], ["Privacy", "/privacy"]].map(([label, href]) => (
+            <a key={href} href={href} style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>{label}</a>
+          ))}
+        </div>
+      </footer>
+    </>
+  );
 }
 
-export function getAllTxCitySlugs() {
-  return texasCities.map(c => ({ params: { city: c.slug } }));
+export async function getStaticPaths() {
+  const paths = getAllTxCitySlugs();
+  return { paths, fallback: false };
+}
+
+export async function getStaticProps({ params }) {
+  const city = getTxCityBySlug(params.city);
+  if (!city) return { notFound: true };
+  return { props: { city } };
 }
