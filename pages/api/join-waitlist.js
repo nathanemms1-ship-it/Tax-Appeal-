@@ -10,27 +10,46 @@ export default async function handler(req, res) {
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
   try {
-    // Check if already on waitlist
+    const currentYear = new Date().getFullYear();
+
+    // Determine filing_year — FL waitlist in June-July is for the current year (Aug-Sep window)
+    // TX/GA waitlist mid-year is for next year since their windows have passed
+    const stateUpper = (state || '').toUpperCase();
+    let filingYear = currentYear;
+    if (stateUpper === 'TX' || stateUpper === 'GA') {
+      // TX window closes May 31, GA window closes July 15
+      // If we're past those dates, they're filing for next year
+      const today = new Date();
+      const txClose = new Date(currentYear, 4, 31); // May 31
+      const gaClose = new Date(currentYear, 6, 15); // Jul 15
+      if (stateUpper === 'TX' && today > txClose) filingYear = currentYear + 1;
+      if (stateUpper === 'GA' && today > gaClose) filingYear = currentYear + 1;
+    }
+
+    // Check if already on waitlist for this state + year
     const { data: existing } = await supabase
       .from('waitlist')
       .select('id')
-      .eq('email', email)
-      .eq('state', state)
-      .single();
+      .eq('email', email.toLowerCase())
+      .eq('state', stateUpper)
+      .eq('filing_year', filingYear)
+      .limit(1);
 
-    if (existing) {
+    if (existing?.length) {
       return res.status(200).json({ success: true, duplicate: true, message: 'Already on the waitlist' });
     }
 
     const { data, error } = await supabase
       .from('waitlist')
       .insert({
-        email,
+        email: email.toLowerCase(),
         name: name || null,
-        state,
+        state: stateUpper,
         county: county || null,
         property_address: propertyAddress || null,
         notify_date: notifyDate || null,
+        filing_year: filingYear,
+        notified_count: 0,
         notified: false,
       })
       .select()
@@ -41,7 +60,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    console.log('Waitlist entry saved:', data.id, email, state);
+    console.log('Waitlist entry saved:', data.id, email, stateUpper, `year=${filingYear}`);
     return res.status(200).json({ success: true, id: data.id });
   } catch (err) {
     console.error('Join waitlist error:', err);
