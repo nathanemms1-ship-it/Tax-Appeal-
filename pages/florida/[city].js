@@ -215,7 +215,7 @@ export default function FloridaCityPage({ city }) {
 
         <section style={{ padding: "60px 0", textAlign: "center", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
-          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $79 flat.</s>
+          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $79 flat.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal â  $79 Flat â</button></Link>
           <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>â»î Florida Statute Â§194.011 Â· TRIM Notice VAB Petition Â· USPS Certified Mail Filing</p>
         </section>
