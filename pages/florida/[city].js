@@ -1,6 +1,6 @@
 // pages/florida/[city].js
 // Dynamic neighborhood pages for Florida property tax appeals
-// Creates 50 pages at /florida/[city-slug] e.g. /florida/miami-beach
+// Creates 80 pages at /florida/[city-slug] e.g. /florida/miami-beach
 
 import Head from 'next/head';
 import Link from 'next/link';
@@ -57,8 +57,8 @@ const floridaCities = [
   { slug: "fleming-island", name: "Fleming Island", county: "Clay", medianHomeValue: 380000, avgSavings: 1080, description: "Fleming Island homeowners in Clay County's fastest growing area often find their assessments outpacing market data." },
   { slug: "daytona-beach", name: "Daytona Beach", county: "Volusia", medianHomeValue: 290000, avgSavings: 820, description: "Daytona Beach homeowners near the speedway and ocean find significant value in the VAB appeal process." },
   { slug: "new-smyrna-beach", name: "New Smyrna Beach", county: "Volusia", medianHomeValue: 480000, avgSavings: 1360, description: "New Smyrna Beach's surf town charm drives high demand and frequent over-assessment of beachside properties." },
-];
-{ slug: "parkland-fl", name: "Parkland", county: "Broward", medianHomeValue: 920000, avgSavings: 2600, description: "Parkland was ranked the #1 best place to live in Florida, and its luxury gated communities reflect that prestige in their assessed values. Over-assessments here translate to thousands in unnecessary taxes annually." },
+  // ── BATCH 2 (new 30) ──────────────────────────────────────────────────────
+  { slug: "parkland-fl", name: "Parkland", county: "Broward", medianHomeValue: 920000, avgSavings: 2600, description: "Parkland was ranked the #1 best place to live in Florida, and its luxury gated communities reflect that prestige in their assessed values. Over-assessments here translate to thousands in unnecessary taxes annually." },
   { slug: "davie-fl", name: "Davie", county: "Broward", medianHomeValue: 480000, avgSavings: 1400, description: "Davie homeowners across one of Broward's largest communities frequently find assessment inconsistencies. With equestrian estates and suburban neighborhoods, varied property types create strong appeal opportunities." },
   { slug: "cooper-city-fl", name: "Cooper City", county: "Broward", medianHomeValue: 540000, avgSavings: 1550, description: "Cooper City is consistently ranked among Broward's most desirable suburbs, and high demand drives assessments above true market value. Our flat fee appeal process gives homeowners a clear path to savings." },
   { slug: "plantation-fl", name: "Plantation", county: "Broward", medianHomeValue: 500000, avgSavings: 1450, description: "Plantation's established neighborhoods and proximity to Fort Lauderdale create assessment pressures that often exceed actual sale prices. Formal VAB petitions here regularly achieve meaningful reductions." },
@@ -84,10 +84,12 @@ const floridaCities = [
   { slug: "windermere-fl", name: "Windermere", county: "Orange", medianHomeValue: 1100000, avgSavings: 3100, description: "Windermere's lakefront estates and gated communities are prime candidates for property tax appeals. With limited comparable sales and unique waterfront features, assessors frequently miss the mark on true market value." },
   { slug: "hunters-creek-fl", name: "Hunters Creek", county: "Orange", medianHomeValue: 420000, avgSavings: 1200, description: "Hunters Creek's large planned community with thousands of homes sees consistent over-assessment patterns. Our flat $79 fee makes formal VAB filing affordable for every homeowner in this Orange County community." },
   { slug: "new-tampa-fl", name: "New Tampa", county: "Hillsborough", medianHomeValue: 450000, avgSavings: 1300, description: "New Tampa's large planned communities and consistent housing stock create both the need and the evidence for successful property tax appeals. Our flat fee service handles all filing formalities." },
-  { slug: "estero-fl", name: "Estero", county: "Lee", medianHomeValue: 520000, avgSavings: 1500, description: "Estero's luxury communities between Fort Myers and Naples see frequent over-assessments as high demand pushes assessed values above true market prices. Our filing service makes the appeal process seamless." },
   { slug: "longboat-key-fl", name: "Longboat Key", county: "Sarasota", medianHomeValue: 1200000, avgSavings: 3400, description: "Longboat Key's ultra-luxury barrier island homes are among Sarasota County's most frequently over-assessed. Gulf-front estates here regularly see six-figure assessment reductions through formal VAB appeals." },
   { slug: "golden-gate-fl", name: "Golden Gate", county: "Collier", medianHomeValue: 380000, avgSavings: 1100, description: "Golden Gate homeowners in the Naples area benefit from formal VAB appeals as Collier County's growing market creates assessment inconsistencies across this large suburban community." },
-  { slug: "melbourne-fl", name: "Melbourne", county: "Brevard", medianHomeValue: 320000, avgSavings: 900, description: "Melbourne homeowners on the Space Coast benefit from formal property tax appeals as the tech and aerospace boom drives assessments that frequently outpace comparable sales." },export async function getStaticPaths() {
+  { slug: "melbourne-fl", name: "Melbourne", county: "Brevard", medianHomeValue: 320000, avgSavings: 900, description: "Melbourne homeowners on the Space Coast benefit from formal property tax appeals as the tech and aerospace boom drives assessments that frequently outpace comparable sales." },
+];
+
+export async function getStaticPaths() {
   const paths = floridaCities.map((city) => ({
     params: { city: city.slug },
   }));
@@ -178,14 +180,14 @@ export default function FloridaCityPage({ city }) {
         </nav>
 
         <section style={{ padding: "60px 0 40px", textAlign: "center" }}>
-          <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA️ {city.county.toUpperCase()} COUNTY· VAB PETITION</div>
+          <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
           <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} Save an average of <strong style={{ color: "#1B2A4A" }}>${formattedSavings}</strong> per year for just <strong style={{ color: "#C9A84C" }}>$79 flat</strong>.</p>
-          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes →</button></Link>
+          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes</button></Link>
         </section>
 
         <div style={{ background: "#1B2A4A", color: "white", borderRadius: "12px", padding: "20px 32px", textAlign: "center", margin: "0 32px 48px" }}>
-          <span style={{ fontSize: "16px", fontWeight: "600" }}>🗓️ Florida TRIM notices mail around <strong style={{ color: "#C9A84C" }}>{trimOpen}</strong> - you have 25 days to file. <strong style={{ color: "#C9A84C" }}>Do not miss your window.</strong></span>
+          <span style={{ fontSize: "16px", fontWeight: "600" }}>Florida TRIM notices mail around <strong style={{ color: "#C9A84C" }}>{trimOpen}</strong> — you have 25 days to file. <strong style={{ color: "#C9A84C" }}>Do not miss your window.</strong></span>
         </div>
 
         <section style={{ padding: "48px 0", borderTop: "1px solid #e5e7eb" }}>
@@ -212,9 +214,9 @@ export default function FloridaCityPage({ city }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px" }}>
             <thead><tr style={{ background: "#1B2A4A", color: "white" }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on ${formattedSavings} Win</th></tr></thead>
             <tbody>
-              <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>✅ TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$79 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>$79</td></tr>
+              <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$79 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>$79</td></tr>
               <tr><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>Ownwell</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>25-35% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.30).toLocaleString()}</td></tr>
-              <tr style={{ background: "#f9fafb" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>O'Connor/CutMyTaxes</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>30-50% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.40).toLocaleString()}</td></tr>
+              <tr style={{ background: "#f9fafb" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>O&apos;Connor/CutMyTaxes</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>30-50% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.40).toLocaleString()}</td></tr>
               <tr><td style={{ padding: "14px 20px" }}>Local Tax Attorney</td><td style={{ padding: "14px 20px", textAlign: "center" }}>$300-$800+</td><td style={{ padding: "14px 20px", textAlign: "center", color: "#dc2626" }}>$500+</td></tr>
             </tbody>
           </table>
@@ -244,8 +246,8 @@ export default function FloridaCityPage({ city }) {
         <section style={{ padding: "60px 0", textAlign: "center", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
           <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $79 flat.</p>
-          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal —  $79 Flat →</button></Link>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>⚖» Florida Statute §194.011 · TRIM Notice VAB Petition · USPS Certified Mail Filing</p>
+          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $79 Flat</button></Link>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · USPS Certified Mail Filing</p>
         </section>
 
         <footer style={{ borderTop: "1px solid #e5e7eb", padding: "32px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
