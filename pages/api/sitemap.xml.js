@@ -91,6 +91,10 @@ const blogSlugs = [
   "when-do-florida-trim-notices-arrive-2026",
   "how-to-read-florida-trim-notice-2026",
   "florida-homestead-exemption-vs-property-tax-appeal",
+  "do-i-need-a-lawyer-to-appeal-florida-property-taxes",
+  "florida-property-tax-appeal-success-rate",
+  "duval-county-jacksonville-property-tax-appeal-guide-2026",
+  "non-homestead-property-tax-appeal-florida",
 ];
 
 export default function handler(req, res) {
