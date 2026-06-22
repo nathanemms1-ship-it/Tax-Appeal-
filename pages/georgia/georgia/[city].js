@@ -1,0 +1,238 @@
+// pages/georgia/[city].js
+// Dynamic neighborhood/suburb pages for Georgia property tax appeals
+// Creates pages at /georgia/[city-slug] e.g. /georgia/alpharetta-ga
+
+import Head from 'next/head';
+import Link from 'next/link';
+import { useState } from 'react';
+import { getGaSuburbBySlug, getAllGaSuburbSlugs } from '../../lib/georgiaSuburbs';
+
+const C = {
+  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D",
+  bg: "#F4F7FC", lightBlue: "#EEF3FB", bodyGray: "#5A6B82",
+  mutedGray: "#8596AF", border: "#E8EDF4", white: "#FFFFFF",
+};
+
+export default function GeorgiaCityPage({ city }) {
+  const [openFaq, setOpenFaq] = useState(null);
+  if (!city) return <div>City not found</div>;
+
+  const formattedSavings = city.avgSavings.toLocaleString();
+  const formattedValue = city.medianValue.toLocaleString();
+
+  const faqs = [
+    { q: `How do I appeal my ${city.name} property taxes?`, a: `You file a formal appeal with the ${city.district} within 45 days of the date on your Notice of Assessment. TaxAppeal USA prepares your appeal letter with comparable sales evidence and mails it via USPS certified mail — creating legal proof of timely filing under O.C.G.A. § 48-5-311.` },
+    { q: `How much can ${city.name} homeowners save by appealing?`, a: `${city.name} homeowners who appeal successfully save an average of $${formattedSavings} per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save.` },
+    { q: `What is the ${city.name} property tax appeal deadline?`, a: `The deadline is 45 days from the date on your Notice of Assessment from the ${city.district}. Georgia assessments are typically mailed April through June — your 45-day clock starts from the notice date, not when you receive it.` },
+    { q: `Can my ${city.name} assessment go up if I appeal?`, a: `In rare cases, yes — Georgia does not have a statutory prohibition on assessment increases from appeals. However, TaxAppeal reviews all comparable sales data before filing to ensure your appeal is strongly supported, minimizing this risk.` },
+    { q: `What is the Board of Equalization in ${city.county} County?`, a: `The Board of Equalization (BOE) is a three-member independent panel that hears formal property tax appeals. If the ${city.district} does not offer an acceptable reduction at the informal review stage, your appeal proceeds to the BOE.` },
+    { q: `Is TaxAppeal USA's $79 fee worth it for ${city.name} homeowners?`, a: `With average savings of $${formattedSavings} per year, TaxAppeal pays for itself many times over. Contingency firms charge 25–40% of savings — on a $${formattedSavings} win that's $${Math.round(city.avgSavings * 0.35).toLocaleString()} gone. TaxAppeal charges $79 flat.` },
+  ];
+
+  const steps = [
+    { step: "1", title: "Enter Your Address", desc: `Provide your ${city.name} property address. TaxAppeal pulls your current ${city.district} assessed value and property details automatically.` },
+    { step: "2", title: "We Build Your Case", desc: `Our system compiles comparable sales evidence from ${city.county} County and generates a formal appeal letter citing O.C.G.A. § 48-5-311.` },
+    { step: "3", title: "We Mail via Certified Mail", desc: `Your appeal is printed and mailed to the ${city.district} via USPS Certified Mail with Return Receipt — documented legal proof of timely filing before your 45-day deadline.` },
+    { step: "4", title: "You Save Money", desc: `The ${city.district} reviews your evidence. If they don't offer a satisfactory reduction, your case proceeds to the Board of Equalization. ${city.name} homeowners who appeal save an average of $${formattedSavings} per year.` },
+  ];
+
+  const schema = { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqs.map(f => ({ "@type": "Question", "name": f.q, "acceptedAnswer": { "@type": "Answer", "text": f.a } })) };
+  const localBusinessSchema = { "@context": "https://schema.org", "@type": "LocalBusiness", "name": "TaxAppeal USA", "description": `Property tax appeal service for ${city.name}, ${city.county} County, Georgia`, "url": `https://www.taxappealusa.com/georgia/${city.slug}`, "areaServed": { "@type": "City", "name": city.name, "containedInPlace": { "@type": "State", "name": "Georgia" } }, "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" }, "priceRange": "$79" };
+
+  return (
+    <>
+      <Head>
+        <title>{city.name} Property Tax Appeal Service | File for $79 | TaxAppeal USA</title>
+        <meta name="description" content={`Appeal your ${city.name} property taxes for $79 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. 45-day deadline.`} />
+        <link rel="canonical" href={`https://www.taxappealusa.com/georgia/${city.slug}`} />
+        <meta property="og:title" content={`${city.name} Property Tax Appeal — $79 Flat Fee | TaxAppeal USA`} />
+        <meta property="og:url" content={`https://www.taxappealusa.com/georgia/${city.slug}`} />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
+      </Head>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
+        .container{max-width:900px;margin:0 auto;padding:0 24px;}
+        .btn-primary{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+        .btn-gold{background:${C.gold};color:${C.darkNavy};border:none;border-radius:8px;padding:18px 44px;font-size:17px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+        @media(max-width:768px){.hero-stats{grid-template-columns:1fr 1fr !important;}.hero-title{font-size:28px !important;}.steps-grid{grid-template-columns:1fr 1fr !important;}.info-grid{grid-template-columns:1fr !important;}}
+      `}</style>
+
+      <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <div style={{ width: 34, height: 34, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
+          <div>
+            <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal USA</div>
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
+          </div>
+        </a>
+        <Link href="/apply"><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>Start my appeal →</button></Link>
+      </div>
+
+      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "10px 40px" }}>
+        <div className="container" style={{ padding: 0 }}>
+          <p style={{ fontSize: 13, color: C.mutedGray }}>
+            <a href="/" style={{ color: C.mutedGray, textDecoration: "none" }}>Home</a>{" › "}
+            <a href="/georgia" style={{ color: C.mutedGray, textDecoration: "none" }}>Georgia</a>{" › "}
+            <a href={`/counties/${city.countySlug}`} style={{ color: C.mutedGray, textDecoration: "none" }}>{city.county} County</a>{" › "}
+            <span style={{ color: C.darkNavy }}>{city.name}</span>
+          </p>
+        </div>
+      </div>
+
+      <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
+        <div className="container">
+          <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>
+            {city.name}, Georgia · {city.metro} Area · Property Tax Appeal
+          </div>
+          <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display',serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
+            {city.name} Property Tax Appeal — $79 Flat Fee
+          </h1>
+          <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
+            {city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $79.
+          </p>
+          <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+            {[["45 days", "Appeal window"], [`$${formattedSavings}`, "Avg. annual savings"], ["$79", "Flat fee"], [city.county + " Co.", "Service area"]].map(([n, l]) => (
+              <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: n.length > 8 ? 14 : 26, color: C.gold }}>{n}</div>
+                <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $79 →</button></Link>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. 45-day deadline from your notice date.</div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Why {city.name} Homeowners Should Appeal</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Georgia assesses property at 40% of fair market value — when that estimate is wrong, you overpay every year until you appeal.</p>
+          <div style={{ display: "grid", gap: 24 }}>
+            {[
+              ["📊", `${city.district} Uses Mass Appraisal`, `The ${city.district} values thousands of properties using statistical models that apply broad market trends across entire neighborhoods. Your home's specific condition and location nuances are often missed — leading to inflated assessments at 40% of an overstated fair market value.`],
+              ["💰", "High Stakes at Current Values", `With a median home value of $${formattedValue} in ${city.name}, even a 5% over-assessment means $${Math.round(city.medianValue * 0.05 * 0.40 * 0.025).toLocaleString()} in excess annual taxes. Appealing is one of the highest-ROI financial decisions a Georgia homeowner can make.`],
+              ["⚖️", "Georgia Law Gives You 45 Days to Act", `Under O.C.G.A. § 48-5-311, every ${city.county} County homeowner has the legal right to appeal within 45 days of their Notice of Assessment. TaxAppeal handles the evidence, the appeal letter, and the certified mail filing.`],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ display: "flex", gap: 16 }}>
+                <div style={{ width: 44, height: 44, background: C.lightBlue, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 500, marginBottom: 6 }}>{title}</h3>
+                  <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.lightBlue }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>How TaxAppeal Works in {city.name}</h2>
+          <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 20 }}>
+            {steps.map(s => (
+              <div key={s.step} style={{ background: C.white, borderRadius: 12, padding: 24, textAlign: "center", border: `1px solid ${C.border}` }}>
+                <div style={{ width: 44, height: 44, background: C.navy, color: C.gold, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Serif Display',serif", fontSize: 20, margin: "0 auto 16px" }}>{s.step}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>{s.title}</h3>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>About the {city.district}</h2>
+          <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            {[
+              ["📅", "45-Day Appeal Deadline", `Your appeal must be filed within 45 days of the date on your Notice of Assessment from the ${city.district}. The clock starts from the notice date. TaxAppeal files certified mail to create documented proof of timely filing.`],
+              ["📬", "How TaxAppeal Files", `We mail your appeal letter with comparable sales evidence via USPS Certified Mail with Return Receipt to the ${city.district} — creating a legally documented record that your appeal was postmarked before the 45-day deadline.`],
+              ["🏛️", "The BOE Process", `If the ${city.district} doesn't offer an acceptable reduction, your appeal proceeds to the ${city.county} County Board of Equalization (BOE) — a three-member independent panel. TaxAppeal notifies you and provides guidance at each stage.`],
+              ["⚠️", "Georgia Risk Disclosure", "Unlike Texas and Florida, Georgia does not prohibit assessment increases from appeals. TaxAppeal reviews all market data before filing to ensure your appeal is well-supported by comparable sales evidence."],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ background: C.lightBlue, borderRadius: 12, padding: 24 }}>
+                <div style={{ fontSize: 24, marginBottom: 10 }}>{icon}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>{title}</h3>
+                <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>$79 Flat vs. Contingency Firms</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Every other {city.name} property tax appeal service charges a percentage of your savings — every year.</p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15, background: C.white, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}` }}>
+              <thead><tr style={{ background: C.navy, color: C.white }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on ${formattedSavings} Win</th></tr></thead>
+              <tbody>
+                <tr style={{ fontWeight: 600 }}><td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, color: C.navy }}>✓ TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>$79 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#16a34a" }}>$79</td></tr>
+                <tr style={{ background: C.bg }}><td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>Contingency Appeal Firm</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>25–35% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#dc2626" }}>$${Math.round(city.avgSavings * 0.30).toLocaleString()}</td></tr>
+                <tr><td style={{ padding: "14px 20px" }}>Property Tax Attorney</td><td style={{ padding: "14px 20px", textAlign: "center" }}>40–50% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", color: "#dc2626" }}>$${Math.round(city.avgSavings * 0.45).toLocaleString()}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 28, marginBottom: 20 }}>Georgia Property Tax Appeal Law</h2>
+          <div style={{ background: C.lightBlue, borderRadius: 12, padding: "28px 32px", borderLeft: `4px solid ${C.navy}` }}>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy, marginBottom: 16 }}>Under <strong>O.C.G.A. § 48-5-311</strong>, every {city.county} County homeowner has the legal right to appeal their property assessment within 45 days of their Notice of Assessment. Georgia assesses property at <strong>40% of estimated fair market value</strong>.</p>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy, marginBottom: 16 }}>The appeal process: Board of Assessors informal review → Board of Equalization (BOE) hearing → Superior Court if needed. The <strong>postmark deadline</strong> controls in Georgia — TaxAppeal files certified mail to document timely filing.</p>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy }}>Georgia law does not prohibit assessment increases from appeals. TaxAppeal reviews all comparable sales data to ensure your case is strongly supported before filing.</p>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div className="container">
+          <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 36 }}>{city.name} Property Tax Appeal FAQ</h2>
+          {faqs.map((faq, i) => (
+            <div key={i} style={{ background: C.white, border: `1.5px solid ${openFaq === i ? C.navy : C.border}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+              <div onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ padding: "16px 20px", fontSize: 15, fontWeight: 500, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {faq.q}<span style={{ color: C.mutedGray, transform: openFaq === i ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0, marginLeft: 12 }}>▾</span>
+              </div>
+              {openFaq === i && <div style={{ padding: "0 20px 16px", fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>{faq.a}</div>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
+        <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your {city.name} property taxes?</h2>
+        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>{city.name} homeowners save an average of $${formattedSavings}/year. $79 flat — 45-day deadline from your notice.</p>
+        <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $79 →</button></Link>
+        <p style={{ fontSize: 13, color: "#5A7A9F", marginTop: 16 }}>O.C.G.A. § 48-5-311 · {city.district} · USPS Certified Mail Filing</p>
+      </section>
+
+      <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {[["Texas","/texas"],["Georgia","/georgia"],["Florida","/florida"],["Atlanta","/atlanta"],["Blog","/blog"],["Terms","/terms"],["Privacy","/privacy"]].map(([label,href]) => (
+            <a key={href} href={href} style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>{label}</a>
+          ))}
+        </div>
+      </footer>
+    </>
+  );
+}
+
+export async function getStaticPaths() {
+  const paths = getAllGaSuburbSlugs();
+  return { paths, fallback: false };
+}
+
+export async function getStaticProps({ params }) {
+  const city = getGaSuburbBySlug(params.city);
+  if (!city) return { notFound: true };
+  return { props: { city } };
+}
