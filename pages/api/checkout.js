@@ -1,3 +1,4 @@
+// pages/api/checkout.js
 import Stripe from 'stripe';
 import bcrypt from 'bcryptjs';
 
@@ -7,36 +8,16 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const {
-    email,
-    firstName,
-    lastName,
-    password,
-    address,
-    county,
-    assessedValue,
-    targetReduction,
-    savings,
-    letter,
-    letterKey,
-    // District info
-    districtName,
-    districtAddress,
-    districtCity,
-    districtState,
-    districtZip,
-    // Owner address
-    ownerStreet,
-    ownerCity,
-    ownerState,
-    ownerZip,
+    email, firstName, lastName, password, address, county,
+    assessedValue, targetReduction, savings, letter, letterKey,
+    districtName, districtAddress, districtCity, districtState, districtZip,
+    ownerStreet, ownerCity, ownerState, ownerZip,
+    refCode,
   } = req.body;
 
   try {
-    // Hash the password before storing in Stripe metadata
     let passwordHash = '';
-    if (password) {
-      passwordHash = await bcrypt.hash(password, 10);
-    }
+    if (password) passwordHash = await bcrypt.hash(password, 10);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -72,6 +53,7 @@ export default async function handler(req, res) {
         ownerState: ownerState || '',
         ownerZip: ownerZip || '',
         letterKey: letterKey || '',
+        refCode: refCode || '',
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,
