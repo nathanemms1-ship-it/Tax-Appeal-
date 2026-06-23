@@ -5,4 +5,4 @@ Disallow: /admin
 Disallow: /api/
 Disallow: /success
 
-Sitemap: https://www.taxappealusa.com/sitemap.xml
+Sitemap: https://www.taxappealusa.com/api/sitemap.xml
