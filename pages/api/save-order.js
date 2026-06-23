@@ -1,3 +1,4 @@
+// pages/api/save-order.js
 import { getSupabaseAdmin } from './supabase';
 import bcrypt from 'bcryptjs';
 
@@ -5,53 +6,25 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const {
-    customerName,
-    customerEmail,
-    customerPassword,
-    passwordHash,
-    propertyAddress,
-    county,
-    state,
-    assessedValue,
-    marketValue,
-    targetReduction,
-    reductionPct,
-    estimatedSavings,
-    stripeSessionId,
-    amountPaid,
-    lobLetterId,
-    lobTrackingNumber,
-    districtName,
-    districtAddress,
-    districtCity,
-    districtState,
-    districtZip,
+    customerName, customerEmail, customerPassword, passwordHash,
+    propertyAddress, county, state, assessedValue, marketValue,
+    targetReduction, reductionPct, estimatedSavings, stripeSessionId,
+    amountPaid, lobLetterId, lobTrackingNumber,
+    districtName, districtAddress, districtCity, districtState, districtZip,
+    refCode,
   } = req.body;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
   try {
-    // Prevent duplicate orders
-    const { data: existing } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('stripe_session_id', stripeSessionId)
-      .single();
+    const { data: existing } = await supabase.from('orders').select('id').eq('stripe_session_id', stripeSessionId).single();
+    if (existing) return res.status(200).json({ success: true, orderId: existing.id, duplicate: true });
 
-    if (existing) {
-      return res.status(200).json({ success: true, orderId: existing.id, duplicate: true });
-    }
-
-    // Handle password
     let password_hash = null;
-    if (passwordHash) {
-      password_hash = passwordHash;
-    } else if (customerPassword) {
-      password_hash = await bcrypt.hash(customerPassword, 10);
-    }
+    if (passwordHash) password_hash = passwordHash;
+    else if (customerPassword) password_hash = await bcrypt.hash(customerPassword, 10);
 
-    // Save the order
     const { data, error } = await supabase
       .from('orders')
       .insert({
@@ -59,8 +32,7 @@ export default async function handler(req, res) {
         customer_email: customerEmail,
         password_hash,
         property_address: propertyAddress,
-        county,
-        state,
+        county, state,
         assessed_value: assessedValue ? Number(assessedValue) : null,
         market_value: marketValue ? Number(marketValue) : null,
         target_reduction: targetReduction ? Number(targetReduction) : null,
@@ -78,6 +50,7 @@ export default async function handler(req, res) {
         district_state: districtState || null,
         district_zip: districtZip || null,
         dispute_status: 'filed',
+        ref_code: refCode || null,
       })
       .select()
       .single();
@@ -87,42 +60,34 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    console.log('Order saved:', data.id);
+    console.log('Order saved:', data.id, refCode ? `(ref: ${refCode})` : '');
 
-    // ── Auto-enroll in NEXT YEAR'S waitlist ──
-    // This ensures returning customers get reminded again next filing season
+    // Increment referral total_referrals counter
+    if (refCode) {
+      try {
+        await supabase.rpc('increment_referral_count', { referral_code: refCode });
+      } catch (rpcErr) {
+        console.error('Referral count increment failed:', rpcErr.message);
+      }
+    }
+
+    // Auto-enroll in next year waitlist
     try {
       const nextYear = new Date().getFullYear() + 1;
-
-      // Check if already enrolled for next year
-      const { data: alreadyEnrolled } = await supabase
-        .from('waitlist')
-        .select('id')
-        .eq('email', customerEmail.toLowerCase())
-        .eq('state', state)
-        .eq('filing_year', nextYear)
-        .limit(1);
-
+      const { data: alreadyEnrolled } = await supabase.from('waitlist').select('id').eq('email', customerEmail.toLowerCase()).eq('state', state).eq('filing_year', nextYear).limit(1);
       if (!alreadyEnrolled?.length) {
         await supabase.from('waitlist').insert({
-          email: customerEmail.toLowerCase(),
-          name: customerName,
-          state,
-          county: county || null,
-          property_address: propertyAddress || null,
-          filing_year: nextYear,
-          notified_count: 0,
-          enrolled_from_order: true,
+          email: customerEmail.toLowerCase(), name: customerName, state,
+          county: county || null, property_address: propertyAddress || null,
+          filing_year: nextYear, notified_count: 0, enrolled_from_order: true,
         });
         console.log(`Auto-enrolled ${customerEmail} in ${nextYear} waitlist`);
       }
     } catch (waitlistErr) {
-      // Non-fatal — order already saved, waitlist enrollment is best-effort
       console.error('Waitlist enrollment failed:', waitlistErr.message);
     }
 
     return res.status(200).json({ success: true, orderId: data.id });
-
   } catch (err) {
     console.error('Save order error:', err);
     return res.status(500).json({ error: err.message });
