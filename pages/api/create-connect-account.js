@@ -58,8 +58,8 @@ export default async function handler(req, res) {
     // Generate the hosted onboarding link
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners?ref=${referralCode}&setup=retry`,
-      return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners?ref=${referralCode}&setup=complete`,
+      refresh_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${referralCode}&retry=1`,
+      return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners?connected=1&ref=${referralCode}`,
       type: 'account_onboarding',
     });
 
