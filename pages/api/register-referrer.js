@@ -100,7 +100,7 @@ export default async function handler(req, res) {
       <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
         <p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. Stripe also handles your W-9 and any required 1099 tax forms automatically.</p>
-        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners?ref=${code}&setup=start" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
+        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${code}&email=${email.toLowerCase().trim()}&name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
       </div>
       <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $79 flat. No percentage of your savings. Here's the link: ${referralLink}"</div>
