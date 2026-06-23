@@ -11,6 +11,25 @@ export default function PartnersPage() {
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  const handleStripeConnect = async () => {
+    if (!result) return;
+    setConnectLoading(true);
+    try {
+      const res = await fetch('/api/create-connect-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referralCode: result.code, email: form.email, name: `${form.firstName} ${form.lastName}` }),
+      });
+      const data = await res.json();
+      if (data.url) { window.location.href = data.url; }
+      else { alert('Could not start Stripe setup: ' + (data.error || 'Unknown error')); setConnectLoading(false); }
+    } catch (err) {
+      alert('Connection error: ' + err.message);
+      setConnectLoading(false);
+    }
+  };
   const upd = (key,val) => setForm(p=>({...p,[key]:val}));
 
   const handleSubmit = async () => {
@@ -120,7 +139,7 @@ export default function PartnersPage() {
                   <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
                     <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>Set up your payout account</div>
                     <p style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:12}}>Connect your bank account through Stripe to receive monthly payouts. Takes about 2 minutes — Stripe handles all tax forms automatically.</p>
-                    <a href="https://connect.stripe.com/setup/e/acct_placeholder" target="_blank" rel="noopener noreferrer" style={{display:'block',background:C.navy,color:'#fff',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',textDecoration:'none'}}>Connect Bank Account via Stripe →</a>
+                    <button onClick={handleStripeConnect} disabled={connectLoading} style={{display:'block',width:'100%',background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',cursor:connectLoading?'not-allowed':'pointer',opacity:connectLoading?0.7:1,fontFamily:"'DM Sans',sans-serif"}}>{connectLoading?'Redirecting to Stripe...':'Connect Bank Account via Stripe →'}</button>
                     <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
                   </div>
                   <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $15.</p>
