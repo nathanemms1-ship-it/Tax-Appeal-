@@ -85,7 +85,7 @@ export default function PartnersPage() {
             <div>
               <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,marginBottom:12}}>How the program works</h2>
               <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:32}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
-              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:'They click your link, enter their address, review their AI-generated dispute letter, and pay $79. We handle certified mail filing.'},{n:'4',title:'You get paid monthly',desc:'At the end of each month we tally your referrals and pay you $15 per completed order directly to your bank account via Stripe Connect — automated, no manual transfers needed.'}].map(({n,title,desc})=>(
+              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:'They click your link, enter their address, and our system pulls comparable market sales data to build a customized dispute letter. They review it, pay $79, and we handle certified mail filing directly to the county appraisal district.'},{n:'4',title:'You get paid monthly',desc:'At the end of each month we tally your referrals and pay you $15 per completed order directly to your bank account via Stripe Connect — automated, no manual transfers needed.'}].map(({n,title,desc})=>(
                 <div key={n} style={{display:'flex',gap:16,marginBottom:24}}>
                   <div style={{width:36,height:36,background:C.navy,color:C.gold,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Serif Display',serif",fontSize:18,flexShrink:0}}>{n}</div>
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
@@ -117,7 +117,13 @@ export default function PartnersPage() {
                   </div>
                   <div style={{background:'#f8fafc',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,wordBreak:'break-all',fontSize:13,color:C.bodyGray}}>{result.referralLink}</div>
                   <button onClick={copyLink} style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 24px',fontSize:14,fontWeight:500,cursor:'pointer',width:'100%',fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>{copied?'✅ Copied!':'📋 Copy My Referral Link'}</button>
-                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $15.</p>
+                  <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
+                    <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>Set up your payout account</div>
+                    <p style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:12}}>Connect your bank account through Stripe to receive monthly payouts. Takes about 2 minutes — Stripe handles all tax forms automatically.</p>
+                    <a href="https://connect.stripe.com/setup/e/acct_placeholder" target="_blank" rel="noopener noreferrer" style={{display:'block',background:C.navy,color:'#fff',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',textDecoration:'none'}}>Connect Bank Account via Stripe →</a>
+                    <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
+                  </div>
+                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $15.</p>
                 </div>
               ) : (
                 <div style={{background:C.white,border:`0.5px solid ${C.border}`,borderRadius:16,padding:'32px 28px'}}>
