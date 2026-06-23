@@ -700,6 +700,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           ownerCity: property.city,
           ownerState: property.state,
           ownerZip: property.zip,
+          refCode: (typeof window !== 'undefined' ? localStorage.getItem('taxappeal_ref') : null) || '',
         }),
       });
       const data = await res.json();
@@ -915,6 +916,13 @@ export default function App() {
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
     setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null);
   };
+
+  // Capture referral code from URL ?ref= param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('taxappeal_ref', ref);
+  }, []);
 
   return (
     <div style={base}>
