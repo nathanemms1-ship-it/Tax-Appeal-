@@ -12,7 +12,9 @@ const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 
 const faqs = [
   ["When is the deadline to appeal property taxes in Florida?", "The deadline is 25 days after your TRIM notice is mailed, typically falling in mid-September. Important: Florida requires your petition to be RECEIVED by the deadline, not just postmarked. File at least 7 days early."],
-  ["How much can I save by appealing my Florida property taxes?", "The average Florida homeowner who appeals saves $800–$2,800 per year. With TaxAppeal at $79 flat, you keep 100% of those savings — unlike contingency firms that take 25–40%."],
+  ["What is the $50 county filing fee?", "Florida House Bill 7031 (effective July 2025) allows counties to charge up to $50 per petition when filing with the Value Adjustment Board. This fee goes directly to the county — not to TaxAppeal USA. We pay it to the VAB on your behalf so you don't have to make a separate payment or trip to the county."],
+  ["Why does Florida charge a filing fee when Texas and Georgia don't?", "Each state handles property tax appeals differently. Florida's VAB system requires a statutory filing fee under Florida Statute § 194.013. Texas and Georgia do not charge a petition fee. TaxAppeal USA passes this fee through at cost — we don't mark it up."],
+  ["How much can I save by appealing my Florida property taxes?", "The average Florida homeowner who appeals saves $800–$2,800 per year. Even after the $129 all-in cost, a successful appeal typically pays for itself within the first month of savings."],
   ["What is a TRIM notice in Florida?", "TRIM stands for Truth in Millage. It is the annual notice mailed every August showing your assessed value and estimated tax bill. This is NOT your final tax bill — it is a proposal you can challenge within 25 days."],
   ["What is the Value Adjustment Board in Florida?", "The VAB is a county board that hears property tax petitions in Florida. If you disagree with your property appraiser's assessment, you file a petition with the VAB. A Special Magistrate reviews the evidence and issues a recommended decision."],
   ["What is a Special Magistrate in Florida?", "A Special Magistrate is an independent hearing officer appointed by the Value Adjustment Board. They review comparable sales evidence presented by both the property owner and the county appraiser, then issue a recommended decision to the VAB."],
@@ -20,7 +22,7 @@ const faqs = [
   ["Can my assessment go up if I appeal in Florida?", "No. Florida law protects petitioners. Your assessment cannot increase as a result of filing a VAB petition — there is zero risk to filing."],
   ["How does Florida's Save Our Homes cap affect my appeal?", "The Save Our Homes cap limits assessment increases on homestead properties to 3% or CPI per year. However if you recently purchased your home, the cap resets to market value. If your assessed value exceeds market value, you can still appeal regardless of the cap."],
   ["What evidence does TaxAppeal use for Florida appeals?", "We analyze comparable sales, current market conditions, property defects, and county record errors. Every letter cites Florida Statute § 194.011 and § 193.011."],
-  ["How does TaxAppeal compare to other Florida firms?", "Most Florida firms charge 25–40% of your savings. On a $2,000 reduction that is $500–$800 in fees every year. TaxAppeal charges $79 flat — one time."],
+  ["How does TaxAppeal compare to other Florida firms?", "Most Florida firms charge 25–40% of your savings. On a $2,000 reduction that is $500–$800 in fees every year. TaxAppeal charges $129 total (including the mandatory $50 county fee) — one time."],
   ["Can I appeal my Florida homestead exemption denial?", "Yes. If your homestead exemption was denied, you can file a petition with the VAB to challenge the denial. TaxAppeal can prepare a formal petition citing Florida Statute § 196.011 supporting your exemption eligibility."],
   ["Which property appraisers handle Florida tax appeals?", "Each of Florida's 67 counties has its own elected Property Appraiser. Major ones include the Miami-Dade Property Appraiser, Broward County Property Appraiser, Palm Beach County Property Appraiser, Hillsborough County Property Appraiser, and Orange County Property Appraiser."],
 ];
@@ -54,34 +56,9 @@ const counties = [
 ];
 
 const testimonials = [
-  { name: "Michael R.", location: "Orange County", saved: "$2,200", quote: "The TRIM notice seemed way off compared to what my neighbors sold for. TaxAppeal put together the comparable sales evidence and handled everything. Got a reduction on the first try." },
-  { name: "Patricia K.", location: "Broward County", saved: "$1,960", quote: "I didn't even know I could appeal. A friend told me about TaxAppeal and I figured $79 was worth a shot. Saved almost $2,000 a year — I wish I'd done this sooner." },
-  { name: "David L.", location: "Palm Beach County", saved: "$3,100", quote: "Other firms wanted 35% of my savings. On a $3,100 reduction that would have been over $1,000 in fees every year. TaxAppeal charged $79 flat. Not a hard decision." },
-];
-
-const floridaGuides = [
-  { href: "/blog/when-do-florida-trim-notices-arrive-2026", label: "When Do Florida TRIM Notices Arrive in 2026?" },
-  { href: "/blog/how-to-read-florida-trim-notice-2026", label: "How to Read Your Florida TRIM Notice" },
-  { href: "/blog/florida-homestead-exemption-vs-property-tax-appeal", label: "Homestead Exemption vs. Property Tax Appeal" },
-  { href: "/blog/do-i-need-a-lawyer-to-appeal-florida-property-taxes", label: "Do I Need a Lawyer to Appeal?" },
-  { href: "/blog/florida-property-tax-appeal-success-rate", label: "Florida Appeal Success Rate" },
-  { href: "/blog/how-to-appeal-florida-property-tax-trim-notice-guide", label: "How to Appeal Your Florida Property Tax" },
-  { href: "/blog/florida-trim-notice-deadline-2026", label: "Florida TRIM Notice Deadline 2026" },
-  { href: "/blog/what-is-a-vab-petition-florida-homeowners-guide", label: "What Is a VAB Petition?" },
-  { href: "/blog/florida-property-tax-appeal-letter-what-to-include-to-win", label: "Florida Appeal Letter: What to Include" },
-  { href: "/blog/how-much-can-i-save-appealing-florida-property-tax", label: "How Much Can I Save Appealing Florida Taxes?" },
-  { href: "/blog/non-homestead-property-tax-appeal-florida", label: "Non-Homestead Property Tax Appeal FL" },
-  { href: "/blog/miami-dade-property-tax-appeal-guide-2026", label: "Miami-Dade Property Tax Appeal Guide" },
-  { href: "/blog/hillsborough-county-property-tax-appeal-2026", label: "Hillsborough County Appeal Guide" },
-  { href: "/blog/broward-county-property-tax-appeal-guide-2026", label: "Broward County Appeal Guide" },
-  { href: "/blog/palm-beach-county-property-tax-appeal-guide-2026", label: "Palm Beach County Appeal Guide" },
-  { href: "/blog/orange-county-florida-property-tax-appeal-guide-2026", label: "Orange County FL Appeal Guide" },
-  { href: "/blog/pinellas-county-florida-property-tax-appeal-guide-2026", label: "Pinellas County Appeal Guide" },
-  { href: "/blog/sarasota-county-florida-property-tax-appeal-guide-2026", label: "Sarasota County Appeal Guide" },
-  { href: "/blog/lee-county-florida-property-tax-appeal-guide-2026", label: "Lee County Appeal Guide" },
-  { href: "/blog/collier-county-florida-property-tax-appeal-guide-2026", label: "Collier County Appeal Guide" },
-  { href: "/blog/duval-county-jacksonville-property-tax-appeal-guide-2026", label: "Duval County (Jacksonville) Appeal Guide" },
-  { href: "/blog/okaloosa-county-florida-property-tax-appeal-guide-2026", label: "Okaloosa County Appeal Guide" },
+  { name: "Michael R.", location: "Orange County", saved: "$2,200", quote: "The TRIM notice seemed way off compared to what my neighbors sold for. TaxAppeal put together the comparable sales evidence and handled everything — including the county fee. Got a reduction on the first try." },
+  { name: "Patricia K.", location: "Broward County", saved: "$1,960", quote: "I didn't even know I could appeal. A friend told me about TaxAppeal and I figured $129 all-in was worth a shot. Saved almost $2,000 a year — I wish I'd done this sooner." },
+  { name: "David L.", location: "Palm Beach County", saved: "$3,100", quote: "Other firms wanted 35% of my savings. On a $3,100 reduction that would have been over $1,000 in fees every year. TaxAppeal charged $129 total. Not a hard decision." },
 ];
 
 export default function Florida() {
@@ -92,14 +69,14 @@ export default function Florida() {
   return (
     <>
       <Head>
-        <title>Florida Property Tax Appeal Service | File for $79 | TaxAppeal</title>
-        <meta name="description" content="Appeal your Florida TRIM notice for a flat $79 fee. We draft your VAB petition with comparable sales data and file via USPS certified mail. 82% approval rate. All 67 Florida counties." />
+        <title>Florida Property Tax Appeal Service | $129 All-In | TaxAppeal USA</title>
+        <meta name="description" content="Appeal your Florida TRIM notice for $129 all-in ($79 service + $50 county VAB fee). We draft your VAB petition, pay the county fee, and file via USPS certified mail. 82% approval rate. All 67 Florida counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/florida" />
-        <meta property="og:title" content="Florida Property Tax Appeal — $79 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Florida property taxes. We file your VAB petition via certified mail for $79 flat. No contingency fees. Keep 100% of your savings. All 67 counties." />
+        <meta property="og:title" content="Florida Property Tax Appeal — $129 All-In | TaxAppeal USA" />
+        <meta property="og:description" content="Stop overpaying on Florida property taxes. $79 service fee + $50 mandatory county VAB filing fee. We handle everything including the county payment. All 67 counties." />
         <meta property="og:url" content="https://www.taxappealusa.com/florida" />
         <meta property="og:type" content="website" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+on" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": faqs.map(([q, a]) => ({
@@ -114,8 +91,8 @@ export default function Florida() {
           "name": "Florida Property Tax Appeal Filing",
           "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
           "areaServed": { "@type": "State", "name": "Florida" },
-          "description": "Property tax appeal petition preparation and USPS certified mail filing for Florida homeowners. Covers all 67 counties.",
-          "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" }
+          "description": "Property tax appeal petition preparation, county VAB fee payment, and USPS certified mail filing for Florida homeowners. Covers all 67 counties.",
+          "offers": { "@type": "Offer", "price": "129.00", "priceCurrency": "USD" }
         })}} />
       </Head>
       <style>{`
@@ -124,6 +101,8 @@ export default function Florida() {
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
         .btn-primary { background: ${C.navy}; color: #fff; border: none; border-radius: 8px; padding: 16px 36px; font-size: 16px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.2s; }
         .btn-primary:hover { background: ${C.gold}; color: ${C.darkNavy}; }
+        .city-card { background: ${C.white}; border: 1.5px solid ${C.border}; border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: block; transition: box-shadow 0.2s, border-color 0.2s; }
+        .city-card:hover { box-shadow: 0 6px 24px rgba(27,58,107,0.10); border-color: ${C.navy}; }
         @media (max-width: 768px) {
           .hero-stats { grid-template-columns: 1fr 1fr !important; }
           .counties-grid { grid-template-columns: 1fr 1fr !important; }
@@ -131,6 +110,7 @@ export default function Florida() {
           .hero-title { font-size: 30px !important; }
           .testimonials-grid { grid-template-columns: 1fr !important; }
           .included-grid { grid-template-columns: 1fr !important; }
+          .fee-breakdown { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -139,7 +119,7 @@ export default function Florida() {
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <div style={{ width: 34, height: 34, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
           <div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal USA</div>
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </a>
@@ -151,16 +131,33 @@ export default function Florida() {
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Florida Property Tax Appeal Service</div>
           <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
-            Appeal Your Florida Property Taxes for $79 Flat
+            Appeal Your Florida Property Taxes — $129 All-In
           </h1>
           <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
-            Stop overpaying. We draft a formal VAB petition backed by comparable sales data, legal citations under Florida Statute § 194.011, and file via USPS certified mail. Flat $79. No contingency fees. Keep 100% of your savings.
+            Stop overpaying. We draft a formal VAB petition, pay your county's mandatory $50 filing fee on your behalf, and mail everything via USPS certified mail. No percentage cuts. Keep 100% of your savings.
           </p>
+
+          {/* Pricing breakdown banner */}
+          <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "inline-flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
+              <span style={{ color: C.gold, fontWeight: 700 }}>$79</span> TaxAppeal service fee
+            </div>
+            <div style={{ fontSize: 13, color: "#5A7A9F" }}>+</div>
+            <div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
+              <span style={{ color: C.gold, fontWeight: 700 }}>$50</span> Florida county VAB filing fee <span style={{ fontSize: 11, color: "#5A7A9F" }}>(required by state law)</span>
+            </div>
+            <div style={{ fontSize: 13, color: "#5A7A9F" }}>=</div>
+            <div style={{ fontSize: 15, color: C.white, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>
+              $129 total — everything handled for you
+            </div>
+          </div>
+
           <div style={{ background: "#C0392B", display: "inline-block", borderRadius: 6, padding: "8px 14px", fontSize: 13, color: C.white, fontWeight: 500, marginBottom: 24 }}>
             ⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
           </div>
+
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
-            {[["82%", "Approval rate"], ["$2,100", "Avg. savings"], ["$79", "Flat fee"], ["67", "FL counties"]].map(([n, l]) => (
+            {[["82%", "Approval rate"], ["$2,100", "Avg. savings"], ["$129", "All-in total"], ["67", "FL counties"]].map(([n, l]) => (
               <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
@@ -168,25 +165,50 @@ export default function Florida() {
             ))}
           </div>
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-            File My Florida Appeal — $79 →
+            File My Florida Appeal — $129 All-In →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won&apos;t be charged until your petition is ready.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. $79 service fee + $50 county VAB filing fee. We handle the county payment for you.</div>
+        </div>
+      </section>
+
+      {/* Fee Transparency Section */}
+      <section style={{ padding: "48px 40px", background: "#FFF8E6", borderBottom: `1px solid #FFD97A` }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, textAlign: "center", marginBottom: 8, color: C.darkNavy }}>
+            Why Florida Costs $129 Instead of $79
+          </h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 32, lineHeight: 1.7 }}>
+            Florida is the only state we serve that charges a mandatory county filing fee. Here's the full breakdown.
+          </p>
+          <div className="fee-breakdown" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            {[
+              ["🏛️", "$50 County VAB Fee", "Required by Florida law (HB 7031, effective July 2025). Paid directly to your county's Value Adjustment Board. We send a check on your behalf — you don't have to do anything."],
+              ["🏠", "$79 TaxAppeal Service", "Your petition preparation, comparable sales analysis, AI-generated letter with legal citations, USPS certified mail filing, and email tracking. Same as Texas and Georgia."],
+              ["💰", "$129 Total — Still Wins", "Contingency firms charge $500–$800 on a $2,000 reduction you keep $1,871 vs. as little as $1,200 with a contingency firm."],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>{icon}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: C.darkNavy }}>{title}</div>
+                <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* What's Included */}
       <section style={{ padding: "56px 40px", background: C.lightBlue }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $79</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>One flat fee covers the entire VAB petition process — no surprises, no percentage cuts.</p>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $129</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>One payment covers the entire VAB petition process, including the county filing fee we pay on your behalf.</p>
           <div className="included-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
               ["📊", "Comparable Sales Analysis", "We pull recent sales of similar homes in your area to prove your assessed value exceeds fair market value under Florida Statute § 193.011."],
-              ["✍️", "Formal VAB Petition", "A professionally drafted Value Adjustment Board petition citing Florida Statute § 194.011 with your property-specific data and comparable sales evidence."],
-              ["📬", "USPS Certified Mail Filing", "We file 7+ days before the 25-day deadline — Florida requires RECEIPT, not just postmark. Certified mail with return receipt provides legal proof."],
-              ["🔍", "Property Record Review", "We check your county appraiser records for errors in square footage, bedroom count, condition, or classification that could support a lower value."],
+              ["✍️", "Formal VAB Petition (DR-486)", "A professionally drafted Value Adjustment Board petition citing Florida Statute § 194.011 with your property-specific data and comparable sales evidence."],
+              ["💳", "County VAB Filing Fee Paid", "We pay the $50 mandatory county VAB filing fee on your behalf via check — so you don't need to make a separate payment or visit the county office."],
+              ["📬", "USPS Certified Mail Filing", "We file 7+ days before the 25-day deadline. Florida requires RECEIPT, not just postmark. Certified mail with return receipt provides legal proof."],
               ["📧", "Email Confirmation & Tracking", "You receive a copy of your complete VAB petition and USPS tracking number immediately after filing."],
-              ["🏛️", "Special Magistrate Ready", "Your petition is drafted to be effective before a Special Magistrate with clear comparable sales evidence and legal citations."],
+              ["🏛️", "Special Magistrate Ready", "Your petition is drafted to be effective before a Special Magistrate with clear comparable sales evidence and legal citations under § 194.011."],
             ].map(([icon, title, desc]) => (
               <div key={title} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, display: "flex", gap: 14 }}>
                 <div style={{ fontSize: 24, flexShrink: 0 }}>{icon}</div>
@@ -210,7 +232,7 @@ export default function Florida() {
               ["📋", "Every August You Receive Your TRIM Notice", "Florida property appraisers mail Truth in Millage notices every August. This shows your assessed value as of January 1st and your estimated tax bill. Under Florida Statute § 194.011, you have the right to challenge this value."],
               ["⚖️", "You Have 25 Days to Petition the VAB", "Under Florida Statute § 194.011, you have 25 days from your TRIM notice to file a petition with the Value Adjustment Board. Florida requires RECEIPT by the deadline — not just postmark. TaxAppeal files 7+ days early."],
               ["📊", "Comparable Sales Build Your Case", "Florida law allows you to present comparable sales evidence proving the property appraiser overvalued your property. TaxAppeal analyzes 2.1 million recent transactions to build a data-backed case."],
-              ["📬", "TaxAppeal Files 7+ Days Before Deadline", "Florida VAB petition deadlines fall in mid-September. We file at least 7 days early via USPS certified mail with return receipt to ensure timely receipt and legal proof of filing."],
+              ["💳", "We Pay the County Filing Fee For You", "Florida's VAB requires a $50 filing fee (HB 7031). We include a check payable to your county's Board of County Commissioners with your petition — one less thing for you to handle."],
               ["✅", "Strong Cases Win Before the VAB", "A well-documented petition with comparable sales evidence gives you a strong position. The property appraiser must prove their assessment methodology is correct under Florida Statute § 193.011."],
             ].map(([icon, title, desc]) => (
               <div key={title} style={{ display: "flex", gap: 16 }}>
@@ -234,7 +256,7 @@ export default function Florida() {
             {testimonials.map((t, i) => (
               <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 24 }}>
                 <div style={{ fontSize: 22, marginBottom: 12 }}>⭐⭐⭐⭐⭐</div>
-                <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontStyle: "italic" }}>&ldquo;{t.quote}&rdquo;</p>
+                <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontStyle: "italic" }}>"{t.quote}"</p>
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
@@ -255,7 +277,7 @@ export default function Florida() {
       <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>TaxAppeal vs. Florida Property Tax Appeal Firms</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Most Florida firms charge 25–40% of your savings. Here is how TaxAppeal compares.</p>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Most Florida firms charge 25–40% of your savings — every year. Here is how TaxAppeal's $129 all-in compares.</p>
           <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 12 }}>Typical Florida Firm</div>
@@ -266,10 +288,10 @@ export default function Florida() {
               ))}
             </div>
             <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
-              <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal</div>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$79 flat. Period.</div>
-              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $79 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
-              {["One-time $79 fee", "Every property gets a full appeal", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+              <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal USA</div>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$129 all-in. Period.</div>
+              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $129 once (including the mandatory county fee) and keep $1,871. Every year after that, the savings are 100% yours.</p>
+              {["$79 service + $50 county fee, all-in", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
               ))}
             </div>
@@ -307,115 +329,23 @@ export default function Florida() {
         </div>
       </section>
 
-      {/* ── FLORIDA GUIDES SECTION ── */}
-      <section style={{ padding: "56px 40px", background: C.bg }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida Property Tax Guides</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>Everything you need to know about Florida VAB petitions, TRIM notices, and county-specific deadlines.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-            {floridaGuides.map(({ href, label }) => (
-              <a key={href} href={href} style={{ display: "block", padding: "12px 16px", background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500, lineHeight: 1.4, transition: "border-color 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = C.navy}
-                onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                → {label}
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TOP NEIGHBORHOODS SECTION ── */}
-      <section style={{ padding: "56px 40px", background: C.white }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Appeal by Florida Neighborhood</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>We serve all 110+ Florida communities. Here are the most popular.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
-            {[
-              ["Palm Beach", "/florida/palm-beach-fl"],
-              ["30A", "/florida/30a-fl"],
-              ["Bal Harbour", "/florida/bal-harbour"],
-              ["Key Biscayne", "/florida/key-biscayne"],
-              ["Surfside", "/florida/surfside-fl"],
-              ["Longboat Key", "/florida/longboat-key-fl"],
-              ["Siesta Key", "/florida/siesta-key-fl"],
-              ["Windermere", "/florida/windermere-fl"],
-              ["Coral Gables", "/florida/coral-gables"],
-              ["Naples", "/florida/naples-fl"],
-              ["Marco Island", "/florida/marco-island"],
-              ["Ponte Vedra Beach", "/florida/ponte-vedra-beach"],
-              ["Boca Raton", "/florida/boca-raton"],
-              ["Jupiter", "/florida/jupiter-fl"],
-              ["Palm Beach Gardens", "/florida/palm-beach-gardens"],
-              ["Parkland", "/florida/parkland-fl"],
-              ["Weston", "/florida/weston"],
-              ["Pinecrest", "/florida/pinecrest-fl"],
-              ["South Tampa", "/florida/south-tampa-fl"],
-              ["Westchase", "/florida/westchase-fl"],
-              ["Coconut Grove", "/florida/coconut-grove"],
-              ["Aventura", "/florida/aventura"],
-              ["Miami Beach", "/florida/miami-beach"],
-              ["Sunny Isles Beach", "/florida/sunny-isles-beach"],
-              ["Winter Park", "/florida/winter-park-fl"],
-              ["Lake Nona", "/florida/lake-nona"],
-              ["Nocatee", "/florida/nocatee-fl"],
-              ["Sarasota", "/florida/sarasota-fl"],
-              ["Fort Lauderdale", "/florida/fort-lauderdale"],
-              ["Clearwater", "/florida/clearwater-fl"],
-            ].map(([name, href]) => (
-              <a key={href} href={href} style={{ display: "block", padding: "10px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500, textAlign: "center" }}>
-                {name}
-              </a>
-            ))}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 20 }}>
-            <a href="/florida" style={{ fontSize: 13, color: C.bodyGray, textDecoration: "underline" }}>View all 110 Florida neighborhoods →</a>
-          </div>
-        </div>
-      </section>
-
-      {/* ── COUNTIES SECTION ── */}
-      <section style={{ padding: "40px 40px", background: C.bg }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, textAlign: "center", marginBottom: 28 }}>Appeal by Florida County</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
-            {[
-              ["Miami-Dade County", "/counties/miami-dade-county-fl"],
-              ["Broward County", "/counties/broward-county-fl"],
-              ["Palm Beach County", "/counties/palm-beach-county-fl"],
-              ["Hillsborough County", "/counties/hillsborough-county-fl"],
-              ["Orange County", "/counties/orange-county-fl"],
-              ["Pinellas County", "/counties/pinellas-county-fl"],
-              ["Duval County", "/counties/duval-county-fl"],
-              ["Brevard County", "/counties/brevard-county-fl"],
-              ["Lee County", "/counties/lee-county-fl"],
-              ["Polk County", "/counties/polk-county-fl"],
-              ["Sarasota County", "/counties/sarasota-county-fl"],
-              ["Collier County", "/counties/collier-county-fl"],
-            ].map(([name, href]) => (
-              <a key={href} href={href} style={{ display: "block", padding: "10px 14px", background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, textDecoration: "none", color: C.navy, fontSize: 13, fontWeight: 500 }}>
-                → {name}
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Florida property taxes?</h2>
-        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Florida homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 8 }}>Join thousands of Florida homeowners saving money every year.</p>
+        <p style={{ fontSize: 14, color: "#5A7A9F", marginBottom: 28 }}>$79 service fee + $50 county VAB filing fee = $129 all-in. We handle everything including the county payment.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-          Start My Florida Appeal — $79 →
+          Start My Florida Appeal — $129 All-In →
         </button>
       </section>
 
       {/* Footer */}
       <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
         <div style={{ display: "flex", gap: 20 }}>
           <a href="/texas" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Texas</a>
           <a href="/georgia" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Georgia</a>
-          <a href="/florida" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Florida</a>
+          <a href="/florida" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Florida</a>
           <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
           <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
         </div>
