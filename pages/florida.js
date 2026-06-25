@@ -76,7 +76,7 @@ export default function Florida() {
         <meta property="og:description" content="Stop overpaying on Florida property taxes. $79 service fee + $50 mandatory county VAB filing fee. We handle everything including the county payment. All 67 counties." />
         <meta property="og:url" content="https://www.taxappealusa.com/florida" />
         <meta property="og:type" content="website" />
-on" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": faqs.map(([q, a]) => ({
