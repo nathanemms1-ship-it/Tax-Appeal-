@@ -2,109 +2,138 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const {
-    // Recipient (appraisal district)
-    districtName,
-    districtAddress,
-    districtCity,
-    districtState,
-    districtZip,
-    // Sender (property owner)
-    ownerName,
-    ownerStreet,
-    ownerCity,
-    ownerState,
-    ownerZip,
-    ownerEmail,
-    // Letter content
-    letterContent,
-    // Metadata
-    propertyAddress,
-    county,
-    sessionId,
+    districtName, districtAddress, districtCity, districtState, districtZip,
+    ownerName, ownerStreet, ownerCity, ownerState, ownerZip, ownerEmail,
+    letterContent, propertyAddress, county, sessionId,
+    stateCode, isFL, vabFee, vabPayableTo, flSignatureName, flAuthDate,
   } = req.body;
 
   if (!districtName || !districtAddress || !letterContent || !ownerName) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  const LOB_AUTH = `Basic ${Buffer.from(process.env.LOB_API_KEY + ':').toString('base64')}`;
+
   try {
-    // Convert letter text to HTML for Lob
-    const letterHtml = `
-<!DOCTYPE html>
+    // DR-486A authorization page (FL only)
+    const dr486aHtml = isFL && flSignatureName ? `
+<div style="page-break-before:always;font-family:Georgia,'Times New Roman',serif;font-size:11pt;line-height:1.7;color:#000;padding:0 20px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <strong style="font-size:13pt;">WRITTEN AUTHORIZATION FOR REPRESENTATION</strong><br/>
+    <strong>BEFORE THE VALUE ADJUSTMENT BOARD</strong><br/>
+    <em style="font-size:10pt;">Florida Department of Revenue Form DR-486A</em>
+  </div>
+  <p><strong>Property Address:</strong> ${propertyAddress}</p>
+  <p><strong>County:</strong> ${county} County, Florida</p>
+  <p style="margin-top:16px;">I, the undersigned property owner, hereby authorize <strong>TaxAppeal USA</strong> to act as my authorized representative for the purpose of filing and prosecuting a petition before the ${county} County Value Adjustment Board regarding the above-referenced property, pursuant to Florida Statute &sect; 194.011(3)(h). I understand TaxAppeal USA is a compensated representative. This authorization includes the right to file Form DR-486, submit evidence, and receive VAB correspondence on my behalf.</p>
+  <p style="margin-top:32px;"><strong>Electronically signed by:</strong></p>
+  <p style="font-family:Georgia,serif;font-style:italic;font-size:14pt;border-bottom:1px solid #000;padding-bottom:4px;margin-bottom:8px;">${flSignatureName}</p>
+  <p><strong>Date:</strong> ${flAuthDate}</p>
+  <p style="font-size:9pt;color:#555;margin-top:16px;">This electronic signature is legally binding under the Florida Electronic Signature Act, &sect; 668.50, F.S.</p>
+</div>` : '';
+
+    const letterHtml = `<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: Georgia, 'Times New Roman', serif;
-      font-size: 11pt;
-      line-height: 1.6;
-      color: #000;
-      margin: 0;
-      padding: 0;
-    }
-    .letter-body {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-  </style>
+<head><meta charset="UTF-8">
+<style>body{font-family:Georgia,'Times New Roman',serif;font-size:11pt;line-height:1.6;color:#000;margin:0;padding:0;}.letter-body{white-space:pre-wrap;word-wrap:break-word;}</style>
 </head>
 <body>
   <div class="letter-body">{{letter_content}}</div>
+  ${dr486aHtml}
 </body>
 </html>`;
 
-    // Lob requires merge variables for template content
+    // FL path: Lob Checks API — check + petition + DR-486A in one envelope
+    if (isFL && vabFee && vabFee > 0 && vabPayableTo) {
+      const checkAmountDollars = (vabFee / 100).toFixed(2);
+      console.log(`FL order: Lob check $${checkAmountDollars} payable to "${vabPayableTo}" + petition`);
+
+      const checkPayload = {
+        description: `${county} County VAB Filing Fee — ${propertyAddress}`,
+        to: {
+          name: districtName,
+          address_line1: districtAddress,
+          address_city: districtCity,
+          address_state: districtState,
+          address_zip: districtZip,
+          address_country: 'US',
+        },
+        from: {
+          name: 'TaxAppeal USA',
+          address_line1: ownerStreet,
+          address_city: ownerCity,
+          address_state: ownerState,
+          address_zip: ownerZip,
+          address_country: 'US',
+        },
+        bank_account: process.env.LOB_BANK_ACCOUNT_ID,
+        amount: parseFloat(checkAmountDollars),
+        memo: `${county} County VAB Filing Fee`,
+        attachment: letterHtml,
+        merge_variables: { letter_content: letterContent },
+        mail_type: 'usps_first_class',
+        metadata: {
+          property_address: propertyAddress,
+          county: county,
+          owner_email: ownerEmail,
+          stripe_session_id: sessionId || '',
+          state_code: 'FL',
+          vab_fee_cents: String(vabFee),
+          fl_signer: flSignatureName || '',
+        },
+      };
+
+      console.log('Sending FL Lob check:', JSON.stringify({ to: checkPayload.to, amount: checkPayload.amount, memo: checkPayload.memo }));
+
+      const lobRes = await fetch('https://api.lob.com/v1/checks', {
+        method: 'POST',
+        headers: { 'Authorization': LOB_AUTH, 'Content-Type': 'application/json' },
+        body: JSON.stringify(checkPayload),
+      });
+
+      const lobData = await lobRes.json();
+      console.log('Lob check response:', JSON.stringify(lobData));
+
+      if (!lobRes.ok) {
+        console.error('Lob check error:', lobData);
+        return res.status(500).json({ error: lobData?.error?.message || 'Failed to send FL check via Lob', details: lobData });
+      }
+
+      return res.status(200).json({
+        success: true,
+        type: 'fl-check',
+        letterId: lobData.id,
+        trackingNumber: lobData.tracking_number || null,
+        expectedDelivery: lobData.expected_delivery_date || null,
+        status: lobData.status,
+        url: lobData.url || null,
+        checkAmount: checkAmountDollars,
+        checkPayableTo: vabPayableTo,
+      });
+    }
+
+    // Non-FL path: standard Lob certified letter
     const lobPayload = {
       description: `Property tax protest — ${propertyAddress}`,
-      to: {
-        name: districtName,
-        address_line1: districtAddress,
-        address_city: districtCity,
-        address_state: districtState,
-        address_zip: districtZip,
-        address_country: 'US',
-      },
-      from: {
-        name: ownerName,
-        address_line1: ownerStreet,
-        address_city: ownerCity,
-        address_state: ownerState,
-        address_zip: ownerZip,
-        address_country: 'US',
-      },
+      to: { name: districtName, address_line1: districtAddress, address_city: districtCity, address_state: districtState, address_zip: districtZip, address_country: 'US' },
+      from: { name: ownerName, address_line1: ownerStreet, address_city: ownerCity, address_state: ownerState, address_zip: ownerZip, address_country: 'US' },
       file: letterHtml,
-      merge_variables: {
-        letter_content: letterContent,
-      },
-      color: false, // Black and white — cheaper and professional
+      merge_variables: { letter_content: letterContent },
+      color: false,
       double_sided: true,
       address_placement: 'insert_blank_page',
-      mail_type: 'usps_first_class', // We upgrade to certified below
-      extra_service: 'certified', // USPS certified mail
-      return_envelope: true, // Return receipt
+      mail_type: 'usps_first_class',
+      extra_service: 'certified',
+      return_envelope: true,
       perforated_page: 1,
-      metadata: {
-        property_address: propertyAddress,
-        county: county,
-        owner_email: ownerEmail,
-        stripe_session_id: sessionId || '',
-      },
+      metadata: { property_address: propertyAddress, county: county, owner_email: ownerEmail, stripe_session_id: sessionId || '', state_code: stateCode || '' },
     };
 
-    console.log('Sending to Lob:', JSON.stringify({
-      to: lobPayload.to,
-      from: lobPayload.from,
-      extra_service: lobPayload.extra_service,
-      description: lobPayload.description,
-    }));
+    console.log('Sending Lob letter:', JSON.stringify({ to: lobPayload.to, from: lobPayload.from, extra_service: lobPayload.extra_service }));
 
     const lobRes = await fetch('https://api.lob.com/v1/letters', {
       method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(process.env.LOB_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Authorization': LOB_AUTH, 'Content-Type': 'application/json' },
       body: JSON.stringify(lobPayload),
     });
 
@@ -113,19 +142,16 @@ export default async function handler(req, res) {
 
     if (!lobRes.ok) {
       console.error('Lob error:', lobData);
-      return res.status(500).json({
-        error: lobData?.error?.message || 'Failed to send letter via Lob',
-        details: lobData,
-      });
+      return res.status(500).json({ error: lobData?.error?.message || 'Failed to send letter via Lob', details: lobData });
     }
 
     return res.status(200).json({
-      success: true,
+      success: true, type: 'letter',
       letterId: lobData.id,
       trackingNumber: lobData.tracking_number || null,
       expectedDelivery: lobData.expected_delivery_date || null,
       status: lobData.status,
-      url: lobData.url, // Preview URL in test mode
+      url: lobData.url,
     });
 
   } catch (err) {
