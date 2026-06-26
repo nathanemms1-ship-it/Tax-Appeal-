@@ -874,12 +874,51 @@ function StepDispute({ formData, onRestart }) {
       const issuesBlock = issues && issues.length > 0 ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}` : "No specific property issues reported beyond general market value discrepancy.";
       const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
       const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nFILING AGENT: TaxAppeal (disputes@taxappealusa.com)\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis: ${issueCount} property issue${issueCount !== 1 ? "s" : ""} documented${overAssessedPct > 0 ? ", property over-assessed by approx " + Math.round(overAssessedPct) + "% vs market" : ""}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n11. Professional closing with owner name, address, email, and: Filing Agent: TaxAppeal | disputes@taxappealusa.com\n\nOutput ONLY the complete formal letter.`;
-      const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
-      const claudeJson = await claudeRes.json();
-      if (claudeJson.error) throw new Error(claudeJson.error);
-      if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
-      setLetter(claudeJson.letter);
-      if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+      // Florida: use generate-dr486 (official DR-486 form with Part 5 rep signature)
+      // All other states: use generate-letter (free-form protest letter)
+      let claudeJson;
+      if (stateCode === 'FL') {
+        const flSig = formData.flSignature || {};
+        const dr486Res = await fetch("/api/generate-dr486", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ownerFirstName: account.firstName,
+            ownerLastName: account.lastName,
+            ownerEmail: account.email,
+            ownerStreet: property.street,
+            ownerCity: property.city,
+            ownerState: property.state,
+            ownerZip: property.zip,
+            propertyAddress: addr,
+            county,
+            assessedValue,
+            requestedValue: targetReduction,
+            taxYear,
+            issues,
+            propertyDetails: propDetails,
+            notes: property.notes,
+            districtName: appraisalDistrict?.districtName || '',
+            zip: property.zip,
+            state: property.state,
+            flSignatureName: flSig.name || '',
+            flAuthDate: flSig.date || '',
+          }),
+        });
+        claudeJson = await dr486Res.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        // For FL: letter display shows evidence text; letterKey points to full DR-486 HTML
+        setLetter(claudeJson.evidenceText || '');
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+        pd.isFL = true;
+      } else {
+        const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
+        claudeJson = await claudeRes.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
+        setLetter(claudeJson.letter);
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+      }
       setLoading(false);
     } catch (e) {
       setErrMsg(e.message || "Something went wrong. Please try again.");
