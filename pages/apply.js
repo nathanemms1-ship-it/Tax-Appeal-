@@ -933,7 +933,7 @@ function StepDispute({ formData, onRestart }) {
             notes: property.notes,
             districtName: appraisalDistrict?.districtName || '',
             zip: property.zip,
-            gaSignatureDate: new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),
+            gaSignatureDate: new Date().toISOString().split('T')[0],
           }),
         });
         claudeJson = await gaRes.json();
