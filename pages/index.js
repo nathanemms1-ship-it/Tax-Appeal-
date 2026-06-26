@@ -28,7 +28,7 @@ export default function Landing() {
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
     ["How is $79 different from other services?", "Most property tax services charge 25–50% of your savings. On a $2,000 win that's up to $1,000 gone before it reaches you. We charge a flat $79 regardless of outcome — you keep everything you save."],
-    ["What states do you serve?", "Currently Texas, Georgia, and Florida. More states are coming soon — enter your email during signup to be notified when your state launches."],
+    ["What states do you serve?", "Currently Texas, Georgia, Florida, and Arkansas. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
     ["Can I file in multiple counties?", "Yes — each property requires a separate filing. You can run the process multiple times, once for each property address."],
@@ -38,10 +38,10 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $79 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, and FL." />
+        <meta name="description" content="Protest your property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $79 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="We fight your property tax bill. Flat $79 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
@@ -61,7 +61,7 @@ export default function Landing() {
             { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
             { "@type": "Question", "name": "How is $79 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $79 regardless of outcome — you keep everything you save." }},
-            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, and Florida. More states are coming soon." }},
+            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, and Arkansas. More states are coming soon." }},
             { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
           ]
         })}} />
@@ -72,8 +72,8 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, and Florida. Flat $79 fee, certified mail filing, 82% approval rate.",
-          "areaServed": ["Texas", "Georgia", "Florida"],
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, and Arkansas. Flat $79 fee, certified mail filing, 82% approval rate.",
+          "areaServed": ["Texas", "Georgia", "Florida", "Arkansas"],
           "offers": {
             "@type": "Offer",
             "price": "79",
@@ -451,7 +451,7 @@ export default function Landing() {
       <div style={{ background: "#F4F7FC", padding: "48px 0", overflow: "hidden" }}>
         <div style={{ textAlign: "center", marginBottom: 32, padding: "0 32px" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What homeowners are saying</div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, and Florida.</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, Florida, and Arkansas.</div>
         </div>
 
         <style>{`
@@ -613,19 +613,20 @@ export default function Landing() {
       <section className="section" style={{ textAlign: "center" }}>
         <div className="section-inner">
           <div className="section-title">Currently available in</div>
-          <div className="section-sub">We've launched in the three largest property tax protest markets in the US.</div>
+          <div className="section-sub">We've launched in four states — Texas, Georgia, Florida, and Arkansas.</div>
           <div className="state-pills">
             {[
               ["Texas", "Deadline: May 15 or 30 days after notice"],
               ["Georgia", "Deadline: 45 days after assessment notice"],
               ["Florida", "Deadline: ~Sept 18 (25 days after TRIM notice)"],
+              ["Arkansas", "Deadline: Aug 17 (third Monday in August)"],
             ].map(([state, note]) => (
               <div key={state} className="state-pill">
                 📍 <strong>{state}</strong> — <span style={{ fontSize: 12, color: C.bodyGray }}>{note}</span>
               </div>
             ))}
           </div>
-          <div className="coming-soon">🕐 More states coming soon — Colorado, Arizona, Georgia, North Carolina</div>
+          <div className="coming-soon">🕐 More states coming soon — Oklahoma, Nevada, North Carolina, Indiana</div>
         </div>
       </section>
 
@@ -651,7 +652,7 @@ export default function Landing() {
       {/* Footer CTA */}
       <div className="footer-cta">
         <h2>Ready to fight your tax bill?</h2>
-        <p>Join homeowners across Texas, Georgia, and Florida saving money every year.</p>
+        <p>Join homeowners across Texas, Georgia, Florida, and Arkansas saving money every year.</p>
         <button className="footer-cta-btn" onClick={go}>Start my dispute — $79 →</button>
         <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
           You won't be charged until your appeal is ready to file.
@@ -661,7 +662,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="footer">
      <p>© 2026 TaxAppeal USA · Support: <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
-        <p>Available in TX · GA · FL · More states coming soon</p>
+        <p>Available in TX · GA · FL · AR · More states coming soon</p>
         <p>
           <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
           <a href="/privacy">Privacy Policy</a>
