@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import StepFloridaFee, { getFlVabFee } from './StepFloridaFee';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
@@ -663,7 +664,7 @@ function LoadingScreen({ addr }) {
   );
 }
 
-function DisputeLetter({ propData, letter, issues, onRestart, account, property }) {
+function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
   const [agreements, setAgreements] = useState([false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
   const allAgreed = agreements.every(Boolean);
@@ -700,6 +701,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           ownerCity: property.city,
           ownerState: property.state,
           ownerZip: property.zip,
+          stateCode: property.state ? property.state.trim().toUpperCase() : '',
+          flSignatureName: flSignature ? flSignature.name : '',
+          flSignatureTimestamp: flSignature ? flSignature.timestamp : '',
+          flAuthDate: flSignature ? flSignature.date : '',
           refCode: (typeof window !== 'undefined' ? localStorage.getItem('taxappeal_ref') : null) || '',
         }),
       });
@@ -908,13 +913,15 @@ export default function App() {
   const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
   const [closedWindow, setClosedWindow] = useState(null);
+  const [flFeeData, setFlFeeData] = useState(null);
+  const [flSignature, setFlSignature] = useState(null);
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
   const restart = () => {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null);
+    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
   };
 
   // Capture referral code from URL ?ref= param on mount
@@ -979,8 +986,9 @@ export default function App() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues }} onRestart={restart} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { const clean = (property.county || property.city || '').replace(/ County$/i,'').trim(); const feeInfo = getFlVabFee(clean); setFlFeeData({ ...feeInfo, county: clean }); setStep('florida-fee'); } else { setStep('dispute'); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
         </>
       )}
     </div>
