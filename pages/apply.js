@@ -911,6 +911,36 @@ function StepDispute({ formData, onRestart }) {
         setLetter(claudeJson.evidenceText || '');
         if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
         pd.isFL = true;
+      } else if (stateCode === 'GA') {
+        const gaRes = await fetch("/api/generate-pt311a", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ownerFirstName: account.firstName,
+            ownerLastName: account.lastName,
+            ownerEmail: account.email,
+            ownerStreet: property.street,
+            ownerCity: property.city,
+            ownerState: property.state,
+            ownerZip: property.zip,
+            propertyAddress: addr,
+            county,
+            assessedValue,
+            requestedValue: targetReduction,
+            taxYear,
+            issues,
+            propertyDetails: propDetails,
+            notes: property.notes,
+            districtName: appraisalDistrict?.districtName || '',
+            zip: property.zip,
+            gaSignatureDate: new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),
+          }),
+        });
+        claudeJson = await gaRes.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        setLetter(claudeJson.evidenceText || '');
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+        pd.isGA = true;
       } else {
         const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
         claudeJson = await claudeRes.json();
