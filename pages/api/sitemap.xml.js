@@ -40,6 +40,7 @@ export default function handler(req, res) {
     { url: "/texas", priority: "0.9", changefreq: "monthly" },
     { url: "/georgia", priority: "0.9", changefreq: "monthly" },
     { url: "/florida", priority: "0.9", changefreq: "monthly" },
+    { url: "/arkansas", priority: "0.9", changefreq: "monthly" },
     { url: "/blog", priority: "0.8", changefreq: "weekly" },
     { url: "/terms", priority: "0.3", changefreq: "yearly" },
     { url: "/privacy", priority: "0.3", changefreq: "yearly" },
