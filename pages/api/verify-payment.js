@@ -22,14 +22,11 @@ export default async function handler(req, res) {
 
   try {
     const session = await stripe.checkout.sessions.retrieve(session_id);
-
     if (session.payment_status !== 'paid') {
       return res.status(400).json({ error: 'Payment not completed' });
     }
 
     const meta = session.metadata || {};
-
-    // Retrieve full letter from Redis using the letterKey
     let letter = null;
     if (meta.letterKey && redis) {
       try {
@@ -40,6 +37,15 @@ export default async function handler(req, res) {
       }
     }
 
+    const stateCode = (meta.stateCode || meta.ownerState || '').toUpperCase();
+    const isFL = stateCode === 'FL';
+    const vabFee = meta.vabFee ? parseInt(meta.vabFee, 10) : 0;
+    const vabPayableTo = meta.vabPayableTo || '';
+    const flSignatureName = meta.flSignatureName || '';
+    const flSignatureTimestamp = meta.flSignatureTimestamp || '';
+    const flAuthDate = meta.flAuthDate || '';
+    const totalPaid = session.amount_total || (7900 + vabFee);
+
     return res.status(200).json({
       paid: true,
       customerName: meta.customerName || '',
@@ -49,23 +55,26 @@ export default async function handler(req, res) {
       assessedValue: meta.assessedValue || null,
       targetReduction: meta.targetReduction || null,
       savings: meta.savings || null,
-      amountPaid: session.amount_total,
+      amountPaid: totalPaid,
       passwordHash: meta.passwordHash || null,
-      // District info for Lob mailing
       districtName: meta.districtName || null,
       districtAddress: meta.districtAddress || null,
       districtCity: meta.districtCity || null,
       districtState: meta.districtState || null,
       districtZip: meta.districtZip || null,
-      // Owner address for return address on envelope
       ownerStreet: meta.ownerStreet || null,
       ownerCity: meta.ownerCity || null,
       ownerState: meta.ownerState || null,
       ownerZip: meta.ownerZip || null,
-      // Full letter content retrieved from Redis
       letter,
+      stateCode,
+      isFL,
+      vabFee,
+      vabPayableTo,
+      flSignatureName,
+      flSignatureTimestamp,
+      flAuthDate,
     });
-
   } catch (err) {
     console.error('Verify payment error:', err);
     return res.status(500).json({ error: err.message });
