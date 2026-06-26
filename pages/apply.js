@@ -52,7 +52,7 @@ const FILING_WINDOWS = {
       "Rockdale": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
     },
   },
-  FL: { openMonth: 8, openDay: 15, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
+  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
 };
 
 function getFilingWindowStatus(stateCode, countyName) {
