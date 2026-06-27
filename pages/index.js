@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $79 different from other services?", "Most property tax services charge 25–50% of your savings. On a $2,000 win that's up to $1,000 gone before it reaches you. We charge a flat $79 regardless of outcome — you keep everything you save."],
+    ["How is $89 different from other services?", "Most property tax services charge 25–50% of your savings. On a $2,000 win that's up to $1,000 gone before it reaches you. We charge a flat $89 regardless of outcome — you keep everything you save."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, and Arkansas. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
@@ -37,22 +37,22 @@ export default function Landing() {
   return (
     <>
       <Head>
-        <title>Property Tax Protest Service — File Online for $79 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
+        <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
-        <meta property="og:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $79 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
+        <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
+        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $79 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
+        <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $79 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -60,7 +60,7 @@ export default function Landing() {
           "mainEntity": [
             { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
-            { "@type": "Question", "name": "How is $79 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $79 regardless of outcome — you keep everything you save." }},
+            { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
             { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, and Arkansas. More states are coming soon." }},
             { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
           ]
@@ -72,7 +72,7 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, and Arkansas. Flat $79 fee, certified mail filing, 82% approval rate.",
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, and Arkansas. Flat $89 fee, certified mail filing, 82% approval rate.",
           "areaServed": ["Texas", "Georgia", "Florida", "Arkansas"],
           "offers": {
             "@type": "Offer",
@@ -413,10 +413,10 @@ export default function Landing() {
       <section className="hero">
         <div className="eyebrow">🛡️ We file on your behalf</div>
         <h1>We fight your property tax bill. You keep the savings.</h1>
-        <p className="hero-sub">No forms to mail. No county offices to call. Flat $79 fee — no percentage cuts. We do it all.</p>
+        <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. We do it all.</p>
         <div className="hero-cta-wrap">
           <button className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={go}>
-            Start my dispute — $79 →
+            Start my dispute — $89 →
           </button>
           <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
         </div>
@@ -429,7 +429,7 @@ export default function Landing() {
         <div className="stats-row">
           <div className="stat-card"><div className="stat-num">82%</div><div className="stat-label">Approval rate</div></div>
           <div className="stat-card"><div className="stat-num">$1,840</div><div className="stat-label">Avg. savings</div></div>
-          <div className="stat-card"><div className="stat-num">$79</div><div className="stat-label">Flat fee</div></div>
+          <div className="stat-card"><div className="stat-num">$89</div><div className="stat-label">Flat fee</div></div>
         </div>
       </section>
 
@@ -501,23 +501,23 @@ export default function Landing() {
         <div className="t-wrap">
           <div className="t-track">
             {[
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
               { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
               { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
               { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
               { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
               { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
               { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
               { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
               { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
               { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
               { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
               { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
               { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
               { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
               { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
               { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
               { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
@@ -576,13 +576,13 @@ export default function Landing() {
           <div className="price-box">
             <div className="price-left">
               <div className="price-tag">One-time fee</div>
-              <div className="price-amount">$79</div>
+              <div className="price-amount">$89</div>
               <div className="price-note">Flat rate. No hidden cuts.</div>
             </div>
             <div className="price-divider" />
             <div className="price-right">
               <p><strong>vs. the other guys</strong><br />
-              Most property tax services charge 25–50% of whatever you save. On a $2,000 win, that's up to $1,000 gone before it ever reaches you. We charge a flat $79 — your savings are yours, every dollar.</p>
+              Most property tax services charge 25–50% of whatever you save. On a $2,000 win, that's up to $1,000 gone before it ever reaches you. We charge a flat $89 — your savings are yours, every dollar.</p>
             </div>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function Landing() {
       {/* What's included */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-          <div className="section-title">Everything included for $79</div>
+          <div className="section-title">Everything included for $89</div>
           <div className="checklist">
             {[
               ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
@@ -653,7 +653,7 @@ export default function Landing() {
       <div className="footer-cta">
         <h2>Ready to fight your tax bill?</h2>
         <p>Join homeowners across Texas, Georgia, Florida, and Arkansas saving money every year.</p>
-        <button className="footer-cta-btn" onClick={go}>Start my dispute — $79 →</button>
+        <button className="footer-cta-btn" onClick={go}>Start my dispute — $89 →</button>
         <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
           You won't be charged until your appeal is ready to file.
         </div>
