@@ -6,7 +6,7 @@ const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=D
 const faqs = [
   ["What is the deadline to appeal Little Rock property taxes?","The Pulaski County Board of Equalization deadline is the third Monday in August — August 17, 2026. Postmark by this date. TaxAppeal files via USPS certified mail."],
   ["How does Arkansas assess property taxes?","Arkansas assesses at 20% of fair market value. A home worth $215,000 has an assessed value of $43,000. You are appealing the market value — a 10% reduction means 10% less assessed value and tax."],
-  ["How much can Little Rock homeowners save?","Pulaski County homeowners who successfully appeal save an average of $540 per year. TaxAppeal charges $79 flat — you keep 100% of savings."],
+  ["How much can Little Rock homeowners save?","Pulaski County homeowners who successfully appeal save an average of $540 per year. TaxAppeal charges $89 flat — you keep 100% of savings."],
   ["What is the Pulaski County Board of Equalization?","The Pulaski County Board of Equalization hears property tax appeals every August. Three members appointed by the county judge hear evidence and issue decisions."],
   ["Does postmark count in Arkansas?","Yes. Arkansas only requires your appeal be postmarked by the third Monday in August. TaxAppeal uses USPS certified mail for a documented postmark."],
   ["Can I appeal every year?","Yes. Arkansas homeowners can file a new Board of Equalization appeal every August."],
@@ -19,10 +19,10 @@ export default function LittleRock() {
   return (
     <>
       <Head>
-        <title>Little Rock Property Tax Appeal Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Little Rock property taxes for $79 flat. Pulaski County homeowners save an average of $540/year. We file with the Board of Equalization via certified mail before the August 17 deadline." />
+        <title>Little Rock Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content="Appeal your Little Rock property taxes for $89 flat. Pulaski County homeowners save an average of $540/year. We file with the Board of Equalization via certified mail before the August 17 deadline." />
         <link rel="canonical" href="https://www.taxappealusa.com/little-rock" />
-        <meta property="og:title" content="Little Rock Property Tax Appeal — $79 Flat Fee | TaxAppeal USA" />
+        <meta property="og:title" content="Little Rock Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
         <meta property="og:url" content="https://www.taxappealusa.com/little-rock" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>( {"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
@@ -35,10 +35,10 @@ export default function LittleRock() {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Little Rock, Arkansas</div>
-          <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Little Rock Property Tax Appeal — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Little Rock homeowners can appeal their Pulaski County assessment to the Board of Equalization every August. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail before the August 17 deadline — all for $79 flat.</p>
-          <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>{[["Aug 17","2026 Deadline"],["$540","Avg. savings"],["$79","Flat fee"],["Pulaski County","Service area"]].map(([n,l]) => (<div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>))}</div>
-          <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Little Rock Appeal — $79</button>
+          <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Little Rock Property Tax Appeal — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Little Rock homeowners can appeal their Pulaski County assessment to the Board of Equalization every August. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail before the August 17 deadline — all for $89 flat.</p>
+          <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>{[["Aug 17","2026 Deadline"],["$540","Avg. savings"],["$89","Flat fee"],["Pulaski County","Service area"]].map(([n,l]) => (<div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>))}</div>
+          <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Little Rock Appeal — $89</button>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. Won't be charged until your letter is ready.</div>
         </div>
       </section>
@@ -52,7 +52,7 @@ export default function LittleRock() {
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Little Rock Homeowners Should Appeal</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Pulaski County is the most populous county in Arkansas. The county uses mass-appraisal models that frequently overestimate values in rapidly changing neighborhoods and undersell condition-related discounts.</p>
-          <div style={{display:"grid",gap:24}}>{[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Pulaski County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill."],["📅","The August 17 Deadline Is Firm","Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you wait a full year. TaxAppeal files early via USPS certified mail."],["⚖️","No Percentage Fees — Ever","Most Arkansas consultants charge 25-40% of savings. On a $1,000 reduction that's up to $400 gone. TaxAppeal charges $79 flat — you keep everything."]].map(([icon,title,desc]) => (<div key={title} style={{display:"flex",gap:16}}><div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div><div><h3 style={{fontSize:17,fontWeight:500,marginBottom:6}}>{title}</h3><p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</p></div></div>))}</div>
+          <div style={{display:"grid",gap:24}}>{[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Pulaski County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill."],["📅","The August 17 Deadline Is Firm","Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you wait a full year. TaxAppeal files early via USPS certified mail."],["⚖️","No Percentage Fees — Ever","Most Arkansas consultants charge 25-40% of savings. On a $1,000 reduction that's up to $400 gone. TaxAppeal charges $89 flat — you keep everything."]].map(([icon,title,desc]) => (<div key={title} style={{display:"flex",gap:16}}><div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div><div><h3 style={{fontSize:17,fontWeight:500,marginBottom:6}}>{title}</h3><p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</p></div></div>))}</div>
         </div>
       </section>
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
@@ -70,8 +70,8 @@ export default function LittleRock() {
       </section>
       <div style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>File Before August 17, 2026</h2>
-        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>Don't miss the Pulaski County Board of Equalization deadline. We handle everything for $79.</p>
-        <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer"}} onClick={go}>Start My Little Rock Appeal — $79</button>
+        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>Don't miss the Pulaski County Board of Equalization deadline. We handle everything for $89.</p>
+        <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer"}} onClick={go}>Start My Little Rock Appeal — $89</button>
       </div>
       <footer style={{background:C.darkNavy,padding:"24px 40px",textAlign:"center"}}>
         <p style={{fontSize:13,color:C.mutedGray,lineHeight:1.8}}>© 2026 TaxAppeal USA · <a href="mailto:customerservice@taxappealusa.com" style={{color:C.mutedGray}}>customerservice@taxappealusa.com</a></p>
