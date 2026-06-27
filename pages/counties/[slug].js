@@ -36,7 +36,7 @@ const faqs = (county) => {
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,
-      a: `The average successful ${t.verb} in ${county.state} reduces the assessed value by 10–20%, saving homeowners $600–$2,000+ per year. TaxAppeal USA charges a flat $79 — far better than the 25–50% contingency fee charged by most protest companies.`,
+      a: `The average successful ${t.verb} in ${county.state} reduces the assessed value by 10–20%, saving homeowners $600–$2,000+ per year. TaxAppeal USA charges a flat $89 — far better than the 25–50% contingency fee charged by most protest companies.`,
     },
     {
       q: `What appraisal district handles ${county.name} County?`,
@@ -44,7 +44,7 @@ const faqs = (county) => {
     },
     {
       q: `Is it worth protesting my ${county.name} County property taxes?`,
-      a: `Yes. Between 60–80% of ${county.state} homeowners who file a ${t.verb} receive a reduction. The cost to try is just $79 with TaxAppeal USA — and if you save even $500/year, you'll earn back that fee in under two months.`,
+      a: `Yes. Between 60–80% of ${county.state} homeowners who file a ${t.verb} receive a reduction. The cost to try is just $89 with TaxAppeal USA — and if you save even $500/year, you'll earn back that fee in under two months.`,
     },
     {
       q: `Do I need to attend a hearing for my ${county.name} County ${t.verb}?`,
@@ -58,7 +58,7 @@ export default function CountyPage({ county }) {
 
   const t = stateTerms[county.code] || stateTerms.TX;
   const title = `${county.name} County Property Tax ${county.code === "TX" ? "Protest" : "Appeal"} | TaxAppeal USA`;
-  const description = `File your ${county.name} County, ${county.state} property tax ${t.verb} by ${county.deadline}. TaxAppeal USA sends your certified protest letter to the ${county.district} for just $79 flat — no percentage fees.`;
+  const description = `File your ${county.name} County, ${county.state} property tax ${t.verb} by ${county.deadline}. TaxAppeal USA sends your certified protest letter to the ${county.district} for just $89 flat — no percentage fees.`;
   const canonicalUrl = `https://taxappealusa.com/counties/${county.slug}`;
 
   const faqList = faqs(county);
@@ -83,7 +83,7 @@ export default function CountyPage({ county }) {
       "@type": "AdministrativeArea",
       name: `${county.name} County, ${county.state}`,
     },
-    priceRange: "$79 flat fee",
+    priceRange: "$89 flat fee",
   };
 
   return (
@@ -119,7 +119,7 @@ export default function CountyPage({ county }) {
             <span style={{ color: C.white, fontSize: 18, fontWeight: 700, letterSpacing: "0.03em" }}>TaxAppeal USA</span>
           </Link>
           <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
-            Start My {county.code === "TX" ? "Protest" : "Appeal"} — $79
+            Start My {county.code === "TX" ? "Protest" : "Appeal"} — $89
           </Link>
         </nav>
 
@@ -133,11 +133,11 @@ export default function CountyPage({ county }) {
               {county.name} County Property Tax {county.code === "TX" ? "Protest" : "Appeal"}
             </h1>
             <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 32px", lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
-              We write your protest letter, pull comparable sales in {county.name} County, and send it via USPS Certified Mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $79. No percentage of your savings. No hidden fees.
+              We write your protest letter, pull comparable sales in {county.name} County, and send it via USPS Certified Mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
             </p>
             <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
-                File My {county.code === "TX" ? "Protest" : "Appeal"} — $79 Flat
+                File My {county.code === "TX" ? "Protest" : "Appeal"} — $89 Flat
               </Link>
               <a href="#how-it-works" style={{ background: "rgba(255,255,255,0.08)", color: C.white, padding: "16px 28px", borderRadius: 8, fontSize: 15, fontWeight: 500, textDecoration: "none", border: "1px solid rgba(255,255,255,0.2)", fontFamily: "Arial,sans-serif" }}>
                 How It Works ↓
@@ -150,7 +150,7 @@ export default function CountyPage({ county }) {
         <div style={{ background: C.white, borderBottom: `1px solid #E5E3DC`, padding: "28px 32px" }}>
           <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 24, textAlign: "center" }}>
             {[
-              { num: "$79", label: "Flat fee — never a %" },
+              { num: "$89", label: "Flat fee — never a %" },
               { num: county.deadline, label: `${county.name} County deadline` },
               { num: "60–80%", label: "Protest success rate" },
               { num: "$600–$2K+", label: "Avg annual savings" },
@@ -175,7 +175,7 @@ export default function CountyPage({ county }) {
             {[
               { n: "1", title: "Enter your address", body: `We look up your ${county.name} County assessed value, comparable sales, and property details automatically.` },
               { n: "2", title: "Review your case", body: `We calculate your estimated overassessment and show you exactly what evidence we'll submit to the ${county.district}.` },
-              { n: "3", title: "Pay $79 flat", body: "No percentage of savings. No surprise fees. One flat fee covers your entire protest from filing to delivery." },
+              { n: "3", title: "Pay $89 flat", body: "No percentage of savings. No surprise fees. One flat fee covers your entire protest from filing to delivery." },
               { n: "4", title: "We mail it certified", body: `Your protest letter goes out via USPS Certified Mail to the ${county.district} — with tracking and proof of delivery.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>
@@ -190,13 +190,13 @@ export default function CountyPage({ county }) {
         {/* WHY FLAT FEE */}
         <div style={{ background: C.navy, color: C.white, padding: "56px 32px" }}>
           <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
-            <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>$79 Flat vs. 25–50% Contingency</h2>
+            <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>$89 Flat vs. 25–50% Contingency</h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 40, lineHeight: 1.7 }}>
               Every other {county.name} County protest service takes a cut of your savings. TaxAppeal USA doesn't.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, maxWidth: 600, margin: "0 auto" }}>
               {[
-                { label: "TaxAppeal USA", fee: "$79 flat", savings: "$1,421 kept", highlight: true },
+                { label: "TaxAppeal USA", fee: "$89 flat", savings: "$1,421 kept", highlight: true },
                 { label: "Typical protest company", fee: "25–50% of savings", savings: "$375–$750 to them", highlight: false },
               ].map(({ label, fee, savings, highlight }) => (
                 <div key={label} style={{ background: highlight ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${highlight ? C.gold : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "24px 20px" }}>
@@ -270,10 +270,10 @@ export default function CountyPage({ county }) {
               Deadline: <strong style={{ color: C.gold }}>{county.deadline}</strong>. Get started in under 3 minutes — enter your address and we'll show you your estimated savings before you pay anything.
             </p>
             <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
-              File My {county.code === "TX" ? "Protest" : "Appeal"} — $79 Flat →
+              File My {county.code === "TX" ? "Protest" : "Appeal"} — $89 Flat →
             </Link>
             <div style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "Arial,sans-serif" }}>
-              Flat $79 · USPS Certified Mail · No percentage fees · {county.state} only
+              Flat $89 · USPS Certified Mail · No percentage fees · {county.state} only
             </div>
           </div>
         </div>
