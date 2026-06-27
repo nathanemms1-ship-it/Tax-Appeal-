@@ -424,7 +424,7 @@ export default function Landing() {
           <div className="trust-item">🔒 256-bit encrypted</div>
           <div className="trust-item">⏱️ Takes 4 minutes</div>
           <div className="trust-item">📬 Certified mail included</div>
-          <div className="trust-item">✅ TX · GA · FL</div>
+          <div className="trust-item">✅ TX · GA · FL · AR</div>
         </div>
         <div className="stats-row">
           <div className="stat-card"><div className="stat-num">82%</div><div className="stat-label">Approval rate</div></div>
