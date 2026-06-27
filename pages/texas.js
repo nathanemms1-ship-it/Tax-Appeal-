@@ -11,9 +11,9 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Se
 
 const faqs = [
   ["What is the deadline to protest property taxes in Texas?", "The deadline is May 15 or 30 days after you receive your Notice of Appraised Value, whichever is later. If you miss this window, you cannot protest until the following year."],
-  ["How much can I save by protesting my Texas property taxes?", "The average Texas homeowner who protests saves $800–$2,500 per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings — unlike firms that take 25–50% of what you save."],
+  ["How much can I save by protesting my Texas property taxes?", "The average Texas homeowner who protests saves $800–$2,500 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25–50% of what you save."],
   ["What is the success rate for property tax protests in Texas?", "Approximately 82% of property tax protests in Texas result in a reduction. The odds are strongly in your favor, especially with a data-backed dispute letter citing comparable sales."],
-  ["How does TaxAppeal compare to other Texas property tax protest companies?", "Most Texas protest firms charge 25–50% of your savings as a contingency fee. On a $2,000 reduction, that's $500–$1,000 in fees. TaxAppeal charges a flat $79 — you keep every dollar you save."],
+  ["How does TaxAppeal compare to other Texas property tax protest companies?", "Most Texas protest firms charge 25–50% of your savings as a contingency fee. On a $2,000 reduction, that's $500–$1,000 in fees. TaxAppeal charges a flat $89 — you keep every dollar you save."],
   ["Do I need to attend a hearing if I file a property tax protest?", "Not necessarily. Many protests are resolved at the informal level without a hearing. TaxAppeal's certified mail filing creates an official record of your protest with the appraisal district."],
   ["What evidence does TaxAppeal use in my protest letter?", "We analyze comparable sales in your area, current market conditions, property-specific defects, and any discrepancies in county records. Every letter cites Texas Tax Code §41.41 and §41.43."],
   ["Which Texas counties does TaxAppeal serve?", "TaxAppeal serves all 254 Texas counties including Harris, Dallas, Tarrant, Bexar, Travis, Collin, Denton, Fort Bend, Williamson, Montgomery, and every other county in the state."],
@@ -101,9 +101,9 @@ const counties = [
 ];
 
 const testimonials = [
-  { name: "Robert K.", location: "Harris County", saved: "$2,100", quote: "I'd been paying too much for years. TaxAppeal put together the comparable sales data and filed everything for me. Got my reduction on the first try — best $79 I've spent." },
-  { name: "Amanda S.", location: "Collin County", saved: "$1,750", quote: "The process was so simple. I entered my address, paid $79, and a few weeks later got a letter from HCAD saying my value was reduced. I'll do this every year." },
-  { name: "Marcus T.", location: "Travis County", saved: "$2,400", quote: "Other protest companies wanted 30% of my savings. On a $2,400 reduction that's $720 a year in fees forever. TaxAppeal charged $79 once. Easy decision." },
+  { name: "Robert K.", location: "Harris County", saved: "$2,100", quote: "I'd been paying too much for years. TaxAppeal put together the comparable sales data and filed everything for me. Got my reduction on the first try — best $89 I've spent." },
+  { name: "Amanda S.", location: "Collin County", saved: "$1,750", quote: "The process was so simple. I entered my address, paid $89, and a few weeks later got a letter from HCAD saying my value was reduced. I'll do this every year." },
+  { name: "Marcus T.", location: "Travis County", saved: "$2,400", quote: "Other protest companies wanted 30% of my savings. On a $2,400 reduction that's $720 a year in fees forever. TaxAppeal charged $89 once. Easy decision." },
 ];
 
 const cities = [
@@ -144,11 +144,11 @@ export default function Texas() {
   return (
     <>
       <Head>
-        <title>Texas Property Tax Protest Service | File for $79 — TaxAppeal</title>
-        <meta name="description" content="Protest your Texas property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. 82% approval rate. All 254 Texas counties." />
+        <title>Texas Property Tax Protest Service | File for $89 — TaxAppeal</title>
+        <meta name="description" content="Protest your Texas property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. 82% approval rate. All 254 Texas counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/texas" />
-        <meta property="og:title" content="Texas Property Tax Protest — $79 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Texas property taxes. We file your protest via certified mail for $79 flat. No contingency fees. Keep 100% of your savings." />
+        <meta property="og:title" content="Texas Property Tax Protest — $89 Flat Fee | TaxAppeal" />
+        <meta property="og:description" content="Stop overpaying on Texas property taxes. We file your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." />
         <meta property="og:url" content="https://www.taxappealusa.com/texas" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -166,7 +166,7 @@ export default function Texas() {
           "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
           "areaServed": { "@type": "State", "name": "Texas" },
           "description": "Property tax protest letter preparation and USPS certified mail filing for Texas homeowners. Covers all 254 counties.",
-          "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" }
+          "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" }
         })}} />
       </Head>
       <style>{`
@@ -211,13 +211,13 @@ export default function Texas() {
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Texas Property Tax Protest Service</div>
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
-            Protest Your Texas Property Taxes for $79 Flat
+            Protest Your Texas Property Taxes for $89 Flat
           </h1>
           <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            Stop overpaying. We draft a formal protest letter backed by comparable sales data, legal citations under Texas Tax Code §41.41 & §41.43, and file it via USPS certified mail — all for a flat $79. No contingency fees. Keep 100% of your savings.
+            Stop overpaying. We draft a formal protest letter backed by comparable sales data, legal citations under Texas Tax Code §41.41 & §41.43, and file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
           </p>
           <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
-            {[["82%", "Approval rate"], ["$1,840", "Avg. savings"], ["$79", "Flat fee"], ["254", "TX counties"]].map(([n, l]) => (
+            {[["82%", "Approval rate"], ["$1,840", "Avg. savings"], ["$89", "Flat fee"], ["254", "TX counties"]].map(([n, l]) => (
               <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
@@ -225,7 +225,7 @@ export default function Texas() {
             ))}
           </div>
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-            File My Texas Protest — $79 →
+            File My Texas Protest — $89 →
           </button>
           <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
@@ -234,7 +234,7 @@ export default function Texas() {
       {/* What's Included */}
       <section style={{ padding: "56px 40px", background: C.lightBlue }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $79</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $89</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>One flat fee covers the entire protest process — no surprises, no percentage cuts.</p>
           <div className="included-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
@@ -298,9 +298,9 @@ export default function Texas() {
             </div>
             <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal</div>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$79 flat. Period.</div>
-              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction — you pay $79 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
-              {["One-time $79 fee", "Every property gets a full protest", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$89 flat. Period.</div>
+              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction — you pay $89 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
+              {["One-time $89 fee", "Every property gets a full protest", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
               ))}
             </div>
@@ -400,9 +400,9 @@ export default function Texas() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to protest your Texas property taxes?</h2>
-        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Texas homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Texas homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-          Start My Texas Protest — $79 →
+          Start My Texas Protest — $89 →
         </button>
       </section>
 
