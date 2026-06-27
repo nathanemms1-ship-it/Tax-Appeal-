@@ -185,7 +185,7 @@ export default function BlogPost({ post }) {
               {/* CTA Box */}
               <div style={{ background: C.navy, borderRadius: 14, padding: 24, marginBottom: 20, color: C.white }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, marginBottom: 10, lineHeight: 1.3 }}>
-                  File your protest for $79 flat
+                  File your protest for $89 flat
                 </div>
                 <p style={{ fontSize: 13, color: "#8596AF", lineHeight: 1.6, marginBottom: 18 }}>
                   We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
@@ -202,7 +202,7 @@ export default function BlogPost({ post }) {
                   style={{ background: C.gold, color: C.darkNavy, width: "100%", fontSize: 14, padding: "13px 0" }}
                   onClick={() => window.location.href = '/apply'}
                 >
-                  Start My Dispute — $79 →
+                  Start My Dispute — $89 →
                 </button>
               </div>
 
@@ -228,7 +228,7 @@ export default function BlogPost({ post }) {
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, fontWeight: 600, marginBottom: 14 }}>
                   Why TaxAppeal
                 </div>
-                {[["82%", "protest success rate"], ["$1,840", "average savings"], ["$79", "flat fee, no % cut"], ["254", "TX counties covered"]].map(([n, l]) => (
+                {[["82%", "protest success rate"], ["$1,840", "average savings"], ["$89", "flat fee, no % cut"], ["254", "TX counties covered"]].map(([n, l]) => (
                   <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ fontSize: 12, color: C.bodyGray }}>{l}</span>
                     <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.navy, fontWeight: 700 }}>{n}</span>
@@ -246,14 +246,14 @@ export default function BlogPost({ post }) {
           Ready to protest your property taxes?
         </h2>
         <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>
-          $79 flat fee. We handle everything. You keep 100% of your savings.
+          $89 flat fee. We handle everything. You keep 100% of your savings.
         </p>
         <button
           className="btn-primary"
           style={{ background: C.gold, color: C.darkNavy, fontSize: 16, padding: "16px 44px" }}
           onClick={() => router.push('/apply')}
         >
-          Start My Dispute — $79 →
+          Start My Dispute — $89 →
         </button>
       </section>
 
