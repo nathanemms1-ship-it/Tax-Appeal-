@@ -12,7 +12,7 @@ const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 
 const faqs = [
   ["What is the deadline to appeal property taxes in Georgia?", "You have 45 days from the date on your annual Notice of Assessment to file an appeal. Assessment notices are typically mailed between April and June. Missing this deadline means waiting until next year."],
-  ["How much can I save by appealing my Georgia property taxes?", "The average Georgia homeowner who appeals saves $800 to $2,200 per year. With TaxAppeal at $79 flat, you keep 100% of those savings — unlike contingency firms that take 25–40%."],
+  ["How much can I save by appealing my Georgia property taxes?", "The average Georgia homeowner who appeals saves $800 to $2,200 per year. With TaxAppeal at $89 flat, you keep 100% of those savings — unlike contingency firms that take 25–40%."],
   ["What is the success rate for property tax appeals in Georgia?", "Approximately 82% of property tax appeals backed by comparable sales evidence result in a reduction. The odds are strongly in your favor with a well-documented appeal."],
   ["How does Georgia assess property value?", "Georgia assesses property at 40% of fair market value. If the county overestimates your fair market value, your taxable value and your bill are both inflated — and you have the right to challenge it."],
   ["What is the Board of Equalization in Georgia?", "The Board of Equalization (BOE) is a county body that hears property tax appeals in Georgia. If your informal appeal to the county assessor is unsuccessful, your case goes before the BOE where you can present comparable sales evidence."],
@@ -20,7 +20,7 @@ const faqs = [
   ["Does TaxAppeal serve all Georgia counties?", "Yes. We serve all 159 Georgia counties including Fulton, Gwinnett, Cobb, DeKalb, Cherokee, Forsyth, Chatham, Richmond, and every other county in the state."],
   ["Can my assessment go up if I appeal in Georgia?", "In rare cases, yes. However TaxAppeal reviews all market data before filing to ensure your appeal is well-supported with comparable sales evidence, minimizing any upside risk."],
   ["What evidence does TaxAppeal use for Georgia appeals?", "We analyze comparable sales, current market conditions, property defects, and county record discrepancies. Every letter cites O.C.G.A. § 48-5-311."],
-  ["How does TaxAppeal compare to other Georgia firms?", "Most Georgia firms charge 25–40% of your savings. On a $1,500 reduction that is $375–$600 in fees every year. TaxAppeal charges $79 flat — one time."],
+  ["How does TaxAppeal compare to other Georgia firms?", "Most Georgia firms charge 25–40% of your savings. On a $1,500 reduction that is $375–$600 in fees every year. TaxAppeal charges $89 flat — one time."],
   ["What is a Notice of Assessment in Georgia?", "Your Notice of Assessment is the annual letter from your county tax assessor stating their estimate of your property's fair market value. It arrives between April and June, and the date on the notice starts your 45-day appeal clock."],
   ["Which appraisal districts handle Georgia property tax appeals?", "Georgia uses county tax assessors rather than centralized appraisal districts. Each of the 159 counties has its own Board of Tax Assessors. Major ones include the Fulton County Board of Assessors, Gwinnett County Tax Assessor, Cobb County Board of Tax Assessors, and DeKalb County Tax Commissioner."],
 ];
@@ -74,9 +74,9 @@ const counties = [
 ];
 
 const testimonials = [
-  { name: "Sarah M.", location: "Fulton County", saved: "$1,840", quote: "I had no idea how easy this was. TaxAppeal handled everything — I got a letter in the mail saying my assessment was reduced. Best $79 I ever spent." },
+  { name: "Sarah M.", location: "Fulton County", saved: "$1,840", quote: "I had no idea how easy this was. TaxAppeal handled everything — I got a letter in the mail saying my assessment was reduced. Best $89 I ever spent." },
   { name: "James T.", location: "Gwinnett County", saved: "$2,100", quote: "I'd been meaning to appeal for years but never got around to it. TaxAppeal made it a 5-minute process. The certified mail gave me confidence it was actually filed." },
-  { name: "Linda R.", location: "Cobb County", saved: "$1,560", quote: "Other companies wanted 30% of my savings. TaxAppeal charged $79 flat and I kept every dollar. I'll be filing again next year for sure." },
+  { name: "Linda R.", location: "Cobb County", saved: "$1,560", quote: "Other companies wanted 30% of my savings. TaxAppeal charged $89 flat and I kept every dollar. I'll be filing again next year for sure." },
 ];
 
 const cities = [
@@ -97,11 +97,11 @@ export default function Georgia() {
   return (
     <>
       <Head>
-        <title>Georgia Property Tax Appeal Service | File for $79 | TaxAppeal</title>
-        <meta name="description" content="Appeal your Georgia property taxes for a flat $79 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. 82% approval rate. All 159 Georgia counties." />
+        <title>Georgia Property Tax Appeal Service | File for $89 | TaxAppeal</title>
+        <meta name="description" content="Appeal your Georgia property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. 82% approval rate. All 159 Georgia counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/georgia" />
-        <meta property="og:title" content="Georgia Property Tax Appeal — $79 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Georgia property taxes. We file your appeal via certified mail for $79 flat. No contingency fees. Keep 100% of your savings. All 159 counties." />
+        <meta property="og:title" content="Georgia Property Tax Appeal — $89 Flat Fee | TaxAppeal" />
+        <meta property="og:description" content="Stop overpaying on Georgia property taxes. We file your appeal via certified mail for $89 flat. No contingency fees. Keep 100% of your savings. All 159 counties." />
         <meta property="og:url" content="https://www.taxappealusa.com/georgia" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -120,7 +120,7 @@ export default function Georgia() {
           "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
           "areaServed": { "@type": "State", "name": "Georgia" },
           "description": "Property tax appeal letter preparation and USPS certified mail filing for Georgia homeowners. Covers all 159 counties.",
-          "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" }
+          "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" }
         })}} />
       </Head>
       <style>{`
@@ -158,13 +158,13 @@ export default function Georgia() {
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Georgia Property Tax Appeal Service</div>
           <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
-            Appeal Your Georgia Property Taxes for $79 Flat
+            Appeal Your Georgia Property Taxes for $89 Flat
           </h1>
           <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            Stop overpaying. We draft a formal appeal letter backed by comparable sales data, legal citations under O.C.G.A. § 48-5-311, and file it via USPS certified mail — all for a flat $79. No contingency fees. Keep 100% of your savings.
+            Stop overpaying. We draft a formal appeal letter backed by comparable sales data, legal citations under O.C.G.A. § 48-5-311, and file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
-            {[["82%", "Approval rate"], ["$1,840", "Avg. savings"], ["$79", "Flat fee"], ["159", "GA counties"]].map(([n, l]) => (
+            {[["82%", "Approval rate"], ["$1,840", "Avg. savings"], ["$89", "Flat fee"], ["159", "GA counties"]].map(([n, l]) => (
               <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
@@ -172,7 +172,7 @@ export default function Georgia() {
             ))}
           </div>
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-            File My Georgia Appeal — $79 →
+            File My Georgia Appeal — $89 →
           </button>
           <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
@@ -181,7 +181,7 @@ export default function Georgia() {
       {/* What's Included */}
       <section style={{ padding: "56px 40px", background: C.lightBlue }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $79</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Everything Included for $89</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>One flat fee covers the entire process — no surprises, no percentage cuts.</p>
           <div className="included-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
@@ -271,9 +271,9 @@ export default function Georgia() {
             </div>
             <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal</div>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$79 flat. Period.</div>
-              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $79 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
-              {["One-time $79 fee", "Every property gets a full appeal", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$89 flat. Period.</div>
+              <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
+              {["One-time $89 fee", "Every property gets a full appeal", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
               ))}
             </div>
@@ -349,9 +349,9 @@ export default function Georgia() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Georgia property taxes?</h2>
-        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Georgia homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Join thousands of Georgia homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-          Start My Georgia Appeal — $79 →
+          Start My Georgia Appeal — $89 →
         </button>
       </section>
 
