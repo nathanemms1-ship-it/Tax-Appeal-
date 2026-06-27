@@ -117,7 +117,7 @@ export default async function handler(req, res) {
             name: 'TaxAppeal USA — Property Tax Dispute Filing',
             description: `VAB petition preparation & USPS certified mail filing for ${address} — ${county}`,
           },
-          unit_amount: 7900,
+          unit_amount: 8900,
         },
         quantity: 1,
       },
