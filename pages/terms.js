@@ -28,7 +28,7 @@ export default function Terms() {
             <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that generates property tax protest letters on behalf of homeowners. We are not a law firm, and our service does not constitute legal advice. We prepare and mail protest letters via USPS Certified Mail to county appraisal districts on your behalf.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
-            <p>Our service is provided at a flat fee of $79 per property per filing season. This fee covers AI-generated letter preparation, USPS Certified Mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
+            <p>Our service is provided at a flat fee of $89 per property per filing season. This fee covers AI-generated letter preparation, USPS Certified Mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. No Outcome Guarantee</h2>
             <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the applicable county appraisal district. Our service guarantees only that your protest letter will be professionally prepared and dispatched via certified mail within the applicable filing window.</p>
@@ -51,7 +51,7 @@ export default function Terms() {
             <p>You agree to provide accurate property and contact information. Inaccurate information that results in a failed or improper filing does not entitle you to a refund. You are responsible for monitoring your mail and email for any response from the appraisal district.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>8. Limitation of Liability</h2>
-            <p>To the maximum extent permitted by law, TaxAppeal USA's liability is limited to the amount paid for the service ($79). We are not liable for any indirect, incidental, or consequential damages arising from use of our service.</p>
+            <p>To the maximum extent permitted by law, TaxAppeal USA's liability is limited to the amount paid for the service ($89). We are not liable for any indirect, incidental, or consequential damages arising from use of our service.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>9. Governing Law</h2>
             <p>These Terms are governed by the laws of the State of Texas. Any disputes shall be resolved in Tarrant County, Texas.</p>
