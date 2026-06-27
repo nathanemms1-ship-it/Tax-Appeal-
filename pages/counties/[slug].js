@@ -18,12 +18,13 @@ const stateTerms = {
   TX: { verb: "protest", deadline: "May 15", process: "Appraisal Review Board (ARB) hearing", year: "2026" },
   GA: { verb: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", year: "2026" },
   FL: { verb: "petition", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", year: "2026" },
+  AR: { verb: "appeal", deadline: "Third Monday in August (Aug 17)", process: "Board of Equalization (BOE) hearing", year: "2026" },
 };
 
-const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida" };
+const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas" };
 
 const faqs = (county) => {
-  const t = stateTerms[county.code];
+  const t = stateTerms[county.code] || stateTerms.TX;
   return [
     {
       q: `What is the deadline to ${t.verb} property taxes in ${county.name} County, ${county.state}?`,
@@ -55,7 +56,7 @@ const faqs = (county) => {
 export default function CountyPage({ county }) {
   if (!county) return <div style={{ padding: 40, color: C.text }}>County not found.</div>;
 
-  const t = stateTerms[county.code];
+  const t = stateTerms[county.code] || stateTerms.TX;
   const title = `${county.name} County Property Tax ${county.code === "TX" ? "Protest" : "Appeal"} | TaxAppeal USA`;
   const description = `File your ${county.name} County, ${county.state} property tax ${t.verb} by ${county.deadline}. TaxAppeal USA sends your certified protest letter to the ${county.district} for just $79 flat — no percentage fees.`;
   const canonicalUrl = `https://taxappealusa.com/counties/${county.slug}`;
