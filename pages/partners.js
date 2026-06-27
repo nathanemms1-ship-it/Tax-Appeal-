@@ -51,8 +51,8 @@ export default function PartnersPage() {
   return (
     <>
       <Head>
-        <title>Partner Program — Earn $15 Per Referral | TaxAppeal USA</title>
-        <meta name="description" content="Real estate agents and HOA managers: earn $15 for every homeowner you refer to TaxAppeal USA. Share your unique link, we handle the rest. Paid monthly." />
+        <title>Partner Program — Earn $20 Per Referral | TaxAppeal USA</title>
+        <meta name="description" content="Real estate agents and HOA managers: earn $20 for every homeowner you refer to TaxAppeal USA. Share your unique link, we handle the rest. Paid monthly." />
         <link rel="canonical" href="https://www.taxappealusa.com/partners" />
       </Head>
       <style>{`
@@ -81,13 +81,13 @@ export default function PartnersPage() {
         <div className="container">
           <div style={{fontSize:12,color:C.gold,textTransform:'uppercase',letterSpacing:'2px',marginBottom:16}}>Partner Program</div>
           <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,color:C.white,marginBottom:16,maxWidth:600}}>
-            Earn $15 every time a client files their property tax appeal
+            Earn $20 every time a client files their property tax appeal
           </h1>
           <p style={{fontSize:18,color:'#8596AF',lineHeight:1.6,maxWidth:560,marginBottom:40}}>
-            Share your unique link. When a homeowner clicks it and completes their $79 filing, you earn $15 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
+            Share your unique link. When a homeowner clicks it and completes their $89 filing, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
           </p>
           <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-            {[['$15','Per referral, flat'],['$79','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
+            {[['$20','Per referral, flat'],['$89','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
               <div key={l} style={{background:'#0F1F3D',borderRadius:10,padding:'16px',textAlign:'center'}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:'#5A7A9F',marginTop:4}}>{l}</div>
@@ -104,7 +104,7 @@ export default function PartnersPage() {
             <div>
               <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,marginBottom:12}}>How the program works</h2>
               <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:32}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
-              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:'They click your link, enter their address, and our system pulls comparable market sales data to build a customized dispute letter. They review it, pay $79, and we handle certified mail filing directly to the county appraisal district.'},{n:'4',title:'You get paid monthly',desc:'At the end of each month we tally your referrals and pay you $15 per completed order directly to your bank account via Stripe Connect — automated, no manual transfers needed.'}].map(({n,title,desc})=>(
+              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:'They click your link, enter their address, and our system pulls comparable market sales data to build a customized dispute letter. They review it, pay $89, and we handle certified mail filing directly to the county appraisal district.'},{n:'4',title:'You get paid monthly',desc:'At the end of each month we tally your referrals and pay you $20 per completed order directly to your bank account via Stripe Connect — automated, no manual transfers needed.'}].map(({n,title,desc})=>(
                 <div key={n} style={{display:'flex',gap:16,marginBottom:24}}>
                   <div style={{width:36,height:36,background:C.navy,color:C.gold,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Serif Display',serif",fontSize:18,flexShrink:0}}>{n}</div>
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
@@ -112,7 +112,7 @@ export default function PartnersPage() {
               ))}
               <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:12,padding:'20px 24px',marginTop:8}}>
                 <div style={{fontSize:14,fontWeight:500,color:C.green,marginBottom:8}}>Example earnings</div>
-                {[['5 clients/month','$75/mo','$900/yr'],['10 clients/month','$150/mo','$1,800/yr'],['20 clients/month','$300/mo','$3,600/yr']].map(([vol,mo,yr])=>(
+                {[['5 clients/month','$75/mo','$900/yr'],['10 clients/month','$200/mo','$2,400/yr'],['20 clients/month','$400/mo','$4,800/yr']].map(([vol,mo,yr])=>(
                   <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #bbf7d0',fontSize:14,color:C.darkNavy}}>
                     <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{mo}</strong> · {yr}</span>
                   </div>
@@ -120,7 +120,7 @@ export default function PartnersPage() {
               </div>
               <div style={{background:C.lightBlue,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginTop:24}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>What to tell your clients</div>
-                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They file your protest via certified mail for $79 flat, no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
+                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They file your protest via certified mail for $89 flat, no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
               </div>
             </div>
 
@@ -142,7 +142,7 @@ export default function PartnersPage() {
                     <button onClick={handleStripeConnect} disabled={connectLoading} style={{display:'block',width:'100%',background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',cursor:connectLoading?'not-allowed':'pointer',opacity:connectLoading?0.7:1,fontFamily:"'DM Sans',sans-serif"}}>{connectLoading?'Redirecting to Stripe...':'Connect Bank Account via Stripe →'}</button>
                     <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
                   </div>
-                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $15.</p>
+                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $20.</p>
                 </div>
               ) : (
                 <div style={{background:C.white,border:`0.5px solid ${C.border}`,borderRadius:16,padding:'32px 28px'}}>
@@ -208,7 +208,7 @@ export default function PartnersPage() {
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],['When do I get paid?','At the end of each month we pay via your connected bank account via Stripe — fully automated, no manual transfers. There is no minimum balance required. We do not withhold income taxes from your payouts.'],['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $15.'],['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $15 again.'],['Does TaxAppeal serve all counties?','Yes — all 254 Texas counties, all 67 Florida counties, and all 159 Georgia counties.'],['What does the $79 fee cover?','AI-generated dispute letter built with comparable market sales data and county assessment records, USPS Certified Mail filing with Return Receipt, and full tracking through the appraisal district process — everything needed to make a compelling case for a reduction.'],
+            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],['When do I get paid?','At the end of each month we pay via your connected bank account via Stripe — fully automated, no manual transfers. There is no minimum balance required. We do not withhold income taxes from your payouts.'],['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],['Does TaxAppeal serve all counties?','Yes — all 254 Texas counties, all 67 Florida counties, and all 159 Georgia counties.'],['What does the $89 fee cover?','AI-generated dispute letter built with comparable market sales data and county assessment records, USPS Certified Mail filing with Return Receipt, and full tracking through the appraisal district process — everything needed to make a compelling case for a reduction.'],
             ['Do you withhold taxes from my payouts?','No. Referral earnings are self-employment income and we do not withhold income taxes. You are responsible for reporting earnings on your tax return. If you earn $600 or more in a calendar year, Stripe will automatically issue you a 1099-NEC and file it with the IRS. We recommend setting aside 25–30% of your earnings for taxes.']].map(([q,a])=>(
               <div key={q} style={{background:C.bg,borderRadius:12,padding:'20px 24px'}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>{q}</div>
