@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
-const faqs = [["How do I protest my Fort Worth property taxes?","File a formal protest with the Tarrant Appraisal District (TAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your letter and files via USPS certified mail."],["What is TAD?","TAD (Tarrant Appraisal District) appraises all properties in Tarrant County including Fort Worth, Arlington, Mansfield, and surrounding cities. Your TAD assessed value directly determines your tax bill."],["How much can Fort Worth homeowners save?","Fort Worth homeowners who protest successfully save an average of $1,760 per year. TaxAppeal charges $79 flat — no percentage of your savings."],["Does TaxAppeal serve all Tarrant County cities?","Yes. We serve all cities in Tarrant County including Fort Worth, Arlington, Mansfield, Bedford, Euless, Hurst, Keller, Southlake, Grapevine, and every other city in the county."],["What is the Fort Worth property tax protest deadline?","May 15 or 30 days after TAD mails your Notice of Appraised Value, whichever is later."]];
+const faqs = [["How do I protest my Fort Worth property taxes?","File a formal protest with the Tarrant Appraisal District (TAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your letter and files via USPS certified mail."],["What is TAD?","TAD (Tarrant Appraisal District) appraises all properties in Tarrant County including Fort Worth, Arlington, Mansfield, and surrounding cities. Your TAD assessed value directly determines your tax bill."],["How much can Fort Worth homeowners save?","Fort Worth homeowners who protest successfully save an average of $1,760 per year. TaxAppeal charges $89 flat — no percentage of your savings."],["Does TaxAppeal serve all Tarrant County cities?","Yes. We serve all cities in Tarrant County including Fort Worth, Arlington, Mansfield, Bedford, Euless, Hurst, Keller, Southlake, Grapevine, and every other city in the county."],["What is the Fort Worth property tax protest deadline?","May 15 or 30 days after TAD mails your Notice of Appraised Value, whichever is later."]];
 
 export default function FortWorth() {
   const router = useRouter();
@@ -14,11 +14,11 @@ export default function FortWorth() {
   return (
     <>
       <Head>
-        <title>Fort Worth Property Tax Protest Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your Fort Worth property taxes for $79 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
+        <title>Fort Worth Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/fort-worth" />
-        <meta property="og:title" content="Fort Worth Property Tax Protest — $79 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your Fort Worth property taxes for $79 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
+        <meta property="og:title" content="Fort Worth Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
+        <meta property="og:description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/fort-worth" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,7 +31,7 @@ export default function FortWorth() {
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
           "areaServed":{"@type":"City","name":"Fort Worth"},
           "description":"Property tax protest letter preparation and USPS certified mail filing for Fort Worth homeowners.",
-          "offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"}
+          "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
       <style>{`
@@ -57,17 +57,17 @@ export default function FortWorth() {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Fort Worth, Texas — Property Tax Protest Service</div>
-          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Fort Worth Property Tax Protest — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Tarrant County has one of the highest property tax rates in Texas. TaxAppeal files your formal protest with TAD — backed by real comparable sales data — for a flat $79 with no percentage cuts.</p>
+          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Fort Worth Property Tax Protest — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Tarrant County has one of the highest property tax rates in Texas. TaxAppeal files your formal protest with TAD — backed by real comparable sales data — for a flat $89 with no percentage cuts.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$1,760","Avg. savings"],["$79","Flat fee"],["Tarrant County","Service area"]].map(([n,l]) => (
+            {[["82%","Approval rate"],["$1,760","Avg. savings"],["$89","Flat fee"],["Tarrant County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Fort Worth Protest — $79 →</button>
+          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Fort Worth Protest — $89 →</button>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
       </section>
@@ -136,9 +136,9 @@ export default function FortWorth() {
             </div>
             <div style={{background:C.navy,borderRadius:12,padding:24}}>
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$79 flat. Period.</div>
-              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $79 once and keep every dollar of your $1,760 savings. No annual fees.</p>
-              {["One-time $79 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
+              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $89 once and keep every dollar of your $1,760 savings. No annual fees.</p>
+              {["One-time $89 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
               ))}
             </div>
@@ -162,8 +162,8 @@ export default function FortWorth() {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to protest your Fort Worth property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Fort Worth homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
-        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Fort Worth Protest — $79 →</button>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Fort Worth homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Fort Worth Protest — $89 →</button>
       </section>
 
       <footer style={{background:C.darkNavy,padding:"24px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
