@@ -70,10 +70,10 @@ export default function Florida() {
     <>
       <Head>
         <title>Florida Property Tax Appeal Service | $129 All-In | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Florida TRIM notice for $129 all-in ($79 service + $50 county VAB fee). We draft your VAB petition, pay the county fee, and file via USPS certified mail. 82% approval rate. All 67 Florida counties." />
+        <meta name="description" content="Appeal your Florida TRIM notice for $129 all-in ($89 service + $50 county VAB fee). We draft your VAB petition, pay the county fee, and file via USPS certified mail. 82% approval rate. All 67 Florida counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/florida" />
         <meta property="og:title" content="Florida Property Tax Appeal — $129 All-In | TaxAppeal USA" />
-        <meta property="og:description" content="Stop overpaying on Florida property taxes. $79 service fee + $50 mandatory county VAB filing fee. We handle everything including the county payment. All 67 counties." />
+        <meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee + $50 mandatory county VAB filing fee. We handle everything including the county payment. All 67 counties." />
         <meta property="og:url" content="https://www.taxappealusa.com/florida" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -140,7 +140,7 @@ export default function Florida() {
           {/* Pricing breakdown banner */}
           <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "inline-flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
-              <span style={{ color: C.gold, fontWeight: 700 }}>$79</span> TaxAppeal service fee
+              <span style={{ color: C.gold, fontWeight: 700 }}>$89</span> TaxAppeal service fee
             </div>
             <div style={{ fontSize: 13, color: "#5A7A9F" }}>+</div>
             <div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
@@ -167,7 +167,7 @@ export default function Florida() {
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
             File My Florida Appeal — $129 All-In →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. $79 service fee + $50 county VAB filing fee. We handle the county payment for you.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. $89 service fee + $50 county VAB filing fee. We handle the county payment for you.</div>
         </div>
       </section>
 
@@ -175,7 +175,7 @@ export default function Florida() {
       <section style={{ padding: "48px 40px", background: "#FFF8E6", borderBottom: `1px solid #FFD97A` }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, textAlign: "center", marginBottom: 8, color: C.darkNavy }}>
-            Why Florida Costs $129 Instead of $79
+            Why Florida Costs $129 Instead of $89
           </h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 32, lineHeight: 1.7 }}>
             Florida is the only state we serve that charges a mandatory county filing fee. Here's the full breakdown.
@@ -183,7 +183,7 @@ export default function Florida() {
           <div className="fee-breakdown" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
             {[
               ["🏛️", "$50 County VAB Fee", "Required by Florida law (HB 7031, effective July 2025). Paid directly to your county's Value Adjustment Board. We send a check on your behalf — you don't have to do anything."],
-              ["🏠", "$79 TaxAppeal Service", "Your petition preparation, comparable sales analysis, AI-generated letter with legal citations, USPS certified mail filing, and email tracking. Same as Texas and Georgia."],
+              ["🏠", "$89 TaxAppeal Service", "Your petition preparation, comparable sales analysis, AI-generated letter with legal citations, USPS certified mail filing, and email tracking. Same as Texas and Georgia."],
               ["💰", "$129 Total — Still Wins", "Contingency firms charge $500–$800 on a $2,000 reduction you keep $1,871 vs. as little as $1,200 with a contingency firm."],
             ].map(([icon, title, desc]) => (
               <div key={title} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
@@ -291,7 +291,7 @@ export default function Florida() {
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal USA</div>
               <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$129 all-in. Period.</div>
               <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $129 once (including the mandatory county fee) and keep $1,871. Every year after that, the savings are 100% yours.</p>
-              {["$79 service + $50 county fee, all-in", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+              {["$89 service + $50 county fee, all-in", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
               ))}
             </div>
@@ -333,7 +333,7 @@ export default function Florida() {
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Florida property taxes?</h2>
         <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 8 }}>Join thousands of Florida homeowners saving money every year.</p>
-        <p style={{ fontSize: 14, color: "#5A7A9F", marginBottom: 28 }}>$79 service fee + $50 county VAB filing fee = $129 all-in. We handle everything including the county payment.</p>
+        <p style={{ fontSize: 14, color: "#5A7A9F", marginBottom: 28 }}>$89 service fee + $50 county VAB filing fee = $129 all-in. We handle everything including the county payment.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
           Start My Florida Appeal — $129 All-In →
         </button>
