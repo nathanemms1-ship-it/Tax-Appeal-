@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         reduction_pct: reductionPct ? Number(reductionPct) : null,
         estimated_savings: estimatedSavings ? Number(estimatedSavings) : null,
         stripe_session_id: stripeSessionId,
-        amount_paid: amountPaid || 7900,
+        amount_paid: amountPaid || 8900,
         payment_status: 'paid',
         lob_letter_id: lobLetterId || null,
         lob_tracking_number: lobTrackingNumber || null,
