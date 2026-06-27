@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
-const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Atlanta homeowners who successfully appeal save an average of $1,840 per year. TaxAppeal charges $79 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
+const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Atlanta homeowners who successfully appeal save an average of $1,840 per year. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
 
 export default function Atlanta() {
   const router = useRouter();
@@ -14,11 +14,11 @@ export default function Atlanta() {
   return (
     <>
       <Head>
-        <title>Atlanta Property Tax Appeal Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Atlanta property taxes for $79 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
+        <title>Atlanta Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content="Appeal your Atlanta property taxes for $89 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/atlanta" />
-        <meta property="og:title" content="Atlanta Property Tax Appeal — $79 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Appeal your Atlanta property taxes for $79 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
+        <meta property="og:title" content="Atlanta Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
+        <meta property="og:description" content="Appeal your Atlanta property taxes for $89 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/atlanta" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,7 +31,7 @@ export default function Atlanta() {
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
           "areaServed":{"@type":"City","name":"Atlanta"},
           "description":"Property tax appeal letter preparation and USPS certified mail filing for Atlanta homeowners.",
-          "offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"}
+          "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
       <style>{`
@@ -57,17 +57,17 @@ export default function Atlanta() {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Atlanta, Georgia — Property Tax Appeal Service</div>
-          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Atlanta Property Tax Appeal — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Atlanta property values have risen sharply, and Fulton County assessments frequently overshoot actual market value. TaxAppeal files your formal appeal with the Fulton County Board of Assessors for a flat $79.</p>
+          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Atlanta Property Tax Appeal — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Atlanta property values have risen sharply, and Fulton County assessments frequently overshoot actual market value. TaxAppeal files your formal appeal with the Fulton County Board of Assessors for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$1,840","Avg. savings"],["$79","Flat fee"],["Fulton County","Service area"]].map(([n,l]) => (
+            {[["82%","Approval rate"],["$1,840","Avg. savings"],["$89","Flat fee"],["Fulton County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Atlanta Appeal — $79 →</button>
+          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Atlanta Appeal — $89 →</button>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
       </section>
@@ -136,9 +136,9 @@ export default function Atlanta() {
             </div>
             <div style={{background:C.navy,borderRadius:12,padding:24}}>
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$79 flat. Period.</div>
-              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $79 once and keep every dollar of your $1,840 savings. No annual fees.</p>
-              {["One-time $79 fee","Every property gets a full appeal","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
+              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $89 once and keep every dollar of your $1,840 savings. No annual fees.</p>
+              {["One-time $89 fee","Every property gets a full appeal","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
               ))}
             </div>
@@ -162,8 +162,8 @@ export default function Atlanta() {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your Atlanta property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Atlanta homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
-        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Atlanta Appeal — $79 →</button>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Atlanta homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Atlanta Appeal — $89 →</button>
       </section>
 
       <footer style={{background:C.darkNavy,padding:"24px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
