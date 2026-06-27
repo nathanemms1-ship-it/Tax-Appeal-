@@ -12,7 +12,7 @@ const FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=DM+Se
 const faqs = [
   ["What is the deadline to appeal property taxes in Arkansas?", "The deadline is the third Monday in August each year — August 17, 2026. Appeals must be filed with your county Board of Equalization by this date. Postmark by the deadline counts in Arkansas."],
   ["How does property assessment work in Arkansas?", "Arkansas assesses residential property at 20% of its fair market value. So a home worth $200,000 would have an assessed value of $40,000. Your tax bill is based on this assessed value multiplied by the local millage rate. When you appeal, you are arguing about the full market value — not the 20% figure."],
-  ["How much can I save by appealing my Arkansas property taxes?", "The average Arkansas homeowner who successfully appeals saves $200–$800 per year depending on their county's millage rate. With TaxAppeal's flat $79 fee, you keep every dollar of those savings."],
+  ["How much can I save by appealing my Arkansas property taxes?", "The average Arkansas homeowner who successfully appeals saves $200–$800 per year depending on their county's millage rate. With TaxAppeal's flat $89 fee, you keep every dollar of those savings."],
   ["Do I need to attend a hearing to appeal my Arkansas property taxes?", "You can send a representative. TaxAppeal files your written protest via certified mail to your county Board of Equalization on your behalf. Many counties also accept written evidence without requiring a personal appearance."],
   ["What evidence does TaxAppeal use in my Arkansas appeal?", "We analyze comparable sales from your area, current market conditions in your county, and any property-specific defects you report. Every letter cites Arkansas Code §26-27-317 (appeal rights) and §26-26-1901 (market value standard)."],
   ["Which Arkansas counties does TaxAppeal serve?", "TaxAppeal serves all 75 Arkansas counties including Benton, Pulaski, Washington, Sebastian, Faulkner, Saline, Craighead, Garland, White, Lonoke, and every other county in the state."],
@@ -62,11 +62,11 @@ export default function Arkansas() {
   return (
     <>
       <Head>
-        <title>Arkansas Property Tax Appeal Service | File for $79 — TaxAppeal</title>
-        <meta name="description" content="Appeal your Arkansas property taxes for a flat $79 fee. We draft your protest letter with comparable sales data and file via certified mail before the August 17 deadline. All 75 Arkansas counties." />
+        <title>Arkansas Property Tax Appeal Service | File for $89 — TaxAppeal</title>
+        <meta name="description" content="Appeal your Arkansas property taxes for a flat $89 fee. We draft your protest letter with comparable sales data and file via certified mail before the August 17 deadline. All 75 Arkansas counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/arkansas" />
-        <meta property="og:title" content="Arkansas Property Tax Appeal — $79 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $79 flat. Deadline: August 17, 2026." />
+        <meta property="og:title" content="Arkansas Property Tax Appeal — $89 Flat Fee | TaxAppeal" />
+        <meta property="og:description" content="Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $89 flat. Deadline: August 17, 2026." />
         <meta property="og:url" content="https://www.taxappealusa.com/arkansas" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -131,15 +131,15 @@ export default function Arkansas() {
       {/* Nav */}
       <nav className="nav">
         <a href="/" className="logo-name">TaxAppeal USA</a>
-        <button className="btn-gold" onClick={go} style={{ padding: '10px 20px', fontSize: 14 }}>File My Appeal — $79</button>
+        <button className="btn-gold" onClick={go} style={{ padding: '10px 20px', fontSize: 14 }}>File My Appeal — $89</button>
       </nav>
 
       {/* Hero */}
       <div className="hero">
         <div className="hero-eyebrow">🏠 Arkansas Property Tax Appeal Service</div>
         <h1>Stop overpaying on Arkansas property taxes</h1>
-        <p className="hero-sub">We draft your Board of Equalization appeal letter with comparable sales data and file via USPS certified mail. Flat $79 fee — you keep every dollar you save.</p>
-        <button className="btn-gold" onClick={go}>File My Appeal — $79 →</button>
+        <p className="hero-sub">We draft your Board of Equalization appeal letter with comparable sales data and file via USPS certified mail. Flat $89 fee — you keep every dollar you save.</p>
+        <button className="btn-gold" onClick={go}>File My Appeal — $89 →</button>
         <div className="trust-row">
           <span className="trust-item">✓ All 75 Arkansas counties</span>
           <span className="trust-item">✓ Deadline: August 17, 2026</span>
@@ -210,13 +210,13 @@ export default function Arkansas() {
       {/* Price comparison */}
       <section className="section">
         <div className="section-inner">
-          <div className="section-title">$79 flat vs. percentage-based firms</div>
+          <div className="section-title">$89 flat vs. percentage-based firms</div>
           <div className="section-sub">Most Arkansas tax agents charge 25–40% of your first-year savings. Here\'s the math.</div>
           <div style={{ background: C.white, border: '1.5px solid ' + C.border, borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead><tr style={{ background: C.bg }}><th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Savings</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: C.navy }}>TaxAppeal ($79 flat)</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#888' }}>Contingency firm (33%)</th></tr></thead>
+              <thead><tr style={{ background: C.bg }}><th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Savings</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: C.navy }}>TaxAppeal ($89 flat)</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#888' }}>Contingency firm (33%)</th></tr></thead>
               <tbody>
-                {[['$500 reduction', '$79 fee — you keep $421', '$165 fee — you keep $335'], ['$1,000 reduction', '$79 fee — you keep $921', '$330 fee — you keep $670'], ['$2,000 reduction', '$79 fee — you keep $1,921', '$660 fee — you keep $1,340'], ['$3,000 reduction', '$79 fee — you keep $2,921', '$990 fee — you keep $2,010']].map(([savings, ours, theirs]) => (
+                {[['$500 reduction', '$89 fee — you keep $421', '$165 fee — you keep $335'], ['$1,000 reduction', '$89 fee — you keep $921', '$330 fee — you keep $670'], ['$2,000 reduction', '$89 fee — you keep $1,921', '$660 fee — you keep $1,340'], ['$3,000 reduction', '$89 fee — you keep $2,921', '$990 fee — you keep $2,010']].map(([savings, ours, theirs]) => (
                   <tr key={savings} style={{ borderTop: '1px solid ' + C.border }}>
                     <td style={{ padding: '12px 16px', fontWeight: 500 }}>{savings}/yr</td>
                     <td style={{ padding: '12px 16px', textAlign: 'center', color: C.green, fontWeight: 600 }}>{ours}</td>
@@ -258,8 +258,8 @@ export default function Arkansas() {
       {/* Footer CTA */}
       <div className="footer-cta">
         <h2>File before August 17, 2026</h2>
-        <p>Don\'t miss the Arkansas Board of Equalization deadline. We handle everything for $79.</p>
-        <button className="btn-gold" onClick={go}>Start my Arkansas appeal — $79 →</button>
+        <p>Don\'t miss the Arkansas Board of Equalization deadline. We handle everything for $89.</p>
+        <button className="btn-gold" onClick={go}>Start my Arkansas appeal — $89 →</button>
       </div>
 
       <footer className="footer">
