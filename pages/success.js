@@ -49,7 +49,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
               ${targetReduction ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Reduction requested</td><td style="font-size:13px;color:#2E7D52;font-weight:500;text-align:right;">Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
               ${savings ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Potential annual savings</td><td style="font-size:13px;color:#2E7D52;font-weight:700;text-align:right;">$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
               ${trackingNumber ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">USPS Tracking</td><td style="font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;">${trackingNumber}</td></tr></table>` : ''}
-              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$79.00</td></tr></table>
+              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$89.00</td></tr></table>
             </td></tr>
           </table>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
@@ -242,7 +242,7 @@ export default function Success() {
   const badge = getMailStatusBadge();
 
   const steps = [
-    { icon: '✓', title: 'Payment confirmed', desc: 'Your $79 payment has been processed successfully.', done: true },
+    { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
     { icon: '📄', title: 'Dispute letter prepared', desc: 'Your formal property tax protest letter has been finalized.', done: true },
     { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
     { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS certified mail tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
@@ -322,7 +322,7 @@ export default function Success() {
               ) : null)}
               <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", fontSize: 15 }}>
                 <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-                <span style={{ fontWeight: 700, color: C.darkNavy }}>$79.00</span>
+                <span style={{ fontWeight: 700, color: C.darkNavy }}>$89.00</span>
               </div>
             </div>
 
