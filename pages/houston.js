@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
-const faqs = [["How do I protest my Houston property taxes?","You file a formal protest with the Harris County Appraisal District (HCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail."],["What is HCAD and how does it affect my taxes?","HCAD (Harris County Appraisal District) is the government agency that appraises all properties in Harris County. Your HCAD assessed value directly determines your property tax bill. If HCAD overestimates your value, you overpay — and you have the legal right to protest."],["How much can Houston homeowners save by protesting?","Houston homeowners who protest successfully save an average of $2,100 per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings — unlike firms that take 25-40% of what you save."],["Do I need to attend an HCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing. TaxAppeal's certified mail filing creates an official record of your protest with HCAD."],["What is the Houston property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by HCAD, whichever is later. Missing this deadline means waiting until next year."]];
+const faqs = [["How do I protest my Houston property taxes?","You file a formal protest with the Harris County Appraisal District (HCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail."],["What is HCAD and how does it affect my taxes?","HCAD (Harris County Appraisal District) is the government agency that appraises all properties in Harris County. Your HCAD assessed value directly determines your property tax bill. If HCAD overestimates your value, you overpay — and you have the legal right to protest."],["How much can Houston homeowners save by protesting?","Houston homeowners who protest successfully save an average of $2,100 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25-40% of what you save."],["Do I need to attend an HCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing. TaxAppeal's certified mail filing creates an official record of your protest with HCAD."],["What is the Houston property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by HCAD, whichever is later. Missing this deadline means waiting until next year."]];
 
 export default function Houston() {
   const router = useRouter();
@@ -14,11 +14,11 @@ export default function Houston() {
   return (
     <>
       <Head>
-        <title>Houston Property Tax Protest Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your Houston property taxes for $79 flat. Harris County homeowners save an average of $2,100/year. We file with HCAD via certified mail. No percentage cuts." />
+        <title>Houston Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content="Protest your Houston property taxes for $89 flat. Harris County homeowners save an average of $2,100/year. We file with HCAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/houston" />
-        <meta property="og:title" content="Houston Property Tax Protest — $79 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your Houston property taxes for $79 flat. Harris County homeowners save an average of $2,100/year. We file with HCAD via certified mail. No percentage cuts." />
+        <meta property="og:title" content="Houston Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
+        <meta property="og:description" content="Protest your Houston property taxes for $89 flat. Harris County homeowners save an average of $2,100/year. We file with HCAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/houston" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,7 +31,7 @@ export default function Houston() {
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
           "areaServed":{"@type":"City","name":"Houston"},
           "description":"Property tax protest letter preparation and USPS certified mail filing for Houston homeowners.",
-          "offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"}
+          "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
       <style>{`
@@ -57,17 +57,17 @@ export default function Houston() {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Houston, Texas — Property Tax Protest Service</div>
-          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Houston Property Tax Protest — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Harris County homeowners pay some of the highest property taxes in Texas. TaxAppeal files your formal protest with HCAD — backed by comparable sales data and certified mail — for a flat $79.</p>
+          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Houston Property Tax Protest — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Harris County homeowners pay some of the highest property taxes in Texas. TaxAppeal files your formal protest with HCAD — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$2,100","Avg. savings"],["$79","Flat fee"],["Harris County","Service area"]].map(([n,l]) => (
+            {[["82%","Approval rate"],["$2,100","Avg. savings"],["$89","Flat fee"],["Harris County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Houston Protest — $79 →</button>
+          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Houston Protest — $89 →</button>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
       </section>
@@ -136,9 +136,9 @@ export default function Houston() {
             </div>
             <div style={{background:C.navy,borderRadius:12,padding:24}}>
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$79 flat. Period.</div>
-              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $79 once and keep every dollar of your $2,100 savings. No annual fees.</p>
-              {["One-time $79 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
+              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $89 once and keep every dollar of your $2,100 savings. No annual fees.</p>
+              {["One-time $89 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
               ))}
             </div>
@@ -162,8 +162,8 @@ export default function Houston() {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to protest your Houston property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Houston homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
-        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Houston Protest — $79 →</button>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join Houston homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Houston Protest — $89 →</button>
       </section>
 
       <footer style={{background:C.darkNavy,padding:"24px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
