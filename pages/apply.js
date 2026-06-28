@@ -17,7 +17,8 @@ const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
   GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
-  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
+  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },,
+  AL: { name: "Alabama", deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
 
 const FILING_WINDOWS = {
@@ -54,7 +55,8 @@ const FILING_WINDOWS = {
     },
   },
   AR: { openMonth: 6, openDay: 1, closeMonth: 8, closeDay: 10, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false },
-  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
+  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },,
+  AL: { openMonth: 4, openDay: 1, closeMonth: 8, closeDay: 17, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false }
 };
 
 function getFilingWindowStatus(stateCode, countyName) {
@@ -667,14 +669,16 @@ function LoadingScreen({ addr }) {
 }
 
 function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
-  const [agreements, setAgreements] = useState([false, false, false]);
+  const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
-  const allAgreed = agreements.every(Boolean);
+  const requiresAuth = ["AR","AL"].includes(stateCode);
+  const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
 
+  const agentAuthGranted = requiresAuth && agreements[3];
   const doCheckout = async () => {
     if (!allAgreed) return;
     setCheckingOut(true);
@@ -770,7 +774,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy.</p>
             <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open.</p>
             <p><strong>5. No refunds after filing.</strong> The $89 fee is non-refundable once your certified mail has been sent.</p>
-            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, and FL only.</p>
+            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, FL, AR, and AL.</p>
           </div>
         </div>
         {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the $89 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
@@ -779,6 +783,15 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
           </div>
         ))}
+        {requiresAuth && (
+          <div onClick={() => toggleAgreement(3)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[3] ? C.navy : "#D4860A"}`, background: agreements[3] ? C.lightBlue : "#FFF8E6", cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
+            <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[3] ? C.navy : "#D4860A"}`, background: agreements[3] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[3] ? "\u2713" : ""}</div>
+            <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>
+              <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>Agent Authorization — Required for {stateInfo.name || "this state"}</strong>
+              I authorize TaxAppeal USA to act as my filing agent and represent my property tax appeal with the {stateInfo.board || "Board of Equalization"}. This electronic authorization — recorded with my name, date, and IP address — will accompany my formal protest filing.
+            </div>
+          </div>
+        )}
         {!allAgreed && <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: "center", marginBottom: 10 }}>All three boxes must be checked to proceed</div>}
         <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
           <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
