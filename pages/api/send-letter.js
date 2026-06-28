@@ -1,3 +1,56 @@
+// States that require agent authorization form mailed with protest
+const REQUIRES_AGENT_AUTH = ['AR', 'AL'];
+
+function generateAuthFormHtml(ownerName, propertyAddress, county, propertyState, boardName, authTimestamp) {
+  const filedDate = authTimestamp ? new Date(authTimestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const stateBoards = { AR: 'County Board of Equalization', AL: 'County Board of Equalization' };
+  const board = boardName || stateBoards[propertyState] || 'Board of Equalization';
+  return `
+<div style="page-break-before: always; font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; line-height: 1.7; color: #000; padding: 0;">
+  <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">
+    <div style="font-size: 13pt; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">Agent Authorization for Property Tax Appeal</div>
+    <div style="font-size: 10pt; margin-top: 4px;">${propertyState} Board of Equalization Filing</div>
+  </div>
+  <p>I, <strong>${ownerName}</strong>, the owner of record of the property located at:</p>
+  <p style="margin: 16px 0; padding: 12px 16px; border: 1px solid #000; font-weight: bold;">${propertyAddress}<br />${county}</p>
+  <p>hereby authorize <strong>TaxAppeal USA</strong> (disputes@taxappealusa.com) to act as my agent in all matters pertaining to the review and appeal of the assessed value of the above-referenced property for the current tax year with the ${board}.</p>
+  <p>This authorization permits TaxAppeal USA to:</p>
+  <ul style="margin: 12px 0 16px 20px;">
+    <li>File a formal protest or appeal on my behalf</li>
+    <li>Submit evidence and comparable sales data to support my appeal</li>
+    <li>Correspond with the county assessor and Board of Equalization on my behalf</li>
+    <li>Receive and forward any notices or decisions from the Board</li>
+  </ul>
+  <p>This authorization is limited to the property and tax year identified above and does not constitute a general power of attorney.</p>
+  <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 20px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="width: 55%; padding-right: 20px;">
+          <div style="border-bottom: 1px solid #000; height: 24px; margin-bottom: 6px;"></div>
+          <div style="font-size: 10pt;">Property Owner Signature</div>
+        </td>
+        <td style="width: 45%;">
+          <div style="border-bottom: 1px solid #000; height: 24px; margin-bottom: 6px;">${filedDate}</div>
+          <div style="font-size: 10pt;">Date</div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding-top: 20px;">
+          <div style="border-bottom: 1px solid #000; height: 24px; margin-bottom: 6px;">${ownerName}</div>
+          <div style="font-size: 10pt;">Printed Name</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div style="margin-top: 24px; font-size: 9pt; color: #444; border-top: 1px solid #ccc; padding-top: 12px;">
+    <em>This authorization was electronically executed by the property owner on ${filedDate} and is submitted in accordance with county Board of Equalization filing requirements. Electronic authorization recorded by TaxAppeal USA (taxappealusa.com) via secure checkout.</em>
+  </div>
+  <div style="margin-top: 12px; font-size: 9pt; color: #444;">
+    <strong>Agent:</strong> TaxAppeal USA | disputes@taxappealusa.com | taxappealusa.com
+  </div>
+</div>`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -120,7 +173,7 @@ export default async function handler(req, res) {
       description: `Property tax protest — ${propertyAddress}`,
       to: { name: districtName, address_line1: districtAddress, address_city: districtCity, address_state: districtState, address_zip: districtZip, address_country: 'US' },
       from: { name: ownerName, address_line1: ownerStreet, address_city: ownerCity, address_state: ownerState, address_zip: ownerZip, address_country: 'US' },
-      file: letterHtml,
+      file: needsAuthForm ? fullLetterHtml : letterHtml,
       merge_variables: { letter_content: letterContent },
       color: false,
       double_sided: true,
@@ -162,3 +215,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
+
+    // Append agent authorization form page for states that require it
+    const stateUpper = (propertyState || '').toUpperCase();
+    const needsAuthForm = REQUIRES_AGENT_AUTH.includes(stateUpper) && agentAuthGranted;
+    const authFormPage = needsAuthForm
+      ? generateAuthFormHtml(ownerName, `${ownerStreet}, ${ownerCity}, ${ownerState} ${ownerZip}`, county, stateUpper, null, agentAuthTimestamp)
+      : '';
+    const fullLetterHtml = letterHtml.replace('</body>\n</html>', authFormPage + '</body>\n</html>');
+
+
