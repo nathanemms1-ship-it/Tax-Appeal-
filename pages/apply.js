@@ -17,7 +17,7 @@ const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
   GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
-  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },,
+  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
   AL: { name: "Alabama", deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
 
@@ -55,7 +55,7 @@ const FILING_WINDOWS = {
     },
   },
   AR: { openMonth: 6, openDay: 1, closeMonth: 8, closeDay: 10, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false },
-  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },,
+  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
   AL: { openMonth: 4, openDay: 1, closeMonth: 8, closeDay: 17, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false }
 };
 
