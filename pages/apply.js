@@ -849,6 +849,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
       </div>
     </div>
+  </div>
   );
 }
 
