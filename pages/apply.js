@@ -671,11 +671,11 @@ function LoadingScreen({ addr }) {
 function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
   const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
-  const requiresAuth = ["AR","AL"].includes(stateCode);
-  const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
+  const requiresAuth = ["AR","AL"].includes(stateCode);
+  const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
 
   const agentAuthGranted = requiresAuth && agreements[3];
@@ -849,7 +849,6 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
       </div>
     </div>
-  </div>
   );
 }
 
