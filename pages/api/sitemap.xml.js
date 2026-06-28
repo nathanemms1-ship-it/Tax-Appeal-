@@ -424,7 +424,7 @@ const allCountySlugs = [
 ];
 
 const blogSlugs = [
-  // ── TEXAS COUNTY GUIDES ──
+  // ── TEXAS COUNTY GUIDES (25) ──
   "harris-county-property-tax-protest-guide-2026",
   "tarrant-county-property-tax-protest-guide-2026",
   "dallas-county-property-tax-protest-guide-2026",
@@ -450,7 +450,7 @@ const blogSlugs = [
   "cameron-county-property-tax-protest-guide-2026",
   "grayson-county-property-tax-protest-guide-2026",
   "tom-green-county-property-tax-protest-guide-2026",
-  // ── TEXAS EDUCATION / STRATEGY ──
+  // ── TEXAS EDUCATION / STRATEGY (17) ──
   "texas-property-tax-protest-guide-2026",
   "texas-property-tax-protest-deadline-2026",
   "texas-property-tax-protest-letter-what-to-include",
@@ -468,7 +468,7 @@ const blogSlugs = [
   "ownwell-vs-taxappeal-usa-comparison-2026",
   "how-much-does-texas-property-tax-protest-cost-2026",
   "williamson-vs-travis-county-property-taxes-austin",
-  // ── FLORIDA COUNTY GUIDES ──
+  // ── FLORIDA COUNTY GUIDES (26) ──
   "miami-dade-property-tax-appeal-guide-2026",
   "broward-county-property-tax-appeal-guide-2026",
   "palm-beach-county-property-tax-appeal-guide-2026",
@@ -495,7 +495,7 @@ const blogSlugs = [
   "bay-county-florida-property-tax-appeal-guide-2026",
   "citrus-county-florida-property-tax-appeal-guide-2026",
   "nassau-county-florida-property-tax-appeal-guide-2026",
-  // ── FLORIDA EDUCATION / STRATEGY ──
+  // ── FLORIDA EDUCATION / STRATEGY (21) ──
   "how-to-appeal-florida-property-tax-trim-notice-guide",
   "florida-trim-notice-deadline-2026",
   "how-to-read-florida-trim-notice-2026",
@@ -517,7 +517,7 @@ const blogSlugs = [
   "florida-first-time-property-tax-appeal-guide-2026",
   "florida-property-tax-appeal-deadline-missed-what-now",
   "miami-beach-luxury-property-tax-appeal-2026",
-  // ── GEORGIA COUNTY GUIDES ──
+  // ── GEORGIA COUNTY GUIDES (18) ──
   "fulton-county-property-tax-appeal-guide-2026",
   "gwinnett-county-property-tax-appeal-guide-2026",
   "cobb-county-property-tax-appeal-guide-2026",
@@ -529,7 +529,18 @@ const blogSlugs = [
   "richmond-county-georgia-property-tax-appeal-2026",
   "paulding-county-georgia-property-tax-appeal-2026",
   "gwinnett-county-georgia-property-tax-appeal-deep-dive-2026",
-  // ── GEORGIA EDUCATION / STRATEGY ──
+  "douglas-county-georgia-property-tax-appeal-2026",
+  "columbia-county-georgia-property-tax-appeal-2026",
+  "muscogee-county-georgia-property-tax-appeal-2026",
+  "bibb-county-georgia-property-tax-appeal-2026",
+  "clayton-county-georgia-property-tax-appeal-2026",
+  "carroll-county-georgia-property-tax-appeal-2026",
+  "coweta-county-georgia-property-tax-appeal-2026",
+  "savannah-chatham-county-georgia-property-tax-appeal-2026",
+  "whitfield-county-georgia-property-tax-appeal-2026",
+  "bartow-county-georgia-property-tax-appeal-2026",
+  "newton-county-georgia-property-tax-appeal-2026",
+  // ── GEORGIA EDUCATION / STRATEGY (17) ──
   "georgia-property-tax-appeal-deadline-2026",
   "how-to-read-georgia-notice-of-assessment-2026",
   "how-much-can-i-save-appealing-georgia-property-taxes",
@@ -540,20 +551,40 @@ const blogSlugs = [
   "georgia-property-tax-appeal-evidence-guide-2026",
   "georgia-new-homeowner-property-tax-guide-2026",
   "georgia-investment-property-tax-appeal-2026",
-  // ── ARKANSAS COUNTY GUIDES ──
+  "georgia-first-time-property-tax-appeal-guide-2026",
+  "georgia-condo-property-tax-appeal-2026",
+  "georgia-missed-appeal-deadline-what-to-do-2026",
+  "georgia-homestead-exemption-property-tax-guide-2026",
+  "buckhead-sandy-springs-property-tax-appeal-2026",
+  "georgia-new-construction-property-tax-appeal-2026",
+  "georgia-property-tax-comparable-sales-guide-2026",
+  // ── ARKANSAS COUNTY GUIDES (11) ──
   "benton-county-arkansas-property-tax-appeal-2026",
   "pulaski-county-arkansas-property-tax-appeal-2026",
   "washington-county-arkansas-property-tax-appeal-2026",
   "sebastian-county-arkansas-property-tax-appeal-2026",
   "faulkner-county-arkansas-property-tax-appeal-2026",
   "saline-county-arkansas-property-tax-appeal-2026",
-  // ── ARKANSAS EDUCATION / STRATEGY ──
+  "garland-county-arkansas-property-tax-appeal-2026",
+  "craighead-county-arkansas-property-tax-appeal-2026",
+  "lonoke-county-arkansas-property-tax-appeal-2026",
+  "pope-county-arkansas-property-tax-appeal-2026",
+  "white-county-arkansas-property-tax-appeal-2026",
+  // ── ARKANSAS EDUCATION / STRATEGY (14) ──
   "arkansas-property-tax-appeal-deadline-2026",
   "how-to-appeal-arkansas-property-taxes-board-of-equalization",
   "arkansas-property-tax-appeal-complete-guide-2026",
   "arkansas-property-tax-vs-other-states-2026",
   "northwest-arkansas-property-tax-appeal-guide-2026",
   "arkansas-homestead-tax-credit-vs-property-tax-appeal-2026",
+  "arkansas-first-time-property-tax-appeal-guide-2026",
+  "little-rock-neighborhoods-property-tax-appeal-2026",
+  "arkansas-investment-property-tax-appeal-2026",
+  "arkansas-evidence-checklist-property-tax-appeal-2026",
+  "arkansas-new-homeowner-property-tax-guide-2026",
+  "arkansas-mass-appraisal-errors-guide-2026",
+  "fayetteville-arkansas-property-tax-appeal-2026",
+  "bentonville-rogers-arkansas-property-tax-appeal-2026",
 ];
 
 export default function handler(req, res) {
