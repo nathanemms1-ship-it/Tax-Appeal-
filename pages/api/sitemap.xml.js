@@ -148,22 +148,43 @@ const blogSlugs = [
   "florida-first-time-property-tax-appeal-guide-2026",
   "florida-property-tax-appeal-deadline-missed-what-now",
   "miami-beach-luxury-property-tax-appeal-2026",
-  // ── GEORGIA ──
+  // ── GEORGIA COUNTY GUIDES ──
   "fulton-county-property-tax-appeal-guide-2026",
   "gwinnett-county-property-tax-appeal-guide-2026",
   "cobb-county-property-tax-appeal-guide-2026",
   "dekalb-county-property-tax-appeal-guide-2026",
   "cherokee-county-property-tax-appeal-guide-2026",
+  "forsyth-county-georgia-property-tax-appeal-2026",
+  "henry-county-georgia-property-tax-appeal-2026",
+  "hall-county-georgia-property-tax-appeal-2026",
+  "richmond-county-georgia-property-tax-appeal-2026",
+  "paulding-county-georgia-property-tax-appeal-2026",
+  "gwinnett-county-georgia-property-tax-appeal-deep-dive-2026",
+  // ── GEORGIA EDUCATION / STRATEGY ──
   "georgia-property-tax-appeal-deadline-2026",
   "how-to-read-georgia-notice-of-assessment-2026",
   "how-much-can-i-save-appealing-georgia-property-taxes",
   "georgia-property-tax-appeal-letter-what-to-include",
   "georgia-board-of-equalization-what-homeowners-need-to-know",
-  // ── ARKANSAS ──
-  "arkansas-property-tax-appeal-deadline-2026",
+  "georgia-property-tax-appeal-complete-guide-2026",
+  "atlanta-property-tax-appeal-neighborhood-guide-2026",
+  "georgia-property-tax-appeal-evidence-guide-2026",
+  "georgia-new-homeowner-property-tax-guide-2026",
+  "georgia-investment-property-tax-appeal-2026",
+  // ── ARKANSAS COUNTY GUIDES ──
   "benton-county-arkansas-property-tax-appeal-2026",
   "pulaski-county-arkansas-property-tax-appeal-2026",
+  "washington-county-arkansas-property-tax-appeal-2026",
+  "sebastian-county-arkansas-property-tax-appeal-2026",
+  "faulkner-county-arkansas-property-tax-appeal-2026",
+  "saline-county-arkansas-property-tax-appeal-2026",
+  // ── ARKANSAS EDUCATION / STRATEGY ──
+  "arkansas-property-tax-appeal-deadline-2026",
   "how-to-appeal-arkansas-property-taxes-board-of-equalization",
+  "arkansas-property-tax-appeal-complete-guide-2026",
+  "arkansas-property-tax-vs-other-states-2026",
+  "northwest-arkansas-property-tax-appeal-guide-2026",
+  "arkansas-homestead-tax-credit-vs-property-tax-appeal-2026",
 ];
 
 export default function handler(req, res) {
