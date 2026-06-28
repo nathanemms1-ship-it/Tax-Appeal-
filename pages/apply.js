@@ -784,11 +784,30 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           </div>
         ))}
         {requiresAuth && (
-          <div onClick={() => toggleAgreement(3)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[3] ? C.navy : "#D4860A"}`, background: agreements[3] ? C.lightBlue : "#FFF8E6", cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[3] ? C.navy : "#D4860A"}`, background: agreements[3] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[3] ? "\u2713" : ""}</div>
+          <div
+            onClick={() => toggleAgreement(3)}
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 12,
+              padding: "12px 14px", borderRadius: 8, marginBottom: 10, cursor: "pointer",
+              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
+              background: agreements[3] ? C.lightBlue : "#FFF8E6",
+              transition: "all 0.15s"
+            }}
+          >
+            <div style={{
+              width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
+              background: agreements[3] ? C.navy : C.white,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, color: C.white, fontWeight: 700
+            }}>
+              {agreements[3] ? "✓" : ""}
+            </div>
             <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>
-              <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>Agent Authorization — Required for {stateInfo.name || "this state"}</strong>
-              I authorize TaxAppeal USA to act as my filing agent and represent my property tax appeal with the {stateInfo.board || "Board of Equalization"}. This electronic authorization — recorded with my name, date, and IP address — will accompany my formal protest filing.
+              <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>
+                {"Agent Authorization — Required for " + (stateInfo.name || "this state")}
+              </strong>
+              {"I authorize TaxAppeal USA to act as my filing agent and represent my property tax appeal with the " + (stateInfo.board || "Board of Equalization") + ". This electronic authorization — recorded with my name, date, and IP address — will accompany my formal protest filing."}
             </div>
           </div>
         )}
