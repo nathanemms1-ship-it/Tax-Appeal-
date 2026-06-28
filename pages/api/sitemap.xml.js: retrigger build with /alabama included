@@ -1,5 +1,6 @@
 // pages/api/sitemap.xml.js
 // Self-contained sitemap — do not import from external files
+// Alabama added
 // Updated: 2026-06-28 — 108 blog posts, all states
 
 const floridaCitySlugs = [
