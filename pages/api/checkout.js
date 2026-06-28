@@ -96,6 +96,8 @@ export default async function handler(req, res) {
     flSignatureName,
     flSignatureTimestamp,
     flAuthDate,
+    agentAuthGranted,
+    agentAuthTimestamp,
   } = req.body;
 
   try {
@@ -167,6 +169,8 @@ export default async function handler(req, res) {
         flSignatureName: flSignatureName || '',
         flSignatureTimestamp: flSignatureTimestamp || '',
         flAuthDate: flAuthDate || '',
+        agentAuthGranted: agentAuthGranted ? 'true' : 'false',
+        agentAuthTimestamp: agentAuthTimestamp || '',
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,
