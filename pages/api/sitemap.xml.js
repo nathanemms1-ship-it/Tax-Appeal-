@@ -598,6 +598,7 @@ export default function handler(req, res) {
     { url: "/georgia", priority: "0.9", changefreq: "monthly" },
     { url: "/florida", priority: "0.9", changefreq: "monthly" },
     { url: "/arkansas", priority: "0.9", changefreq: "monthly" },
+    { url: "/alabama", priority: "0.9", changefreq: "monthly" },
     { url: "/houston", priority: "0.85", changefreq: "monthly" },
     { url: "/dallas", priority: "0.85", changefreq: "monthly" },
     { url: "/fort-worth", priority: "0.85", changefreq: "monthly" },
