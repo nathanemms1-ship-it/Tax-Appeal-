@@ -378,7 +378,7 @@ function StepAccount({ data, onChange, onNext }) {
               </div>
             ))}
           </div>
-          <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>⚖️ Aligned with Texas §41.41 · Georgia §48-5-311 · Florida §194.011 · Arkansas Code §26-27-317</div>
+          <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>⚖️ Aligned with Texas §41.41 · Georgia §48-5-311 · Florida §194.011 · Arkansas Code §26-27-317 · Alabama Code §40-3-20</div>
         </div>
         <div className="price-flex" style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
           <div>
