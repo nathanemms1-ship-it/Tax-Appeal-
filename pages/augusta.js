@@ -1,0 +1,74 @@
+import Head from 'next/head';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52"};
+const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');";
+const faqs=[["What is the Augusta GA property tax appeal deadline?","45 days from the date on your Notice of Assessment, mailed April–June by Richmond County."],["How do I appeal Augusta property taxes?","File a formal appeal with the Richmond County Board of Tax Assessors before the 45-day deadline. TaxAppeal prepares comparable sales evidence and files via certified mail for $89."],["Is there a filing fee for Augusta property tax appeals?","No. Georgia BOE appeals are free."],["Can my Augusta assessment go up if I appeal?","Yes. Georgia is a two-way review state. TaxAppeal only files when comparable evidence clearly supports a reduction."],["Does TaxAppeal serve Augusta and surrounding areas?","Yes. TaxAppeal serves all Richmond County properties including Augusta, Hephzibah, and Blythe."]];
+export default function Augusta(){
+  const router=useRouter();
+  const [openFaq,setOpenFaq]=useState(null);
+  const go=()=>router.push('/apply');
+  return(<>
+    <Head>
+      <title>Augusta Georgia Property Tax Appeal | $89 Flat | TaxAppeal USA</title>
+      <meta name="description" content="Appeal your Augusta Georgia property taxes for $89 flat. Richmond County homeowners: challenge your assessment before the 45-day deadline. O.C.G.A. §48-5-311. TaxAppeal USA." />
+      <link rel="canonical" href="https://www.taxappealusa.com/augusta" />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Augusta Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Augusta"},"description":"Property tax appeal preparation and certified mail filing for Augusta, Georgia homeowners.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} />
+    </Head>
+    <style>{`${FONT} *{box-sizing:border-box;margin:0;padding:0;} body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};} .btn-p{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:15px;font-weight:500;cursor:pointer;transition:background 0.2s;} .btn-p:hover{background:${C.gold};color:${C.darkNavy};} @media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:28px!important;}.g2{grid-template-columns:1fr!important;}}`}</style>
+    <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.darkNavy}}>TaxAppeal USA</div><div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:C.mutedGray}}>Property Tax Dispute</div></div></a>
+      <button className="btn-p" style={{padding:"10px 22px",fontSize:14}} onClick={go}>Start my appeal →</button>
+    </div>
+    <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
+      <div style={{maxWidth:900,margin:"0 auto"}}>
+        <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Augusta, Georgia — Property Tax Appeal Service</div>
+        <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Augusta Property Tax Appeal — $89 Flat Fee</h1>
+        <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Augusta homeowners: challenge your Richmond County assessment before the 45-day deadline from your Notice of Assessment. TaxAppeal files your formal BOE appeal for $89 flat.</p>
+        <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
+          {[["45 days","Appeal window"],["40%","Assessment ratio"],["$89","Flat fee"],["Richmond Co.","Service area"]].map(([n,l])=>(
+            <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>
+          ))}
+        </div>
+        <button className="btn-p" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Augusta Appeal — $89 →</button>
+        <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Cited under O.C.G.A. §48-5-311.</div>
+      </div>
+    </section>
+    <section style={{padding:"56px 40px",background:C.white}}>
+      <div style={{maxWidth:800,margin:"0 auto"}}>
+        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,textAlign:"center",marginBottom:32}}>Why Augusta Homeowners Should Appeal</h2>
+        <div className="g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+          {[["Masters Tournament Effects","Augusta National-driven demand creates unusual comparable sale patterns in surrounding neighborhoods, inflating assessment models."],["Medical District Growth","Augusta University Medical Center expansion drives appreciation that Richmond County assessment models lag."],["No Filing Fee","Georgia BOE appeals cost nothing to file. TaxAppeal's $89 covers the full service."],["Two-Way Check Included","TaxAppeal reviews comparable sales before filing. We only proceed when evidence clearly supports a reduction in assessed value."]].map(([title,desc])=>(
+            <div key={title} style={{background:C.bg,borderRadius:12,padding:24}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:16,color:C.darkNavy,marginBottom:8}}>{title}</div><p style={{fontSize:13,color:C.bodyGray,lineHeight:1.65}}>{desc}</p></div>
+          ))}
+        </div>
+      </div>
+    </section>
+    <section style={{padding:"56px 40px",background:C.bg}}>
+      <div style={{maxWidth:720,margin:"0 auto"}}>
+        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,textAlign:"center",marginBottom:32}}>Augusta Property Tax Appeal FAQ</h2>
+        {faqs.map(([q,a],i)=>(
+          <div key={i} style={{background:C.white,border:`1.5px solid ${openFaq===i?C.navy:C.border}`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+            <div onClick={()=>setOpenFaq(openFaq===i?null:i)} style={{padding:"18px 20px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+              <span style={{fontSize:14,fontWeight:500,color:C.darkNavy}}>{q}</span>
+              <span style={{color:C.navy,fontSize:18,flexShrink:0}}>{openFaq===i?"−":"+"}</span>
+            </div>
+            {openFaq===i&&<div style={{padding:"0 20px 18px",fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{a}</div>}
+          </div>
+        ))}
+      </div>
+    </section>
+    <div style={{background:C.darkNavy,padding:"56px 40px",textAlign:"center"}}>
+      <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>File Your Augusta Appeal Today</h2>
+      <p style={{color:"#A0B4CC",fontSize:16,marginBottom:32}}>$89 flat. 45-day deadline from Notice of Assessment. No county filing fee.</p>
+      <button className="btn-p" style={{background:C.gold,color:C.darkNavy,fontSize:18,padding:"18px 48px"}} onClick={go}>Start My Appeal — $89 →</button>
+    </div>
+    <footer style={{background:"#070F1E",padding:"24px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+      <p style={{color:C.mutedGray,fontSize:12}}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+      <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
+        {[["Texas","/texas"],["Georgia","/georgia"],["Florida","/florida"],["Arkansas","/arkansas"],["Alabama","/alabama"],["Blog","/blog"],["Terms","/terms"],["Privacy","/privacy"]].map(([l,h])=>(<a key={l} href={h} style={{color:l==="Blog"?C.gold:C.mutedGray,fontSize:12,textDecoration:"none"}}>{l}</a>))}
+      </div>
+    </footer>
+  </>);
+}
