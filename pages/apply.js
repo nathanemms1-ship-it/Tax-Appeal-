@@ -325,7 +325,7 @@ function UnsupportedState({ stateCode, onBack }) {
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>Coming Soon to {stateCode}</h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, <strong style={{ color: C.navy }}>Florida</strong>, and <strong style={{ color: C.navy }}>Arkansas</strong>. Enter your email to be first in line when we launch in {stateCode}.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, <strong style={{ color: C.navy }}>Florida</strong>, <strong style={{ color: C.navy }}>Arkansas</strong>, and <strong style={{ color: C.navy }}>Alabama</strong>. Enter your email to be first in line when we launch in {stateCode}.</p>
         {!submitted ? (
           <>
             <Field label={`Notify me when ${stateCode} launches`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
@@ -553,7 +553,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         <div style={{ background: C.amber, border: `1px solid #FFD97A`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 10 }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
           <div style={{ fontSize: 13, color: "#7A5C10", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia and Florida have similar windows. File now to protect your right to appeal.
+            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia, Florida, Arkansas, and Alabama have firm deadlines too. File now to protect your right to appeal.
           </div>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>💡 Optional but strengthens your case</div>
