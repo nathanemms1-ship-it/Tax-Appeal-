@@ -421,6 +421,20 @@ const allCountySlugs = [
   "ouachita-county-ar",
   "van-buren-county-ar",
   "carroll-county-ar",
+  // ── ALABAMA (67 counties) ──
+  "jefferson-county-al","mobile-county-al","madison-county-al","shelby-county-al","montgomery-county-al",
+  "tuscaloosa-county-al","lee-county-al","etowah-county-al","calhoun-county-al","morgan-county-al",
+  "st-clair-county-al","elmore-county-al","houston-county-al","walker-county-al","limestone-county-al",
+  "marshall-county-al","baldwin-county-al","talladega-county-al","jackson-county-al","russell-county-al",
+  "dale-county-al","blount-county-al","cullman-county-al","cherokee-county-al","dekalb-county-al",
+  "coffee-county-al","coosa-county-al","chilton-county-al","autauga-county-al","tallapoosa-county-al",
+  "pickens-county-al","bibb-county-al","chambers-county-al","macon-county-al","monroe-county-al",
+  "clarke-county-al","washington-county-al","winston-county-al","lawrence-county-al","sumter-county-al",
+  "marengo-county-al","hale-county-al","perry-county-al","dallas-county-al","wilcox-county-al",
+  "conecuh-county-al","escambia-county-al","covington-county-al","pike-county-al","barbour-county-al",
+  "henry-county-al","geneva-county-al","cleburne-county-al","randolph-county-al","clay-county-al",
+  "lamar-county-al","marion-county-al","fayette-county-al","choctaw-county-al","greene-county-al",
+  "lowndes-county-al","bullock-county-al","crenshaw-county-al","butler-county-al",
 ];
 
 const blogSlugs = [
@@ -585,6 +599,24 @@ const blogSlugs = [
   "arkansas-mass-appraisal-errors-guide-2026",
   "fayetteville-arkansas-property-tax-appeal-2026",
   "bentonville-rogers-arkansas-property-tax-appeal-2026",
+  // ── ALABAMA COUNTY GUIDES (7) ──
+  "jefferson-county-alabama-property-tax-appeal-2026",
+  "madison-county-alabama-property-tax-appeal-2026",
+  "shelby-county-alabama-property-tax-appeal-2026",
+  "mobile-county-alabama-property-tax-appeal-2026",
+  "montgomery-county-alabama-property-tax-appeal-2026",
+  "tuscaloosa-county-alabama-property-tax-appeal-2026",
+  "lee-county-alabama-property-tax-appeal-2026",
+  // ── ALABAMA EDUCATION / STRATEGY (7) ──
+  "alabama-property-tax-appeal-complete-guide-2026",
+  "alabama-property-tax-appeal-deadline-2026",
+  "alabama-two-way-review-risk-property-tax-appeal",
+  "alabama-property-tax-appeal-evidence-checklist-2026",
+  "alabama-homestead-exemption-property-tax-guide-2026",
+  "alabama-first-time-property-tax-appeal-guide-2026",
+  // ── ALABAMA CITY GUIDES (2) ──
+  "birmingham-al-property-tax-appeal-2026",
+  "huntsville-al-property-tax-appeal-2026",
 ];
 
 export default function handler(req, res) {
