@@ -653,6 +653,12 @@ const blogSlugs = [
   // ── ALABAMA CITY BLOG GUIDES (round 2) ──
   "montgomery-al-property-tax-appeal-2026",
   "tuscaloosa-al-property-tax-appeal-2026",
+  // ── ALABAMA FINAL ROUND ──
+  "elmore-county-alabama-property-tax-appeal-2026",
+  "limestone-county-alabama-property-tax-appeal-2026",
+  "auburn-al-property-tax-appeal-2026",
+  "alabama-property-tax-circuit-court-appeal-guide",
+  "how-to-read-alabama-property-tax-notice-of-valuation",
 ];
 
 export default function handler(req, res) {
