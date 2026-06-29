@@ -112,7 +112,7 @@ export default function PartnersPage() {
               ))}
               <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:12,padding:'20px 24px',marginTop:8}}>
                 <div style={{fontSize:14,fontWeight:500,color:C.green,marginBottom:8}}>Example earnings</div>
-                {[['5 clients/month','$75/mo','$900/yr'],['10 clients/month','$200/mo','$2,400/yr'],['20 clients/month','$400/mo','$4,800/yr']].map(([vol,mo,yr])=>(
+                {[['5 clients/month','$100/mo','$1,200/yr'],['10 clients/month','$200/mo','$2,400/yr'],['20 clients/month','$400/mo','$4,800/yr']].map(([vol,mo,yr])=>(
                   <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #bbf7d0',fontSize:14,color:C.darkNavy}}>
                     <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{mo}</strong> · {yr}</span>
                   </div>
@@ -175,10 +175,13 @@ export default function PartnersPage() {
                       <option value="TX">Texas</option>
                       <option value="FL">Florida</option>
                       <option value="GA">Georgia</option>
+                      <option value="AR">Arkansas</option>
+                      <option value="AL">Alabama</option>
                       <option value="TX,FL">Texas + Florida</option>
                       <option value="TX,GA">Texas + Georgia</option>
                       <option value="FL,GA">Florida + Georgia</option>
                       <option value="TX,FL,GA">Texas + Florida + Georgia</option>
+                      <option value="TX,FL,GA,AR,AL">All 5 States</option>
                       <option value="other">Other / Multiple</option>
                     </select>
                   </div>
@@ -208,7 +211,7 @@ export default function PartnersPage() {
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],['When do I get paid?','At the end of each month we pay via your connected bank account via Stripe — fully automated, no manual transfers. There is no minimum balance required. We do not withhold income taxes from your payouts.'],['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],['Does TaxAppeal serve all counties?','Yes — all 254 Texas counties, all 67 Florida counties, and all 159 Georgia counties.'],['What does the $89 fee cover?','AI-generated dispute letter built with comparable market sales data and county assessment records, USPS Certified Mail filing with Return Receipt, and full tracking through the appraisal district process — everything needed to make a compelling case for a reduction.'],
+            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],['When do I get paid?','At the end of each month we pay via your connected bank account via Stripe — fully automated, no manual transfers. There is no minimum balance required. We do not withhold income taxes from your payouts.'],['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],['Does TaxAppeal serve all counties?','Yes — all 254 Texas counties, all 67 Florida counties, all 159 Georgia counties, all 75 Arkansas counties, and all 67 Alabama counties.'],['What does the $89 fee cover?','AI-generated dispute letter built with comparable market sales data and county assessment records, USPS Certified Mail filing with Return Receipt, and full tracking through the appraisal district process — everything needed to make a compelling case for a reduction.'],
             ['Do you withhold taxes from my payouts?','No. Referral earnings are self-employment income and we do not withhold income taxes. You are responsible for reporting earnings on your tax return. If you earn $600 or more in a calendar year, Stripe will automatically issue you a 1099-NEC and file it with the IRS. We recommend setting aside 25–30% of your earnings for taxes.']].map(([q,a])=>(
               <div key={q} style={{background:C.bg,borderRadius:12,padding:'20px 24px'}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>{q}</div>
@@ -222,7 +225,7 @@ export default function PartnersPage() {
       <footer style={{background:C.darkNavy,padding:'24px 40px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12}}>
         <p style={{color:C.mutedGray,fontSize:12}}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
         <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
-          {[['Texas','/texas'],['Florida','/florida'],['Georgia','/georgia'],['Blog','/blog'],['Terms','/terms'],['Privacy','/privacy']].map(([label,href])=>(
+          {[['Texas','/texas'],['Florida','/florida'],['Georgia','/georgia'],['Arkansas','/arkansas'],['Alabama','/alabama'],['Blog','/blog'],['Terms','/terms'],['Privacy','/privacy']].map(([label,href])=>(
             <Link key={href} href={href} style={{color:C.mutedGray,fontSize:12,textDecoration:'none'}}>{label}</Link>
           ))}
         </div>
