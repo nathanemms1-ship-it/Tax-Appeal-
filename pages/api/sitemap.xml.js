@@ -617,6 +617,19 @@ const blogSlugs = [
   // ── ALABAMA CITY GUIDES (2) ──
   "birmingham-al-property-tax-appeal-2026",
   "huntsville-al-property-tax-appeal-2026",
+  // ── ALABAMA COUNTY GUIDES (round 2) ──
+  "etowah-county-alabama-property-tax-appeal-2026",
+  "calhoun-county-alabama-property-tax-appeal-2026",
+  "morgan-county-alabama-property-tax-appeal-2026",
+  "baldwin-county-alabama-property-tax-appeal-2026",
+  // ── ALABAMA EDUCATION (round 2) ──
+  "alabama-property-tax-assessment-ratio-explained",
+  "alabama-hb73-assessment-cap-explained",
+  "alabama-property-tax-appeal-vs-arkansas-comparison",
+  "alabama-property-tax-appeal-agent-authorization-guide",
+  // ── ALABAMA CITY BLOG GUIDES (round 2) ──
+  "montgomery-al-property-tax-appeal-2026",
+  "tuscaloosa-al-property-tax-appeal-2026",
 ];
 
 export default function handler(req, res) {
