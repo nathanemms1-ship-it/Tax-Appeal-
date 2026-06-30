@@ -16,7 +16,7 @@ export default function App({ Component, pageProps }) {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via USPS certified mail. 82% approval rate. Takes 4 minutes. Available in TX, GA, and FL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via USPS certified mail. 82% approval rate. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" />
 
