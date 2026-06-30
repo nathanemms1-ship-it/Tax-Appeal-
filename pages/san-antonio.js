@@ -8,7 +8,7 @@ const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 const faqs = [
   ["How do I protest my San Antonio property taxes?","You file a formal protest with the Bexar Appraisal District (BCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail — creating legal proof of timely filing."],
   ["What is BCAD and how does it affect my taxes?","BCAD (Bexar Appraisal District) is the government agency that appraises all properties in Bexar County. Your BCAD assessed value directly determines your property tax bill. If BCAD overestimates your value, you overpay — and you have the legal right to protest every year."],
-  ["How much can San Antonio homeowners save by protesting?","San Antonio homeowners who protest successfully save an average of $1,400 per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
+  ["How much can San Antonio homeowners save by protesting?","San Antonio homeowners who protest successfully save an average of $1,400 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
   ["Do I need to attend a BCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing is required. TaxAppeal's certified mail filing creates an official record of your protest with BCAD."],
   ["What is the San Antonio property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by BCAD, whichever is later. Missing this deadline means waiting a full year to challenge your assessment."],
 ];
@@ -21,11 +21,11 @@ export default function SanAntonio() {
   return (
     <>
       <Head>
-        <title>San Antonio Property Tax Protest Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your San Antonio property taxes for $79 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
+        <title>San Antonio Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content="Protest your San Antonio property taxes for $89 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/san-antonio" />
-        <meta property="og:title" content="San Antonio Property Tax Protest — $79 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your San Antonio property taxes for $79 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
+        <meta property="og:title" content="San Antonio Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
+        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/san-antonio" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -66,17 +66,17 @@ export default function SanAntonio() {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>San Antonio, Texas — Property Tax Protest Service</div>
-          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>San Antonio Property Tax Protest — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Bexar County homeowners pay some of the highest effective property tax rates in Texas. TaxAppeal files your formal protest with BCAD — backed by comparable sales data and certified mail — for a flat $79.</p>
+          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>San Antonio Property Tax Protest — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Bexar County homeowners pay some of the highest effective property tax rates in Texas. TaxAppeal files your formal protest with BCAD — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$1,400","Avg. savings"],["$79","Flat fee"],["Bexar County","Service area"]].map(([n,l]) => (
+            {[["82%","Approval rate"],["$1,400","Avg. savings"],["$89","Flat fee"],["Bexar County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My San Antonio Protest — $79 →</button>
+          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My San Antonio Protest — $89 →</button>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
         </div>
       </section>
@@ -129,7 +129,7 @@ export default function SanAntonio() {
       {/* Compare */}
       <section style={{padding:"56px 40px",background:C.white}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
-          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:36}}>$79 Flat vs. Contingency Firms</h2>
+          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:36}}>$89 Flat vs. Contingency Firms</h2>
           <div className="compare-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
             <div style={{background:"#FFF8F8",border:"1.5px solid #F5C6C6",borderRadius:12,padding:24}}>
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:"#C0392B",marginBottom:12}}>Contingency Firms</div>
@@ -141,9 +141,9 @@ export default function SanAntonio() {
             </div>
             <div style={{background:C.navy,borderRadius:12,padding:24}}>
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$79 flat. Period.</div>
-              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $79 once and keep every dollar of your $1,400 savings. No annual fees.</p>
-              {["One-time $79 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
+              <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Pay $89 once and keep every dollar of your $1,400 savings. No annual fees.</p>
+              {["One-time $89 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
               ))}
             </div>
@@ -169,8 +169,8 @@ export default function SanAntonio() {
       {/* CTA */}
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to protest your San Antonio property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join San Antonio homeowners saving money every year. $79 flat — no hidden fees, no percentage cuts.</p>
-        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My San Antonio Protest — $79 →</button>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28}}>Join San Antonio homeowners saving money every year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My San Antonio Protest — $89 →</button>
       </section>
 
       {/* Footer */}
