@@ -1,6 +1,5 @@
 // pages/api/create-connect-account.js
-// Creates a Stripe Connect Express account and returns an onboarding link
-// Called when a partner clicks "Connect Bank Account via Stripe" on /partners
+// Creates a Stripe Connect Express account for a partner and saves the account ID to Supabase
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from './supabase';
 
@@ -9,29 +8,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { referralCode, email, name } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const { refCode, email } = req.body;
+  if (!refCode || !email) return res.status(400).json({ error: 'Missing refCode or email' });
 
   const supabase = getSupabaseAdmin();
+  if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
   try {
-    // Check if this referrer already has a Stripe Connect account ID stored
-    let stripeAccountId = null;
-    if (supabase && referralCode) {
-      const { data: referrer } = await supabase
-        .from('referrals')
-        .select('id, stripe_account_id')
-        .eq('code', referralCode)
-        .single();
+    // Check if this partner already has a Stripe account
+    const { data: existing } = await supabase
+      .from('referrals')
+      .select('stripe_account_id')
+      .eq('ref_code', refCode)
+      .single();
 
-      if (referrer?.stripe_account_id) {
-        // Already has an account — just generate a fresh onboarding link
-        stripeAccountId = referrer.stripe_account_id;
-      }
-    }
+    let accountId = existing?.stripe_account_id;
 
-    // Create a new Express account if we don't have one yet
-    if (!stripeAccountId) {
+    // Only create a new Stripe account if one doesn't already exist
+    if (!accountId) {
       const account = await stripe.accounts.create({
         type: 'express',
         email,
@@ -39,34 +33,39 @@ export default async function handler(req, res) {
           transfers: { requested: true },
         },
         business_type: 'individual',
-        metadata: {
-          referral_code: referralCode || '',
-          name: name || '',
+        settings: {
+          payouts: { schedule: { interval: 'monthly', monthly_anchor: 1 } },
         },
       });
-      stripeAccountId = account.id;
 
-      // Save the Stripe account ID back to the referrals table
-      if (supabase && referralCode) {
-        await supabase
-          .from('referrals')
-          .update({ stripe_account_id: stripeAccountId })
-          .eq('code', referralCode);
+      accountId = account.id;
+
+      // Save the Stripe account ID to Supabase immediately
+      const { error: updateError } = await supabase
+        .from('referrals')
+        .update({ stripe_account_id: accountId })
+        .eq('ref_code', refCode);
+
+      if (updateError) {
+        console.error('Failed to save stripe_account_id:', updateError);
+        // Still continue — return the onboarding URL even if DB update fails
+      } else {
+        console.log('Saved stripe_account_id', accountId, 'for', refCode);
       }
     }
 
-    // Generate the hosted onboarding link
+    // Generate onboarding link for the partner to connect their bank
     const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${referralCode}&retry=1`,
-      return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/partners?connected=1&ref=${referralCode}`,
+      account: accountId,
+      refresh_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=refresh&ref=' + refCode,
+      return_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=complete&ref=' + refCode,
       type: 'account_onboarding',
     });
 
-    return res.status(200).json({ url: accountLink.url });
+    return res.status(200).json({ url: accountLink.url, accountId });
 
   } catch (err) {
-    console.error('Create connect account error:', err);
+    console.error('create-connect-account error:', err);
     return res.status(500).json({ error: err.message });
   }
 }
