@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/notify-waitlist",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/indexnow",
+      "schedule": "0 15 * * *"
     }
   ]
 }
