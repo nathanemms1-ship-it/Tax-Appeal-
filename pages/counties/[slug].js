@@ -18,22 +18,31 @@ const stateTerms = {
   TX: { verb: "protest", noun: "protest", deadline: "May 15", process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132 (Notice of Protest)", year: "2026" },
   GA: { verb: "appeal", noun: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A (Appeal of Assessment)", year: "2026" },
   FL: { verb: "petition", noun: "appeal", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486 (VAB petition)", year: "2026" },
+  AR: { verb: "appeal", noun: "appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
+  AL: { verb: "appeal", noun: "appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: "2026" },
 };
 
-const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida" };
+// Fallback so any state code (including future launches) always renders and never breaks the build.
+const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: "2026" };
+const termsFor = (county) => stateTerms[county.code] || DEFAULT_TERMS;
+
+const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" };
 
 // Concise, self-contained answer placed at the top of the page.
 // Leads with the direct answer + year + deadline + form + statute — the format
 // AI engines (ChatGPT, Perplexity, Google AI Overviews) extract and cite.
 const directAnswer = (county) => {
-  const t = stateTerms[county.code];
+  const t = termsFor(county);
   if (county.code === "FL") {
     return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) within 25 days of your TRIM notice — typically by mid-September. Include evidence of overassessment such as recent comparable sales, and pay your county's VAB filing fee. Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition and mails it via USPS Certified Mail to the ${county.district} for a flat $79.`;
   }
   if (county.code === "GA") {
     return `To appeal your ${county.name} County property taxes in 2026, file a property tax appeal (${t.form}) with the ${county.district} within 45 days of your annual assessment notice. Support your appeal with comparable sales showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your appeal for a flat $79 — no percentage of your savings.`;
   }
-  return `To protest your ${county.name} County property taxes in 2026, file a Notice of Protest (${t.form}) with the ${county.district} by May 15 — or within 30 days of your appraisal notice, whichever is later. Include comparable sales showing your home is overassessed. Protests are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your protest for a flat $79 — no percentage of your savings.`;
+  if (county.code === "TX") {
+    return `To protest your ${county.name} County property taxes in 2026, file a Notice of Protest (${t.form}) with the ${county.district} by May 15 — or within 30 days of your appraisal notice, whichever is later. Include comparable sales showing your home is overassessed. Protests are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your protest for a flat $79 — no percentage of your savings.`;
+  }
+  return `To appeal your ${county.name} County property taxes in 2026, file ${t.form} with the ${county.district} by ${county.deadline}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares and certified-mails your appeal for a flat $79 — no percentage of your savings.`;
 };
 
 // Real, informational appeal steps — marked up as HowTo schema for AI/rich results.
@@ -54,16 +63,24 @@ const howToSteps = (county) => {
       { name: "File within 45 days", text: `File your appeal with the ${county.district} within 45 days of the notice date.` },
     ];
   }
+  if (county.code === "TX") {
+    return [
+      { name: "Review your appraisal notice", text: `Check the appraised value on your ${county.name} County notice of appraised value, mailed in spring.` },
+      { name: "Gather your evidence", text: "Collect comparable sales and photos showing your home is appraised above market value." },
+      { name: "File a Notice of Protest", text: "Complete Form 50-132 (Notice of Protest) for your property." },
+      { name: "File by May 15", text: `Submit your protest to the ${county.district} by May 15, or within 30 days of your notice.` },
+    ];
+  }
   return [
-    { name: "Review your appraisal notice", text: `Check the appraised value on your ${county.name} County notice of appraised value, mailed in spring.` },
-    { name: "Gather your evidence", text: "Collect comparable sales and photos showing your home is appraised above market value." },
-    { name: "File a Notice of Protest", text: "Complete Form 50-132 (Notice of Protest) for your property." },
-    { name: "File by May 15", text: `Submit your protest to the ${county.district} by May 15, or within 30 days of your notice.` },
+    { name: "Review your assessment notice", text: `Check the value on your ${county.name} County property tax assessment notice.` },
+    { name: "Gather your evidence", text: "Collect recent comparable sales showing your home is assessed above market value." },
+    { name: "Prepare your appeal", text: "Complete your county's property tax appeal petition for your parcel." },
+    { name: "File by the deadline", text: `File your appeal with the ${county.district} by ${county.deadline}.` },
   ];
 };
 
 const faqs = (county) => {
-  const t = stateTerms[county.code];
+  const t = termsFor(county);
   return [
     {
       q: `What is the deadline to ${t.verb} property taxes in ${county.name} County, ${county.state}?`,
@@ -95,7 +112,7 @@ const faqs = (county) => {
 export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
   if (!county) return <div style={{ padding: 40, color: C.text }}>County not found.</div>;
 
-  const t = stateTerms[county.code];
+  const t = termsFor(county);
   const action = county.code === "TX" ? "Protest" : "Appeal";
   const title = `${county.name} County Property Tax ${action} 2026 | TaxAppeal USA`;
   const description = `${county.name} County, ${county.state} property tax ${t.verb} for 2026 — deadline ${county.deadline}. TaxAppeal USA mails your certified ${t.noun} to the ${county.district} for $79 flat.`;
