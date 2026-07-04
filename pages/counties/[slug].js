@@ -15,9 +15,9 @@ const C = {
 };
 
 const stateTerms = {
-  TX: { verb: "protest", noun: "protest", deadline: "May 15", process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132 (Notice of Protest)", year: "2026" },
-  GA: { verb: "appeal", noun: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A (Appeal of Assessment)", year: "2026" },
-  FL: { verb: "petition", noun: "appeal", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486 (VAB petition)", year: "2026" },
+  TX: { verb: "protest", noun: "protest", deadline: "May 15", process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: "2026" },
+  GA: { verb: "appeal", noun: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: "2026" },
+  FL: { verb: "petition", noun: "appeal", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: "2026" },
   AR: { verb: "appeal", noun: "appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
   AL: { verb: "appeal", noun: "appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: "2026" },
 };
