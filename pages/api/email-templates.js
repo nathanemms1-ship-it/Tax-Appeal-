@@ -71,7 +71,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                       </tr>` : ''}
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Filing Fee Paid</td>
-                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$79.00</td>
+                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$89.00</td>
                       </tr>
                     </table>
                   </td>
