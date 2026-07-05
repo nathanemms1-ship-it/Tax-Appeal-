@@ -154,7 +154,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
       <div style="text-align:center;margin-bottom:28px;">
         <a href="${filingUrl}"
            style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:16px 36px;border-radius:10px;font-size:16px;font-weight:600;letter-spacing:-0.2px;">
-          File My Protest Now — $79 →
+          File My Protest Now — $89 →
         </a>
         <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">Takes about 4 minutes. You won't be charged until your letter is ready.</p>
       </div>
@@ -166,7 +166,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
           ['💰', '$1,840 average savings per homeowner'],
           ['✅', '82% of protests result in a reduction'],
           ['📬', 'We handle everything — certified mail filing'],
-          ['🔒', '$79 flat fee, no percentage cuts'],
+          ['🔒', '$89 flat fee, no percentage cuts'],
         ].map(([icon, text]) => `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;color:#475569;">
             <span>${icon}</span><span>${text}</span>
