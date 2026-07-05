@@ -34,7 +34,7 @@ export default function TexasCityPage({ city }) {
     },
     {
       q: `How much can ${city.name} homeowners save by protesting?`,
-      a: `${city.name} homeowners who protest successfully save an average of $${formattedSavings} per year. With TaxAppeal's flat $79 fee, you keep 100% of those savings â unlike contingency firms that take 25â40% of what you save.`,
+      a: `${city.name} homeowners who protest successfully save an average of $${formattedSavings} per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings â unlike contingency firms that take 25â40% of what you save.`,
     },
     {
       q: `What is the ${city.name} property tax protest deadline?`,
@@ -49,8 +49,8 @@ export default function TexasCityPage({ city }) {
       a: `The strongest evidence is comparable sales â homes similar to yours that sold for less than your assessed value. TaxAppeal uses real MLS and public records data to build your comparable sales case automatically based on your property details.`,
     },
     {
-      q: `Is TaxAppeal USA's $79 fee worth it for ${city.name} homeowners?`,
-      a: `With average savings of $${formattedSavings} per year, TaxAppeal pays for itself many times over. Contingency firms charge 25â40% of savings â on a $${formattedSavings} win that's up to $${Math.round(city.avgSavings * 0.35).toLocaleString()} gone. TaxAppeal charges $79 flat.`,
+      q: `Is TaxAppeal USA's $89 fee worth it for ${city.name} homeowners?`,
+      a: `With average savings of $${formattedSavings} per year, TaxAppeal pays for itself many times over. Contingency firms charge 25â40% of savings â on a $${formattedSavings} win that's up to $${Math.round(city.avgSavings * 0.35).toLocaleString()} gone. TaxAppeal charges $89 flat.`,
     },
   ];
 
@@ -79,17 +79,17 @@ export default function TexasCityPage({ city }) {
     "url": `https://www.taxappealusa.com/texas/${city.slug}`,
     "areaServed": { "@type": "City", "name": city.name, "containedInPlace": { "@type": "State", "name": "Texas" } },
     "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" },
-    "priceRange": "$79"
+    "priceRange": "$89"
   };
 
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Protest Service | File for $79 | TaxAppeal USA</title>
-        <meta name="description" content={`Protest your ${city.name} property taxes for $79 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. No percentage cuts.`} />
+        <title>{city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
+        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. No percentage cuts.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Protest â $79 Flat Fee | TaxAppeal USA`} />
-        <meta property="og:description" content={`Protest your ${city.name} property taxes for $79 flat. Average savings $${formattedSavings}/year. Certified mail filing. No percentage cuts.`} />
+        <meta property="og:title" content={`${city.name} Property Tax Protest â $89 Flat Fee | TaxAppeal USA`} />
+        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Average savings $${formattedSavings}/year. Certified mail filing. No percentage cuts.`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
@@ -147,16 +147,16 @@ export default function TexasCityPage({ city }) {
             {city.name}, Texas â {city.metro} Metro â Property Tax Protest
           </div>
           <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display',serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
-            {city.name} Property Tax Protest â $79 Flat Fee
+            {city.name} Property Tax Protest â $89 Flat Fee
           </h1>
           <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            {city.description} TaxAppeal files your formal protest with the {city.district} â backed by comparable sales data and certified mail â for a flat $79.
+            {city.description} TaxAppeal files your formal protest with the {city.district} â backed by comparable sales data and certified mail â for a flat $89.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
             {[
               ["82%", "Protest success rate"],
               [`$${formattedSavings}`, "Avg. annual savings"],
-              ["$79", "Flat fee"],
+              ["$89", "Flat fee"],
               [city.county + " Co.", "Service area"],
             ].map(([n, l]) => (
               <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
@@ -167,7 +167,7 @@ export default function TexasCityPage({ city }) {
           </div>
           <Link href="/apply">
             <button className="btn-gold" style={{ fontSize: 17, padding: "18px 44px" }}>
-              File My {city.name} Protest â $79 â
+              File My {city.name} Protest â $89 â
             </button>
           </Link>
           <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won&apos;t be charged until your letter is ready.</div>
@@ -252,7 +252,7 @@ export default function TexasCityPage({ city }) {
       <section style={{ padding: "56px 40px", background: C.bg }}>
         <div className="container">
           <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>
-            $79 Flat vs. Contingency Firms
+            $89 Flat vs. Contingency Firms
           </h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
             Every other {city.name} property tax protest service charges a percentage of your savings â every year.
@@ -269,8 +269,8 @@ export default function TexasCityPage({ city }) {
               <tbody>
                 <tr style={{ fontWeight: 600 }}>
                   <td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, color: C.navy }}>â TaxAppeal USA</td>
-                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>$79 flat fee</td>
-                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#16a34a" }}>$79</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>$89 flat fee</td>
+                  <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${C.border}`, color: "#16a34a" }}>$89</td>
                 </tr>
                 <tr style={{ background: C.bg }}>
                   <td style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>Ownwell</td>
@@ -337,10 +337,10 @@ export default function TexasCityPage({ city }) {
           Ready to protest your {city.name} property taxes?
         </h2>
         <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>
-          Join {city.name} homeowners saving an average of ${formattedSavings}/year. $79 flat â no hidden fees, no percentage cuts.
+          Join {city.name} homeowners saving an average of ${formattedSavings}/year. $89 flat â no hidden fees, no percentage cuts.
         </p>
         <Link href="/apply">
-          <button className="btn-gold">Start My {city.name} Protest â $79 â</button>
+          <button className="btn-gold">Start My {city.name} Protest â $89 â</button>
         </Link>
         <p style={{ fontSize: 13, color: "#5A7A9F", marginTop: 16 }}>
           Texas Tax Code Â§41.41 Â· {city.district} Â· USPS Certified Mail Filing
