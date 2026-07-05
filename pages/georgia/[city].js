@@ -14,23 +14,23 @@ export default function GeorgiaCityPage({ city }) {
 
   const faqs = [
     { q:`How do I appeal my ${city.name} property taxes?`, a:`File a formal appeal with the ${city.district} within 45 days of your Notice of Assessment date. TaxAppeal prepares your appeal letter with comparable sales evidence and mails via USPS certified mail under O.C.G.A. § 48-5-311.` },
-    { q:`How much can ${city.name} homeowners save?`, a:`${city.name} homeowners who appeal successfully save an average of $${fSavings} per year. TaxAppeal's flat $79 fee means you keep 100% of those savings.` },
+    { q:`How much can ${city.name} homeowners save?`, a:`${city.name} homeowners who appeal successfully save an average of $${fSavings} per year. TaxAppeal's flat $89 fee means you keep 100% of those savings.` },
     { q:`What is the appeal deadline for ${city.name}?`, a:`45 days from the date on your Notice of Assessment from the ${city.district}. The clock starts from the notice date — not when you receive it. Missing this means waiting a full year.` },
     { q:`Can my ${city.name} assessment go up if I appeal?`, a:`In rare cases, yes. Georgia does not prohibit assessment increases from appeals. TaxAppeal reviews all comparable sales before filing to ensure your appeal is well-supported.` },
     { q:`What is the Board of Equalization in ${city.county} County?`, a:`The BOE is a three-member independent panel that hears formal property tax appeals. If the ${city.district} does not offer an acceptable reduction informally, your appeal proceeds to the BOE.` },
-    { q:`Is the $79 fee worth it for ${city.name} homeowners?`, a:`With average savings of $${fSavings}/year, TaxAppeal pays for itself many times over. Contingency firms charge 25-40% of savings — on a $${fSavings} win that's $${Math.round(city.avgSavings*0.35).toLocaleString()} gone.` },
+    { q:`Is the $89 fee worth it for ${city.name} homeowners?`, a:`With average savings of $${fSavings}/year, TaxAppeal pays for itself many times over. Contingency firms charge 25-40% of savings — on a $${fSavings} win that's $${Math.round(city.avgSavings*0.35).toLocaleString()} gone.` },
   ];
 
   const schema = { "@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(f=>({ "@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a} })) };
-  const lbSchema = { "@context":"https://schema.org","@type":"LocalBusiness","name":"TaxAppeal USA","description":`Property tax appeal service for ${city.name}, ${city.county} County, Georgia`,"url":`https://www.taxappealusa.com/georgia/${city.slug}`,"areaServed":{"@type":"City","name":city.name,"containedInPlace":{"@type":"State","name":"Georgia"}},"offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"},"priceRange":"$79" };
+  const lbSchema = { "@context":"https://schema.org","@type":"LocalBusiness","name":"TaxAppeal USA","description":`Property tax appeal service for ${city.name}, ${city.county} County, Georgia`,"url":`https://www.taxappealusa.com/georgia/${city.slug}`,"areaServed":{"@type":"City","name":city.name,"containedInPlace":{"@type":"State","name":"Georgia"}},"offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"},"priceRange":"$89" };
 
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Appeal | $79 Flat Fee | TaxAppeal USA</title>
-        <meta name="description" content={`Appeal your ${city.name} property taxes for $79 flat. ${city.county} County homeowners save $${fSavings}/year on average. Certified mail filing. 45-day deadline.`} />
+        <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
+        <meta name="description" content={`Appeal your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save $${fSavings}/year on average. Certified mail filing. 45-day deadline.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/georgia/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Appeal — $79 | TaxAppeal USA`} />
+        <meta property="og:title" content={`${city.name} Property Tax Appeal — $89 | TaxAppeal USA`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/georgia/${city.slug}`} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(lbSchema) }} />
@@ -59,17 +59,17 @@ export default function GeorgiaCityPage({ city }) {
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div className="container">
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>{city.name}, Georgia · {city.metro} Area · Property Tax Appeal</div>
-          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{city.name} Property Tax Appeal — $79 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $79.</p>
+          <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{city.name} Property Tax Appeal — $89 Flat Fee</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["45 days","Appeal window"],[`$${fSavings}`,"Avg. annual savings"],["$79","Flat fee"],[city.county+" Co.","Service area"]].map(([n,l])=>(
+            {[["45 days","Appeal window"],[`$${fSavings}`,"Avg. annual savings"],["$89","Flat fee"],[city.county+" Co.","Service area"]].map(([n,l])=>(
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:26,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $79 →</button></Link>
+          <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $89 →</button></Link>
           <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. 45-day deadline from your notice date.</div>
         </div>
       </section>
@@ -135,12 +135,12 @@ export default function GeorgiaCityPage({ city }) {
 
       <section style={{padding:"56px 40px",background:C.bg}}>
         <div className="container">
-          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>$79 Flat vs. Contingency Firms</h2>
+          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>$89 Flat vs. Contingency Firms</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Every other {city.name} property tax appeal service charges a percentage of your savings — every year.</p>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:15,background:C.white,borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`}}>
             <thead><tr style={{background:C.navy,color:C.white}}><th style={{padding:"14px 20px",textAlign:"left"}}>Service</th><th style={{padding:"14px 20px",textAlign:"center"}}>Fee Structure</th><th style={{padding:"14px 20px",textAlign:"center"}}>Cost on $${fSavings} Win</th></tr></thead>
             <tbody>
-              <tr style={{fontWeight:600}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,color:C.navy}}>✓ TaxAppeal USA</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>$79 flat fee</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#16a34a"}}>$79</td></tr>
+              <tr style={{fontWeight:600}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,color:C.navy}}>✓ TaxAppeal USA</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>$89 flat fee</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#16a34a"}}>$89</td></tr>
               <tr style={{background:C.bg}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`}}>Contingency Appeal Firm</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>25–35% of savings</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#dc2626"}}>$${Math.round(city.avgSavings*0.30).toLocaleString()}</td></tr>
               <tr><td style={{padding:"14px 20px"}}>Property Tax Attorney</td><td style={{padding:"14px 20px",textAlign:"center"}}>40–50% of savings</td><td style={{padding:"14px 20px",textAlign:"center",color:"#dc2626"}}>$${Math.round(city.avgSavings*0.45).toLocaleString()}</td></tr>
             </tbody>
@@ -175,8 +175,8 @@ export default function GeorgiaCityPage({ city }) {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your {city.name} property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners save an average of $${fSavings}/year. $79 flat — 45-day deadline from your notice.</p>
-        <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $79 →</button></Link>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners save an average of $${fSavings}/year. $89 flat — 45-day deadline from your notice.</p>
+        <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $89 →</button></Link>
         <p style={{fontSize:13,color:"#5A7A9F",marginTop:16}}>O.C.G.A. § 48-5-311 · {city.district} · USPS Certified Mail Filing</p>
       </section>
 
