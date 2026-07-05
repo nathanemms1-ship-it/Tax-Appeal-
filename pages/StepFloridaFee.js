@@ -135,7 +135,7 @@ export default function StepFloridaFee({ feeData, property, account, onAuthorize
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
             <span style={{ color: '#8596AF' }}>TaxAppeal service fee</span>
-            <span style={{ color: C.white, fontWeight: 500 }}>$79</span>
+            <span style={{ color: C.white, fontWeight: 500 }}>$89</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
             <div>
