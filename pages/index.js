@@ -631,16 +631,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="section" style={{ background: C.white }}>
-        <div className="section-inner">
-          {/* Competitor comparison section */}
+      {/* Competitor comparison section */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
           <div className="section-title">Why TaxAppeal beats the alternatives</div>
           <div className="section-sub">Not all property tax services are created equal. Here's how we compare.</div>
           <div style={{ overflowX: 'auto', marginTop: 24 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: "DM Sans, sans-serif" }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
               <thead>
                 <tr style={{ background: C.navy, color: C.white }}>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>
@@ -672,13 +669,16 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>The $40 difference vs. AppealDesk buys you everything that matters:</strong> certified mail filing, legal proof of timely delivery, and zero trips to the post office. We handle it. You cash the savings check.
+            <strong style={{ color: C.darkNavy }}>The $40 difference vs. AppealDesk:</strong> certified mail filing, legal proof of timely delivery, and zero trips to the post office. We handle it. You cash the savings check.
           </div>
         </div>
       </section>
 
+
+      {/* FAQ */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
+
           <div className="section-title">Common questions</div>
           <div className="section-sub">Everything you need to know before filing.</div>
           <div className="faq">
