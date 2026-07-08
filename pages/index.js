@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Most property tax services charge 25–50% of your savings. On a $2,000 win that's up to $1,000 gone before it reaches you. We charge a flat $89 regardless of outcome — you keep everything you save."],
+    ["How is $89 different from other services?", "Two types of competitors exist — and TaxAppeal beats both. Contingency firms like O'Connor charge 25–50% of your savings every year. On a $2,000 win that's up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
@@ -632,6 +632,51 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
+      <section className="section" style={{ background: C.white }}>
+        <div className="section-inner">
+          {/* Competitor comparison section */}
+      <section className="section" style={{ background: C.white }}>
+        <div className="section-inner">
+          <div className="section-title">Why TaxAppeal beats the alternatives</div>
+          <div className="section-sub">Not all property tax services are created equal. Here's how we compare.</div>
+          <div style={{ overflowX: 'auto', marginTop: 24 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+              <thead>
+                <tr style={{ background: C.navy, color: C.white }}>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500, color: '#FFC940' }}>✓ TaxAppeal USA</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>AppealDesk ($49)</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Contingency Firms</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Price', '$89 flat', '$49 flat', '25–50% of savings'],
+                  ['Comparable sales data', '✅', '✅', '✅'],
+                  ['Dispute letter generated', '✅', '✅', '✅'],
+                  ['We mail it for you', '✅ Included', '❌ You print & mail', '✅ Included'],
+                  ['USPS Certified Mail', '✅ Included', '❌ You buy it', '✅ Included'],
+                  ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅'],
+                  ['You attend hearing', '❌ Not required', '❌ You go yourself', '✅ They attend'],
+                  ['Cost on $2,000 savings', '$89', '$49 + your time', '$500–$1,000'],
+                  ['True hands-off service', '✅ Yes', '❌ No', '✅ Yes'],
+                ].map(([label, ta, ad, cont], i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
+                    <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.navy, fontWeight: 500 }}>{ta}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{ad}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{cont}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
+            <strong style={{ color: C.darkNavy }}>The $40 difference vs. AppealDesk buys you everything that matters:</strong> certified mail filing, legal proof of timely delivery, and zero trips to the post office. We handle it. You cash the savings check.
+          </div>
+        </div>
+      </section>
+
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
           <div className="section-title">Common questions</div>
