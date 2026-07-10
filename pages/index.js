@@ -654,8 +654,7 @@ export default function Landing() {
                   ['We mail it for you', '✅ Included', '❌ You print & mail', '✅ Included'],
                   ['USPS Certified Mail', '✅ Included', '❌ You buy it', '✅ Included'],
                   ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅'],
-                  ['You attend hearing', '❌ Not required', '❌ You go yourself', '✅ They attend'],
-                  ['Cost on $2,000 savings', '$89', '$49 + your time', '$500–$1,000'],
+                  ['Cost on $2,000 savings', '$89', '$49 + your time', <><div>$500–$1,000</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Excessive cost for the same result</div></>],
                   ['True hands-off service', '✅ Yes', '❌ No', '✅ Yes'],
                 ].map(([label, ta, ad, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
