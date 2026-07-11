@@ -1,12 +1,7 @@
 // pages/api/save-signature.js
 // Persists the homeowner's e-signature + non-representation acknowledgment before the
 // protest is mailed (TX/GA/AR/AL; FL captures its signature pre-payment on the DR-486A).
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // server-side; not the anon key
-);
+import { getSupabaseAdmin } from "./supabase";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -21,6 +16,9 @@ export default async function handler(req, res) {
     (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
     req.socket?.remoteAddress ||
     null;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return res.status(500).json({ error: "Database unavailable" });
 
   try {
     const { error } = await supabase
