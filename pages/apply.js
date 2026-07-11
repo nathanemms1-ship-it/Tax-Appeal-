@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import StepFloridaFee, { getFlVabFee } from './StepFloridaFee';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
@@ -16,6 +17,8 @@ const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
   GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
+  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
+  AL: { name: "Alabama", deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
 
 const FILING_WINDOWS = {
@@ -51,7 +54,9 @@ const FILING_WINDOWS = {
       "Rockdale": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
     },
   },
-  FL: { openMonth: 8, openDay: 15, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
+  AR: { openMonth: 6, openDay: 1, closeMonth: 8, closeDay: 10, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false },
+  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
+  AL: { openMonth: 4, openDay: 1, closeMonth: 8, closeDay: 17, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false }
 };
 
 function getFilingWindowStatus(stateCode, countyName) {
@@ -320,7 +325,7 @@ function UnsupportedState({ stateCode, onBack }) {
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>Coming Soon to {stateCode}</h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, and <strong style={{ color: C.navy }}>Florida</strong>. Enter your email to be first in line when we launch in {stateCode}.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, <strong style={{ color: C.navy }}>Florida</strong>, <strong style={{ color: C.navy }}>Arkansas</strong>, and <strong style={{ color: C.navy }}>Alabama</strong>. Enter your email to be first in line when we launch in {stateCode}.</p>
         {!submitted ? (
           <>
             <Field label={`Notify me when ${stateCode} launches`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
@@ -351,7 +356,7 @@ function StepAccount({ data, onChange, onNext }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it certified</div>
         <h1 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>We fight your property tax bill. You keep the savings.</h1>
         <p style={{ fontSize: 20, fontWeight: 700, color: "#1B3A6B", marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. We do it all.</p>
-        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $79 fee.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
         <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>82%</div>
           <div>
@@ -373,12 +378,12 @@ function StepAccount({ data, onChange, onNext }) {
               </div>
             ))}
           </div>
-          <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>⚖️ Aligned with Texas Tax Code §41.41 & §41.43 · Georgia O.C.G.A. §48-5-311 · Florida Statute §194.011</div>
+          <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>⚖️ Aligned with Texas §41.41 · Georgia §48-5-311 · Florida §194.011 · Arkansas Code §26-27-317 · Alabama Code §40-3-20</div>
         </div>
         <div className="price-flex" style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 4 }}>ONE-TIME FEE</div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$79</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$89</div>
             <div style={{ fontSize: 12, color: C.gold, fontFamily: "'DM Sans', sans-serif" }}>Flat rate. No hidden cuts.</div>
           </div>
           <div style={{ borderLeft: `2px solid #FFD97A`, paddingLeft: 16 }}>
@@ -386,7 +391,7 @@ function StepAccount({ data, onChange, onNext }) {
             <div style={{ fontSize: 12, color: C.bodyGray, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>Up to 50% of your savings — on a $2,000 win, that's $1,000 gone before it ever reaches you.</div>
           </div>
         </div>
-        {[["You sign it — we mail it certified", "You review and sign your protest, then we mail it by certified letter in your name"], ["You get the certified mail receipt", "Official proof of submission sent directly to you"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we mail it certified"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
+        {[["You sign it — we mail it certified", "Your dispute is submitted via certified letter — you review and sign, then we mail it in your name"], ["You get the certified mail receipt", "Official proof of submission sent directly to you"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we mail it certified"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
           <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
             <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.navy, flexShrink: 0, marginTop: 2 }}>✓</div>
             <div>
@@ -408,7 +413,7 @@ function StepAccount({ data, onChange, onNext }) {
         <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$79</span>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$89</span>
             <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
           </div>
         </div>
@@ -548,7 +553,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         <div style={{ background: C.amber, border: `1px solid #FFD97A`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 10 }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
           <div style={{ fontSize: 13, color: "#7A5C10", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia and Florida have similar windows. File now to protect your right to appeal.
+            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia, Florida, Arkansas, and Alabama have firm deadlines too. File now to protect your right to appeal.
           </div>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>💡 Optional but strengthens your case</div>
@@ -663,15 +668,17 @@ function LoadingScreen({ addr }) {
   );
 }
 
-function DisputeLetter({ propData, letter, issues, onRestart, account, property }) {
-  const [agreements, setAgreements] = useState([false, false, false]);
+function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
+  const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
-  const allAgreed = agreements.every(Boolean);
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
+  const requiresAuth = ["AR","AL"].includes(stateCode);
+  const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
 
+  const agentAuthGranted = requiresAuth && agreements[3];
   const doCheckout = async () => {
     if (!allAgreed) return;
     setCheckingOut(true);
@@ -700,6 +707,11 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
           ownerCity: property.city,
           ownerState: property.state,
           ownerZip: property.zip,
+          stateCode: property.state ? property.state.trim().toUpperCase() : '',
+          flSignatureName: flSignature ? flSignature.name : '',
+          flSignatureTimestamp: flSignature ? flSignature.timestamp : '',
+          flAuthDate: flSignature ? flSignature.date : '',
+          refCode: (typeof window !== 'undefined' ? localStorage.getItem('taxappeal_ref') : null) || '',
         }),
       });
       const data = await res.json();
@@ -761,20 +773,48 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
             <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only.</p>
             <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy.</p>
             <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open.</p>
-            <p><strong>5. No refunds after filing.</strong> The $79 fee is non-refundable once your certified mail has been sent.</p>
-            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, and FL only.</p>
+            <p><strong>5. No refunds after filing.</strong> The $89 fee is non-refundable once your certified mail has been sent.</p>
+            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, FL, AR, and AL.</p>
           </div>
         </div>
-        {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the $79 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
+        {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the $89 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
           <div key={i} onClick={() => toggleAgreement(i)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
             <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[i] ? C.navy : "#C5D0E0"}`, background: agreements[i] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[i] ? "✓" : ""}</div>
             <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
           </div>
         ))}
+        {requiresAuth && (
+          <div
+            onClick={() => toggleAgreement(3)}
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 12,
+              padding: "12px 14px", borderRadius: 8, marginBottom: 10, cursor: "pointer",
+              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
+              background: agreements[3] ? C.lightBlue : "#FFF8E6",
+              transition: "all 0.15s"
+            }}
+          >
+            <div style={{
+              width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
+              background: agreements[3] ? C.navy : C.white,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, color: C.white, fontWeight: 700
+            }}>
+              {agreements[3] ? "✓" : ""}
+            </div>
+            <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>
+              <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>
+                {"Agent Authorization — Required for " + (stateInfo.name || "this state")}
+              </strong>
+              {"I authorize TaxAppeal USA to act as my filing agent and represent my property tax appeal with the " + (stateInfo.board || "Board of Equalization") + ". This electronic authorization — recorded with my name, date, and IP address — will accompany my formal protest filing."}
+            </div>
+          </div>
+        )}
         {!allAgreed && <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: "center", marginBottom: 10 }}>All three boxes must be checked to proceed</div>}
         <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
           <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
-          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $79 — Your letter will be emailed to you"}</span>
+          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $89 — Your letter will be emailed to you"}</span>
         </button>
         <div style={{ marginTop: 20, textAlign: "center" }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
@@ -797,7 +837,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property 
         </div>
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", "Secure $79 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+          {[["💳", "Secure $89 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
               <div>
@@ -867,13 +907,83 @@ function StepDispute({ formData, onRestart }) {
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
       const issuesBlock = issues && issues.length > 0 ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}` : "No specific property issues reported beyond general market value discrepancy.";
       const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
-      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis: ${issueCount} property issue${issueCount !== 1 ? "s" : ""} documented${overAssessedPct > 0 ? ", property over-assessed by approx " + Math.round(overAssessedPct) + "% vs market" : ""}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n11. Professional closing with owner name, address, email.\n\nOutput ONLY the complete formal letter.`;
-      const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
-      const claudeJson = await claudeRes.json();
-      if (claudeJson.error) throw new Error(claudeJson.error);
-      if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
-      setLetter(claudeJson.letter);
-      if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+      const arNote = stateCode === 'AR' ? '\n\nARKANSAS-SPECIFIC RULES:\n- Arkansas assesses property at 20% of market value. The appeal targets MARKET VALUE, not the 20% assessed figure.\n- Address to: Secretary, ' + county + ' County Board of Equalization\n- Cite Arkansas Code ss.26-27-317 (appeal rights) and ss.26-26-1901 (market value standard)\n- The Board meets in August - emphasize timely filing and postmark date\n- Do NOT mention ARB or appraisal districts - use "Board of Equalization" and "county assessor"' : '';
+      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis: ${issueCount} property issue${issueCount !== 1 ? "s" : ""} documented${overAssessedPct > 0 ? ", property over-assessed by approx " + Math.round(overAssessedPct) + "% vs market" : ""}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n11. Professional closing with owner name, address, email.\n\nOutput ONLY the complete formal letter.`;
+      // Florida: use generate-dr486 (official DR-486 form with Part 5 rep signature)
+      // All other states: use generate-letter (free-form protest letter)
+      let claudeJson;
+      if (stateCode === 'FL') {
+        const flSig = formData.flSignature || {};
+        const dr486Res = await fetch("/api/generate-dr486", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ownerFirstName: account.firstName,
+            ownerLastName: account.lastName,
+            ownerEmail: account.email,
+            ownerStreet: property.street,
+            ownerCity: property.city,
+            ownerState: property.state,
+            ownerZip: property.zip,
+            propertyAddress: addr,
+            county,
+            assessedValue,
+            requestedValue: targetReduction,
+            taxYear,
+            issues,
+            propertyDetails: propDetails,
+            notes: property.notes,
+            districtName: appraisalDistrict?.districtName || '',
+            zip: property.zip,
+            state: property.state,
+            flSignatureName: flSig.name || '',
+            flAuthDate: flSig.date || '',
+          }),
+        });
+        claudeJson = await dr486Res.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        // For FL: letter display shows evidence text; letterKey points to full DR-486 HTML
+        setLetter(claudeJson.evidenceText || '');
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+        pd.isFL = true;
+      } else if (stateCode === 'GA') {
+        const gaRes = await fetch("/api/generate-pt311a", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ownerFirstName: account.firstName,
+            ownerLastName: account.lastName,
+            ownerEmail: account.email,
+            ownerStreet: property.street,
+            ownerCity: property.city,
+            ownerState: property.state,
+            ownerZip: property.zip,
+            propertyAddress: addr,
+            county,
+            assessedValue,
+            requestedValue: targetReduction,
+            taxYear,
+            issues,
+            propertyDetails: propDetails,
+            notes: property.notes,
+            districtName: appraisalDistrict?.districtName || '',
+            zip: property.zip,
+            gaSignatureDate: new Date().toISOString().split('T')[0],
+          }),
+        });
+        claudeJson = await gaRes.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        setLetter(claudeJson.evidenceText || '');
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+        pd.isGA = true;
+      } else {
+        const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
+        claudeJson = await claudeRes.json();
+        if (claudeJson.error) throw new Error(claudeJson.error);
+        if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
+        setLetter(claudeJson.letter);
+        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
+      }
       setLoading(false);
     } catch (e) {
       setErrMsg(e.message || "Something went wrong. Please try again.");
@@ -907,14 +1017,23 @@ export default function App() {
   const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
   const [closedWindow, setClosedWindow] = useState(null);
+  const [flFeeData, setFlFeeData] = useState(null);
+  const [flSignature, setFlSignature] = useState(null);
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
   const restart = () => {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null);
+    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
   };
+
+  // Capture referral code from URL ?ref= param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('taxappeal_ref', ref);
+  }, []);
 
   return (
     <div style={base}>
@@ -971,8 +1090,9 @@ export default function App() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues }} onRestart={restart} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { const clean = (property.county || property.city || '').replace(/ County$/i,'').trim(); const feeInfo = getFlVabFee(clean); setFlFeeData({ ...feeInfo, county: clean }); setStep('florida-fee'); } else { setStep('dispute'); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
         </>
       )}
     </div>
