@@ -112,7 +112,7 @@ const cities = [
     slug: "/houston",
     county: "Harris County (HCAD)",
     stats: ["$2,300 avg savings", "Harris County HCAD", "~880K protests/yr"],
-    desc: "Houston homeowners face some of the highest effective property tax rates in the nation. We file directly with the Harris County Appraisal District.",
+    desc: "Houston homeowners face some of the highest effective property tax rates in the nation. We prepare and mail your protest to the Harris County Appraisal District.",
   },
   {
     name: "Dallas",
@@ -126,7 +126,7 @@ const cities = [
     slug: "/fort-worth",
     county: "Tarrant County (TAD)",
     stats: ["$1,800 avg savings", "Tarrant Appraisal District", "Fast-growing market"],
-    desc: "Fort Worth and the greater Tarrant County area have seen rapid appreciation. We file your protest with the Tarrant Appraisal District before the May 15 deadline.",
+    desc: "Fort Worth and the greater Tarrant County area have seen rapid appreciation. We prepare and mail your protest to the Tarrant Appraisal District before the May 15 deadline.",
   },
   {
     name: "Austin",
@@ -148,7 +148,7 @@ export default function Texas() {
         <meta name="description" content="Protest your Texas property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. 82% approval rate. All 254 Texas counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/texas" />
         <meta property="og:title" content="Texas Property Tax Protest — $89 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Texas property taxes. We file your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." />
+        <meta property="og:description" content="Stop overpaying on Texas property taxes. We prepare and mail your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." />
         <meta property="og:url" content="https://www.taxappealusa.com/texas" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -240,7 +240,7 @@ export default function Texas() {
             {[
               ["📊", "Comparable Sales Analysis", "We pull recent sales of similar homes in your area to build evidence that your assessed value exceeds fair market value under Texas Tax Code §41.43."],
               ["✍️", "Formal Protest Letter", "A professionally drafted protest letter citing Texas Tax Code §41.41 and §41.43 with your property-specific data and comparable sales evidence."],
-              ["📬", "USPS Certified Mail Filing", "We file via certified mail with return receipt — providing legal proof your protest was received before the May 15 deadline."],
+              ["📬", "USPS Certified Mail Filing", "We mail via certified mail with return receipt — providing legal proof your protest was received before the May 15 deadline."],
               ["🔍", "Property Record Review", "We review your appraisal district records for errors in square footage, bedroom count, lot size, or condition that could support a lower value."],
               ["📧", "Email Confirmation & Tracking", "You receive a copy of your complete protest letter and USPS tracking number immediately after filing."],
               ["🏛️", "ARB Hearing Ready", "Your letter is drafted to be effective at both the informal level and before the Appraisal Review Board if needed."],
