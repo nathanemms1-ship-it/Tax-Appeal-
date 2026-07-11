@@ -68,7 +68,7 @@ const floridaCities = [
   { slug: "hallandale-beach", name: "Hallandale Beach", county: "Broward", medianHomeValue: 420000, avgSavings: 1200, description: "Hallandale Beach homeowners on the Miami-Dade border benefit from formal appeals as rapidly changing market conditions create assessment discrepancies throughout this coastal community." },
   { slug: "surfside-fl", name: "Surfside", county: "Miami-Dade", medianHomeValue: 1200000, avgSavings: 3400, description: "Surfside's exclusive beachfront community carries some of Miami-Dade's highest assessed values. Even modest percentage reductions through a VAB appeal can yield thousands in annual tax savings." },
   { slug: "bal-harbour", name: "Bal Harbour", county: "Miami-Dade", medianHomeValue: 1500000, avgSavings: 4200, description: "Bal Harbour's ultra-luxury properties and world-class shopping district create unique valuation challenges. Over-assessments here represent some of the largest savings opportunities in all of Florida." },
-  { slug: "key-biscayne", name: "Key Biscayne", county: "Miami-Dade", medianHomeValue: 1400000, avgSavings: 3900, description: "Key Biscayne's island exclusivity and limited comparable sales create frequent over-assessment situations. Our flat $79 fee is a minimal investment compared to the annual savings a successful appeal delivers." },
+  { slug: "key-biscayne", name: "Key Biscayne", county: "Miami-Dade", medianHomeValue: 1400000, avgSavings: 3900, description: "Key Biscayne's island exclusivity and limited comparable sales create frequent over-assessment situations. Our flat $89 fee is a minimal investment compared to the annual savings a successful appeal delivers." },
   { slug: "pinecrest-fl", name: "Pinecrest", county: "Miami-Dade", medianHomeValue: 1050000, avgSavings: 3000, description: "Pinecrest's upscale residential community with large lot homes is frequently over-assessed by Miami-Dade. With median home values over $1M, successful appeals here routinely save homeowners $3,000 or more annually." },
   { slug: "homestead-fl", name: "Homestead", county: "Miami-Dade", medianHomeValue: 350000, avgSavings: 1000, description: "Homestead homeowners in Miami-Dade's southern communities benefit from formal VAB petitions as rapid growth has created assessment inconsistencies across this expanding market." },
   { slug: "westchase-fl", name: "Westchase", county: "Hillsborough", medianHomeValue: 580000, avgSavings: 1650, description: "Westchase is one of Tampa's most desirable master-planned communities, and high demand drives assessments that frequently exceed true market value. Our streamlined filing process makes appealing straightforward." },
@@ -79,10 +79,10 @@ const floridaCities = [
   { slug: "bradenton-fl", name: "Bradenton", county: "Manatee", medianHomeValue: 380000, avgSavings: 1100, description: "Bradenton homeowners across Manatee County benefit from formal VAB appeals as waterfront and suburban properties alike are frequently assessed above what comparable sales support." },
   { slug: "port-st-lucie-fl", name: "Port St. Lucie", county: "St. Lucie", medianHomeValue: 370000, avgSavings: 1050, description: "Port St. Lucie is one of Florida's fastest-growing cities, and rapid expansion creates consistent assessment discrepancies. Our flat fee appeal process is perfect for this high-volume, high-opportunity market." },
   { slug: "vero-beach-fl", name: "Vero Beach", county: "Indian River", medianHomeValue: 450000, avgSavings: 1300, description: "Vero Beach's upscale coastal community and golf course neighborhoods frequently carry over-assessments. Indian River County homeowners benefit from formal VAB petitions that target these discrepancies." },
-  { slug: "lakeland-fl", name: "Lakeland", county: "Polk", medianHomeValue: 310000, avgSavings: 900, description: "Lakeland homeowners between Tampa and Orlando benefit from formal VAB appeals as this growing market experiences frequent assessment inconsistencies. Our flat $79 fee makes protesting accessible for every homeowner." },
+  { slug: "lakeland-fl", name: "Lakeland", county: "Polk", medianHomeValue: 310000, avgSavings: 900, description: "Lakeland homeowners between Tampa and Orlando benefit from formal VAB appeals as this growing market experiences frequent assessment inconsistencies. Our flat $89 fee makes protesting accessible for every homeowner." },
   { slug: "doctor-phillips-fl", name: "Doctor Phillips", county: "Orange", medianHomeValue: 680000, avgSavings: 1900, description: "Doctor Phillips homeowners near the Restaurant Row corridor and luxury golf communities frequently find their assessments exceed comparable sale prices, making formal appeals an excellent financial decision." },
   { slug: "windermere-fl", name: "Windermere", county: "Orange", medianHomeValue: 1100000, avgSavings: 3100, description: "Windermere's lakefront estates and gated communities are prime candidates for property tax appeals. With limited comparable sales and unique waterfront features, assessors frequently miss the mark on true market value." },
-  { slug: "hunters-creek-fl", name: "Hunters Creek", county: "Orange", medianHomeValue: 420000, avgSavings: 1200, description: "Hunters Creek's large planned community with thousands of homes sees consistent over-assessment patterns. Our flat $79 fee makes formal VAB filing affordable for every homeowner in this Orange County community." },
+  { slug: "hunters-creek-fl", name: "Hunters Creek", county: "Orange", medianHomeValue: 420000, avgSavings: 1200, description: "Hunters Creek's large planned community with thousands of homes sees consistent over-assessment patterns. Our flat $89 fee makes formal VAB filing affordable for every homeowner in this Orange County community." },
   { slug: "new-tampa-fl", name: "New Tampa", county: "Hillsborough", medianHomeValue: 450000, avgSavings: 1300, description: "New Tampa's large planned communities and consistent housing stock create both the need and the evidence for successful property tax appeals. Our flat fee service handles all filing formalities." },
   { slug: "longboat-key-fl", name: "Longboat Key", county: "Sarasota", medianHomeValue: 1200000, avgSavings: 3400, description: "Longboat Key's ultra-luxury barrier island homes are among Sarasota County's most frequently over-assessed. Gulf-front estates here regularly see six-figure assessment reductions through formal VAB appeals." },
   { slug: "golden-gate-fl", name: "Golden Gate", county: "Collier", medianHomeValue: 380000, avgSavings: 1100, description: "Golden Gate homeowners in the Naples area benefit from formal VAB appeals as Collier County's growing market creates assessment inconsistencies across this large suburban community." },
@@ -107,17 +107,47 @@ const floridaCities = [
   { slug: "longwood-fl", name: "Longwood", county: "Seminole", medianHomeValue: 370000, avgSavings: 1060, description: "Longwood's established Seminole County neighborhoods see consistent over-assessment patterns as the broader Orlando market pushes values that don't always reflect individual property conditions." },
   { slug: "clermont-fl", name: "Clermont", county: "Lake", medianHomeValue: 390000, avgSavings: 1120, description: "Clermont's rolling hills and lakefront communities are among Central Florida's fastest-growing, and Lake County assessments frequently lag behind or overshoot actual market values. VAB appeals here succeed regularly." },
   { slug: "minneola-fl", name: "Minneola", county: "Lake", medianHomeValue: 380000, avgSavings: 1090, description: "Minneola homeowners in Lake County benefit from formal VAB petitions as rapid new development creates frequent gaps between assessed values and what comparable homes are actually selling for." },
-  { slug: "the-villages-fl", name: "The Villages", county: "Sumter", medianHomeValue: 340000, avgSavings: 970, description: "The Villages is one of America's largest retirement communities, and Sumter County assessments here frequently exceed what the active resale market supports. Our flat $79 fee makes appealing accessible for every Villages homeowner." },
+  { slug: "the-villages-fl", name: "The Villages", county: "Sumter", medianHomeValue: 340000, avgSavings: 970, description: "The Villages is one of America's largest retirement communities, and Sumter County assessments here frequently exceed what the active resale market supports. Our flat $89 fee makes appealing accessible for every Villages homeowner." },
   { slug: "ocala-fl", name: "Ocala", county: "Marion", medianHomeValue: 270000, avgSavings: 780, description: "Ocala's horse country estates and suburban communities both see frequent over-assessments as Marion County's market grows rapidly. A formal VAB appeal is a smart move for equestrian property owners and suburban homeowners alike." },
   { slug: "gainesville-fl", name: "Gainesville", county: "Alachua", medianHomeValue: 290000, avgSavings: 830, description: "Gainesville homeowners near the University of Florida benefit from formal VAB appeals as Alachua County assessments often reflect the student-driven rental market rather than owner-occupied home values." },
   { slug: "viera-fl", name: "Viera", county: "Brevard", medianHomeValue: 440000, avgSavings: 1260, description: "Viera's master-planned community on the Space Coast sees frequent assessment discrepancies as new construction outpaces comparable sale data. Brevard County homeowners here consistently find grounds for successful appeals." },
   { slug: "rockledge-fl", name: "Rockledge", county: "Brevard", medianHomeValue: 350000, avgSavings: 1000, description: "Rockledge homeowners near the Kennedy Space Center corridor benefit from formal VAB petitions as tech and aerospace sector growth drives assessments above what the broader Brevard market supports." },
-  { slug: "palm-bay-fl", name: "Palm Bay", county: "Brevard", medianHomeValue: 310000, avgSavings: 890, description: "Palm Bay is Brevard County's largest city by population, and its rapid growth creates consistent assessment inconsistencies. Our flat $79 fee makes formal VAB filing accessible for every Palm Bay homeowner." },
+  { slug: "palm-bay-fl", name: "Palm Bay", county: "Brevard", medianHomeValue: 310000, avgSavings: 890, description: "Palm Bay is Brevard County's largest city by population, and its rapid growth creates consistent assessment inconsistencies. Our flat $89 fee makes formal VAB filing accessible for every Palm Bay homeowner." },
   { slug: "stuart-fl", name: "Stuart", county: "Martin", medianHomeValue: 490000, avgSavings: 1400, description: "Stuart's Treasure Coast location and waterfront communities carry Martin County assessments that frequently exceed true market value. Homeowners here benefit from formal VAB petitions that target these specific discrepancies." },
   { slug: "jensen-beach-fl", name: "Jensen Beach", county: "Martin", medianHomeValue: 460000, avgSavings: 1320, description: "Jensen Beach homeowners on the Treasure Coast benefit from formal appeals as Martin County's waterfront and golf community properties are frequently assessed above comparable sales evidence." },
   { slug: "tradition-fl", name: "Tradition", county: "St. Lucie", medianHomeValue: 380000, avgSavings: 1090, description: "Tradition is one of Florida's most award-winning master-planned communities, and St. Lucie County assessments here frequently outpace what comparable sales actually support. VAB petitions deliver consistent results." },
   { slug: "palm-beach-fl", name: "Palm Beach", county: "Palm Beach", medianHomeValue: 2800000, avgSavings: 7900, description: "Palm Beach's ultra-luxury island estates represent some of the most valuable — and most frequently over-assessed — properties in all of Florida. Even a fraction of a percent reduction on a $3M+ home saves tens of thousands annually." },
   { slug: "north-miami-beach", name: "North Miami Beach", county: "Miami-Dade", medianHomeValue: 420000, avgSavings: 1200, description: "North Miami Beach homeowners benefit from formal VAB appeals as Miami-Dade's rapidly evolving coastal market creates consistent assessment discrepancies across this diverse community." },
+  { slug: "plantation", name: "Plantation", county: "Broward", medianHomeValue: 510000, avgSavings: 1500, description: "Plantation homeowners regularly find their assessments outpacing comparable sales in this established Broward suburb, making VAB petitions a high-value move before the TRIM deadline." },
+  { slug: "davie", name: "Davie", county: "Broward", medianHomeValue: 540000, avgSavings: 1600, description: "Davie's mix of equestrian estates, family homes, and college-adjacent properties creates wide assessment variation that formal VAB petitions consistently correct." },
+  { slug: "sunrise", name: "Sunrise", county: "Broward", medianHomeValue: 430000, avgSavings: 1250, description: "Sunrise homeowners benefit from strong VAB petition success rates as Broward County's mass appraisal model frequently over-estimates values in this diverse, growing community." },
+  { slug: "weston", name: "Weston", county: "Broward", medianHomeValue: 720000, avgSavings: 2100, description: "Weston's master-planned communities and luxury homes are frequently over-assessed, making this one of Broward County's strongest markets for successful VAB petitions." },
+  { slug: "hallandale-beach", name: "Hallandale Beach", county: "Broward", medianHomeValue: 390000, avgSavings: 1100, description: "Hallandale Beach's condo-heavy market and waterfront properties see consistent over-assessment, particularly for units with ocean or Intracoastal views where comparable data is thin." },
+  { slug: "tamarac", name: "Tamarac", county: "Broward", medianHomeValue: 360000, avgSavings: 1050, description: "Tamarac homeowners — many in active adult communities — frequently succeed with VAB petitions as Broward's assessment model misses the nuances of this community's market." },
+  { slug: "margate", name: "Margate", county: "Broward", medianHomeValue: 370000, avgSavings: 1075, description: "Margate's affordable Broward market has seen significant post-pandemic appreciation that mass appraisal models are slow to correctly capture at the individual property level." },
+  { slug: "coconut-creek", name: "Coconut Creek", county: "Broward", medianHomeValue: 395000, avgSavings: 1150, description: "Coconut Creek homeowners in both traditional neighborhoods and Wynmoor Village's active adult community benefit from targeted VAB petitions backed by local comparable sales." },
+  { slug: "parkland", name: "Parkland", county: "Broward", medianHomeValue: 780000, avgSavings: 2250, description: "Parkland's premier status as one of South Florida's most desirable cities means high assessed values — and a high dollar return when comparable sales support a successful appeal." },
+  { slug: "lauderhill", name: "Lauderhill", county: "Broward", medianHomeValue: 330000, avgSavings: 950, description: "Lauderhill homeowners find strong grounds for VAB petitions as Broward's appraisal model frequently overstates values relative to arm's-length sales in this community." },
+  { slug: "north-lauderdale", name: "North Lauderdale", county: "Broward", medianHomeValue: 310000, avgSavings: 900, description: "North Lauderdale's affordably-priced market has seen rapid appreciation — and assessment corrections that lag the actual market, creating appeal opportunities for careful homeowners." },
+  { slug: "lighthouse-point", name: "Lighthouse Point", county: "Broward", medianHomeValue: 890000, avgSavings: 2600, description: "Lighthouse Point's waterfront estates and luxury canal properties are prime candidates for VAB petitions where thin comparable sales create over-assessment at premium price points." },
+  { slug: "lake-worth-beach", name: "Lake Worth Beach", county: "Palm Beach", medianHomeValue: 380000, avgSavings: 1100, description: "Lake Worth Beach's diverse coastal market — from historic bungalows to newer townhomes — sees wide individual variation in assessments that formal petitions routinely correct." },
+  { slug: "greenacres", name: "Greenacres", county: "Palm Beach", medianHomeValue: 360000, avgSavings: 1050, description: "Greenacres homeowners benefit from Palm Beach County VAB petitions as the county's mass appraisal model frequently misses neighborhood-level pricing nuances in this community." },
+  { slug: "royal-palm-beach", name: "Royal Palm Beach", county: "Palm Beach", medianHomeValue: 440000, avgSavings: 1275, description: "Royal Palm Beach's family-oriented communities have seen strong appreciation — and Palm Beach County assessments that regularly outpace what comparable sales support." },
+  { slug: "loxahatchee", name: "Loxahatchee", county: "Palm Beach", medianHomeValue: 490000, avgSavings: 1400, description: "Loxahatchee's acreage communities and equestrian properties present unique comparable-sale challenges that mass appraisal handles poorly, creating strong VAB petition opportunities." },
+  { slug: "riviera-beach", name: "Riviera Beach", county: "Palm Beach", medianHomeValue: 350000, avgSavings: 1000, description: "Riviera Beach homeowners benefit from VAB petitions as Palm Beach County's assessment model frequently overstates values in this waterfront-adjacent community." },
+  { slug: "belle-glade", name: "Belle Glade", county: "Palm Beach", medianHomeValue: 195000, avgSavings: 560, description: "Belle Glade homeowners in Palm Beach County's agricultural heartland find consistent grounds for VAB petitions where rural comparable sales diverge sharply from mass appraisal estimates." },
+  { slug: "wellington", name: "Wellington", county: "Palm Beach", medianHomeValue: 560000, avgSavings: 1625, description: "Wellington's equestrian estates and upscale planned communities are regularly over-assessed — thin comparable sales at premium price points make formal VAB petitions especially effective here." },
+  { slug: "hialeah-gardens", name: "Hialeah Gardens", county: "Miami-Dade", medianHomeValue: 410000, avgSavings: 1175, description: "Hialeah Gardens homeowners consistently find over-assessments relative to comparable sales in this tight-knit Miami-Dade community, where a formal VAB petition can quickly correct the discrepancy." },
+  { slug: "miami-lakes", name: "Miami Lakes", county: "Miami-Dade", medianHomeValue: 480000, avgSavings: 1375, description: "Miami Lakes' planned community of single-family homes and townhomes sees regular assessment over-shoots that VAB petitions backed by strong comparable sales evidence readily resolve." },
+  { slug: "miami-springs", name: "Miami Springs", county: "Miami-Dade", medianHomeValue: 430000, avgSavings: 1225, description: "Miami Springs' historic neighborhoods near Miami International Airport have unique value dynamics that Miami-Dade's mass appraisal model misses, creating recurring appeal opportunities." },
+  { slug: "opa-locka", name: "Opa-locka", county: "Miami-Dade", medianHomeValue: 270000, avgSavings: 775, description: "Opa-locka homeowners benefit from VAB petitions as Miami-Dade's mass appraisal model regularly over-estimates values in this community relative to local arm's-length sales." },
+  { slug: "sweetwater", name: "Sweetwater", county: "Miami-Dade", medianHomeValue: 390000, avgSavings: 1125, description: "Sweetwater homeowners near Florida International University benefit from targeted VAB petitions separating owner-occupant comparable sales from investment and student-housing purchases." },
+  { slug: "cutler-bay", name: "Cutler Bay", county: "Miami-Dade", medianHomeValue: 450000, avgSavings: 1300, description: "Cutler Bay's planned residential communities in south Miami-Dade have seen strong appreciation — and VAB petitions that routinely achieve reductions when comparable sales support a lower value." },
+  { slug: "homestead-fl", name: "Homestead", county: "Miami-Dade", medianHomeValue: 360000, avgSavings: 1025, description: "Homestead homeowners in Miami-Dade's southernmost city benefit from VAB petitions as the county's mass appraisal model struggles with this market's unique agricultural-adjacent dynamics." },
+  { slug: "florida-city", name: "Florida City", county: "Miami-Dade", medianHomeValue: 290000, avgSavings: 830, description: "Florida City homeowners at the gateway to the Everglades have strong grounds for VAB petitions where rural-adjacent market dynamics diverge from Miami-Dade's urban assessment model." },
+  { slug: "palmetto-bay", name: "Palmetto Bay", county: "Miami-Dade", medianHomeValue: 680000, avgSavings: 1975, description: "Palmetto Bay's upscale south Miami-Dade village — one of the county's most desirable residential communities — sees consistent over-assessments at premium price points where comparable sales are limited." },
+  { slug: "pinecrest", name: "Pinecrest", county: "Miami-Dade", medianHomeValue: 1150000, avgSavings: 3350, description: "Pinecrest's luxury single-family estates command some of Miami-Dade's highest values — and with thin comparable sales at $1M+, formal VAB petitions regularly achieve significant reductions." },
+  { slug: "west-kendall", name: "West Kendall", county: "Miami-Dade", medianHomeValue: 510000, avgSavings: 1475, description: "West Kendall's large suburban communities in western Miami-Dade present strong VAB petition opportunities as rapid post-pandemic appreciation has outpaced accurate mass appraisal corrections." }
 ];
 
 export async function getStaticPaths() {
@@ -142,7 +172,7 @@ export default function FloridaCityPage({ city }) {
   const faqs = [
     {
       q: `How do I appeal my property tax in ${city.name}, Florida?`,
-      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA handles the entire process for you — we generate a professional protest letter with comparable sales evidence and file it via certified mail, all for a flat $79 fee.`,
+      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA handles the entire process for you — we generate a professional protest letter with comparable sales evidence and file it via certified mail, all for a flat $89 fee.`,
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
@@ -150,7 +180,7 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,
-      a: `${city.name} homeowners with a median home value of $${formattedValue} save an average of $${formattedSavings} per year when their appeal is successful. At a flat $79 fee, TaxAppeal USA pays for itself many times over.`,
+      a: `${city.name} homeowners with a median home value of $${formattedValue} save an average of $${formattedSavings} per year when their appeal is successful. At a flat $89 fee, TaxAppeal USA pays for itself many times over.`,
     },
     {
       q: `What is a TRIM notice in Florida?`,
@@ -158,11 +188,11 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `Do I need an attorney to appeal my ${city.name} property taxes?`,
-      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares a professional, evidence-backed petition letter and sends it via certified mail for just $79 — no attorney fees, no percentage of savings.`,
+      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares a professional, evidence-backed petition letter and sends it via certified mail for just $89 — no attorney fees, no percentage of savings.`,
     },
     {
       q: `Why choose TaxAppeal USA over other services in ${city.name}?`,
-      a: `Every competitor charges 25-50% of your savings — this costs homeowners heavily. TaxAppeal USA charges a flat $79 regardless of how much you save. You keep more of what you earn.`,
+      a: `Every competitor charges 25-50% of your savings — this costs homeowners heavily. TaxAppeal USA charges a flat $89 regardless of how much you save. You keep more of what you earn.`,
     },
   ];
 
@@ -185,19 +215,19 @@ export default function FloridaCityPage({ city }) {
     description: `Property tax appeal service for ${city.name}, Florida homeowners`,
     url: `https://www.taxappealusa.com/florida/${city.slug}`,
     areaServed: { "@type": "City", name: city.name },
-    priceRange: "$79 flat fee",
+    priceRange: "$89 flat fee",
     telephone: "+18175644050",
   };
 
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Appeal | $79 Flat Fee | TaxAppeal USA</title>
-        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $79 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file your VAB petition via certified mail. No percentage fees ever.`} />
+        <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
+        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file your VAB petition via certified mail. No percentage fees ever.`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Appeal | $79 Flat | TaxAppeal USA`} />
-        <meta property="og:description" content={`Save an average of $${formattedSavings} on your ${city.name} property taxes. Flat $79 fee - no percentages. We handle everything.`} />
+        <meta property="og:title" content={`${city.name} Property Tax Appeal | $89 Flat | TaxAppeal USA`} />
+        <meta property="og:description" content={`Save an average of $${formattedSavings} on your ${city.name} property taxes. Flat $89 fee - no percentages. We handle the paperwork.`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
@@ -207,13 +237,13 @@ export default function FloridaCityPage({ city }) {
       <div style={{ fontFamily: "'DM Sans',sans-serif", color: "#1B2A4A", maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
         <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: "1px solid #e5e7eb" }}>
           <Link href="/" style={{ textDecoration: "none" }}><span style={{ fontSize: "22px", fontWeight: "800", color: "#1B2A4A" }}>TaxAppeal <span style={{ color: "#C9A84C" }}>USA</span></span></Link>
-          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "8px", padding: "12px 28px", fontWeight: "700", fontSize: "15px", cursor: "pointer" }}>Start My Appeal — $79</button></Link>
+          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "8px", padding: "12px 28px", fontWeight: "700", fontSize: "15px", cursor: "pointer" }}>Start My Appeal — $89</button></Link>
         </nav>
 
         <section style={{ padding: "60px 0 40px", textAlign: "center" }}>
           <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
-          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} Save an average of <strong style={{ color: "#1B2A4A" }}>${formattedSavings}</strong> per year for just <strong style={{ color: "#C9A84C" }}>$79 flat</strong>.</p>
+          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} Save an average of <strong style={{ color: "#1B2A4A" }}>${formattedSavings}</strong> per year for just <strong style={{ color: "#C9A84C" }}>$89 flat</strong>.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes</button></Link>
         </section>
 
@@ -240,12 +270,12 @@ export default function FloridaCityPage({ city }) {
         </section>
 
         <section style={{ padding: "48px 0", borderTop: "1px solid #e5e7eb" }}>
-          <h2 style={{ fontSize: "32px", fontWeight: "800", textAlign: "center", marginBottom: "12px" }}>$79 Flat vs. The Competition</h2>
+          <h2 style={{ fontSize: "32px", fontWeight: "800", textAlign: "center", marginBottom: "12px" }}>$89 Flat vs. The Competition</h2>
           <p style={{ textAlign: "center", color: "#6b7280", fontSize: "17px", marginBottom: "36px" }}>Every other {city.name} property tax service charges a percentage of your savings.</p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px" }}>
             <thead><tr style={{ background: "#1B2A4A", color: "white" }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on ${formattedSavings} Win</th></tr></thead>
             <tbody>
-              <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$79 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>$79</td></tr>
+              <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$89 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>$89</td></tr>
               <tr><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>Ownwell</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>25-35% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.30).toLocaleString()}</td></tr>
               <tr style={{ background: "#f9fafb" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>O&apos;Connor/CutMyTaxes</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>30-50% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.40).toLocaleString()}</td></tr>
               <tr><td style={{ padding: "14px 20px" }}>Local Tax Attorney</td><td style={{ padding: "14px 20px", textAlign: "center" }}>$300-$800+</td><td style={{ padding: "14px 20px", textAlign: "center", color: "#dc2626" }}>$500+</td></tr>
@@ -276,8 +306,8 @@ export default function FloridaCityPage({ city }) {
 
         <section style={{ padding: "60px 0", textAlign: "center", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
-          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $79 flat.</p>
-          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $79 Flat</button></Link>
+          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $89 flat.</p>
+          <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $89 Flat</button></Link>
           <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · USPS Certified Mail Filing</p>
         </section>
 
