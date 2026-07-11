@@ -1,16 +1,10 @@
 // components/SignatureStep.js
-// Post-payment review + e-signature gate.
-// The homeowner reads the FULL protest, draws (or types) a signature, and checks
-// the ownership/non-representation acknowledgment. Only when both are done does
-// onSigned() fire — which is what triggers /api/send-letter upstream.
+// Post-payment review + electronic signature (delivery-only model, TX/GA/AR/AL).
+// The homeowner reviews the full protest, signs on-screen (draw default, type fallback),
+// and checks the ownership/non-representation acknowledgment. onSigned() then fires,
+// which triggers /api/save-signature + /api/send-letter upstream.
 //
-// Props:
-//   letter        (string)  full protest text to display
-//   ownerName     (string)  used for the typed-signature fallback + attestation
-//   propertyAddress (string)
-//   sending       (boolean) true while the parent is mailing (disables button)
-//   onSigned      (fn)      called with { image, typedName, acknowledged, signedAt }
-
+// Props: letter, ownerName, propertyAddress, sending (bool), onSigned(fn)
 import { useRef, useState, useEffect } from "react";
 
 const C = {
@@ -24,12 +18,11 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
 
-  const [mode, setMode] = useState("draw"); // "draw" | "type"
+  const [mode, setMode] = useState("draw"); // default to draw (best for AL "original signature" reviewers)
   const [typedName, setTypedName] = useState(ownerName || "");
   const [hasSignature, setHasSignature] = useState(false);
   const [ack, setAck] = useState(false);
 
-  // --- canvas setup (handles high-DPI + touch) ---
   useEffect(() => {
     if (mode !== "draw") return;
     const canvas = canvasRef.current;
@@ -82,9 +75,7 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
   const submit = () => {
     if (!ready || sending) return;
     const image =
-      mode === "draw" && canvasRef.current
-        ? canvasRef.current.toDataURL("image/png")
-        : null;
+      mode === "draw" && canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
     onSigned({
       image,
       typedName: mode === "type" ? typedName.trim() : (ownerName || ""),
@@ -104,9 +95,10 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
       <h1 style={{ color: C.navy, fontSize: 26, margin: "0 0 6px" }}>Review and sign your protest</h1>
       <p style={{ color: C.bodyGray, fontSize: 15, lineHeight: 1.6, margin: "0 0 20px" }}>
         This is the protest that will be filed in your name for{" "}
-        <strong style={{ color: C.navy }}>{propertyAddress}</strong>. Read it over, confirm the
-        details are right, and sign below. The moment you sign, we print it and mail it to your
-        appraisal district by USPS certified mail — and send you the tracking number.
+        <strong style={{ color: C.navy }}>{propertyAddress}</strong>. Read it over and{" "}
+        <strong style={{ color: C.navy }}>sign electronically below — there's nothing to print or mail.</strong>{" "}
+        The moment you sign, we print your protest and send it by USPS certified mail to your appraisal
+        district, and email you the tracking number.
       </p>
 
       {/* Full letter */}
@@ -161,7 +153,7 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
         </div>
       )}
 
-      {/* Acknowledgment — REQUIRED. This is the non-representation attestation. */}
+      {/* Acknowledgment — REQUIRED. Non-representation attestation. */}
       <label
         style={{
           display: "flex", gap: 12, alignItems: "flex-start", background: C.lightBlue,
@@ -177,8 +169,7 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
           I am the owner of this property (or authorized to act for the owner). This is my protest,
           filed in my name. I understand TaxAppeal USA is a document-preparation and certified-mail
           service — not my property tax consultant, agent, or representative — does not provide tax
-          or legal advice, and will not represent me before the appraisal district or the Appraisal
-          Review Board.
+          or legal advice, and will not represent me before the appraisal district or review board.
         </span>
       </label>
 
@@ -198,7 +189,7 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
         {sending ? "Filing your protest…" : "Sign & file my protest"}
       </button>
       <p style={{ fontSize: 11.5, color: C.mutedGray, textAlign: "center", marginTop: 10 }}>
-        Your protest is not mailed until you sign. Signature required to file.
+        You sign online — nothing to print. Your protest isn't mailed until you sign.
       </p>
     </div>
   );

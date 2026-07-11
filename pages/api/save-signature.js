@@ -1,15 +1,7 @@
 // pages/api/save-signature.js
-// Persists the homeowner's e-signature + non-representation acknowledgment.
-// Call this from success.js the moment onSigned() fires, BEFORE /api/send-letter,
-// so there is a durable record that the owner adopted and signed the protest
-// before anything was mailed.
-
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // server-side; do not use the anon key here
-);
+// Persists the homeowner's e-signature + non-representation acknowledgment before the
+// protest is mailed (TX/GA/AR/AL; FL captures its signature pre-payment on the DR-486A).
+import { getSupabaseAdmin } from "./supabase";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -20,14 +12,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing signature, acknowledgment, or session" });
   }
 
-  // Capture signer IP for the record (works behind Vercel's proxy).
   const signerIp =
     (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
     req.socket?.remoteAddress ||
     null;
 
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return res.status(500).json({ error: "Database unavailable" });
+
   try {
-    // Store on the existing order row keyed by Stripe session id.
     const { error } = await supabase
       .from("orders")
       .update({
@@ -43,7 +36,6 @@ export default async function handler(req, res) {
       console.error("Supabase signature save failed:", error);
       return res.status(500).json({ error: "Could not save signature" });
     }
-
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error("save-signature error:", err);
@@ -52,7 +44,7 @@ export default async function handler(req, res) {
 }
 
 /*
- * One-time Supabase migration — run in the SQL editor before deploying:
+ * One-time Supabase migration — run before deploying:
  *
  *   alter table orders
  *     add column if not exists signature_image        text,

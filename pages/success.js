@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import SignatureStep from '../components/SignatureStep';
 
 const C = {
   navy:     "#1B3A6B",
@@ -33,12 +34,12 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
           <div style="font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;">Property Tax Dispute</div>
         </td></tr>
         <tr><td style="background:#2E7D52;padding:16px 36px;text-align:center;">
-          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">✓ Your dispute has been filed!</div>
+          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">✓ Your protest has been filed!</div>
         </td></tr>
         <tr><td style="background:#FFFFFF;padding:36px;">
           <p style="font-size:16px;color:#0F1F3D;margin:0 0 16px;">Hi ${firstName},</p>
           <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;">
-            Your property tax protest has been filed and your certified dispute letter ${trackingNumber ? 'has been dispatched' : 'is being sent'} via <strong>USPS certified mail with return receipt</strong> to the ${districtName || county + ' Appraisal District'}.
+            Your property tax protest has been filed and your certified letter ${trackingNumber ? 'has been dispatched' : 'is being sent'} via <strong>USPS certified mail with return receipt</strong> to the ${districtName || county + ' Appraisal District'}.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;">
             <tr><td>
@@ -55,7 +56,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
             <tr><td>
               <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
-              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong>.</div>
+              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond directly to you within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative.</div>
             </td></tr>
           </table>
           ${letter ? `
@@ -85,146 +86,160 @@ export default function Success() {
   const { session_id } = router.query;
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
+  const [signed, setSigned] = useState(false);
   const [mailStatus, setMailStatus] = useState(null);
   const [trackingNumber, setTrackingNumber] = useState(null);
   const [lobPreviewUrl, setLobPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
 
+  // Mail chain. `sig` is null for FL (already signed the DR-486A pre-payment);
+  // for TX/GA/AR/AL it carries the owner's post-payment e-signature.
+  async function runMail(data, sig) {
+    setMailStatus('sending');
+
+    try {
+      const mailRes = await fetch('/api/send-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          districtName: data.districtName,
+          districtAddress: data.districtAddress,
+          districtCity: data.districtCity,
+          districtState: data.districtState,
+          districtZip: data.districtZip,
+          ownerName: data.customerName,
+          ownerStreet: data.ownerStreet,
+          ownerCity: data.ownerCity,
+          ownerState: data.ownerState,
+          ownerZip: data.ownerZip,
+          ownerEmail: data.email,
+          letterContent: data.letter,
+          propertyAddress: data.address,
+          county: data.county,
+          sessionId: session_id,
+          stateCode: data.stateCode || '',
+          isFL: data.isFL || false,
+          vabFee: data.vabFee || 0,
+          vabPayableTo: data.vabPayableTo || '',
+          flSignatureName: data.flSignatureName || '',
+          flAuthDate: data.flAuthDate || '',
+          // Owner e-signature (TX/GA/AR/AL)
+          signedName: sig ? (sig.typedName || data.customerName) : '',
+          signedAt: sig ? sig.signedAt : '',
+          signatureImage: sig ? sig.image : '',
+        }),
+      });
+
+      const mailData = await mailRes.json();
+
+      // Always save the order regardless of mail status
+      try {
+        await fetch('/api/save-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: data.customerName,
+            customerEmail: data.email,
+            passwordHash: data.passwordHash,
+            propertyAddress: data.address,
+            county: data.county,
+            state: data.ownerState,
+            assessedValue: data.assessedValue,
+            targetReduction: data.targetReduction,
+            estimatedSavings: data.savings,
+            stripeSessionId: session_id,
+            amountPaid: data.amountPaid || 8900,
+            vabFee: data.vabFee || 0,
+            vabPayableTo: data.vabPayableTo || null,
+            flSignatureName: data.flSignatureName || null,
+            stateCode: data.stateCode || null,
+            lobLetterId: mailData.letterId || null,
+            lobTrackingNumber: mailData.trackingNumber || null,
+            districtName: data.districtName,
+            districtAddress: data.districtAddress,
+            districtCity: data.districtCity,
+            districtState: data.districtState,
+            districtZip: data.districtZip,
+          }),
+        });
+      } catch (dbErr) { console.error('Database save failed:', dbErr); }
+
+      // Record the owner's e-signature AFTER the order row exists (save-order inserts it).
+      if (sig) {
+        try {
+          await fetch('/api/save-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: session_id,
+              signatureImage: sig.image,
+              typedName: sig.typedName,
+              acknowledged: sig.acknowledged,
+              signedAt: sig.signedAt,
+            }),
+          });
+        } catch (e) { console.error('Signature save failed:', e); }
+      }
+
+      setSigned(true);
+
+      if (mailData.success) {
+        setMailStatus('sent');
+        setTrackingNumber(mailData.trackingNumber);
+        setLobPreviewUrl(mailData.url);
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: data.email,
+              subject: `Your property tax protest has been filed — ${data.address}`,
+              html: buildConfirmationEmail({
+                customerName: data.customerName,
+                address: data.address,
+                county: data.county,
+                districtName: data.districtName,
+                assessedValue: data.assessedValue,
+                targetReduction: data.targetReduction,
+                savings: data.savings,
+                trackingNumber: mailData.trackingNumber,
+                letter: data.letter,
+              }),
+              text: `Your property tax protest for ${data.address} has been filed. Tracking: ${mailData.trackingNumber || 'Pending'}`,
+            }),
+          });
+        } catch (emailErr) { console.error('Email send failed:', emailErr); }
+      } else {
+        console.error('Mail send failed:', mailData.error);
+        setMailStatus('error');
+      }
+    } catch (e) {
+      console.error('Mail send error:', e);
+      setSigned(true);
+      setMailStatus('error');
+    }
+  }
+
+  // Fired by SignatureStep (TX/GA/AR/AL) once the owner signs.
+  async function handleSigned(sig) {
+    if (session) await runMail(session, sig);
+  }
+
   useEffect(() => {
     if (!session_id) return;
-
     fetch(`/api/verify-payment?session_id=${session_id}`)
       .then(r => r.json())
-      .then(async data => {
-        if (data.error) {
-          setError(data.error);
-          setLoading(false);
-          return;
-        }
-
+      .then(data => {
+        if (data.error) { setError(data.error); setLoading(false); return; }
         setSession(data);
         setLoading(false);
 
-        if (data.districtName && data.districtAddress && data.letter && data.ownerStreet) {
-          setMailStatus('sending');
-          try {
-            const mailRes = await fetch('/api/send-letter', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                districtName: data.districtName,
-                districtAddress: data.districtAddress,
-                districtCity: data.districtCity,
-                districtState: data.districtState,
-                districtZip: data.districtZip,
-                ownerName: data.customerName,
-                ownerStreet: data.ownerStreet,
-                ownerCity: data.ownerCity,
-                ownerState: data.ownerState,
-                ownerZip: data.ownerZip,
-                ownerEmail: data.email,
-                letterContent: data.letter,
-                propertyAddress: data.address,
-                county: data.county,
-                sessionId: session_id,
-                state: data.ownerState || data.stateCode || '',
-                agentAuthGranted: data.agentAuthGranted === 'true',
-                agentAuthTimestamp: data.agentAuthTimestamp || null,
-                stateCode: data.stateCode || '',
-                isFL: data.isFL || false,
-                vabFee: data.vabFee || 0,
-                vabPayableTo: data.vabPayableTo || '',
-                flSignatureName: data.flSignatureName || '',
-                flAuthDate: data.flAuthDate || '',
-              }),
-            });
+        const canMail = data.districtName && data.districtAddress && data.letter && data.ownerStreet;
+        if (!canMail) { setMailStatus('manual'); return; }
 
-            const mailData = await mailRes.json();
-
-            // Always save the order regardless of mail status
-            try {
-              await fetch('/api/save-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  customerName: data.customerName,
-                  customerEmail: data.email,
-                  passwordHash: data.passwordHash,
-                  propertyAddress: data.address,
-                  county: data.county,
-                  state: data.ownerState,
-                  assessedValue: data.assessedValue,
-                  targetReduction: data.targetReduction,
-                  estimatedSavings: data.savings,
-                  stripeSessionId: session_id,
-                  amountPaid: data.amountPaid || 7900,
-                  vabFee: data.vabFee || 0,
-                  vabPayableTo: data.vabPayableTo || null,
-                  flSignatureName: data.flSignatureName || null,
-                  stateCode: data.stateCode || null,
-                  lobLetterId: mailData.letterId || null,
-                  lobTrackingNumber: mailData.trackingNumber || null,
-                  districtName: data.districtName,
-                  districtAddress: data.districtAddress,
-                  districtCity: data.districtCity,
-                  districtState: data.districtState,
-                  districtZip: data.districtZip,
-                }),
-              });
-              console.log('Order saved to database');
-            } catch (dbErr) {
-              console.error('Database save failed:', dbErr);
-            }
-
-            if (mailData.success) {
-              setMailStatus('sent');
-              setTrackingNumber(mailData.trackingNumber);
-              setLobPreviewUrl(mailData.url);
-
-              // Send confirmation email
-              try {
-                await fetch('/api/send-email', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    to: data.email,
-                    subject: `Your property tax dispute has been filed — ${data.address}`,
-                    html: buildConfirmationEmail({
-                      customerName: data.customerName,
-                      address: data.address,
-                      county: data.county,
-                      districtName: data.districtName,
-                      assessedValue: data.assessedValue,
-                      targetReduction: data.targetReduction,
-                      savings: data.savings,
-                      trackingNumber: mailData.trackingNumber,
-                      letter: data.letter,
-                    }),
-                    text: `Your property tax dispute for ${data.address} has been filed. Tracking: ${mailData.trackingNumber || 'Pending'}`,
-                  }),
-                });
-                console.log('Confirmation email sent to:', data.email);
-              } catch (emailErr) {
-                console.error('Email send failed:', emailErr);
-              }
-
-            } else {
-              console.error('Mail send failed:', mailData.error);
-              setMailStatus('error');
-            }
-          } catch (e) {
-            console.error('Mail send error:', e);
-            setMailStatus('error');
-          }
-        } else {
-          setMailStatus('manual');
-          console.log('Missing data for auto-mail:', {
-            hasDistrict: !!data.districtName,
-            hasAddress: !!data.districtAddress,
-            hasLetter: !!data.letter,
-            hasOwnerStreet: !!data.ownerStreet,
-          });
-        }
+        // FL already captured the owner's signature pre-payment (DR-486A) → mail now.
+        // TX/GA/AR/AL wait for the on-screen signature step (handleSigned → runMail).
+        if (data.isFL) runMail(data, null);
       })
       .catch(() => {
         setError('Could not verify payment. Please contact disputes@taxappealusa.com');
@@ -234,7 +249,7 @@ export default function Success() {
 
   const getMailStatusBadge = () => {
     switch (mailStatus) {
-      case 'sending': return { icon: '⏳', text: 'Dispatching certified letter...', color: C.bodyGray, bg: C.bg };
+      case 'sending': return { icon: '⏳', text: 'Filing your protest...', color: C.bodyGray, bg: C.bg };
       case 'sent':    return { icon: '📬', text: 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
       case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
@@ -246,16 +261,18 @@ export default function Success() {
 
   const steps = [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
-    { icon: '📄', title: 'Dispute letter prepared', desc: 'Your formal property tax protest letter has been finalized.', done: true },
-    { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
+    { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is filed in your name.', done: true },
+    { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
     { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS certified mail tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
-    { icon: '⏳', title: 'Await district response', desc: 'Appraisal districts typically respond within 30–90 days.', done: false },
+    { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days.', done: false },
   ];
+
+  const needsSignature = session && !session.isFL && !signed && session.letter && session.districtName && session.ownerStreet;
 
   return (
     <>
       <Head>
-        <title>TaxAppeal — Your dispute has been filed!</title>
+        <title>TaxAppeal — Review and sign your protest</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       <style>{`
@@ -278,7 +295,7 @@ export default function Success() {
         <a href="mailto:disputes@taxappealusa.com" style={{ fontSize: 13, color: C.navy, textDecoration: "none" }}>disputes@taxappealusa.com</a>
       </div>
 
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <div style={{ width: 48, height: 48, borderRadius: "50%", border: `3px solid ${C.navy}`, borderTopColor: "transparent", animation: "spin 1s linear infinite", margin: "0 auto 20px" }} />
@@ -291,13 +308,22 @@ export default function Success() {
             <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 16 }}>{error}</p>
             <a href="mailto:disputes@taxappealusa.com" style={{ color: C.navy, fontSize: 14 }}>Contact us at disputes@taxappealusa.com</a>
           </div>
+        ) : needsSignature ? (
+          // TX/GA/AR/AL: review + sign. Nothing mails until this completes.
+          <SignatureStep
+            letter={session.letter}
+            ownerName={session.customerName}
+            propertyAddress={session.address}
+            sending={mailStatus === 'sending'}
+            onSigned={handleSigned}
+          />
         ) : (
           <>
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
-              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your dispute is filed!</h1>
+              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your protest is filed!</h1>
               <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. Your property tax protest letter is being sent via USPS certified mail with return receipt.
+                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. Your property tax protest is being sent via USPS certified mail with return receipt.
               </p>
             </div>
 
@@ -354,7 +380,7 @@ export default function Success() {
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                Your appraisal district will contact you directly with their decision — typically within 30–90 days. A copy of all correspondence will also be sent to <strong>disputes@taxappealusa.com</strong>.
+                Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we'll help you understand it.
               </div>
             </div>
 
