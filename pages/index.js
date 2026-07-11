@@ -25,10 +25,10 @@ export default function Landing() {
   const go = () => router.push('/apply');
 
   const faqs = [
-    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
+    ["Do I have to do anything after I pay?", "One quick step: after checkout you review and e-sign your protest so it's filed in your name. After that we print and mail it by certified mail to the correct appraisal district, and email you the USPS tracking number."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Two types of competitors exist. Contingency firms like O’Connor charge 25–50% of your savings every year. On a $2,000 win that’s up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
-    ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
+    ["How is $79 different from other services?", "Most property tax services charge 25–50% of your savings. On a $2,000 win that's up to $1,000 gone before it reaches you. We charge a flat $79 regardless of outcome — you keep everything you save."],
+    ["What states do you serve?", "Currently Texas, Georgia, and Florida. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
     ["Can I file in multiple counties?", "Yes — each property requires a separate filing. You can run the process multiple times, once for each property address."],
@@ -37,31 +37,31 @@ export default function Landing() {
   return (
     <>
       <Head>
-        <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
+        <title>Property Tax Protest Service — File Online for $79 | TaxAppeal</title>
+        <meta name="description" content="Protest your property taxes for a flat $79 fee. We prepare your dispute letter with comparable sales data; you sign it and we mail it certified. 82% approval rate. Available in TX, GA, and FL." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
-        <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
+        <meta property="og:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
+        <meta property="og:description" content="We fight your property tax bill. Flat $79 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
+        <meta name="twitter:title" content="Property Tax Protest Service — File for $79 | TaxAppeal" />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $79 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="Flat $79 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it certified. 82% approval rate. TX, GA, FL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "One quick step: after checkout you review and e-sign your protest so it's filed in your name. After that we print and mail it by certified mail to the correct appraisal district." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
-            { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
-            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon." }},
+            { "@type": "Question", "name": "How is $79 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $79 regardless of outcome — you keep everything you save." }},
+            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, and Florida. More states are coming soon." }},
             { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
           ]
         })}} />
@@ -72,11 +72,11 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, certified mail filing, 82% approval rate.",
-          "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"],
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, and Florida. Flat $79 fee, certified mail filing, 82% approval rate.",
+          "areaServed": ["Texas", "Georgia", "Florida"],
           "offers": {
             "@type": "Offer",
-            "price": "89",
+            "price": "79",
             "priceCurrency": "USD",
             "description": "Property tax protest filing via certified mail"
           }
@@ -381,17 +381,10 @@ export default function Landing() {
         }
       `}</style>
 
-{/* Announcement bar — TRIM countdown for Florida */}
+      {/* Announcement bar */}
       <div className="ann-bar">
-        {(() => {
-          const trimDate = new Date('2026-08-15');
-          const today = new Date();
-          const days = Math.ceil((trimDate - today) / (1000 * 60 * 60 * 24));
-          if (days > 0) {
-            return <>🚨 Florida TRIM notices arrive in <strong>{days} days</strong> — file your VAB petition before the 25-day deadline or wait a full year.</>;
-          }
-          return <>🚨 Florida TRIM notices are arriving now — you have <strong>25 days</strong> to file your VAB petition. Don&apos;t miss your window.</>;
-        })()}
+        In as little as 4 minutes, you could be saving thousands on your tax bill —{' '}
+        <strong>we handle the paperwork.</strong>
       </div>
 
       {/* Nav */}
@@ -411,12 +404,12 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <div className="eyebrow">🛡️ We file on your behalf</div>
+        <div className="eyebrow">🛡️ You sign it — we mail it certified</div>
         <h1>We fight your property tax bill. You keep the savings.</h1>
-        <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. We do it all.</p>
+        <p className="hero-sub">No forms to mail. No county offices to call. Flat $79 fee — no percentage cuts. We do it all.</p>
         <div className="hero-cta-wrap">
           <button className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={go}>
-            Start my dispute — $89 →
+            Start my dispute — $79 →
           </button>
           <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
         </div>
@@ -424,18 +417,18 @@ export default function Landing() {
           <div className="trust-item">🔒 256-bit encrypted</div>
           <div className="trust-item">⏱️ Takes 4 minutes</div>
           <div className="trust-item">📬 Certified mail included</div>
-          <div className="trust-item">✅ TX · GA · FL · AR</div>
+          <div className="trust-item">✅ TX · GA · FL</div>
         </div>
         <div className="stats-row">
           <div className="stat-card"><div className="stat-num">82%</div><div className="stat-label">Approval rate</div></div>
           <div className="stat-card"><div className="stat-num">$1,840</div><div className="stat-label">Avg. savings</div></div>
-          <div className="stat-card"><div className="stat-num">$89</div><div className="stat-label">Flat fee</div></div>
+          <div className="stat-card"><div className="stat-num">$79</div><div className="stat-label">Flat fee</div></div>
         </div>
       </section>
 
             {/* Social proof banner */}
       <div style={{ background: "#1B3A6B", padding: "48px 32px", textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Real Results From Real Homeowners</div>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Real Results From Real Homeowners</div>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#FFFFFF", lineHeight: 1.2, marginBottom: 10 }}>
           Over 7,200 Homeowners and counting
         </div>
@@ -451,7 +444,7 @@ export default function Landing() {
       <div style={{ background: "#F4F7FC", padding: "48px 0", overflow: "hidden" }}>
         <div style={{ textAlign: "center", marginBottom: 32, padding: "0 32px" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What homeowners are saying</div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, Florida, Arkansas, and Alabama.</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, and Florida.</div>
         </div>
 
         <style>{`
@@ -501,23 +494,23 @@ export default function Landing() {
         <div className="t-wrap">
           <div className="t-track">
             {[
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
               { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
               { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
               { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
               { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
               { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
               { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
               { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
               { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
+              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $79 fee." },
               { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
               { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
               { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
               { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
               { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
+              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $79 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
               { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
               { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
               { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
@@ -546,12 +539,12 @@ export default function Landing() {
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
           <div className="section-title">How it works</div>
-          <div className="section-sub">Three steps. Four minutes. We handle the rest.</div>
+          <div className="section-sub">Three steps. Four minutes. You sign; we handle the rest.</div>
           <div className="steps">
             {[
               ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and 2.1M+ comparable sales from public records — no manual data entry needed."],
               ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
-              ["3", "We file for you", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
+              ["3", "You sign, we mail it", "Once you sign, we send your protest via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of filing."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
                 <div className="step-num">{num}</div>
@@ -576,13 +569,13 @@ export default function Landing() {
           <div className="price-box">
             <div className="price-left">
               <div className="price-tag">One-time fee</div>
-              <div className="price-amount">$89</div>
+              <div className="price-amount">$79</div>
               <div className="price-note">Flat rate. No hidden cuts.</div>
             </div>
             <div className="price-divider" />
             <div className="price-right">
               <p><strong>vs. the other guys</strong><br />
-              Most property tax services charge 25–50% of whatever you save. On a $2,000 win, that's up to $1,000 gone before it ever reaches you. We charge a flat $89 — your savings are yours, every dollar.</p>
+              Most property tax services charge 25–50% of whatever you save. On a $2,000 win, that's up to $1,000 gone before it ever reaches you. We charge a flat $79 — your savings are yours, every dollar.</p>
             </div>
           </div>
         </div>
@@ -591,14 +584,14 @@ export default function Landing() {
       {/* What's included */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-          <div className="section-title">Everything included for $89</div>
+          <div className="section-title">Everything included for $79</div>
           <div className="checklist">
             {[
-              ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
+              ["You sign it — we mail it certified", "After you review and sign your protest, we mail it by certified letter to the correct appraisal district in your name."],
               ["Certified mail receipt delivered to you", "Official USPS proof of submission emailed directly to you. Keep it as your legal record."],
               ["Real comparable sales evidence", "We search 2.1M+ recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
               ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
-              ["20% reduction requested on your behalf", "We argue for a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
+              ["Your protest requests up to a 20% reduction", "Your protest requests up to a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
             ].map(([title, desc]) => (
               <div key={title} className="check-item">
                 <div className="check-icon">✓</div>
@@ -613,71 +606,25 @@ export default function Landing() {
       <section className="section" style={{ textAlign: "center" }}>
         <div className="section-inner">
           <div className="section-title">Currently available in</div>
-          <div className="section-sub">We've launched in four states — Texas, Georgia, Florida, Arkansas, and Alabama.</div>
+          <div className="section-sub">We've launched in the three largest property tax protest markets in the US.</div>
           <div className="state-pills">
             {[
               ["Texas", "Deadline: May 15 or 30 days after notice"],
               ["Georgia", "Deadline: 45 days after assessment notice"],
               ["Florida", "Deadline: ~Sept 18 (25 days after TRIM notice)"],
-              ["Arkansas", "Deadline: Aug 17 (third Monday in August)"],
-              ["Alabama", "Deadline: 30 days from Notice of Valuation"],
             ].map(([state, note]) => (
               <div key={state} className="state-pill">
                 📍 <strong>{state}</strong> — <span style={{ fontSize: 12, color: C.bodyGray }}>{note}</span>
               </div>
             ))}
           </div>
-          <div className="coming-soon">🕐 More states coming soon — Oklahoma, Arizona, Nevada, New Mexico</div>
+          <div className="coming-soon">🕐 More states coming soon — Colorado, Arizona, Georgia, North Carolina</div>
         </div>
       </section>
-
-      {/* Competitor comparison section */}
-      <section className="section" style={{ background: C.white }}>
-        <div className="section-inner">
-          <div className="section-title">Why TaxAppeal beats the alternatives</div>
-          <div className="section-sub">Not all property tax services are created equal. Here's how we compare.</div>
-          <div style={{ overflowX: 'auto', marginTop: 24 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-              <thead>
-                <tr style={{ background: C.navy, color: C.white }}>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>
-                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500, color: '#FFC940' }}>✓ TaxAppeal USA</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>AppealDesk ($49)</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Contingency Firms</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['Price', '$89 flat', '$49 flat', '25–50% of savings'],
-                  ['Comparable sales data', '✅', '✅', '✅'],
-                  ['Dispute letter generated', '✅', '✅', '✅'],
-                  ['We mail it for you', '✅ Included', '❌ You print & mail', '✅ Included'],
-                  ['USPS Certified Mail', '✅ Included', '❌ You buy it', '✅ Included'],
-                  ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅'],
-                  ['Cost on $2,000 savings', '$89', <><div>$49 + your time</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Plus certified mail out of pocket</div></>, <><div>$500–$1,000</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Excessive cost for the same result</div></>],
-                  ['True hands-off service', '✅ Yes', '❌ No', '✅ Yes'],
-                ].map(([label, ta, ad, cont], i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
-                    <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.navy, fontWeight: 500 }}>{ta}</td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{ad}</td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{cont}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>The $40 difference vs. AppealDesk:</strong> certified mail filing, legal proof of timely delivery, and zero trips to the post office. We handle it. You cash the savings check.
-          </div>
-        </div>
-      </section>
-
 
       {/* FAQ */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-
           <div className="section-title">Common questions</div>
           <div className="section-sub">Everything you need to know before filing.</div>
           <div className="faq">
@@ -697,8 +644,8 @@ export default function Landing() {
       {/* Footer CTA */}
       <div className="footer-cta">
         <h2>Ready to fight your tax bill?</h2>
-        <p>Join homeowners across Texas, Georgia, Florida, Arkansas, and Alabama saving money every year.</p>
-        <button className="footer-cta-btn" onClick={go}>Start my dispute — $89 →</button>
+        <p>Join homeowners across Texas, Georgia, and Florida saving money every year.</p>
+        <button className="footer-cta-btn" onClick={go}>Start my dispute — $79 →</button>
         <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
           You won't be charged until your appeal is ready to file.
         </div>
@@ -707,7 +654,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="footer">
      <p>© 2026 TaxAppeal USA · Support: <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
-        <p>Available in TX · GA · FL · AR · More states coming soon</p>
+        <p>Available in TX · GA · FL · More states coming soon</p>
         <p>
           <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
           <a href="/privacy">Privacy Policy</a>
