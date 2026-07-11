@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       }
       payoutMap[order.ref_code].orders.push({ orderId: order.id, customerName: order.customer_name, address: order.property_address, date: order.created_at });
       payoutMap[order.ref_code].orderCount++;
-      payoutMap[order.ref_code].payoutDue += 1500;
+      payoutMap[order.ref_code].payoutDue += 2000;
     }
 
     const referrerMap = {};
