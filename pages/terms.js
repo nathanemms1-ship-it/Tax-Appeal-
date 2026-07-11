@@ -25,7 +25,7 @@ export default function Terms() {
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>1. Service Description</h2>
-            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that generates property tax protest letters on behalf of homeowners. We are not a law firm, and our service does not constitute legal advice. We prepare and mail protest letters via USPS Certified Mail to county appraisal districts on your behalf.</p>
+            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest; we then mail it via USPS Certified Mail to the county appraisal district in your name.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
             <p>Our service is provided at a flat fee of $89 per property per filing season. This fee covers AI-generated letter preparation, USPS Certified Mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
@@ -65,7 +65,7 @@ export default function Terms() {
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>7. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal on your behalf, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
+              <strong>7. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal for you, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
             </p>
           </div>
 

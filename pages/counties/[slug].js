@@ -88,7 +88,7 @@ const faqs = (county) => {
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
-      a: `We generate a professional protest letter using your ${county.name} County property data, comparable sales in your area, and the specific legal arguments that work best with the ${county.district}. We then send it via USPS Certified Mail on your behalf — you don't have to file anything yourself.`,
+      a: `We generate a professional protest letter using your ${county.name} County property data, comparable sales in your area, and the specific legal arguments that work best with the ${county.district}. You review and sign it, then we send it via USPS Certified Mail in your name — filed as your own protest.`,
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,

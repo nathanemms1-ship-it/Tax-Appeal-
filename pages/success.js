@@ -55,7 +55,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
             <tr><td>
               <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
-              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong> as your filing agent.</div>
+              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond within 30–90 days. All correspondence will be copied to <strong>disputes@taxappealusa.com</strong>.</div>
             </td></tr>
           </table>
           ${letter ? `
@@ -65,7 +65,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
             </td></tr>
             <tr><td style="background:#FFFFFF;padding:28px 32px;font-family:Georgia,serif;font-size:12px;line-height:1.85;color:#111;white-space:pre-wrap;">${letter}</td></tr>
           </table>
-          <div style="font-size:11px;color:#8596AF;text-align:center;margin-bottom:8px;">Keep this email as your official record of the dispute letter filed on your behalf.</div>
+          <div style="font-size:11px;color:#8596AF;text-align:center;margin-bottom:8px;">Keep this email as your official record of the protest you filed.</div>
           ` : ''}
         </td></tr>
         <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
@@ -354,7 +354,7 @@ export default function Success() {
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                Your appraisal district will contact you directly with their decision — typically within 30–90 days. A copy of all correspondence will also be sent to <strong>disputes@taxappealusa.com</strong> as your filing agent.
+                Your appraisal district will contact you directly with their decision — typically within 30–90 days. A copy of all correspondence will also be sent to <strong>disputes@taxappealusa.com</strong>.
               </div>
             </div>
 

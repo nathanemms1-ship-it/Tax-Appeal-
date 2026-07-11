@@ -15,10 +15,10 @@ export default function FortWorth() {
     <>
       <Head>
         <title>Fort Worth Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
+        <meta name="description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We mail your protest to TAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/fort-worth" />
         <meta property="og:title" content="Fort Worth Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We file with TAD via certified mail. No percentage cuts." />
+        <meta property="og:description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We mail your protest to TAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/fort-worth" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -110,7 +110,7 @@ export default function FortWorth() {
             </div>
             <div style={{background:C.navy,borderRadius:12,padding:24,color:C.white}}>
               <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>What TaxAppeal Does</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>We Handle Everything</div>
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>We Handle the Paperwork</div>
               {["Analyze comparable sales in Fort Worth","Draft formal protest letter citing Texas Tax Code §41.41 & §41.43","File via USPS certified mail with tracking","You receive copy and tracking number","Keep 100% of your savings"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10,fontSize:13}}>
                   <span style={{flexShrink:0,marginTop:1,color:C.gold}}>✓</span><span style={{color:"#cbd5e1"}}>{item}</span>

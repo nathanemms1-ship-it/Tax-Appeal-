@@ -25,7 +25,7 @@ export default function Landing() {
   const go = () => router.push('/apply');
 
   const faqs = [
-    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
+    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle the paperwork — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
     ["How is $89 different from other services?", "Two types of competitors exist. Contingency firms like O’Connor charge 25–50% of your savings every year. On a $2,000 win that’s up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
@@ -38,7 +38,7 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We prepare your dispute letter with comparable sales data; you sign it and we mail it certified. 82% approval rate. Available in TX, GA, FL, and AR." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
         <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
@@ -52,13 +52,13 @@ export default function Landing() {
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it certified via certified mail. 82% approval rate. TX, GA, FL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle the paperwork — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
             { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
             { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon." }},
@@ -411,7 +411,7 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <div className="eyebrow">🛡️ We file on your behalf</div>
+        <div className="eyebrow">🛡️ You sign it — we mail it certified</div>
         <h1>We fight your property tax bill. You keep the savings.</h1>
         <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. We do it all.</p>
         <div className="hero-cta-wrap">
@@ -551,7 +551,7 @@ export default function Landing() {
             {[
               ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and 2.1M+ comparable sales from public records — no manual data entry needed."],
               ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
-              ["3", "We file for you", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
+              ["3", "You sign, we mail it", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
                 <div className="step-num">{num}</div>
@@ -594,11 +594,11 @@ export default function Landing() {
           <div className="section-title">Everything included for $89</div>
           <div className="checklist">
             {[
-              ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
+              ["You sign it — we mail it certified", "Your dispute is submitted via certified letter to the correct appraisal district — you review and sign, then we mail it in your name after checkout."],
               ["Certified mail receipt delivered to you", "Official USPS proof of submission emailed directly to you. Keep it as your legal record."],
               ["Real comparable sales evidence", "We search 2.1M+ recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
               ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
-              ["20% reduction requested on your behalf", "We argue for a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
+              ["Your protest requests up to a 20% reduction", "Your protest requests up to a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
             ].map(([title, desc]) => (
               <div key={title} className="check-item">
                 <div className="check-icon">✓</div>

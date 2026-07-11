@@ -176,7 +176,7 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
-      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18. You must file before this date — TaxAppeal USA can file on your behalf with time to spare.`,
+      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18. You must file before this date — TaxAppeal USA prepares your petition and mails it certified once you sign, with time to spare.`,
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,
@@ -227,7 +227,7 @@ export default function FloridaCityPage({ city }) {
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Appeal | $89 Flat | TaxAppeal USA`} />
-        <meta property="og:description" content={`Save an average of $${formattedSavings} on your ${city.name} property taxes. Flat $89 fee - no percentages. We handle everything.`} />
+        <meta property="og:description" content={`Save an average of $${formattedSavings} on your ${city.name} property taxes. Flat $89 fee - no percentages. We handle the paperwork.`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
