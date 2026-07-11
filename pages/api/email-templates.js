@@ -71,7 +71,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                       </tr>` : ''}
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Filing Fee Paid</td>
-                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$89.00</td>
+                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$79.00</td>
                       </tr>
                     </table>
                   </td>
@@ -127,7 +127,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <div style="margin-bottom:28px;">
                 <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:14px;">Your Dispute Letter — For Your Records</div>
                 <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:28px 32px;font-family:Georgia,serif;font-size:13px;color:#222;line-height:1.8;white-space:pre-wrap;">${letter}</div>
-                <div style="margin-top:10px;font-size:11px;color:#999;text-align:center;">Keep this email as your official record of the dispute letter filed on your behalf.</div>
+                <div style="margin-top:10px;font-size:11px;color:#999;text-align:center;">Keep this email as your official record of the protest you filed.</div>
               </div>` : ''}
 
               <!-- Questions -->
