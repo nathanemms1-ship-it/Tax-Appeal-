@@ -643,6 +643,7 @@ export default function Landing() {
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500, color: '#FFC940' }}>✓ TaxAppeal USA</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>AppealDesk ($49)</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Abode Money</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Contingency Firms</th>
                 </tr>
               </thead>
@@ -656,11 +657,12 @@ export default function Landing() {
                   ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅'],
                   ['Cost on $2,000 savings', '$89', <><div>$49 + your time</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Plus certified mail out of pocket</div></>, <><div>$500–$1,000</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Excessive cost for the same result</div></>],
                   ['True hands-off service', '✅ Yes', '❌ No', '✅ Yes'],
-                ].map(([label, ta, ad, cont], i) => (
+                ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center', color: C.navy, fontWeight: 500 }}>{ta}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{ad}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{abode}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center', color: C.bodyGray }}>{cont}</td>
                   </tr>
                 ))}
@@ -668,7 +670,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>The $40 difference vs. AppealDesk:</strong> certified mail filing, legal proof of timely delivery, and zero trips to the post office. We handle it. You cash the savings check.
+            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25–50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
           </div>
         </div>
       </section>
