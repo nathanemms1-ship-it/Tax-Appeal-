@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle the paperwork — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Two types of competitors exist. Contingency firms like O’Connor charge 25–50% of your savings every year. On a $2,000 win that’s up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
+    ["How is $89 different from other services?", "Three types of competitors exist — and TaxAppeal beats all of them. Contingency firms like O’Connor and Ownwell charge 25–50% of your savings every single year, costing $400–$1,000 annually on typical savings. Subscription services like Abode Money charge $99/year automatically, billed every year whether or not your assessment changed. DIY tools like AppealDesk charge $49 but you print documents, buy certified mail, go to the post office, and file it yourself. TaxAppeal charges a flat $89 per filing, period. No subscription. No auto-renewal. No percentage ever. We mail your certified letter, you keep 100% of your savings, and we don’t charge you again until you choose to come back."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
@@ -649,14 +649,15 @@ export default function Landing() {
               </thead>
               <tbody>
                 {[
-                  ['Price', '$89 flat', '$49 flat', '25–50% of savings'],
-                  ['Comparable sales data', '✅', '✅', '✅'],
-                  ['Dispute letter generated', '✅', '✅', '✅'],
-                  ['We mail it for you', '✅ Included', '❌ You print & mail', '✅ Included'],
-                  ['USPS Certified Mail', '✅ Included', '❌ You buy it', '✅ Included'],
-                  ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅'],
-                  ['Cost on $2,000 savings', '$89', <><div>$49 + your time</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Plus certified mail out of pocket</div></>, <><div>$500–$1,000</div><div style={{ fontSize: 11, color: '#C0392B', marginTop: 3, fontStyle: 'italic' }}>Excessive cost for the same result</div></>],
-                  ['True hands-off service', '✅ Yes', '❌ No', '✅ Yes'],
+               ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25–50% of savings'],
+                  ['Auto-renewal', 'Never', 'None', '$99 auto-billed annually', '% of savings every year'],
+                  ['Comparable sales data', '✅', '✅', '✅', '✅'],
+                  ['Dispute letter generated', '✅', '✅', '✅', '✅'],
+                  ['We mail it for you', '✅ Certified Mail', '❌ You print & mail', '✅ Included', '✅ Included'],
+                  ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅', '✅'],
+                  ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
+                  ['Cost on $2,000 savings', '$89 once', '$49 + your effort', '$99/yr ongoing', '$400–$1,000/yr'],
+                  ['Pay again next year?', '❌ Your choice', '❌ Your choice', '✅ Automatic', '✅ If savings continue'],
                 ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
