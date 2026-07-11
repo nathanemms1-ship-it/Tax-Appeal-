@@ -25,9 +25,38 @@ export default function Landing() {
   const go = () => router.push('/apply');
 
   const faqs = [
-    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle the paperwork — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
+    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Three types of competitors exist — and TaxAppeal beats all of them. Contingency firms like O’Connor and Ownwell charge 25–50% of your savings every single year, costing $400–$1,000 annually on typical savings. Subscription services like Abode Money charge $99/year automatically, billed every year whether or not your assessment changed. DIY tools like AppealDesk charge $49 but you print documents, buy certified mail, go to the post office, and file it yourself. TaxAppeal charges a flat $89 per filing, period. No subscription. No auto-renewal. No percentage ever. We mail your certified letter, you keep 100% of your savings, and we don’t charge you again until you choose to come back."],
+    ["How is $89 different from other services?", "Three types of competitors exist — and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25–50% of your savings every single year, costing $400–$1,000 annually on typical savings. Subscription services like Abode Money charge $99/year automatically, billed every year whether or not your assessment changed. DIY tools like AppealDesk charge $49 but you print documents, buy certified mail, go to the post office, and file it yourself. TaxAppeal charges a flat $89 per filing, period. No subscription. No auto-renewal. No percentage ever. We mail your certified letter, you keep 100% of your savings, and we don't charge you again until you choose to come back."import Head from 'next/head';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+
+const C = {
+  navy:     "#1B3A6B",
+  gold:     "#FFC940",
+  darkNavy: "#0F1F3D",
+  bg:       "#F4F7FC",
+  lightBlue:"#EEF3FB",
+  bodyGray: "#5A6B82",
+  mutedGray:"#8596AF",
+  border:   "#E8EDF4",
+  white:    "#FFFFFF",
+  green:    "#2E7D52",
+  amber:    "#FFF8E6",
+};
+
+const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+
+export default function Landing() {
+  const router = useRouter();
+  const [faqOpen, setFaqOpen] = useState(null);
+
+  const go = () => router.push('/apply');
+
+  const faqs = [
+    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
+    ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
+    ["How is $89 different from other services?", "Two types of competitors exist. Contingency firms like O’Connor charge 25–50% of your savings every year. On a $2,000 win that’s up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
@@ -38,7 +67,7 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We prepare your dispute letter with comparable sales data; you sign it and we mail it certified. 82% approval rate. Available in TX, GA, FL, and AR." />
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
         <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
@@ -52,13 +81,13 @@ export default function Landing() {
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it certified via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle the paperwork — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
             { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
             { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon." }},
@@ -411,7 +440,7 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <div className="eyebrow">🛡️ You sign it — we mail it certified</div>
+        <div className="eyebrow">🛡️ We file on your behalf</div>
         <h1>We fight your property tax bill. You keep the savings.</h1>
         <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. We do it all.</p>
         <div className="hero-cta-wrap">
@@ -551,7 +580,7 @@ export default function Landing() {
             {[
               ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and 2.1M+ comparable sales from public records — no manual data entry needed."],
               ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
-              ["3", "You sign, we mail it", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
+              ["3", "We file for you", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
                 <div className="step-num">{num}</div>
@@ -594,11 +623,11 @@ export default function Landing() {
           <div className="section-title">Everything included for $89</div>
           <div className="checklist">
             {[
-              ["You sign it — we mail it certified", "Your dispute is submitted via certified letter to the correct appraisal district — you review and sign, then we mail it in your name after checkout."],
+              ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
               ["Certified mail receipt delivered to you", "Official USPS proof of submission emailed directly to you. Keep it as your legal record."],
               ["Real comparable sales evidence", "We search 2.1M+ recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
               ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
-              ["Your protest requests up to a 20% reduction", "Your protest requests up to a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
+              ["20% reduction requested on your behalf", "We argue for a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
             ].map(([title, desc]) => (
               <div key={title} className="check-item">
                 <div className="check-icon">✓</div>
@@ -649,16 +678,16 @@ export default function Landing() {
               </thead>
               <tbody>
                 {[
-               ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25–50% of savings'],
-                  ['Auto-renewal', 'Never', 'None', '$99 auto-billed annually', '% of savings every year'],
-                  ['Comparable sales data', '✅', '✅', '✅', '✅'],
-                  ['Dispute letter generated', '✅', '✅', '✅', '✅'],
-                  ['We mail it for you', '✅ Certified Mail', '❌ You print & mail', '✅ Included', '✅ Included'],
-                  ['Legal proof of filing', '✅ Return Receipt', '❌ You manage it', '✅', '✅'],
+                  ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25-50% of savings'],
+                  ['Auto-renewal', 'Never', 'None', '$99 billed annually', '% every year'],
+                  ['Comparable sales data', 'Yes', 'Yes', 'Yes', 'Yes'],
+                  ['Dispute letter generated', 'Yes', 'Yes', 'Yes', 'Yes'],
+                  ['We mail it for you', 'Yes - Certified Mail', 'No - you print & mail', 'Yes', 'Yes'],
+                  ['Legal proof of filing', 'Yes - Return Receipt', 'No - you manage it', 'Yes', 'Yes'],
                   ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
-                  ['Cost on $2,000 savings', '$89 once', '$49 + your effort', '$99/yr ongoing', '$400–$1,000/yr'],
-                  ['Pay again next year?', '❌ Your choice', '❌ Your choice', '✅ Automatic', '✅ If savings continue'],
-                ].map(([label, ta, ad, abode, cont], i) => (
+                  ['Cost on $2,000 savings', '$89 once', '$49 + effort', '$99/yr ongoing', '$400-$1,000/yr'],
+                  ['Pay again next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue'],
+                .map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center', color: C.navy, fontWeight: 500 }}>{ta}</td>
@@ -671,7 +700,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25–50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
+            <strong style={{ color: C.dar<strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25-50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
           </div>
         </div>
       </section>
