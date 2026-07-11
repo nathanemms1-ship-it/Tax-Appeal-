@@ -700,7 +700,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.dar<strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25-50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
+            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25-50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
           </div>
         </div>
       </section>
