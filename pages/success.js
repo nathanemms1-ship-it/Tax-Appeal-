@@ -97,23 +97,6 @@ export default function Success() {
   async function runMail(data, sig) {
     setMailStatus('sending');
 
-    // Record the owner's e-signature (non-FL) before anything is mailed.
-    if (sig) {
-      try {
-        await fetch('/api/save-signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: session_id,
-            signatureImage: sig.image,
-            typedName: sig.typedName,
-            acknowledged: sig.acknowledged,
-            signedAt: sig.signedAt,
-          }),
-        });
-      } catch (e) { console.error('Signature save failed:', e); }
-    }
-
     try {
       const mailRes = await fetch('/api/send-letter', {
         method: 'POST',
@@ -180,6 +163,23 @@ export default function Success() {
           }),
         });
       } catch (dbErr) { console.error('Database save failed:', dbErr); }
+
+      // Record the owner's e-signature AFTER the order row exists (save-order inserts it).
+      if (sig) {
+        try {
+          await fetch('/api/save-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: session_id,
+              signatureImage: sig.image,
+              typedName: sig.typedName,
+              acknowledged: sig.acknowledged,
+              signedAt: sig.signedAt,
+            }),
+          });
+        } catch (e) { console.error('Signature save failed:', e); }
+      }
 
       setSigned(true);
 
