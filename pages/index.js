@@ -27,36 +27,7 @@ export default function Landing() {
   const faqs = [
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."import Head from 'next/head';
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-
-const C = {
-  navy:     "#1B3A6B",
-  gold:     "#FFC940",
-  darkNavy: "#0F1F3D",
-  bg:       "#F4F7FC",
-  lightBlue:"#EEF3FB",
-  bodyGray: "#5A6B82",
-  mutedGray:"#8596AF",
-  border:   "#E8EDF4",
-  white:    "#FFFFFF",
-  green:    "#2E7D52",
-  amber:    "#FFF8E6",
-};
-
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
-
-export default function Landing() {
-  const router = useRouter();
-  const [faqOpen, setFaqOpen] = useState(null);
-
-  const go = () => router.push('/apply');
-
-  const faqs = [
-    ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
-    ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Two types of competitors exist. Contingency firms like O’Connor charge 25–50% of your savings every year. On a $2,000 win that’s up to $1,000 gone. DIY evidence tools like AppealDesk charge $49 but give you documents to print and mail yourself — you still have to visit the post office, buy certified mail, track the delivery, and meet the county deadline on your own. TaxAppeal charges a flat $89 and handles everything: comparable sales analysis, dispute letter, USPS Certified Mail with Return Receipt, and legal proof of timely filing. We mail it. You keep 100% of your savings."],
+    ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
     ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
@@ -700,7 +671,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) makes you print and mail it yourself. Abode Money ($99/yr) auto-bills you every year. Contingency firms take 25-50% forever. TaxAppeal is $89 once.
+            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk makes you print and mail it yourself. Abode Money auto-bills you every year. TaxAppeal is $89 once.
           </div>
         </div>
       </section>
