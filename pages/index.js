@@ -679,14 +679,14 @@ export default function Landing() {
               <tbody>
                 {[
                   ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25-50% of savings'],
-                  ['Auto-renewal', 'Never', 'None', '$99 billed annually', '% every year'],
+                  ['Auto-renewal', 'None', 'None', '$99 auto-billed annually', '% every year'],
                   ['Comparable sales data', 'Yes', 'Yes', 'Yes', 'Yes'],
-                  ['Dispute letter generated', 'Yes', 'Yes', 'Yes', 'Yes'],
+                  ['Dispute letter', 'Yes', 'Yes', 'Yes', 'Yes'],
                   ['We mail it for you', 'Yes - Certified Mail', 'No - you print & mail', 'Yes', 'Yes'],
                   ['Legal proof of filing', 'Yes - Return Receipt', 'No - you manage it', 'Yes', 'Yes'],
                   ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
                   ['Cost on $2,000 savings', '$89 once', '$49 + effort', '$99/yr ongoing', '$400-$1,000/yr'],
-                  ['Pay again next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue'],
+                  ['Pay again next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue']
                 ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
