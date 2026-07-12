@@ -649,15 +649,16 @@ export default function Landing() {
               </thead>
               <tbody>
                 {[
-                  ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25-50% of savings'],
-                  ['Auto-renewal', 'None', 'None', '$99 auto-billed', '% every year'],
-                  ['Comparable sales', 'Yes', 'Yes', 'Yes', 'Yes'],
-                  ['Dispute letter', 'Yes', 'Yes', 'Yes', 'Yes'],
-                  ['We mail it for you', 'Yes - Certified', 'No - you mail it', 'Yes', 'Yes'],
-                  ['Legal proof', 'Yes - Return Receipt', 'No', 'Yes', 'Yes'],
-                  ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
-                  ['Cost on $2k savings', '$89 once', '$49 + effort', '$99/yr', '$400-$1,000/yr'],
-                  ['Pay next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue']
+                  ['Price', '✅ $89 one-time flat fee', '⚠️ $49 + print/mail costs', '❌ $99/yr subscription', '❌ 25-50% of your savings'],
+                  ['Auto-renewal / subscription', '✅ Never. You decide each year.', '✅ No subscription', '❌ $99 auto-billed every year', '❌ Auto-enrolled -- % taken every year'],
+                  ['Comparable sales analysis', '✅ Included', '✅ Included', '✅ Included', '✅ Included'],
+                  ['Protest/dispute letter', '✅ Professionally drafted', '✅ Generated', '✅ Generated', '✅ Drafted by their team'],
+                  ['Filing -- we mail it for you', '✅ USPS Certified Mail', '❌ You print, buy postage & mail it', '✅ They handle mailing', '✅ They handle mailing'],
+                  ['Legal proof of timely filing', '✅ Return Receipt -- documented', '❌ You manage it yourself', '✅ Yes', '✅ Yes'],
+                  ['Deadline risk', '✅ We handle it', '❌ All on you', '✅ They handle it', '✅ They handle it'],
+                  ['States covered', '✅ TX, FL, GA, AR, AL (5 states)', '⚠️ 50 states (DIY only)', '❌ TX + FL only', '⚠️ Varies by firm'],
+                  ['Cost on $2,000 savings', '✅ $89 once -- keep $1,911', '⚠️ $49 + your time + risk', '❌ $99/yr ongoing forever', '❌ $400-$1,000 taken per year'],
+                  ['Pay again next year?', '✅ Only if you choose to', '✅ Only if you choose to', '❌ Automatic -- no choice', '❌ Auto-enrolled if savings continue']
                 ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
