@@ -613,7 +613,7 @@ export default function Landing() {
       <section className="section" style={{ textAlign: "center" }}>
         <div className="section-inner">
           <div className="section-title">Currently available in</div>
-          <div className="section-sub">We've launched in four states — Texas, Georgia, Florida, Arkansas, and Alabama.</div>
+          <div className="section-sub">We've launched in five states — Texas, Georgia, Florida, Arkansas, and Alabama.</div>
           <div className="state-pills">
             {[
               ["Texas", "Deadline: May 15 or 30 days after notice"],
