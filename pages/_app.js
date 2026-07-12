@@ -38,7 +38,7 @@ export default function App({ Component, pageProps }) {
           "@type": "Organization",
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
-          "email": "disputes@taxappealusa.com",
+          "email": "customerservice@taxappealusa.com",
           "description": "Property tax dispute filing service. We prepare property tax protest letters that the owner signs, and we mail them via USPS certified mail for a flat $89 fee.",
           "areaServed": [
             { "@type": "State", "name": "Texas" },
