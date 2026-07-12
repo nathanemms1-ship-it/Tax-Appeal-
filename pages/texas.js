@@ -409,7 +409,7 @@ export default function Texas() {
       {/* Footer */}
       <footer style={{ background: C.darkNavy, padding: "24px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
-          <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+          <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
             <a href="/texas" style={{ color: C.gold, fontSize: 12, textDecoration: "none" }}>Texas</a>
             <a href="/georgia" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Georgia</a>
