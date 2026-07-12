@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     ["Do I have to do anything after I pay?", "No. Once your order is complete we handle everything — drafting, printing, and mailing your protest letter via certified mail to the correct appraisal district. You'll receive the USPS tracking number by email."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Three types of competitors exist — and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25–50% of your savings every single year, costing $400–$1,000 annually on typical savings. Subscription services like Abode Money charge $99/year automatically, billed every year whether or not your assessment changed. DIY tools like AppealDesk charge $49 but you print documents, buy certified mail, go to the post office, and file it yourself. TaxAppeal charges a flat $89 per filing, period. No subscription. No auto-renewal. No percentage ever. We mail your certified letter, you keep 100% of your savings, and we don't charge you again until you choose to come back."import Head from 'next/head';
+    ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year, costing $400-$1,000 annually. Subscription services like Abode Money charge $99/year automatically, billed every year whether or not your assessment changed. DIY tools like AppealDesk charge $49 but you print documents, buy certified mail, and file it yourself. TaxAppeal charges a flat $89 per filing. No subscription. No auto-renewal. No percentage ever. We mail your certified letter, you keep 100% of your savings."import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -680,13 +680,13 @@ export default function Landing() {
                 {[
                   ['Price', '$89 one-time', '$49 one-time', '$99/yr subscription', '25-50% of savings'],
                   ['Auto-renewal', 'None', 'None', '$99 auto-billed annually', '% every year'],
-                  ['Comparable sales data', 'Yes', 'Yes', 'Yes', 'Yes'],
+                  ['Comparable sales', 'Yes', 'Yes', 'Yes', 'Yes'],
                   ['Dispute letter', 'Yes', 'Yes', 'Yes', 'Yes'],
-                  ['We mail it for you', 'Yes - Certified Mail', 'No - you print & mail', 'Yes', 'Yes'],
-                  ['Legal proof of filing', 'Yes - Return Receipt', 'No - you manage it', 'Yes', 'Yes'],
+                  ['We mail it for you', 'Yes - Certified', 'No - you print & mail', 'Yes', 'Yes'],
+                  ['Legal proof', 'Yes - Return Receipt', 'No', 'Yes', 'Yes'],
                   ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
-                  ['Cost on $2,000 savings', '$89 once', '$49 + effort', '$99/yr ongoing', '$400-$1,000/yr'],
-                  ['Pay again next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue']
+                  ['Cost on $2k savings', '$89 once', '$49 + effort', '$99/yr', '$400-$1,000/yr'],
+                  ['Pay next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue']
                 ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
@@ -700,7 +700,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) requires you to print and mail it yourself. Abode Money ($99/yr) bills you automatically every year. Contingency firms take 25-50% of your savings forever. TaxAppeal charges $89 once — you decide if and when to come back.
+            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk ($49) makes you print and mail it yourself. Abode Money ($99/yr) auto-bills you every year. Contingency firms take 25-50% of savings forever. TaxAppeal charges $89 once -- you decide when to come back.
           </div>
         </div>
       </section>
