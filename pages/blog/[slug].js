@@ -228,7 +228,23 @@ export default function BlogPost({ post }) {
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, fontWeight: 600, marginBottom: 14 }}>
                   Why TaxAppeal
                 </div>
-                {[["82%", "protest success rate"], ["$1,840", "average savings"], ["$89", "flat fee, no % cut"], ["254", "TX counties covered"]].map(([n, l]) => (
+                {[
+                  ["82%", "protest success rate"],
+                  ["$1,840", "average savings"],
+                  ["$89", "flat fee, no % cut"],
+                  [
+                    post.stateSlug === "/texas" ? "254" :
+                    post.stateSlug === "/florida" ? "67" :
+                    post.stateSlug === "/georgia" ? "159" :
+                    post.stateSlug === "/arkansas" ? "75" :
+                    post.stateSlug === "/alabama" ? "67" : "5",
+                    post.stateSlug === "/texas" ? "TX counties covered" :
+                    post.stateSlug === "/florida" ? "FL counties covered" :
+                    post.stateSlug === "/georgia" ? "GA counties covered" :
+                    post.stateSlug === "/arkansas" ? "AR counties covered" :
+                    post.stateSlug === "/alabama" ? "AL counties covered" : "states covered"
+                  ]
+                ].map(([n, l]) => (
                   <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ fontSize: 12, color: C.bodyGray }}>{l}</span>
                     <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.navy, fontWeight: 700 }}>{n}</span>
