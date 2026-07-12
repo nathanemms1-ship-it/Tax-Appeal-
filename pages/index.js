@@ -687,7 +687,7 @@ export default function Landing() {
                   ['States covered', '5 states', '50 states', 'TX + FL only', 'Varies'],
                   ['Cost on $2,000 savings', '$89 once', '$49 + effort', '$99/yr ongoing', '$400-$1,000/yr'],
                   ['Pay again next year?', 'Your choice', 'Your choice', 'Automatic', 'If savings continue'],
-                .map(([label, ta, ad, abode, cont], i) => (
+                ].map(([label, ta, ad, abode, cont], i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.bg : C.white }}>
                     <td style={{ padding: '12px 20px', color: C.bodyGray, fontWeight: 500 }}>{label}</td>
                     <td style={{ padding: '12px 20px', textAlign: 'center', color: C.navy, fontWeight: 500 }}>{ta}</td>
