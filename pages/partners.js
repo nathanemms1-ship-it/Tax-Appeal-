@@ -2,9 +2,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
-
 const C = { navy:'#1B3A6B',gold:'#C9A84C',darkNavy:'#0F1F3D',bg:'#F4F7FC',lightBlue:'#EEF3FB',bodyGray:'#5A6B82',mutedGray:'#8596AF',border:'#E8EDF4',white:'#FFFFFF',green:'#16a34a',lightGreen:'#f0fdf4' };
-
 export default function PartnersPage() {
   const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',role:'',statesActive:'',clientVolume:'' });
   const [status, setStatus] = useState('idle');
@@ -12,7 +10,6 @@ export default function PartnersPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [connectLoading, setConnectLoading] = useState(false);
-
   const handleStripeConnect = async () => {
     if (!result) return;
     setConnectLoading(true);
@@ -31,7 +28,6 @@ export default function PartnersPage() {
     }
   };
   const upd = (key,val) => setForm(p=>({...p,[key]:val}));
-
   const handleSubmit = async () => {
     if (!form.firstName||!form.lastName||!form.email) { setErrorMsg('Please fill in your first name, last name, and email.'); return; }
     setStatus('loading'); setErrorMsg('');
@@ -42,12 +38,10 @@ export default function PartnersPage() {
       setResult(data); setStatus('success');
     } catch(err) { setErrorMsg(err.message); setStatus('error'); }
   };
-
   const copyLink = () => {
     if (!result?.referralLink) return;
     navigator.clipboard.writeText(result.referralLink).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2500); });
   };
-
   return (
     <>
       <Head>
@@ -65,7 +59,6 @@ export default function PartnersPage() {
         label{font-size:13px;font-weight:500;color:${C.bodyGray};display:block;margin-bottom:6px;}
         @media(max-width:640px){.hero-grid{grid-template-columns:1fr!important;}.stat-grid{grid-template-columns:1fr 1fr!important;}}
       `}</style>
-
       <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:'16px 40px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <Link href="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none'}}>
           <div style={{width:34,height:34,background:C.navy,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🏠</div>
@@ -76,7 +69,6 @@ export default function PartnersPage() {
         </Link>
         <Link href="/apply"><button style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'10px 22px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>File an appeal →</button></Link>
       </div>
-
       <section style={{background:C.navy,padding:'64px 40px'}}>
         <div className="container">
           <div style={{fontSize:12,color:C.gold,textTransform:'uppercase',letterSpacing:'2px',marginBottom:16}}>Partner Program</div>
@@ -96,11 +88,9 @@ export default function PartnersPage() {
           </div>
         </div>
       </section>
-
       <section style={{padding:'56px 40px'}}>
         <div className="container">
           <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:48,alignItems:'start'}}>
-
             <div>
               <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,marginBottom:12}}>How the program works</h2>
               <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:32}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
@@ -110,20 +100,33 @@ export default function PartnersPage() {
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
                 </div>
               ))}
-              <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:12,padding:'20px 24px',marginTop:8}}>
-                <div style={{fontSize:14,fontWeight:500,color:C.green,marginBottom:8}}>Example earnings</div>
-                {[['5 clients/month','$100/mo','$1,200/yr'],['10 clients/month','$200/mo','$2,400/yr'],['20 clients/month','$400/mo','$4,800/yr']].map(([vol,mo,yr])=>(
-                  <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #bbf7d0',fontSize:14,color:C.darkNavy}}>
-                    <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{mo}</strong> · {yr}</span>
+              <div style={{background:C.lightBlue,border:'1px solid #B5D4F4',borderRadius:12,padding:'24px 26px',marginTop:8}}>
+                <div style={{fontSize:17,fontWeight:500,color:C.navy,marginBottom:10}}>A reason to call your clients every year</div>
+                <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.75,marginBottom:14}}>
+                  Finding a reason to reach out to past clients that isn&apos;t a sales pitch is hard. Property taxes come around like clockwork — every homeowner, every year, whether they&apos;re buying, selling, or staying put.
+                </p>
+                <div style={{background:C.white,borderLeft:`3px solid ${C.gold}`,borderRadius:6,padding:'12px 16px',fontSize:14,color:C.darkNavy,lineHeight:1.7,fontStyle:'italic',marginBottom:14}}>
+                  &ldquo;Your assessment notice is about to land — here&apos;s how to make sure you&apos;re not overpaying.&rdquo;
+                </div>
+                <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.75}}>
+                  That&apos;s a call worth making. Your client gets a real shot at saving thousands for $89 — and you&apos;re the one who told them about it. It costs you nothing, it makes you look good, and it puts you back in front of them right before they think about buying, selling, or shopping a policy.
+                </p>
+              </div>
+              <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:10,padding:'16px 20px',marginTop:16}}>
+                <div style={{fontSize:11,fontWeight:500,color:C.green,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>What a season looks like</div>
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:8}}>Filing season comes once a year — most partners share their link with their whole client list at once.</div>
+                {[['10 clients referred','$200'],['25 clients referred','$500'],['50 clients referred','$1,000'],['100 clients referred','$2,000']].map(([vol,amt])=>(
+                  <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #bbf7d0',fontSize:13,color:C.darkNavy}}>
+                    <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{amt}</strong> / season</span>
                   </div>
                 ))}
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>And it repeats — we remind every customer to refile 11 months later. If they come back through your link, you earn $20 again.</div>
               </div>
               <div style={{background:C.lightBlue,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginTop:24}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>What to tell your clients</div>
                 <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They file your protest via certified mail for $89 flat, no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
               </div>
             </div>
-
             <div>
               {status==='success'&&result ? (
                 <div style={{background:C.white,border:`0.5px solid ${C.border}`,borderRadius:16,padding:'32px 28px'}}>
@@ -206,7 +209,6 @@ export default function PartnersPage() {
           </div>
         </div>
       </section>
-
       <section style={{padding:'48px 40px',background:C.white,borderTop:`1px solid ${C.border}`}}>
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
@@ -221,7 +223,6 @@ export default function PartnersPage() {
           </div>
         </div>
       </section>
-
       <footer style={{background:C.darkNavy,padding:'24px 40px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12}}>
         <p style={{color:C.mutedGray,fontSize:12}}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
         <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
