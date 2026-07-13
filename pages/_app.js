@@ -1,7 +1,21 @@
 import Head from 'next/head'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
 import DisclaimerFooter from '../components/DisclaimerFooter'
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter()
+
+  // Capture partner referral code from ?ref= on ANY page (last-touch attribution).
+  // Whatever link the visitor most recently arrived on gets the $20 credit.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref && ref.trim()) {
+      localStorage.setItem('taxappeal_ref', ref.trim())
+    }
+  }, [router.asPath])
+
   return (
     <>
       <Head>
@@ -12,7 +26,6 @@ export default function App({ Component, pageProps }) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <title>TaxAppeal — Property Tax Dispute Service | $89 Flat Fee</title>
         <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it certified. Takes 4 minutes. TX, GA, FL." />
-
         {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
@@ -20,18 +33,14 @@ export default function App({ Component, pageProps }) {
         <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it via USPS certified mail. 82% approval rate. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" />
-
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
         <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it certified. 82% approval rate. $89 flat — no percentage cuts." />
-
         {/* Canonical */}
         <link rel="canonical" href="https://www.taxappealusa.com" />
-
         {/* Favicon */}
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
-
         {/* Structured Data — Organization */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -48,7 +57,6 @@ export default function App({ Component, pageProps }) {
           "serviceType": "Property Tax Dispute Filing",
           "priceRange": "$89"
         })}} />
-
         {/* Structured Data — Service */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
