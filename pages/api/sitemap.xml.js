@@ -23,7 +23,6 @@ const floridaCitySlugs = [
   "ormond-beach-fl","holly-hill-fl","edgewater-fl","new-port-richey-fl","tarpon-springs",  "plantation",
   "davie",
   "sunrise",
-  "weston",
   "hallandale-beach",
   "tamarac",
   "margate",
