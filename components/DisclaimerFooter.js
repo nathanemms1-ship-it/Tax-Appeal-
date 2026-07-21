@@ -16,11 +16,14 @@ export default function DisclaimerFooter() {
         textAlign: "center",
       }}
     >
-      TaxAppeal USA is a self-service document-preparation and certified-mail filing service. We are
-      not property tax consultants, agents, or representatives, do not provide tax or legal advice,
-      and do not represent customers before any appraisal district, board of equalization, value
-      adjustment board, or review board. All protests are filed in the property owner&rsquo;s name
-      and signed by the owner.
+      TaxAppeal USA is a self-service document-preparation and certified-mail filing service. Outside
+      Florida, we are not property tax consultants, agents, or representatives, do not provide tax or
+      legal advice, and do not represent customers before any appraisal district, board of equalization,
+      or review board &mdash; all protests are filed in the property owner&rsquo;s name and signed by
+      the owner. In Florida, Florida Statute &sect; 194.011(3)(h) permits TaxAppeal USA to act as the
+      property owner&rsquo;s authorized, compensated representative solely to file the VAB petition,
+      submit evidence, and pay the county&rsquo;s filing fee, as disclosed and separately authorized on
+      Form DR-486A.
     </p>
   );
 }
