@@ -6,7 +6,7 @@ const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightB
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
 const faqs = [
-["How do I appeal my Miami property taxes?","File a VAB petition with the Miami-Dade Value Adjustment Board within 25 days of your TRIM notice. Florida requires RECEIPT by the deadline. TaxAppeal files at least 7 days early via USPS certified mail."],
+["How do I appeal my Miami property taxes?","File a VAB petition with the Miami-Dade Value Adjustment Board within 25 days of your TRIM notice. Florida requires RECEIPT by the deadline. TaxAppeal mails your petition at least 7 days early to ensure timely receipt."],
 ["What is the county filing fee?","Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. Miami-Dade's rate is $15, paid to the Miami-Dade Value Adjustment Board. TaxAppeal pays this fee on your behalf — it's included in your $104 total. You don't need to make a separate payment."],
 ["What is the Miami-Dade Property Appraiser?","The Miami-Dade County Property Appraiser determines the assessed value of all properties in Miami-Dade County. If your property is over-assessed, you can file a petition with the Value Adjustment Board to challenge it."],
 ["How much can Miami homeowners save?","Miami homeowners save an average of $2,800 per year when they successfully appeal — among the highest in Florida due to high home values. At $104 all-in, a successful appeal pays for itself within the first two weeks of savings."],
@@ -38,7 +38,7 @@ return (
 "name":"Miami Property Tax Appeal Filing",
 "provider":{"@type":"Organization","name":"TaxAppeal USA"},
 "areaServed":{"@type":"City","name":"Miami"},
-"description":"Property tax VAB petition preparation, county filing fee payment, and USPS certified mail filing for Miami homeowners.",
+"description":"Property tax VAB petition preparation, county filing fee payment, and tracked mail filing for Miami homeowners.",
 "offers":{"@type":"Offer","price":"104.00","priceCurrency":"USD"}
 })}} />
 </Head>
@@ -116,7 +116,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{padding:"56px 40px",background:C.lightBlue}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Filing With Miami-Dade County Property Appraiser</h2>
-<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal files your appeal directly with the Miami-Dade County appraisal authority via USPS certified mail with return receipt.</p>
+<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal files your appeal directly with the Miami-Dade County appraisal authority, mailed 7+ days before your deadline to ensure timely receipt.</p>
 <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
@@ -130,7 +130,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div style={{background:C.navy,borderRadius:12,padding:24,color:C.white}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>What TaxAppeal Does</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>We Handle Everything</div>
-{["Analyze comparable sales in Miami","Draft formal VAB petition citing Florida Statute §194.011","Pay the $15 Miami-Dade filing fee on your behalf","File via USPS certified mail 7+ days early","You receive copy and tracking number","Keep 100% of your savings"].map(item => (
+{["Analyze comparable sales in Miami","Draft formal VAB petition citing Florida Statute §194.011","Pay the $15 Miami-Dade filing fee on your behalf","File via mail 7+ days early","You receive copy and tracking number","Keep 100% of your savings"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10,fontSize:13}}>
 <span style={{flexShrink:0,marginTop:1,color:C.gold}}>✓</span><span style={{color:"#cbd5e1"}}>{item}</span>
 </div>
@@ -157,7 +157,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$104 all-in. Period.</div>
 <p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Same $2,800 reduction. Pay $104 once (including the county fee) and keep $2,696. Every year after is 100% yours.</p>
-{["$89 service + $15 Miami-Dade VAB fee, total","County VAB fee paid on your behalf","Keep 100% of your savings","Certified mail 7+ days early"].map(item => (
+{["$89 service + $15 Miami-Dade VAB fee, total","County VAB fee paid on your behalf","Keep 100% of your savings","Mailed 7+ days early"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
 ))}
 </div>
