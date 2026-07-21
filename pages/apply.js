@@ -805,9 +805,9 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             </div>
             <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>
               <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>
-                {"Agent Authorization — Required for " + (stateInfo.name || "this state")}
+                {"Filing Authorization — Required for " + (stateInfo.name || "this state")}
               </strong>
-              {"I authorize TaxAppeal USA to act as my filing agent and represent my property tax appeal with the " + (stateInfo.board || "Board of Equalization") + ". This electronic authorization — recorded with my name, date, and IP address — will accompany my formal protest filing."}
+              {"I authorize TaxAppeal USA to prepare and submit my property tax protest to the " + (stateInfo.board || "Board of Equalization") + " using the information I have provided, and to file it in my name as the property owner. This electronic authorization — recorded with my name, date, and IP address — will accompany my protest filing."}
             </div>
           </div>
         )}
