@@ -283,7 +283,7 @@ style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'n
 </div>
 
 <div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-🔒 Your signed authorization is stored securely and attached to your VAB petition as required by Florida Statute § 194.011(3)(h). A copy is included in your certified mail filing package.
+🔒 Your signed authorization is stored securely and attached to your VAB petition as required by Florida Statute § 194.011(3)(h). A copy is included in your mailed filing package.
 </div>
 </div>
 </div>
