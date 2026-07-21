@@ -70,7 +70,7 @@ return (
 <>
 <Head>
 <title>Florida Property Tax Appeal Service | $89 + County Fee | TaxAppeal USA</title>
-<meta name="description" content="Appeal your Florida TRIM notice for $89 plus your county's mandatory VAB filing fee (set by each county, typically $15–$50). We draft your VAB petition, pay the county fee, and file via USPS certified mail. 82% approval rate. All 67 Florida counties." />
+<meta name="description" content="Appeal your Florida TRIM notice for $89 plus your county's mandatory VAB filing fee (set by each county, typically $15–$50). We draft your VAB petition, pay the county fee, and mail it to your county VAB 7+ days before your deadline. 82% approval rate. All 67 Florida counties." />
 <link rel="canonical" href="https://www.taxappealusa.com/florida" />
 <meta property="og:title" content="Florida Property Tax Appeal — $89 + County Fee | TaxAppeal USA" />
 <meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). We handle everything including the county payment. All 67 counties." />
@@ -91,7 +91,7 @@ return (
 "name": "Florida Property Tax Appeal Filing",
 "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
 "areaServed": { "@type": "State", "name": "Florida" },
-"description": "Property tax appeal petition preparation, county VAB fee payment, and USPS certified mail filing for Florida homeowners. Covers all 67 counties.",
+"description": "Property tax appeal petition preparation, county VAB fee payment, and tracked mail filing for Florida homeowners. Covers all 67 counties.",
 "offers": { "@type": "AggregateOffer", "lowPrice": "104.00", "highPrice": "139.00", "priceCurrency": "USD", "offerCount": "67" }
 })}} />
 </Head>
@@ -134,7 +134,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 Appeal Your Florida Property Taxes — $89 + County Fee
 </h1>
 <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
-Stop overpaying. We draft a formal VAB petition, pay your county's mandatory filing fee on your behalf, and mail everything via USPS certified mail. No percentage cuts. Keep 100% of your savings.
+Stop overpaying. We draft a formal VAB petition, pay your county's mandatory filing fee on your behalf, and mail everything 7+ days before your deadline to ensure timely receipt. No percentage cuts. Keep 100% of your savings.
 </p>
 
 {/* Pricing breakdown banner */}
@@ -183,7 +183,7 @@ Florida is the only state we serve that charges a mandatory county filing fee. H
 <div className="fee-breakdown" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
 {[
 ["🏛️", "Your County's VAB Fee (varies)", "Required by Florida law (HB 7031, effective July 2025). Each county sets its own amount — typically $15 to $50. Paid directly to your county's Value Adjustment Board. We send a check on your behalf — you don't have to do anything."],
-["🏠", "$89 TaxAppeal Service", "Your petition preparation, comparable sales analysis, AI-generated letter with legal citations, USPS certified mail filing, and email tracking. Same as Texas and Georgia."],
+["🏠", "$89 TaxAppeal Service", "Your petition preparation, comparable sales analysis, AI-generated letter with legal citations, tracked mail filing sent 7+ days early, and email tracking."],
 ["💰", "$89 + Fee — Still Wins", "Contingency firms charge $500–$800 on a $2,000 reduction. With TaxAppeal you pay $89 plus your county's fee once, and keep the rest — every year after that, the savings are 100% yours."],
 ].map(([icon, title, desc]) => (
 <div key={title} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
@@ -206,7 +206,7 @@ Florida is the only state we serve that charges a mandatory county filing fee. H
 ["📊", "Comparable Sales Analysis", "We pull recent sales of similar homes in your area to prove your assessed value exceeds fair market value under Florida Statute § 193.011."],
 ["✍️", "Formal VAB Petition (DR-486)", "A professionally drafted Value Adjustment Board petition citing Florida Statute § 194.011 with your property-specific data and comparable sales evidence."],
 ["💳", "County VAB Filing Fee Paid", "We pay your county's mandatory VAB filing fee (typically $15–$50, set by each county) on your behalf via check — so you don't need to make a separate payment or visit the county office."],
-["📬", "USPS Certified Mail Filing", "We file 7+ days before the 25-day deadline. Florida requires RECEIPT, not just postmark. Certified mail with return receipt provides legal proof."],
+["📬", "Mailed Early, Tracked Delivery", "We file 7+ days before the 25-day deadline. Florida requires RECEIPT, not just postmark — so we build in a buffer and track delivery to confirm it arrives on time."],
 ["📧", "Email Confirmation & Tracking", "You receive a copy of your complete VAB petition and USPS tracking number immediately after filing."],
 ["🏛️", "Special Magistrate Ready", "Your petition is drafted to be effective before a Special Magistrate with clear comparable sales evidence and legal citations under § 194.011."],
 ].map(([icon, title, desc]) => (
@@ -291,7 +291,7 @@ Florida is the only state we serve that charges a mandatory county filing fee. H
 <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal USA</div>
 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$89 + county fee. Period.</div>
 <p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 plus your county's VAB fee (typically $15–$50) once and keep the rest. Every year after that, the savings are 100% yours.</p>
-{["$89 service + your county's fee, that's it", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+{["$89 service + your county's fee, that's it", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Mailed 7+ days before your deadline"].map(item => (
 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
 ))}
 </div>
