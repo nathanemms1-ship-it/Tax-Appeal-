@@ -42,14 +42,8 @@ function buildPT311AHtml(p) {
     '<div class="field"><div class="fl">Current Assessed Value</div><div class="fv">' + fmt(p.assessedValue) + '</div></div>' +
     '<div class="field"><div class="fl" style="font-weight:bold;color:#c00;">Owner Opinion of Value</div><div class="fv" style="font-weight:bold;font-size:12pt;">' + av + '</div></div>' +
     '</div></div></div>' +
-    '<div class="sec"><div class="sh">AUTHORIZED AGENT</div><div class="sb">' +
-    '<div class="row"><div class="field" style="flex:2"><div class="fl">Agent Name</div><div class="fv">' + REP_NAME + '</div></div>' +
-    '<div class="field"><div class="fl">Agent Email</div><div class="fv">' + REP_EMAIL + '</div></div></div>' +
-    '<div style="font-size:8.5pt;margin-top:4px;">Letter of Authorization attached per O.C.G.A. 48-5-311.</div>' +
-    '</div></div>' +
-    '<div class="sec"><div class="sh">SIGNATURE</div><div class="sb">' +
-    '<div class="sb2"><div class="sl">' + REP_NAME + ' - Agent (see attached LOA)</div>' +
-    '<div class="slb">Signature of Agent Date: ' + today + '</div></div>' +
+    '<div class="sec"><div class="sh">FILED BY</div><div class="sb">' +
+    '<div style="font-size:9pt;">This appeal was prepared and filed by TaxAppeal USA, a document-preparation and certified-mail filing service, on behalf of the property owner named above. This appeal is signed by the owner and filed in the owner\'s name; TaxAppeal USA does not represent the owner before the Board of Tax Assessors or Board of Equalization.</div>' +
     '</div></div>' +
     '<div class="pb"></div>' +
     '<div class="sec"><div class="sh">EVIDENCE AND COMPARABLE SALES</div><div class="sb">' +
@@ -59,32 +53,6 @@ function buildPT311AHtml(p) {
     '<div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">' +
     'Filed by TaxAppeal USA | disputes@taxappealusa.com | Filing Date: ' + today +
     '</div></div></body></html>';
-}
-
-function buildGALoaHtml(p) {
-  var yr = p.taxYear || String(new Date().getFullYear());
-  var today = p.ownerSignatureDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  var sty2 = '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:11pt;color:#000;}.page{padding:48px 56px;max-width:816px;margin:0 auto;}h1{font-size:14pt;font-weight:bold;text-align:center;margin-bottom:4px;}h2{font-size:11pt;text-align:center;margin-bottom:24px;}p{line-height:1.7;margin-bottom:14px;}.sl{border-bottom:1.5px solid #000;min-height:32px;margin-bottom:4px;font-size:15pt;font-family:Georgia,serif;font-style:italic;padding:2px 4px;margin-top:32px;}.slb{font-size:9pt;color:#555;}table.it{width:100%;margin:16px 0;}table.it td{padding:4px 8px;font-size:10.5pt;vertical-align:top;}table.it td:first-child{font-weight:bold;width:200px;}</style>';
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + sty2 + '</head><body><div class="page">' +
-    '<h1>LETTER OF AUTHORIZATION</h1>' +
-    '<h2>Agent Representation Authorization | O.C.G.A. 48-5-311 | ' + p.county + ' County, Georgia</h2>' +
-    '<table class="it">' +
-    '<tr><td>Property Owner:</td><td>' + p.ownerFirstName + ' ' + p.ownerLastName + '</td></tr>' +
-    '<tr><td>Email:</td><td>' + p.ownerEmail + '</td></tr>' +
-    '<tr><td>Property:</td><td>' + p.propertyAddress + '</td></tr>' +
-    '<tr><td>County:</td><td>' + p.county + ' County, Georgia</td></tr>' +
-    '<tr><td>Digest Year:</td><td>' + yr + '</td></tr>' +
-    '<tr><td>Agent:</td><td>' + REP_NAME + '</td></tr>' +
-    '<tr><td>Agent Email:</td><td>' + REP_EMAIL + '</td></tr>' +
-    '</table>' +
-    '<p>I, <strong>' + p.ownerFirstName + ' ' + p.ownerLastName + '</strong>, the undersigned property owner, hereby authorize <strong>' + REP_NAME + '</strong> (' + REP_EMAIL + ') to act as my agent and authorized representative before the <strong>' + p.county + ' County Board of Tax Assessors</strong> and <strong>' + p.county + ' County Board of Equalization</strong> for digest year <strong>' + yr + '</strong>.</p>' +
-    '<p>This authorization is made pursuant to O.C.G.A. 48-5-311 and grants ' + REP_NAME + ' the authority to file the PT-311A, submit evidence, receive Board correspondence, and represent my interests in all hearings related to this appeal.</p>' +
-    '<p>This authorization expires upon final resolution or December 31, ' + yr + ', whichever is earlier.</p>' +
-    '<div class="sl">' + p.ownerFirstName + ' ' + p.ownerLastName + '</div>' +
-    '<div class="slb">Signature of Property Owner Date: ' + today + '</div>' +
-    '<div style="margin-top:8px;font-size:9pt;color:#555;">Electronic signature - legally binding under O.C.G.A. 10-12-1 et seq.</div>' +
-    '<div style="margin-top:32px;font-size:8.5pt;color:#777;border-top:1px solid #ccc;padding-top:10px;text-align:center;">TaxAppeal USA | disputes@taxappealusa.com | Filed with PT-311A</div>' +
-    '</div></body></html>';
 }
 
 export default async function handler(req, res) {
@@ -133,19 +101,15 @@ export default async function handler(req, res) {
     var filingDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     var ownerSignatureDate = gaSignatureDate || filingDate;
     var pt311aHtml = buildPT311AHtml({ ownerFirstName: ownerFirstName, ownerLastName: ownerLastName, ownerEmail: ownerEmail, ownerPhone: ownerPhone, ownerStreet: ownerStreet, ownerCity: ownerCity, ownerState: ownerState, ownerZip: ownerZip, propertyAddress: propertyAddress, county: county, parcelId: parcelId, assessedValue: assessedValue, ownerValueAssertion: requestedValue, taxYear: yr, evidenceText: evidenceText, districtName: districtName, filingDate: filingDate });
-    var loaHtml = buildGALoaHtml({ ownerFirstName: ownerFirstName, ownerLastName: ownerLastName, ownerEmail: ownerEmail, propertyAddress: propertyAddress, county: county, taxYear: yr, ownerSignatureDate: ownerSignatureDate });
-    var loaBodyMatch = loaHtml.match(/<body>([\s\S]*?)<\/body>/);
-    var loaBody = loaBodyMatch ? '<div style="page-break-before:always;">' + loaBodyMatch[1] + '</div>' : '';
-    var combinedHtml = pt311aHtml.replace('</body></html>', loaBody + '</body></html>');
     var letterKey = null;
     if (redis) {
-      try {
-        letterKey = 'pt311a:GA:' + (zip || '') + ':' + Date.now();
-        await redis.set(letterKey, combinedHtml, { ex: 7200 });
-        console.log('PT-311A + LOA cached:', letterKey);
-      } catch (e) { console.log('Redis cache failed:', e.message); }
+    try {
+    letterKey = 'pt311a:GA:' + (zip || '') + ':' + Date.now();
+    await redis.set(letterKey, pt311aHtml, { ex: 7200 });
+    console.log('PT-311A cached:', letterKey);
+    } catch (e) { console.log('Redis cache failed:', e.message); }
     }
-    return res.status(200).json({ success: true, pt311aHtml: combinedHtml, evidenceText: evidenceText, letterKey: letterKey, isGA: true });
+    return res.status(200).json({ success: true, pt311aHtml: pt311aHtml, evidenceText: evidenceText, letterKey: letterKey, isGA: true });
   } catch (err) {
     console.error('PT-311A error:', err);
     return res.status(500).json({ error: err.message || 'PT-311A generation failed' });
