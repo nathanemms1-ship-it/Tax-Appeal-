@@ -63,7 +63,7 @@ const floridaCities = [
   { slug: "cooper-city-fl", name: "Cooper City", county: "Broward", medianHomeValue: 540000, avgSavings: 1550, description: "Cooper City is consistently ranked among Broward's most desirable suburbs, and high demand drives assessments above true market value. Our flat fee appeal process gives homeowners a clear path to savings." },
   
   { slug: "deerfield-beach", name: "Deerfield Beach", county: "Broward", medianHomeValue: 390000, avgSavings: 1100, description: "Deerfield Beach homeowners benefit from strong appeal success rates in Broward County. Coastal and inland properties alike frequently carry assessments that exceed what comparable sales support." },
-  { slug: "lighthouse-point", name: "Lighthouse Point", county: "Broward", medianHomeValue: 780000, avgSavings: 2200, description: "Lighthouse Point's waterfront homes and boating community command premium prices that assessors frequently overestimate. Our certified mail filing ensures your VAB petition is received by the deadline." },
+  { slug: "lighthouse-point", name: "Lighthouse Point", county: "Broward", medianHomeValue: 780000, avgSavings: 2200, description: "Lighthouse Point's waterfront homes and boating community command premium prices that assessors frequently overestimate. Our tracked mail filing, sent 7+ days early, ensures your VAB petition is received by the deadline." },
   { slug: "sunny-isles-beach", name: "Sunny Isles Beach", county: "Miami-Dade", medianHomeValue: 950000, avgSavings: 2700, description: "Sunny Isles Beach's luxury high-rises are among Miami-Dade's most frequently over-assessed properties. Condo market fluctuations create significant opportunities for successful tax appeals." },
   { slug: "hallandale-beach", name: "Hallandale Beach", county: "Broward", medianHomeValue: 420000, avgSavings: 1200, description: "Hallandale Beach homeowners on the Miami-Dade border benefit from formal appeals as rapidly changing market conditions create assessment discrepancies throughout this coastal community." },
   { slug: "surfside-fl", name: "Surfside", county: "Miami-Dade", medianHomeValue: 1200000, avgSavings: 3400, description: "Surfside's exclusive beachfront community carries some of Miami-Dade's highest assessed values. Even modest percentage reductions through a VAB appeal can yield thousands in annual tax savings." },
@@ -73,7 +73,7 @@ const floridaCities = [
   { slug: "homestead-fl", name: "Homestead", county: "Miami-Dade", medianHomeValue: 350000, avgSavings: 1000, description: "Homestead homeowners in Miami-Dade's southern communities benefit from formal VAB petitions as rapid growth has created assessment inconsistencies across this expanding market." },
   { slug: "westchase-fl", name: "Westchase", county: "Hillsborough", medianHomeValue: 580000, avgSavings: 1650, description: "Westchase is one of Tampa's most desirable master-planned communities, and high demand drives assessments that frequently exceed true market value. Our streamlined filing process makes appealing straightforward." },
   { slug: "south-tampa-fl", name: "South Tampa", county: "Hillsborough", medianHomeValue: 720000, avgSavings: 2050, description: "South Tampa's Bayshore Boulevard corridor and historic neighborhoods carry premium assessments that often outpace comparable sales. With median values over $700K, every percentage point of reduction matters." },
-  { slug: "carrollwood-fl", name: "Carrollwood", county: "Hillsborough", medianHomeValue: 400000, avgSavings: 1150, description: "Carrollwood's established suburban neighborhoods and lakefront homes frequently carry over-assessments in Hillsborough County. Our certified mail filing ensures your protest reaches the VAB on time." },
+  { slug: "carrollwood-fl", name: "Carrollwood", county: "Hillsborough", medianHomeValue: 400000, avgSavings: 1150, description: "Carrollwood's established suburban neighborhoods and lakefront homes frequently carry over-assessments in Hillsborough County. Our tracked mail filing, sent 7+ days early, ensures your protest reaches the VAB on time." },
   { slug: "siesta-key-fl", name: "Siesta Key", county: "Sarasota", medianHomeValue: 1150000, avgSavings: 3300, description: "Siesta Key's award-winning beaches and luxury homes create significant valuation challenges. Over-assessments on this barrier island are common, and successful appeals regularly save homeowners thousands annually." },
   { slug: "lakewood-ranch-fl", name: "Lakewood Ranch", county: "Manatee", medianHomeValue: 560000, avgSavings: 1600, description: "Lakewood Ranch is one of the nation's fastest-growing master-planned communities. Rapid new construction creates comparable sales gaps that lead to frequent over-assessments worth appealing." },
   { slug: "bradenton-fl", name: "Bradenton", county: "Manatee", medianHomeValue: 380000, avgSavings: 1100, description: "Bradenton homeowners across Manatee County benefit from formal VAB appeals as waterfront and suburban properties alike are frequently assessed above what comparable sales support." },
@@ -100,7 +100,7 @@ const floridaCities = [
   { slug: "orange-park-fl", name: "Orange Park", county: "Clay", medianHomeValue: 310000, avgSavings: 890, description: "Orange Park homeowners in Clay County benefit from formal VAB appeals as Jacksonville's suburban expansion pushes assessments above what comparable sales in this community actually support." },
   { slug: "fernandina-beach", name: "Fernandina Beach", county: "Nassau", medianHomeValue: 560000, avgSavings: 1600, description: "Fernandina Beach on Amelia Island carries some of Northeast Florida's highest home values, and Nassau County assessments frequently exceed what the market will actually bear. VAB appeals here deliver strong results." },
   { slug: "amelia-island-fl", name: "Amelia Island", county: "Nassau", medianHomeValue: 780000, avgSavings: 2200, description: "Amelia Island's luxury resort community and oceanfront estates are prime candidates for VAB appeals. With home values regularly exceeding $1M, even a small assessment reduction translates to thousands in annual savings." },
-  { slug: "celebration-fl", name: "Celebration", county: "Osceola", medianHomeValue: 490000, avgSavings: 1400, description: "Celebration's Disney-developed community carries premium assessed values that often exceed what comparable Osceola County sales support. Our certified mail VAB filing process makes appealing straightforward for every homeowner." },
+  { slug: "celebration-fl", name: "Celebration", county: "Osceola", medianHomeValue: 490000, avgSavings: 1400, description: "Celebration's Disney-developed community carries premium assessed values that often exceed what comparable Osceola County sales support. Our tracked VAB mail filing process makes appealing straightforward for every homeowner." },
   { slug: "altamonte-springs", name: "Altamonte Springs", county: "Seminole", medianHomeValue: 330000, avgSavings: 940, description: "Altamonte Springs homeowners in Seminole County find frequent over-assessment opportunities as this established Orlando suburb sees rising demand that assessors often overshoot." },
   { slug: "lake-mary-fl", name: "Lake Mary", county: "Seminole", medianHomeValue: 480000, avgSavings: 1380, description: "Lake Mary's upscale tech-corridor communities and master-planned neighborhoods are frequently over-assessed by Seminole County. A formal VAB appeal is one of the highest-ROI financial moves available to homeowners here." },
   { slug: "sanford-fl", name: "Sanford", county: "Seminole", medianHomeValue: 330000, avgSavings: 950, description: "Sanford homeowners on Lake Monroe and in the historic district benefit from VAB appeals as Seminole County's growing market creates assessment inconsistencies across diverse property types." },
@@ -172,7 +172,7 @@ export default function FloridaCityPage({ city }) {
   const faqs = [
     {
       q: `How do I appeal my property tax in ${city.name}, Florida?`,
-      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA handles the entire process for you — we generate a professional protest letter with comparable sales evidence and file it via certified mail, all for a flat $89 fee.`,
+      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA handles the entire process for you — we generate a professional protest letter with comparable sales evidence and mail it 7+ days before your deadline, all for a flat $89 fee.`,
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
@@ -188,7 +188,7 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `Do I need an attorney to appeal my ${city.name} property taxes?`,
-      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares a professional, evidence-backed petition letter and sends it via certified mail for just $89 — no attorney fees, no percentage of savings.`,
+      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares a professional, evidence-backed petition letter and mails it 7+ days before your deadline for just $89 — no attorney fees, no percentage of savings.`,
     },
     {
       q: `Why choose TaxAppeal USA over other services in ${city.name}?`,
@@ -223,7 +223,7 @@ export default function FloridaCityPage({ city }) {
     <>
       <Head>
         <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
-        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file your VAB petition via certified mail. No percentage fees ever.`} />
+        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We mail your VAB petition 7+ days before your deadline. No percentage fees ever.`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Appeal | $89 Flat | TaxAppeal USA`} />
@@ -257,7 +257,7 @@ export default function FloridaCityPage({ city }) {
             {[
               { step: "1", title: "Enter Your Address", desc: `We instantly pull your ${city.county} County assessment data.` },
               { step: "2", title: "We Build Your Case", desc: "Our system generates a professional VAB petition with real comparable sales evidence." },
-              { step: "3", title: "Certified Mail Filing", desc: `Your petition is sent to the ${city.county} County VAB via USPS certified mail with tracking.` },
+              { step: "3", title: "Mailed Early, Tracked", desc: `Your petition is sent to the ${city.county} County VAB via USPS mail with tracking, 7+ days before your deadline.` },
               { step: "4", title: "Track Your Outcome", desc: "We notify you when the county responds. Most results in 60-90 days." },
             ].map((s) => (
               <div key={s.step} style={{ background: "#f8f9fa", borderRadius: "12px", padding: "28px 24px", textAlign: "center" }}>
@@ -288,7 +288,7 @@ export default function FloridaCityPage({ city }) {
           <div style={{ background: "#f8f9fa", borderRadius: "12px", padding: "28px 32px" }}>
             <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151", marginBottom: "16px" }}>Under <strong>Florida Statute §194.011</strong>, every homeowner has the right to petition the VAB to challenge their property assessment. No attorney required.</p>
             <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151", marginBottom: "16px" }}>You have exactly <strong>25 days</strong> from your TRIM notice mailing date to file your VAB petition.</p>
-            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151" }}>TaxAppeal USA prepares your petition and sends it to the {city.county} County VAB via USPS certified mail so you have proof of timely filing.</p>
+            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151" }}>TaxAppeal USA prepares your petition and sends it to the {city.county} County VAB via USPS mail, 7+ days before your deadline, so you have proof of timely filing.</p>
           </div>
         </section>
 
@@ -308,7 +308,7 @@ export default function FloridaCityPage({ city }) {
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
           <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $89 flat.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $89 Flat</button></Link>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · USPS Certified Mail Filing</p>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · Mailed Filing</p>
         </section>
 
         <footer style={{ borderTop: "1px solid #e5e7eb", padding: "32px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
