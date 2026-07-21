@@ -5,7 +5,7 @@
 const floridaCitySlugs = [
   "miami-beach","coral-gables","coconut-grove","brickell","aventura","doral","kendall","hialeah",
   "boca-raton","fort-lauderdale","pompano-beach","hollywood-fl","weston","coral-springs","pembroke-pines","miramar",
-  "west-palm-beach","boynton-beach","delray-beach","palm-beach-gardens","jupiter-fl","wellington-fl",
+  "west-palm-beach","boynton-beach","delray-beach","palm-beach-gardens","jupiter-fl",
   "brandon-fl","riverview-fl","wesley-chapel","temple-terrace","lutz-fl",
   "clearwater-fl","st-petersburg-fl","largo-fl","dunedin-fl","tarpon-springs",
   "winter-park-fl","kissimmee-fl","oviedo-fl","lake-nona","apopka-fl",
