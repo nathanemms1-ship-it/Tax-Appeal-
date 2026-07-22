@@ -38,6 +38,7 @@ export default function Terms() {
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Filing Deadlines</h2>
             <p>Property tax protest deadlines vary by state and county. We make reasonable efforts to file within active protest windows. It is your responsibility to verify that your jurisdiction's protest window is open before purchasing our service. We will notify you if we detect that your deadline has passed.</p>
+            <p>We accept orders up to 60 days prior to your county's filing window opening. Orders placed during this early period are prepared and held, then submitted via USPS Certified Mail as soon as your county's filing window opens — placing you at the front of the line, ahead of the opening-day rush. You will receive a confirmation email once your protest has been filed.</p>
             <ul>
               <li><strong>Texas:</strong> Generally May 15 or 30 days after notice (whichever is later)</li>
               <li><strong>Georgia:</strong> 45 days from assessment notice date</li>
