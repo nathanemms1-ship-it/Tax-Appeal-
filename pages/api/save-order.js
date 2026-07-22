@@ -18,7 +18,8 @@ export default async function handler(req, res) {
     districtName, districtAddress, districtCity, districtState, districtZip,
     refCode,
     disputeStatus, scheduledFileDate, letterText,
-    vabFee, vabPayableTo, flSignatureName, stateCode,
+    vabFee, vabPayableTo, flSignatureName, flAuthDate, stateCode,
+    ownerStreet, ownerCity, ownerState, ownerZip,
   } = req.body;
 
   const supabase = getSupabaseAdmin();
@@ -77,6 +78,11 @@ export default async function handler(req, res) {
         vab_payable_to: vabPayableTo || null,
         fl_signature_name: flSignatureName || null,
         state_code: stateCode || null,
+        fl_auth_date: flAuthDate || null,
+        owner_street: ownerStreet || null,
+        owner_city: ownerCity || null,
+        owner_state: ownerState || null,
+        owner_zip: ownerZip || null,
         ref_code: refCode || null,
       })
       .select()
