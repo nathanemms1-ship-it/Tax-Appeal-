@@ -179,6 +179,7 @@ export default function Success() {
             districtZip: data.districtZip,
             disputeStatus: 'queued',
             scheduledFileDate: data.scheduledFileDate || null,
+            letterText: data.letter || null,
           }),
         });
       } catch (dbErr) { console.error('Database save failed:', dbErr); }
