@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     lobLetterId, lobTrackingNumber,
     districtName, districtAddress, districtCity, districtState, districtZip,
     refCode,
-    disputeStatus, scheduledFileDate,
+    disputeStatus, scheduledFileDate, letterText,
   } = req.body;
 
   const supabase = getSupabaseAdmin();
@@ -71,6 +71,7 @@ export default async function handler(req, res) {
         district_zip: districtZip || null,
         dispute_status: disputeStatus || 'filed',
         scheduled_file_date: scheduledFileDate || null,
+        letter_text: letterText || null,
         ref_code: refCode || null,
       })
       .select()
