@@ -35,6 +35,7 @@ export default function Terms() {
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Refund Policy</h2>
             <p>Due to the nature of document preparation and certified mail dispatch, all fees are non-refundable once your letter has been generated and dispatched. If your letter has not yet been dispatched and you contact us at <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a> within 24 hours of payment, we will review refund requests on a case-by-case basis.</p>
+            <p>This 24-hour window applies to all orders, including pre-orders placed ahead of your filing window opening — it does not extend for the length of time your order is held before your filing window opens.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Filing Deadlines</h2>
             <p>Property tax protest deadlines vary by state and county. We make reasonable efforts to file within active protest windows. It is your responsibility to verify that your jurisdiction's protest window is open before purchasing our service. We will notify you if we detect that your deadline has passed.</p>
