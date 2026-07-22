@@ -159,7 +159,7 @@ export default async function handler(req, res) {
       const stateUpper = (state || '').toUpperCase().trim();
       const windowStatus = getFilingWindowStatus(stateUpper, county);
 
-      console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysLeft}`);
+      console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysUntilClose}`);
 
       if (!windowStatus || !windowStatus.isOpen) {
         console.log(`[notify-waitlist] Skipping ${email} — window not open`);
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
           .eq('id', id);
 
         totalSent++;
-        console.log(`[notify-waitlist] Sent to ${email} (day ${(entry.notified_count || 0) + 1}, ${windowStatus.daysLeft} days left)`);
+        console.log(`[notify-waitlist] Sent to ${email} (day ${(entry.notified_count || 0) + 1}, ${windowStatus.daysUntilClose} days left)`);
       } catch (emailErr) {
         console.error(`[notify-waitlist] Email failed for ${email}:`, emailErr.message);
       }
