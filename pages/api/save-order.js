@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     districtName, districtAddress, districtCity, districtState, districtZip,
     refCode,
     disputeStatus, scheduledFileDate, letterText,
+    vabFee, vabPayableTo, flSignatureName, stateCode,
   } = req.body;
 
   const supabase = getSupabaseAdmin();
@@ -72,6 +73,10 @@ export default async function handler(req, res) {
         dispute_status: disputeStatus || 'filed',
         scheduled_file_date: scheduledFileDate || null,
         letter_text: letterText || null,
+        vab_fee: vabFee ? Number(vabFee) : null,
+        vab_payable_to: vabPayableTo || null,
+        fl_signature_name: flSignatureName || null,
+        state_code: stateCode || null,
         ref_code: refCode || null,
       })
       .select()
