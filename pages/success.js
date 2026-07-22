@@ -81,6 +81,60 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
 </html>`;
 }
 
+function buildReservedEmail({ customerName, address, county, scheduledFileDate, assessedValue, targetReduction, savings }) {
+  const firstName = customerName ? customerName.split(' ')[0] : 'there';
+  const fileDateStr = scheduledFileDate ? new Date(scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'the opening day of your filing window';
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>
+<body style='margin:0;padding:0;background:#F4F7FC;font-family:"Helvetica Neue",Arial,sans-serif;'>
+  <table width='100%' cellpadding='0' cellspacing='0' style='background:#F4F7FC;padding:32px 16px;'>
+    <tr><td align='center'>
+      <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>
+        <tr><td style='background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;'>
+          <div style='font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;'>🏠 TaxAppeal</div>
+          <div style='font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;'>Property Tax Dispute</div>
+        </td></tr>
+        <tr><td style='background:#1B3A6B;padding:16px 36px;text-align:center;'>
+          <div style='font-size:15px;font-weight:600;color:#FFFFFF;'>🎟️ You are reserved — first in line!</div>
+        </td></tr>
+        <tr><td style='background:#FFFFFF;padding:36px;'>
+          <p style='font-size:16px;color:#0F1F3D;margin:0 0 16px;'>Hi ${firstName},</p>
+          <p style='font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;'>
+            Your property tax protest for <strong>${address}</strong> is prepared and reserved. We will submit it via <strong>USPS certified mail with return receipt</strong> to the ${county} Appraisal District as soon as your filing window opens on <strong>${fileDateStr}</strong> — placing you ahead of the opening-day rush.
+          </p>
+          <table width='100%' cellpadding='0' cellspacing='0' style='background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;'>
+            <tr><td>
+              <div style='font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:14px;'>RESERVATION SUMMARY</div>
+              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Property</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>${address}</td></tr></table>
+              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Filing with</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>${county} Appraisal District</td></tr></table>
+              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Filing date</td><td style='font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;'>${fileDateStr}</td></tr></table>
+              ${assessedValue ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Current assessed value</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>$${Number(assessedValue).toLocaleString()}</td></tr></table>` : ''}
+              ${targetReduction ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Reduction requested</td><td style='font-size:13px;color:#2E7D52;font-weight:500;text-align:right;'>Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
+              ${savings ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Potential annual savings</td><td style='font-size:13px;color:#2E7D52;font-weight:700;text-align:right;'>$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
+              <table width='100%' style='border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;'><tr><td style='font-size:14px;color:#0F1F3D;font-weight:600;'>Amount paid</td><td style='font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;'>$89.00</td></tr></table>
+            </td></tr>
+          </table>
+          <table width='100%' cellpadding='0' cellspacing='0' style='background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;'>
+            <tr><td>
+              <div style='font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;'>⚖️ What happens next</div>
+              <div style='font-size:13px;color:#7A5C10;line-height:1.6;'>We will mail your protest the moment your filing window opens on ${fileDateStr}. You will get a follow-up email with your USPS certified mail tracking number once it is dispatched — no action needed from you in the meantime.</div>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style='background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;'>
+          <div style='font-size:13px;color:#8596AF;margin-bottom:8px;'>Questions? Reply to this email or contact us at</div>
+          <a href='mailto:disputes@taxappealusa.com' style='font-size:13px;color:#FFC940;text-decoration:none;'>disputes@taxappealusa.com</a>
+          <div style='font-size:11px;color:#3A4E6A;margin-top:16px;'>© 2026 TaxAppeal USA · taxappealusa.com</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export default function Success() {
   const router = useRouter();
   const { session_id } = router.query;
@@ -97,6 +151,80 @@ export default function Success() {
   async function runMail(data, sig) {
     setMailStatus('sending');
 
+    if (data.isPreOrder) {
+      try {
+        await fetch('/api/save-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: data.customerName,
+            customerEmail: data.email,
+            passwordHash: data.passwordHash,
+            propertyAddress: data.address,
+            county: data.county,
+            state: data.ownerState,
+            assessedValue: data.assessedValue,
+            targetReduction: data.targetReduction,
+            estimatedSavings: data.savings,
+            stripeSessionId: session_id,
+            amountPaid: data.amountPaid || 8900,
+            vabFee: data.vabFee || 0,
+            vabPayableTo: data.vabPayableTo || null,
+            flSignatureName: data.flSignatureName || null,
+            stateCode: data.stateCode || null,
+            districtName: data.districtName,
+            districtAddress: data.districtAddress,
+            districtCity: data.districtCity,
+            districtState: data.districtState,
+            districtZip: data.districtZip,
+            disputeStatus: 'queued',
+            scheduledFileDate: data.scheduledFileDate || null,
+          }),
+        });
+      } catch (dbErr) { console.error('Database save failed:', dbErr); }
+
+      if (sig) {
+        try {
+          await fetch('/api/save-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: session_id,
+              signatureImage: sig.image,
+              typedName: sig.typedName,
+              acknowledged: sig.acknowledged,
+              signedAt: sig.signedAt,
+            }),
+          });
+        } catch (e) { console.error('Signature save failed:', e); }
+      }
+
+      setSigned(true);
+      setMailStatus('reserved');
+
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: data.email,
+            subject: `You are first in line for filing -- ${data.address}`,
+            html: buildReservedEmail({
+              customerName: data.customerName,
+              address: data.address,
+              county: data.county,
+              scheduledFileDate: data.scheduledFileDate,
+              assessedValue: data.assessedValue,
+              targetReduction: data.targetReduction,
+              savings: data.savings,
+            }),
+            text: `Your property tax protest for ${data.address} is reserved and will be filed via USPS certified mail as soon as your filing window opens.`,
+          }),
+        });
+      } catch (emailErr) { console.error('Email send failed:', emailErr); }
+
+      return;
+    }
     try {
       const mailRes = await fetch('/api/send-letter', {
         method: 'POST',
@@ -253,13 +381,22 @@ export default function Success() {
       case 'sent':    return { icon: '📬', text: 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
       case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
+      case 'reserved': return { icon: '🎟️', text: session?.scheduledFileDate ? `Reserved — files ${new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} when your window opens` : 'Reserved — files as soon as your filing window opens', color: C.navy, bg: C.lightBlue };
       default: return null;
     }
   };
 
   const badge = getMailStatusBadge();
 
-  const steps = [
+  const scheduledDateLabel = session?.scheduledFileDate ? new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'your filing window opening';
+
+  const steps = session?.isPreOrder ? [
+    { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
+    { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is prepared and held in your name.', done: true },
+    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. We will submit your protest via USPS certified mail with return receipt the moment it opens.`, done: false, active: true },
+    { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS certified mail tracking number will be emailed to you once it is dispatched.', done: false },
+    { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days after filing.', done: false },
+  ] : [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
     { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is filed in your name.', done: true },
     { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
@@ -321,9 +458,9 @@ export default function Success() {
           <>
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
-              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your protest is filed!</h1>
+              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{session?.isPreOrder ? 'You are reserved — first in line!' : 'Your protest is filed!'}</h1>
               <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. Your property tax protest is being sent via USPS certified mail with return receipt.
+                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed via USPS certified mail with return receipt as soon as your filing window opens on ' + scheduledDateLabel + '.') : 'Your property tax protest is being sent via USPS certified mail with return receipt.'}
               </p>
             </div>
 
@@ -373,14 +510,14 @@ export default function Success() {
             <div style={{ background: C.amber, border: "1px solid #FFD97A", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#7A5C10", marginBottom: 6 }}>📧 Confirmation email sent</div>
               <div style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.6 }}>
-                A confirmation has been sent to <strong>{session?.email}</strong>. Your USPS certified mail tracking number will follow once your letter has been dispatched.
+                {session?.isPreOrder ? <>A confirmation has been sent to <strong>{session?.email}</strong>. We will email you again with your USPS certified mail tracking number once your protest is filed on {scheduledDateLabel}.</> : <>A confirmation has been sent to <strong>{session?.email}</strong>. Your USPS certified mail tracking number will follow once your letter has been dispatched.</>}
               </div>
             </div>
 
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we'll help you understand it.
+                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched with your USPS certified mail tracking number.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we will help you understand it.</>}
               </div>
             </div>
 
