@@ -98,6 +98,8 @@ flSignatureTimestamp,
 flAuthDate,
 agentAuthGranted,
 agentAuthTimestamp,
+isPreOrder,
+scheduledFileDate,
 } = req.body;
 
 try {
@@ -171,6 +173,8 @@ flSignatureTimestamp: flSignatureTimestamp || '',
 flAuthDate: flAuthDate || '',
 agentAuthGranted: agentAuthGranted ? 'true' : 'false',
 agentAuthTimestamp: agentAuthTimestamp || '',
+isPreOrder: isPreOrder ? 'true' : 'false',
+scheduledFileDate: scheduledFileDate || '',
 },
 success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
 cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,
