@@ -1,81 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { getFilingWindowStatus } from '../../../lib/filingWindows';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Filing window config — mirrors apply.js
-const FILING_WINDOWS = {
-  TX: { openMonth: 4, openDay: 1, closeMonth: 5, closeDay: 31 },
-  FL: { openMonth: 8, openDay: 15, closeMonth: 9, closeDay: 18 },
-  GA: {
-    openMonth: 4, openDay: 1, closeMonth: 7, closeDay: 15,
-    countyWindows: {
-      "Fulton":   { openMonth: 5, openDay: 1,  closeMonth: 7, closeDay: 15 },
-      "Cobb":     { openMonth: 5, openDay: 15, closeMonth: 7, closeDay: 15 },
-      "Gwinnett": { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 15 },
-      "DeKalb":   { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 1  },
-      "Cherokee": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Forsyth":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Hall":     { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Henry":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Chatham":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Richmond": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Columbia": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Clayton":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Muscogee": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Bibb":     { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Houston":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Douglas":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Coweta":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Fayette":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Paulding": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Lowndes":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Bartow":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Clarke":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Jackson":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Walton":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Newton":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Rockdale": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-    },
-  },
-};
-
-function getWindowStatus(state, county, year) {
-  const fw = FILING_WINDOWS[state];
-  if (!fw) return null;
-
-  let openMonth = fw.openMonth;
-  let openDay = fw.openDay;
-  let closeMonth = fw.closeMonth;
-  let closeDay = fw.closeDay;
-
-  if (state === 'GA' && county && fw.countyWindows) {
-    const clean = county.replace(/ County$/i, '').trim().toLowerCase();
-    const cw = Object.entries(fw.countyWindows).find(([k]) => k.toLowerCase() === clean)?.[1];
-    if (cw) {
-      openMonth = cw.openMonth;
-      openDay = cw.openDay;
-      closeMonth = cw.closeMonth;
-      closeDay = cw.closeDay;
-    } else {
-      // Unknown GA county — use full statewide window (July 15)
-      closeMonth = 7;
-      closeDay = 15;
-    }
-  }
-
-  const openDate  = new Date(year, openMonth - 1, openDay);
-  const closeDate = new Date(year, closeMonth - 1, closeDay);
-  const today     = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const isOpen      = today >= openDate && today <= closeDate;
-  const daysLeft    = isOpen ? Math.ceil((closeDate - today) / (1000 * 60 * 60 * 24)) : 0;
-  const isFirstDay  = today.getTime() === openDate.getTime();
-
-  return { isOpen, daysLeft, isFirstDay, openDate, closeDate };
-}
 
 function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay, filingUrl }) {
   const firstName = name ? name.split(' ')[0] : 'there';
@@ -229,7 +157,7 @@ export default async function handler(req, res) {
 
       // Check if this state/county window is currently open
       const stateUpper = (state || '').toUpperCase().trim();
-      const windowStatus = getWindowStatus(stateUpper, county, currentYear);
+      const windowStatus = getFilingWindowStatus(stateUpper, county);
 
       console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysLeft}`);
 
@@ -299,7 +227,7 @@ export default async function handler(req, res) {
         state,
         county,
         propertyAddress: property_address,
-        daysLeft: windowStatus.daysLeft,
+        daysLeft: windowStatus.daysUntilClose,
         isFirstDay: windowStatus.isFirstDay,
         filingUrl,
       });
