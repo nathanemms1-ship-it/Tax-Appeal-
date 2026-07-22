@@ -608,6 +608,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
+  const filingWindow = getFilingWindowStatus(stateCode, pd.county);
   const requiresAuth = ["AR","AL"].includes(stateCode);
   const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
@@ -646,6 +647,8 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           flSignatureTimestamp: flSignature ? flSignature.timestamp : '',
           flAuthDate: flSignature ? flSignature.date : '',
           refCode: (typeof window !== 'undefined' ? localStorage.getItem('taxappeal_ref') : null) || '',
+          isPreOrder: !!(filingWindow && filingWindow.canPreOrder),
+          scheduledFileDate: (filingWindow && filingWindow.canPreOrder) ? filingWindow.openDate.toISOString() : '',
         }),
       });
       const data = await res.json();
