@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import StepFloridaFee, { getFlVabFee } from './StepFloridaFee';
+import { getFilingWindowStatus } from '../lib/filingWindows';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
@@ -20,74 +21,6 @@ const SUPPORTED_STATES = {
   AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
   AL: { name: "Alabama", deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
-
-const FILING_WINDOWS = {
-  TX: { openMonth: 4, openDay: 1, closeMonth: 5, closeDay: 31, hardMonth: 5, hardDay: 15, minDays: 3, receiptRequired: false },
-  GA: {
-    openMonth: 4, openDay: 1, closeMonth: 7, closeDay: 15, hardMonth: 7, hardDay: 15, minDays: 3, receiptRequired: false,
-    countyWindows: {
-      "Fulton":   { openMonth: 5, openDay: 1,  closeMonth: 7, closeDay: 15 },
-      "Cobb":     { openMonth: 5, openDay: 15, closeMonth: 7, closeDay: 15 },
-      "Gwinnett": { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 15 },
-      "DeKalb":   { openMonth: 4, openDay: 1,  closeMonth: 6, closeDay: 1  },
-      "Cherokee": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Forsyth":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Hall":     { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Henry":    { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Chatham":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Richmond": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Columbia": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Clayton":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Muscogee": { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Bibb":     { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Houston":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Douglas":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Coweta":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Fayette":  { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Paulding": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Lowndes":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Bartow":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Clarke":   { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Jackson":  { openMonth: 4, openDay: 15, closeMonth: 6, closeDay: 15 },
-      "Walton":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Newton":   { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-      "Rockdale": { openMonth: 5, openDay: 1,  closeMonth: 6, closeDay: 30 },
-    },
-  },
-  AR: { openMonth: 6, openDay: 1, closeMonth: 8, closeDay: 10, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false },
-  FL: { openMonth: 8, openDay: 11, closeMonth: 9, closeDay: 18, hardMonth: 9, hardDay: 18, minDays: 10, receiptRequired: true },
-  AL: { openMonth: 4, openDay: 1, closeMonth: 8, closeDay: 17, hardMonth: 8, hardDay: 17, minDays: 7, receiptRequired: false }
-};
-
-function getFilingWindowStatus(stateCode, countyName) {
-  const fw = FILING_WINDOWS[stateCode];
-  if (!fw) return null;
-  const today = new Date();
-  const year = today.getFullYear();
-  let openMonth = fw.openMonth, openDay = fw.openDay, closeMonth = fw.closeMonth, closeDay = fw.closeDay;
-  if (stateCode === "GA" && countyName && fw.countyWindows) {
-    const countyClean = countyName.replace(/ County$/i, "").trim();
-    const cw = fw.countyWindows[countyClean];
-    if (cw) { openMonth = cw.openMonth; openDay = cw.openDay; closeMonth = cw.closeMonth; closeDay = cw.closeDay; }
-    else { closeMonth = 6; closeDay = 15; }
-  }
-  let openDate = new Date(year, openMonth - 1, openDay);
-  let closeDate = new Date(year, closeMonth - 1, closeDay);
-  let hardDeadline = new Date(year, fw.hardMonth - 1, fw.hardDay);
-  if (today > closeDate) {
-    openDate = new Date(year + 1, fw.openMonth - 1, fw.openDay);
-    closeDate = new Date(year + 1, fw.closeMonth - 1, fw.closeDay);
-    hardDeadline = new Date(year + 1, fw.hardMonth - 1, fw.hardDay);
-  }
-  const isOpen = today >= openDate && today <= closeDate;
-  const daysUntilOpen = !isOpen ? Math.ceil((openDate - today) / (1000 * 60 * 60 * 24)) : 0;
-  const daysUntilClose = isOpen ? Math.ceil((closeDate - today) / (1000 * 60 * 60 * 24)) : 0;
-  const daysUntilHard = isOpen ? Math.ceil((hardDeadline - today) / (1000 * 60 * 60 * 24)) : 0;
-  const tooClose = isOpen && daysUntilHard < fw.minDays;
-  const canFile = isOpen && !tooClose;
-  const urgency = !isOpen ? "closed" : daysUntilClose <= 7 ? "critical" : daysUntilClose <= 14 ? "urgent" : daysUntilClose <= 30 ? "warning" : "normal";
-  return { isOpen, canFile, daysUntilOpen, daysUntilClose, daysUntilHard, tooClose, urgency, receiptRequired: fw.receiptRequired, openDate, closeDate };
-}
 
 const ISSUE_CATEGORIES = [
   { category: "Structural & Major Systems", color: C.red, icon: "🏗", issues: ["Foundation cracks, settling, or structural damage","Roof damage or age (leaks, missing shingles, sagging)","Major water damage (ceiling/wall/floor stains, rot)","Mold or persistent mildew problems","Outdated or failed HVAC system","Failed or aging water heater","Outdated electrical service","Significant plumbing defects (leaks, corroded pipes)","Sewer or septic failure requiring replacement"] },
