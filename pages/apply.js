@@ -391,7 +391,8 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
       setChecking(false);
     }
     const ws = getFilingWindowStatus(sc, countyName);
-    if (ws && !ws.canFile) { onClosedWindow(sc, ws); return; }
+    if (ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(sc, ws); return; }
+    if (ws && ws.canPreOrder) { setErr(""); onNext(); return; }
     if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();
   };
