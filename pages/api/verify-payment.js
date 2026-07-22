@@ -44,6 +44,8 @@ export default async function handler(req, res) {
     const flSignatureName = meta.flSignatureName || '';
     const flSignatureTimestamp = meta.flSignatureTimestamp || '';
     const flAuthDate = meta.flAuthDate || '';
+    const isPreOrder = meta.isPreOrder === 'true';
+    const scheduledFileDate = meta.scheduledFileDate || null;
     const totalPaid = session.amount_total || (7900 + vabFee);
 
     return res.status(200).json({
@@ -74,6 +76,8 @@ export default async function handler(req, res) {
       flSignatureName,
       flSignatureTimestamp,
       flAuthDate,
+      isPreOrder,
+      scheduledFileDate,
     });
   } catch (err) {
     console.error('Verify payment error:', err);
