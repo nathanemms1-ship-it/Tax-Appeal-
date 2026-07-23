@@ -38,21 +38,21 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, and AR." />
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, AR, and AL." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR." />
+        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. 82% approval rate. TX, GA, FL." />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. 82% approval rate. TX, GA, FL, AR, AL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -424,7 +424,7 @@ export default function Landing() {
           <div className="trust-item">🔒 256-bit encrypted</div>
           <div className="trust-item">⏱️ Takes 4 minutes</div>
           <div className="trust-item">📬 Certified mail included</div>
-          <div className="trust-item">✅ TX · GA · FL · AR</div>
+          <div className="trust-item">✅ TX · GA · FL · AR · AL</div>
         </div>
         <div className="stats-row">
           <div className="stat-card"><div className="stat-num">82%</div><div className="stat-label">Approval rate</div></div>
@@ -711,7 +711,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="footer">
      <p>© 2026 TaxAppeal USA · Support: <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
-        <p>Available in TX · GA · FL · AR · More states coming soon</p>
+        <p>Available in TX · GA · FL · AR · AL · More states coming soon</p>
         <p>
           <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
           <a href="/privacy">Privacy Policy</a>
