@@ -68,6 +68,8 @@ export default function Admin() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [processingId, setProcessingId] = useState(null);
+  const [processResults, setProcessResults] = useState({});
 
   const fetchOrders = async (pw) => {
     setLoading(true);
@@ -114,6 +116,33 @@ export default function Admin() {
     }
     return true;
   });
+
+  const queuedOrders = [...orders]
+    .filter(o => o.dispute_status === 'queued')
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const handleProcessNow = async (orderId) => {
+    if (!confirm('Dispatch this order now? This will mail the letter immediately.')) return;
+    setProcessingId(orderId);
+    setProcessResults(prev => ({ ...prev, [orderId]: null }));
+    try {
+      const res = await fetch('/api/process-order-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, orderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProcessResults(prev => ({ ...prev, [orderId]: { success: true, trackingNumber: data.trackingNumber } }));
+        fetchOrders();
+      } else {
+        setProcessResults(prev => ({ ...prev, [orderId]: { success: false, error: data.error } }));
+      }
+    } catch (e) {
+      setProcessResults(prev => ({ ...prev, [orderId]: { success: false, error: 'Request failed' } }));
+    }
+    setProcessingId(null);
+  };
 
   return (
     <>
@@ -175,11 +204,12 @@ export default function Admin() {
       ) : (
         <div style={{ padding: "24px 32px", maxWidth: 1400, margin: "0 auto" }}>
           {/* Stats cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 14, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 14, marginBottom: 28 }}>
             {[
               ["Total Orders", stats?.totalOrders || 0, "📦", C.navy],
               ["Revenue", formatMoney(stats?.totalRevenue || 0), "💰", C.green],
               ["Est. Savings", stats?.totalSavings ? '$' + Number(stats.totalSavings).toLocaleString() : '$0', "📊", C.gold],
+              ["Queued", queuedOrders.length, "🎟️", C.navy],
               ["Filed", stats?.filed || 0, "📬", "#1B3A6B"],
               ["Approved", stats?.approved || 0, "✓", C.green],
               ["Denied", stats?.denied || 0, "✗", C.red],
@@ -192,6 +222,66 @@ export default function Admin() {
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color }}>{value}</div>
               </div>
             ))}
+          </div>
+
+          {/* Queued Pre-Orders */}
+          <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 28 }}>
+            <div style={{ padding: "16px 20px", borderBottom: `1.5px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>🎟️ Queued Pre-Orders</div>
+              <div style={{ fontSize: 12, color: C.mutedGray }}>{queuedOrders.length} waiting on a filing window</div>
+            </div>
+            <table>
+              <thead>
+                <tr style={{ background: C.bg }}>
+                  <th>Reserved</th>
+                  <th>Customer</th>
+                  <th>Property</th>
+                  <th>State / County</th>
+                  <th>Scheduled File Date</th>
+                  <th>Opens In</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {queuedOrders.length === 0 ? (
+                  <tr><td colSpan={7} style={{ textAlign: "center", padding: "32px", color: C.mutedGray }}>No queued pre-orders</td></tr>
+                ) : (
+                  queuedOrders.map(order => {
+                    const daysUntil = order.scheduled_file_date ? Math.ceil((new Date(order.scheduled_file_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                    const result = processResults[order.id];
+                    return (
+                      <tr key={order.id} style={{ cursor: "default" }}>
+                        <td style={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDate(order.created_at)}</td>
+                        <td>
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>{order.customer_name || '—'}</div>
+                          <div style={{ fontSize: 11, color: C.mutedGray }}>{order.customer_email || '—'}</div>
+                        </td>
+                        <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.property_address || '—'}</td>
+                        <td>{[order.state_code, order.county].filter(Boolean).join(' / ') || '—'}</td>
+                        <td style={{ whiteSpace: "nowrap" }}>{order.scheduled_file_date ? formatDate(order.scheduled_file_date) : '—'}</td>
+                        <td style={{ whiteSpace: "nowrap", color: daysUntil !== null && daysUntil <= 0 ? C.green : C.bodyGray, fontWeight: daysUntil !== null && daysUntil <= 0 ? 700 : 400 }}>
+                          {daysUntil === null ? '—' : daysUntil <= 0 ? 'Window open' : `${daysUntil} days`}
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => handleProcessNow(order.id)}
+                            disabled={processingId === order.id}
+                            style={{ background: C.navy, color: C.white, border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: processingId === order.id ? "default" : "pointer", fontFamily: "'DM Sans', sans-serif", opacity: processingId === order.id ? 0.6 : 1 }}
+                          >
+                            {processingId === order.id ? 'Processing…' : 'Process Now'}
+                          </button>
+                          {result && (
+                            <div style={{ fontSize: 11, marginTop: 4, color: result.success ? C.green : C.red, maxWidth: 160 }}>
+                              {result.success ? `✓ Filed${result.trackingNumber ? ' · ' + result.trackingNumber : ''}` : `✗ ${result.error}`}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
 
           {/* Search and filters */}
