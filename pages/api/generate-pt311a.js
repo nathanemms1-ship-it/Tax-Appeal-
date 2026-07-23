@@ -51,7 +51,7 @@ function buildPT311AHtml(p) {
     '<div class="ev">' + (p.evidenceText || 'See attached analysis.') + '</div>' +
     '</div></div>' +
     '<div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">' +
-    'Filed by TaxAppeal USA | disputes@taxappealusa.com | Filing Date: ' + today +
+    'Filed by TaxAppeal USA | disputes@taxappealusa.com | Filing Date: ' + today + '<br/>Please send the Board\'s Notice of Decision to both the property owner (address above) and to disputes@taxappealusa.com.' +
     '</div></div></body></html>';
 }
 
