@@ -51,6 +51,31 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 @media(max-width:768px){.hero-stats{grid-template-columns:1fr 1fr !important;}.compare-grid{grid-template-columns:1fr !important;}.hero-title{font-size:28px !important;}.district-grid{grid-template-columns:1fr !important;}}
 `}</style>
 
+{(() => {
+  const preOrderOpen = new Date('2026-06-12');
+  const windowOpen = new Date('2026-08-11');
+  const windowClose = new Date('2026-09-18');
+  const today = new Date();
+  const barStyle = { background: C.gold, color: C.darkNavy, textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
+  if (today >= preOrderOpen && today < windowOpen) {
+    const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
+    return (
+      <div style={barStyle}>
+        🔒 Reserve your Miami-Dade County spot now — TRIM notices start arriving in {days} days. Lock in the $89 rate today; we file the moment your county's window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+      </div>
+    );
+  }
+  if (today >= windowOpen && today <= windowClose) {
+    return (
+      <div style={barStyle}>
+        🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+      </div>
+    );
+  }
+  return null;
+})()}
+
+
 <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}>
 <div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div>
