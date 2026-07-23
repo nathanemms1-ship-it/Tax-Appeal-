@@ -83,7 +83,7 @@ function buildDR486Html({ ownerFirstName, ownerLastName, ownerEmail, ownerStreet
     <div class="evidence-block">${evidenceText || 'See attached comparable sales analysis.'}</div>
   </div></div>
   <div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">
-    Filed by TaxAppeal USA | disputes@taxappealusa.com | Authorized Representative § 194.011(3)(h), F.S.<br/>Filed via USPS Mail | Filing Date: ${today}
+    Filed by TaxAppeal USA | disputes@taxappealusa.com | Authorized Representative § 194.011(3)(h), F.S.<br/>Filed via USPS Mail | Filing Date: ${today}<br/>Please send the Value Adjustment Board's determination to both the property owner (address above) and to disputes@taxappealusa.com.
   </div>
 </div></body></html>`;
 }
