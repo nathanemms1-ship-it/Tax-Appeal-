@@ -234,6 +234,31 @@ export default function FloridaCityPage({ city }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
       </Head>
 
+      {(() => {
+        const preOrderOpen = new Date('2026-06-12');
+        const windowOpen = new Date('2026-08-11');
+        const windowClose = new Date('2026-09-18');
+        const today = new Date();
+        const barStyle = { background: '#FFC940', color: '#0F1F3D', textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
+        if (today >= preOrderOpen && today < windowOpen) {
+          const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
+          return (
+            <div style={barStyle}>
+              🔒 Reserve your {city.county} County spot now — TRIM notices start arriving in {days} days. Lock in the $89 rate today; we file the moment your county's window opens. <a href="/apply" style={{ color: '#0F1F3D', textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+            </div>
+          );
+        }
+        if (today >= windowOpen && today <= windowClose) {
+          return (
+            <div style={barStyle}>
+              🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: '#0F1F3D', textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+
       <div style={{ fontFamily: "'DM Sans',sans-serif", color: "#1B2A4A", maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
         <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: "1px solid #e5e7eb" }}>
           <Link href="/" style={{ textDecoration: "none" }}><span style={{ fontSize: "22px", fontWeight: "800", color: "#1B2A4A" }}>TaxAppeal <span style={{ color: "#C9A84C" }}>USA</span></span></Link>
