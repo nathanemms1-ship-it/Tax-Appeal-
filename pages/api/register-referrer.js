@@ -2,8 +2,41 @@
 // Handles /partners form submission — creates a referral code and saves to Supabase
 import { getSupabaseAdmin } from './supabase';
 import { Resend } from 'resend';
+import { Redis } from '@upstash/redis';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+let redis = null;
+try {
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+if (redisUrl && redisToken) {
+redis = new Redis({ url: redisUrl, token: redisToken });
+}
+} catch (e) {
+console.log('Redis init failed:', e.message);
+}
+
+const REMINDER_THROTTLE_SECONDS = 300; // don't resend the reminder more than once per 5 minutes per email
+
+async function reminderRecentlySent(email) {
+if (!redis) return false;
+try {
+const key = `referral-reminder:${email}`;
+const val = await redis.get(key);
+return !!val;
+} catch (e) {
+return false;
+}
+}
+
+async function markReminderSent(email) {
+if (!redis) return;
+try {
+const key = `referral-reminder:${email}`;
+await redis.set(key, Date.now(), { ex: REMINDER_THROTTLE_SECONDS });
+} catch (e) {}
+}
 
 function generateCode(firstName, lastName) {
 const first = (firstName || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
@@ -88,13 +121,18 @@ const { data: existing } = await supabase
 
 if (existing) {
 const referralLink = referralLinkFor(existing.code);
+const alreadySentRecently = await reminderRecentlySent(normalizedEmail);
+if (!alreadySentRecently) {
 await sendReminderEmail({
 email: normalizedEmail,
 firstName: existing.first_name || firstName,
 code: existing.code,
 referralLink,
 });
-return res.status(200).json({ success: true, duplicate: true, code: existing.code, referralLink, message: 'You already have a referral code — we emailed it to you again' });
+await markReminderSent(normalizedEmail);
+}
+const message = alreadySentRecently ? 'You already have a referral code — here it is (we emailed it to you recently, check your inbox)' : 'You already have a referral code — we emailed it to you again';
+return res.status(200).json({ success: true, duplicate: true, code: existing.code, referralLink, message });
 }
 
 // Generate unique code — check for conflicts
