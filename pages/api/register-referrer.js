@@ -87,7 +87,7 @@ const { data: existing } = await supabase
 .single();
 
 if (existing) {
-const referralLink = referralLinkFor(eziting.code);
+const referralLink = referralLinkFor(existing.code);
 await sendReminderEmail({
 email: normalizedEmail,
 firstName: existing.first_name || firstName,
