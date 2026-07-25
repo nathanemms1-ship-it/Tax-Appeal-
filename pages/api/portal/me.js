@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const { data: order, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_name, customer_email, property_address, state, county, ' +
+      'id, customer_name, customer_email, property_address, state, state_code, county, ' +
       'dispute_status, decision_date, decision_detail, savings_amount, actual_savings, ' +
       'created_at, lob_letter_id, lob_tracking_number, lob_status, mailed_at, ' +
       'assessed_value, estimated_savings, outcome'
