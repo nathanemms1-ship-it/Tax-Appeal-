@@ -130,6 +130,7 @@ export default function Portal() {
 
   const status = order ? (STATUS_CONFIG[order.dispute_status] || STATUS_CONFIG.filed) : null;
   const displaySavings = order?.savings_amount || order?.actual_savings || order?.estimated_savings || 0;
+  const isFL = order ? (order.state_code || order.state || '').toUpperCase() === 'FL' : false;
 
   const timelineSteps = order ? [
     {
@@ -140,7 +141,7 @@ export default function Portal() {
     },
     {
       label: 'Letter Mailed',
-      sublabel: 'Certified mail dispatched via USPS',
+      sublabel: isFL ? 'Trackable First Class mail dispatched via USPS' : 'Certified mail dispatched via USPS',
       done: !!order.lob_letter_id,
       date: order.mailed_at
     },
@@ -347,7 +348,27 @@ export default function Portal() {
                 </div>
               )}
 
-              {/* Property Details */}
+              {order.lob_tracking_number && (
+<div style={styles.card}>
+<h3 style={{ color: '#fff', fontSize: 15, fontWeight: 600, margin: '0 0 16px' }}>USPS Tracking</h3>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+<div>
+<div style={{ color: '#cbd5e1', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{order.lob_tracking_number}</div>
+<div style={{ color: '#475569', fontSize: 13 }}>{isFL ? 'USPS First Class Mail (trackable, not certified)' : 'USPS Certified Mail'}</div>
+</div>
+<a
+href={`https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(order.lob_tracking_number)}`}
+target="_blank"
+rel="noopener noreferrer"
+style={{ background: '#1e293b', color: '#22c55e', textDecoration: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
+>
+Track on USPS.com →
+</a>
+</div>
+</div>
+)}
+
+{/* Property Details */}
               <div style={styles.card}>
                 <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 600, margin: '0 0 20px' }}>Property Details</h3>
                 <div style={{ display: 'grid', gap: 14 }}>
