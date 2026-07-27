@@ -138,7 +138,8 @@ export default function PartnersPage() {
                     <div style={{fontSize:20,fontWeight:500,color:C.navy,letterSpacing:1}}>{result.code}</div>
                   </div>
                   <div style={{background:'#f8fafc',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,wordBreak:'break-all',fontSize:13,color:C.bodyGray}}>{result.referralLink}</div>
-                  <button onClick={copyLink} style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 24px',fontSize:14,fontWeight:500,cursor:'pointer',width:'100%',fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>{copied?'✅ Copied!':'📋 Copy My Referral Link'}</button>
+                  <button onClick={copyLink} style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 24px',fontSize:14,fontWeight:500,cursor:'pointer',width:'100%',fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>{copied?'✅ Copied!':'📋 Copy My Referral Link'}</button>
+                  <a href={`/partners/dashboard?ref=${result.code}&email=${encodeURIComponent(form.email)}`} style={{display:'block',width:'100%',background:'transparent',color:C.navy,border:`1.5px solid ${C.navy}`,borderRadius:8,padding:'11px 24px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'center',textDecoration:'none',marginBottom:12,boxSizing:'border-box'}}>View my dashboard →</a>
                   <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
                     <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>Set up your payout account</div>
                     <p style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:12}}>Connect your bank account through Stripe to receive monthly payouts. Takes about 2 minutes — Stripe handles all tax forms automatically.</p>
