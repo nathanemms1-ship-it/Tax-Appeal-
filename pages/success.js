@@ -373,6 +373,34 @@ export default function Success() {
         setSession(data);
         setLoading(false);
 
+        // Google Ads / GA4 — purchase conversion event (primary conversion for ROAS tracking).
+        // Fires once per successful payment — Stripe session_id deduplicates repeat page loads.
+        // Set NEXT_PUBLIC_GADS_PURCHASE_LABEL in your Vercel env to activate Google Ads conversion.
+        if (typeof window !== 'undefined' && window.gtag) {
+          window.gtag('event', 'purchase', {
+            transaction_id: session_id,
+            currency: 'USD',
+            value: (data.amountPaid || 8900) / 100,
+            items: [{
+              item_id: 'property-tax-appeal',
+              item_name: 'Property Tax Appeal Filing',
+              item_category: data.stateCode || 'FL',
+              price: 89,
+              quantity: 1,
+            }],
+          });
+          const gadsId = process.env.NEXT_PUBLIC_GADS_ID;
+          const purchaseLabel = process.env.NEXT_PUBLIC_GADS_PURCHASE_LABEL;
+          if (gadsId && purchaseLabel) {
+            window.gtag('event', 'conversion', {
+              send_to: `${gadsId}/${purchaseLabel}`,
+              value: (data.amountPaid || 8900) / 100,
+              currency: 'USD',
+              transaction_id: session_id,
+            });
+          }
+        }
+
         const canMail = data.districtName && data.districtAddress && data.letter && data.ownerStreet;
         if (!canMail) { setMailStatus('manual'); return; }
 

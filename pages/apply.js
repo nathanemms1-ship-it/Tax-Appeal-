@@ -617,6 +617,33 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const doCheckout = async () => {
     if (!allAgreed) return;
     setCheckingOut(true);
+
+    // Google Ads / GA4 — begin_checkout conversion event
+    // Fires the moment the homeowner clicks "File my dispute · $89" and agrees to terms.
+    // Set NEXT_PUBLIC_GADS_CHECKOUT_LABEL in your Vercel env to activate Google Ads conversion.
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'begin_checkout', {
+        currency: 'USD',
+        value: 89,
+        items: [{
+          item_id: 'property-tax-appeal',
+          item_name: 'Property Tax Appeal Filing',
+          item_category: stateCode,
+          price: 89,
+          quantity: 1,
+        }],
+      });
+      const gadsId = process.env.NEXT_PUBLIC_GADS_ID;
+      const checkoutLabel = process.env.NEXT_PUBLIC_GADS_CHECKOUT_LABEL;
+      if (gadsId && checkoutLabel) {
+        window.gtag('event', 'conversion', {
+          send_to: `${gadsId}/${checkoutLabel}`,
+          value: 89,
+          currency: 'USD',
+        });
+      }
+    }
+
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -965,11 +992,22 @@ export default function App() {
     setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
   };
 
-  // Capture referral code from URL ?ref= param on mount
+  // Capture referral code and pre-fill state from URL params on mount.
+  // ?state=FL from florida.js CTAs pre-selects Florida in the property step.
+  // ?gclid / ?utm_* are stored in sessionStorage for Google Ads attribution.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (ref) localStorage.setItem('taxappeal_ref', ref);
+    const stateParam = params.get('state');
+    if (stateParam) setProperty(p => ({ ...p, state: stateParam.toUpperCase() }));
+    // Store UTM params for attribution
+    const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
+    const hasUtm = utmKeys.some(k => params.get(k));
+    if (hasUtm) {
+      const utmStr = utmKeys.filter(k => params.get(k)).map(k => `${k}=${params.get(k)}`).join('&');
+      try { sessionStorage.setItem('taxappeal_utm', utmStr); } catch(_) {}
+    }
   }, []);
 
   return (

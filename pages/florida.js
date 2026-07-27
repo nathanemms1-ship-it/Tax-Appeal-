@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 const C = {
@@ -64,7 +64,34 @@ const testimonials = [
 export default function Florida() {
 const router = useRouter();
 const [openFaq, setOpenFaq] = useState(null);
-const go = () => router.push('/apply');
+
+// Preserve UTM parameters through to /apply so Google Ads attribution works.
+// Also pre-fills state=FL so the apply flow defaults to Florida.
+const go = () => {
+  const params = new URLSearchParams();
+  params.set('state', 'FL');
+  if (typeof window !== 'undefined') {
+    const src = new URLSearchParams(window.location.search);
+    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'].forEach(k => {
+      if (src.get(k)) params.set(k, src.get(k));
+    });
+    // Store UTMs in sessionStorage so they survive across /apply steps
+    if (src.get('utm_source')) {
+      try { sessionStorage.setItem('taxappeal_utm', src.toString()); } catch(_) {}
+    }
+  }
+  router.push(`/apply?${params.toString()}`);
+};
+
+// Capture gclid for Google Ads attribution on first load
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  const src = new URLSearchParams(window.location.search);
+  const gclid = src.get('gclid');
+  if (gclid) {
+    try { sessionStorage.setItem('taxappeal_gclid', gclid); } catch(_) {}
+  }
+}, []);
 
 return (
 <>

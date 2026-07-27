@@ -1,7 +1,20 @@
 import Head from 'next/head'
+import Script from 'next/script'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import DisclaimerFooter from '../components/DisclaimerFooter'
+
+// Google Ads / GA4 tag IDs — set in .env.local and Vercel env vars:
+//   NEXT_PUBLIC_GTAG_ID=G-XXXXXXXXXX   (GA4 Measurement ID)
+//   NEXT_PUBLIC_GADS_ID=AW-XXXXXXXXXX  (Google Ads Conversion ID)
+const GTAG_ID = process.env.NEXT_PUBLIC_GTAG_ID || ''
+const GADS_ID = process.env.NEXT_PUBLIC_GADS_ID || ''
+
+export function gtag(...args) {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag(...args)
+  }
+}
 
 export default function App({ Component, pageProps }) {
   const router = useRouter()
@@ -18,6 +31,23 @@ export default function App({ Component, pageProps }) {
 
   return (
     <>
+      {/* Google tag (gtag.js) — loads only when IDs are configured */}
+      {GTAG_ID && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="gtag-init" strategy="afterInteractive">{`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', '${GTAG_ID}', { page_path: window.location.pathname });
+            ${GADS_ID ? `gtag('config', '${GADS_ID}');` : ''}
+          `}</Script>
+        </>
+      )}
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
