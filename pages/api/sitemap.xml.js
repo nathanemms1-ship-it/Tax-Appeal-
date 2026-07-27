@@ -1,6 +1,6 @@
 // pages/api/sitemap.xml.js
 // Self-contained sitemap — do not import from external files
-// Updated: 2026-06-28 — 108 blog posts, all states
+// Updated: 2026-07-27 — added 52 Georgia city pages, 108 blog posts, all states
 
 const floridaCitySlugs = [
   "miami-beach","coral-gables","coconut-grove","brickell","aventura","doral","kendall","hialeah",
@@ -50,6 +50,20 @@ const floridaCitySlugs = [
   "pinecrest",
   "west-kendall",
 
+];
+
+const georgiaCitySlugs = [
+  "alpharetta-ga","sandy-springs-ga","roswell-ga","johns-creek-ga","milton-ga",
+  "marietta-ga","smyrna-ga","kennesaw-ga","acworth-ga","powder-springs-ga",
+  "duluth-ga","suwanee-ga","lawrenceville-ga","buford-ga","peachtree-corners-ga",
+  "norcross-ga","canton-ga","woodstock-ga","ball-ground-ga","cumming-ga",
+  "sugar-hill-ga","gainesville-ga","braselton-ga","decatur-ga","tucker-ga",
+  "dunwoody-ga","brookhaven-ga","stone-mountain-ga","mcdonough-ga","stockbridge-ga",
+  "locust-grove-ga","dallas-ga","douglasville-ga","peachtree-city-ga","newnan-ga",
+  "sharpsburg-ga","savannah-ga","pooler-ga","richmond-hill-ga","st-simons-island-ga",
+  "evans-ga","grovetown-ga","martinez-ga","columbus-ga","fortson-ga",
+  "macon-ga","warner-robins-ga","kathleen-ga","flowery-branch-ga","dawsonville-ga",
+  "jasper-ga","rome-ga",
 ];
 
 const allCountySlugs = [
@@ -749,13 +763,19 @@ export default function handler(req, res) {
     changefreq: "monthly",
   }));
 
+  const georgiaCityPages = georgiaCitySlugs.map((s) => ({
+    url: `/georgia/${s}`,
+    priority: "0.85",
+    changefreq: "monthly",
+  }));
+
   const blogPages = blogSlugs.map((s) => ({
     url: `/blog/${s}`,
     priority: "0.75",
     changefreq: "monthly",
   }));
 
-  const allPages = [...staticPages, ...countyPages, ...floridaNeighborhoodPages, ...blogPages];
+  const allPages = [...staticPages, ...countyPages, ...floridaNeighborhoodPages, ...georgiaCityPages, ...blogPages];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
