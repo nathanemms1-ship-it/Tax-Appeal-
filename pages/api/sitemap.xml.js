@@ -1,6 +1,6 @@
 // pages/api/sitemap.xml.js
 // Self-contained sitemap — do not import from external files
-// Updated: 2026-07-27 — added 52 Georgia city pages, 108 blog posts, all states
+// Updated: 2026-07-27 — added 52 Georgia city pages, 20 Arkansas city pages, 108 blog posts, all states
 
 const floridaCitySlugs = [
   "miami-beach","coral-gables","coconut-grove","brickell","aventura","doral","kendall","hialeah",
@@ -50,6 +50,13 @@ const floridaCitySlugs = [
   "pinecrest",
   "west-kendall",
 
+];
+
+const arkansasCitySlugs = [
+  "bentonville-ar","rogers-ar","fayetteville-ar","springdale-ar","siloam-springs-ar",
+  "little-rock-ar","north-little-rock-ar","maumelle-ar","sherwood-ar","conway-ar",
+  "benton-ar","bryant-ar","fort-smith-ar","van-buren-ar","jonesboro-ar",
+  "paragould-ar","hot-springs-ar","searcy-ar","pine-bluff-ar","texarkana-ar",
 ];
 
 const georgiaCitySlugs = [
@@ -769,13 +776,19 @@ export default function handler(req, res) {
     changefreq: "monthly",
   }));
 
+  const arkansasCityPages = arkansasCitySlugs.map((s) => ({
+    url: `/arkansas/${s}`,
+    priority: "0.85",
+    changefreq: "monthly",
+  }));
+
   const blogPages = blogSlugs.map((s) => ({
     url: `/blog/${s}`,
     priority: "0.75",
     changefreq: "monthly",
   }));
 
-  const allPages = [...staticPages, ...countyPages, ...floridaNeighborhoodPages, ...georgiaCityPages, ...blogPages];
+  const allPages = [...staticPages, ...countyPages, ...floridaNeighborhoodPages, ...georgiaCityPages, ...arkansasCityPages, ...blogPages];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
