@@ -178,7 +178,7 @@ export default function PartnerDashboard() {
       </div>
 
       {/* Auth screen */}
-      {(status === 'auth' || status === 'loading' && !data) && (
+      {status === 'auth' && (
         <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: C.white, borderRadius: 16, padding: '40px 36px', maxWidth: 420, width: '100%', border: `1px solid ${C.border}` }}>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -221,7 +221,7 @@ export default function PartnerDashboard() {
       )}
 
       {/* Loading spinner */}
-      {status === 'loading' && data === null && (
+      {status === 'loading' && (
         <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: C.mutedGray, fontSize: 14 }}>Loading your dashboard…</div>
         </div>
