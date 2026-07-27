@@ -22,7 +22,7 @@ export default function GeorgiaCityPage({ city }) {
   ];
 
   const schema = { "@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(f=>({ "@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a} })) };
-  const lbSchema = { "@context":"https://schema.org","@type":"LocalBusiness","name":"TaxAppeal USA","description":`Property tax appeal service for ${city.name}, ${city.county} County, Georgia`,"url":`https://www.taxappealusa.com/georgia/${city.slug}`,"areaServed":{"@type":"City","name":city.name,"containedInPlace":{"@type":"State","name":"Georgia"}},"offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"},"priceRange":"$89" };
+  const lbSchema = { "@context":"https://schema.org","@type":"LocalBusiness","name":"TaxAppeal USA","description":`Property tax appeal service for ${city.name}, ${city.county} County, Georgia`,"url":`https://www.taxappealusa.com/georgia/${city.slug}`,"areaServed":{"@type":"City","name":city.name,"containedInPlace":{"@type":"State","name":"Georgia"}},"offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"},"priceRange":"$89" };
 
   return (
     <>

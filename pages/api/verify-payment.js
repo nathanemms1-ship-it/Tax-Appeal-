@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     const flAuthDate = meta.flAuthDate || '';
     const isPreOrder = meta.isPreOrder === 'true';
     const scheduledFileDate = meta.scheduledFileDate || null;
-    const totalPaid = session.amount_total || (7900 + vabFee);
+    const totalPaid = session.amount_total || (8900 + vabFee);
 
     return res.status(200).json({
       paid: true,

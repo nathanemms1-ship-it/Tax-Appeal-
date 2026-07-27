@@ -78,7 +78,7 @@ export default function TexasCityPage({ city }) {
     "description": `Property tax protest service for ${city.name}, ${city.county} County, Texas`,
     "url": `https://www.taxappealusa.com/texas/${city.slug}`,
     "areaServed": { "@type": "City", "name": city.name, "containedInPlace": { "@type": "State", "name": "Texas" } },
-    "offers": { "@type": "Offer", "price": "79.00", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" },
     "priceRange": "$89"
   };
 

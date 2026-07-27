@@ -38,7 +38,7 @@ export default function SanAntonio() {
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
           "areaServed":{"@type":"City","name":"San Antonio"},
           "description":"Property tax protest letter preparation and USPS certified mail filing for San Antonio homeowners.",
-          "offers":{"@type":"Offer","price":"79.00","priceCurrency":"USD"}
+          "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
       <style>{`
