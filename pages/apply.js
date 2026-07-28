@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import StepFloridaFee, { getFlVabFee } from './StepFloridaFee';
+import { isFlCountySupported } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
@@ -897,11 +898,16 @@ function StepDispute({ formData, onRestart }) {
             issues,
             propertyDetails: propDetails,
             notes: property.notes,
-            districtName: appraisalDistrict?.districtName || '',
             zip: property.zip,
-            state: property.state,
-            flSignatureName: flSig.name || '',
-            flAuthDate: flSig.date || '',
+            // Preparer model: the OWNER signs Part 3. These are the owner's
+            // signature, not a representative authorization. See the header of
+            // pages/api/generate-dr486.js for why this distinction is load-bearing.
+            ownerSignatureName: flSig.name || '',
+            ownerSignatureDate: flSig.date || '',
+            ownerPhone: account.phone || '',
+            parcelId: extracted.parcelId || extracted.apn || '',
+            willNotAttend: flSig.willNotAttend !== false,
+            authorizeConfidential: !!flSig.authorizeConfidential,
           }),
         });
         claudeJson = await dr486Res.json();
@@ -970,7 +976,43 @@ function StepDispute({ formData, onRestart }) {
   }
 
   if (loading) return <LoadingScreen addr={addr} />;
-  return <DisputeLetter propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} />;
+  // flSignature MUST be forwarded. Without it DisputeLetter sends empty
+  // flSignatureName to /api/checkout, which means /api/send-letter rejects the
+  // order with "Protest has not been signed by the owner" AFTER the customer has
+  // already paid — no petition mailed, no check mailed, no confirmation email,
+  // and save-order still writes dispute_status 'filed'. This omission broke 100%
+  // of Florida orders.
+  return <DisputeLetter propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} flSignature={formData.flSignature} />;
+}
+
+/**
+ * Shown when we cannot safely file in the customer's Florida county — either the
+ * county couldn't be resolved from the address, or it's a county whose Value
+ * Adjustment Board mailing address we haven't verified directly with the county.
+ *
+ * We deliberately stop the sale here rather than proceeding on a guess. A blocked
+ * sale is recoverable; a petition mailed to the wrong office is not — Florida's
+ * 25-day window is a hard receipt deadline and a missed one costs the homeowner
+ * the entire tax year.
+ */
+function FloridaCountyBlocked({ info, onBack }) {
+  return (
+    <div style={{ maxWidth: 640, margin: "48px auto", padding: "0 20px", textAlign: "center" }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
+        {info.kind === 'unsupported'
+          ? `We're not filing in ${info.county} County yet`
+          : "We need your county"}
+      </h2>
+      <p style={{ fontSize: 15, lineHeight: 1.6, color: "#444", marginBottom: 24 }}>{info.message}</p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: "#666", marginBottom: 28 }}>
+        Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: "#0B7A4B", fontWeight: 600 }}>customerservice@taxappealusa.com</a> with your address and we'll tell you where you stand — including whether we can file for you manually this season.
+      </p>
+      <button onClick={onBack} style={{ padding: "12px 28px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+        ← Back
+      </button>
+    </div>
+  );
 }
 
 export default function App() {
@@ -983,6 +1025,60 @@ export default function App() {
   const [closedWindow, setClosedWindow] = useState(null);
   const [flFeeData, setFlFeeData] = useState(null);
   const [flSignature, setFlSignature] = useState(null);
+  const [resolvingCounty, setResolvingCounty] = useState(false);
+  const [flCountyError, setFlCountyError] = useState(null);
+
+  /**
+   * Resolve the real county BEFORE showing the Florida fee/authorization step.
+   *
+   * The fee amount, the check payee, the county named in the signed attestation,
+   * and the mailing address are all keyed on county. Previously this step ran
+   * before any county lookup, so it fell back to property.city — getFlVabFee("Miami")
+   * missed the table and defaulted to $50 / "Board of County Commissioners", while
+   * Stripe charged Miami-Dade's real $15 and the check went to the Clerk of the VAB.
+   * The customer typed their legal name to attest to numbers that were all wrong.
+   */
+  const goToFloridaFeeStep = async () => {
+    setResolvingCounty(true);
+    setFlCountyError(null);
+    try {
+      const r = await fetch('/api/resolve-county', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ street: property.street, city: property.city, state: property.state, zip: property.zip }),
+      });
+      const j = await r.json();
+
+      if (!j.found || !j.county) {
+        setFlCountyError({
+          kind: 'unresolved',
+          message: "We couldn't automatically determine which Florida county this property is in. Your county determines the filing fee and where the petition is mailed, so we need it to be exact.",
+        });
+        return;
+      }
+
+      const feeInfo = getFlVabFee(j.county);
+
+      // Hard gate: never take money for a county we cannot correctly file in.
+      if (!isFlCountySupported(j.county)) {
+        setFlCountyError({
+          kind: 'unsupported',
+          county: j.county,
+          message: `We're not filing in ${j.county} County yet. We only file where we've verified the Value Adjustment Board's mailing address directly with the county — we won't take your money and guess at where to send your petition.`,
+        });
+        return;
+      }
+
+      setProperty(p => ({ ...p, county: j.county }));
+      setFlFeeData({ ...feeInfo, county: j.county });
+      setStep('florida-fee');
+      window.scrollTo(0, 0);
+    } catch (e) {
+      setFlCountyError({ kind: 'error', message: 'We had trouble looking up your county. Please try again in a moment.' });
+    } finally {
+      setResolvingCounty(false);
+    }
+  };
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
   const restart = () => {
@@ -1057,7 +1153,9 @@ export default function App() {
       <AnnouncementBar />
       <NavBar step={step} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
-      {closedWindow ? (
+      {flCountyError ? (
+        <FloridaCountyBlocked info={flCountyError} onBack={() => setFlCountyError(null)} />
+      ) : closedWindow ? (
         <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} account={account} property={property} />
       ) : unsupportedState ? (
         <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
@@ -1065,7 +1163,7 @@ export default function App() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { const clean = (property.county || property.city || '').replace(/ County$/i,'').trim(); const feeInfo = getFlVabFee(clean); setFlFeeData({ ...feeInfo, county: clean }); setStep('florida-fee'); } else { setStep('dispute'); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
         </>

@@ -1,49 +1,96 @@
 // pages/api/send-letter.js
-// Delivery-only model: the property owner signs their own protest electronically and
-// TaxAppeal prepares + mails it. The agent-authorization form (AR/AL) is retired — all
-// states now route through the owner-signature path.
-// Florida VAB fee / DR-486 / Lob-check path is preserved unchanged.
+//
+// Delivery-only model: the property owner signs their own protest electronically
+// and TaxAppeal prepares + mails it.
+//
+// SECURITY — THIS ENDPOINT WRITES REAL CHECKS FROM A REAL BANK ACCOUNT.
+// It was previously unauthenticated with the check amount, payee, and destination
+// address all taken from req.body, drawn on LOB_BANK_ACCOUNT_ID. A single curl
+// could mail an arbitrary-value check to an arbitrary address. It is now:
+//   1. Restricted to internal server-side callers via INTERNAL_API_SECRET.
+//   2. Deriving the FL fee, payee, and mailing address SERVER-SIDE from the
+//      verified tables — client-supplied values are ignored entirely.
+//   3. Idempotent per Stripe session, so a page refresh cannot cut a second check.
+import crypto from 'crypto';
+import { Redis } from '@upstash/redis';
+import { getFlVabFee } from '../../lib/flCountyFees';
+import { getFlVabAddress } from '../../lib/flVabAddresses';
+
+let redis = null;
+try {
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (redisUrl && redisToken) redis = new Redis({ url: redisUrl, token: redisToken });
+} catch (e) { console.log('Redis init failed:', e.message); }
+
+function authorized(req) {
+  const secret = process.env.INTERNAL_API_SECRET;
+  // Fail CLOSED. If the secret isn't configured we refuse rather than fall back
+  // to "anyone can mail a check" — the previous cron-secret bug taught us that
+  // `!== \`Bearer ${undefined}\`` is an authentication bypass, not a default.
+  if (!secret) return false;
+  const provided = req.headers['x-internal-secret'];
+  if (!provided || typeof provided !== 'string') return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const {
     districtName, districtAddress, districtCity, districtState, districtZip,
     ownerName, ownerStreet, ownerCity, ownerState, ownerZip, ownerEmail,
     letterContent, propertyAddress, county, sessionId,
-    stateCode, isFL, vabFee, vabPayableTo, flSignatureName, flAuthDate,
+    stateCode, isFL, ownerSignatureName, ownerSignatureDate,
     // Owner e-signature (all states)
     signedName, signedAt, signatureImage,
   } = req.body;
 
-  if (!districtName || !districtAddress || !letterContent || !ownerName) {
+  if (!letterContent || !ownerName) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   // The owner must sign their own protest before it is mailed.
-  // FL captures the signature on the DR-486A (flSignatureName); other states use signedAt.
-  if (!signedAt && !flSignatureName) {
+  // FL captures the owner's Part 3 signature; other states use signedAt.
+  if (!signedAt && !ownerSignatureName) {
     return res.status(400).json({ error: 'Protest has not been signed by the owner' });
+  }
+
+  // IDEMPOTENCY. /success previously re-ran this on every mount, so a refresh,
+  // a back-button, or reopening the emailed link mailed a second petition and cut
+  // a second check — and save-order's dedupe silently discarded the second Lob id
+  // so it never even appeared in the database.
+  const idemKey = sessionId ? `sent-letter:${sessionId}` : null;
+  if (idemKey && redis) {
+    try {
+      const prior = await redis.get(idemKey);
+      if (prior) {
+        console.log(`send-letter: already mailed for session ${sessionId}, returning cached result`);
+        return res.status(200).json({ ...prior, idempotent: true });
+      }
+    } catch (e) { /* non-fatal; fall through */ }
   }
 
   const LOB_AUTH = `Basic ${Buffer.from(process.env.LOB_API_KEY + ':').toString('base64')}`;
 
+  const remember = async (payload) => {
+    if (idemKey && redis) {
+      try { await redis.set(idemKey, payload, { ex: 60 * 60 * 24 * 90 }); } catch (e) { /* non-fatal */ }
+    }
+    return payload;
+  };
+
   try {
-    // DR-486A authorization page (FL only) — unchanged
-    const dr486aHtml = isFL && flSignatureName ? `
-<div style="page-break-before:always;font-family:Georgia,'Times New Roman',serif;font-size:11pt;line-height:1.7;color:#000;padding:0 20px;">
-  <div style="text-align:center;margin-bottom:24px;">
-    <strong style="font-size:13pt;">WRITTEN AUTHORIZATION FOR REPRESENTATION</strong><br/>
-    <strong>BEFORE THE VALUE ADJUSTMENT BOARD</strong><br/>
-    <em style="font-size:10pt;">Florida Department of Revenue Form DR-486A</em>
-  </div>
-  <p><strong>Property Address:</strong> ${propertyAddress}</p>
-  <p><strong>County:</strong> ${county} County, Florida</p>
-  <p style="margin-top:16px;">I, the undersigned property owner, hereby authorize <strong>TaxAppeal USA</strong> to act as my authorized representative for the purpose of filing and prosecuting a petition before the ${county} County Value Adjustment Board regarding the above-referenced property, pursuant to Florida Statute &sect; 194.011(3)(h). I understand TaxAppeal USA is a compensated representative. This authorization includes the right to file Form DR-486, submit evidence, and receive VAB correspondence on my behalf.</p>
-  <p style="margin-top:32px;"><strong>Electronically signed by:</strong></p>
-  <p style="font-family:Georgia,serif;font-style:italic;font-size:14pt;border-bottom:1px solid #000;padding-bottom:4px;margin-bottom:8px;">${flSignatureName}</p>
-  <p><strong>Date:</strong> ${flAuthDate}</p>
-  <p style="font-size:9pt;color:#555;margin-top:16px;">This electronic signature is legally binding under the Florida Electronic Signature Act, &sect; 668.50, F.S.</p>
-</div>` : '';
+    // NOTE: There is no DR-486A (or DR-486POA) attachment under the preparer model.
+    // The owner signs Part 3 of the DR-486 itself, which under s. 194.011(3) is a
+    // complete, independent alternative to any representative-authorization document.
+    // The old DR-486A block that used to live here attached the UNCOMPENSATED
+    // representative form to a petition that declared us a COMPENSATED representative,
+    // citing s. 194.011(3)(h) — a provision that governs service of process and confers
+    // no representation authority. See pages/api/generate-dr486.js header.
 
     // Owner signature block appended to non-FL protest letters (TX / GA / AR / AL)
     const sigDate = signedAt ? new Date(signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
@@ -65,31 +112,56 @@ export default async function handler(req, res) {
 <body>
   <div class="letter-body">{{letter_content}}</div>
   ${signatureBlock}
-  ${dr486aHtml}
 </body>
 </html>`;
 
-    // FL path: Lob Checks API — check + petition + DR-486A in one envelope (unchanged)
-    if (isFL && vabFee && vabFee > 0 && vabPayableTo) {
-      const checkAmountDollars = (vabFee / 100).toFixed(2);
-      console.log(`FL order: Lob check ${checkAmountDollars} payable to "${vabPayableTo}" + petition`);
+    // ========================================================================
+    // FLORIDA PATH — Lob Checks API: VAB filing-fee check + DR-486 petition
+    // ========================================================================
+    if (isFL) {
+      // Derive EVERYTHING server-side from the verified tables. Client-supplied
+      // vabFee / vabPayableTo / district* are ignored.
+      //
+      // Two bugs are fixed here:
+      //   1. The check was made payable to `districtName` — the PROPERTY APPRAISER
+      //      resolved by /api/lookup. vabPayableTo (the actual Clerk of the VAB)
+      //      appeared only in the memo line and a console.log, never as the payee.
+      //      The county could not deposit the check.
+      //   2. Worse, the PETITION went to the Property Appraiser too. A VAB petition
+      //      filed with the property appraiser is not a filed petition — it bounces,
+      //      the 25-day window closes, and the homeowner loses the year.
+      const feeInfo = getFlVabFee(county);
+      const vabAddr = getFlVabAddress(county);
 
-      // letterContent is the complete DR-486 HTML (petition + evidence) generated by
-      // generate-dr486.js. The petition text asserts DR-486A is attached (Parts 3 and 5),
-      // so it must actually be appended here before mailing -- otherwise the county
-      // receives a petition claiming an attachment that isn't included.
-      const fullAttachmentHtml = dr486aHtml
-        ? (letterContent.includes('</body>') ? letterContent.replace('</body>', `${dr486aHtml}</body>`) : letterContent + dr486aHtml)
-        : letterContent;
+      if (!vabAddr) {
+        console.error(`send-letter: refusing to mail — no verified VAB address for ${county} County, FL`);
+        return res.status(400).json({
+          error: `No verified Value Adjustment Board address for ${county} County. Refusing to mail.`,
+          code: 'FL_COUNTY_UNSUPPORTED',
+        });
+      }
+      if (!feeInfo || !feeInfo.vabFee || feeInfo.vabFee <= 0) {
+        return res.status(400).json({ error: `No verified VAB filing fee for ${county} County. Refusing to mail.` });
+      }
+
+      const checkAmountDollars = (feeInfo.vabFee / 100).toFixed(2);
+      console.log(`FL order: Lob check $${checkAmountDollars} payable to "${feeInfo.payableTo}" → ${vabAddr.vabName}`);
+
+      // letterContent is the complete DR-486 HTML from generate-dr486.js. Under the
+      // preparer model the owner signs Part 3 and Parts 4/5 are N/A, so there is no
+      // DR-486A (or any other authorization form) to attach — the signature on the
+      // petition itself is the authorization under s. 194.011(3).
+      const fullAttachmentHtml = letterContent;
 
       const checkPayload = {
         description: `${county} County VAB Filing Fee — ${propertyAddress}`,
         to: {
-          name: districtName,
-          address_line1: districtAddress,
-          address_city: districtCity,
-          address_state: districtState,
-          address_zip: districtZip,
+          name: feeInfo.payableTo,
+          address_line1: vabAddr.street,
+          address_line2: vabAddr.attn || undefined,
+          address_city: vabAddr.city,
+          address_state: vabAddr.state,
+          address_zip: vabAddr.zip,
           address_country: 'US',
         },
         from: {
@@ -115,8 +187,8 @@ export default async function handler(req, res) {
           owner_email: ownerEmail,
           stripe_session_id: sessionId || '',
           state_code: 'FL',
-          vab_fee_cents: String(vabFee),
-          fl_signer: flSignatureName || '',
+          vab_fee_cents: String(feeInfo.vabFee),
+          fl_signer: ownerSignatureName || '',
         },
       };
 
@@ -136,7 +208,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: lobData?.error?.message || 'Failed to send FL check via Lob', details: lobData });
       }
 
-      return res.status(200).json({
+      return res.status(200).json(await remember({
         success: true,
         type: 'fl-check',
         letterId: lobData.id,
@@ -145,8 +217,9 @@ export default async function handler(req, res) {
         status: lobData.status,
         url: lobData.url || null,
         checkAmount: checkAmountDollars,
-        checkPayableTo: vabPayableTo,
-      });
+        checkPayableTo: feeInfo.payableTo,
+        vabName: vabAddr.vabName,
+      }));
     }
 
     // Non-FL path: standard Lob certified letter (owner-signed, no agent form)
