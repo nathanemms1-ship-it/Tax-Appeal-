@@ -181,7 +181,59 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 </div>
 
 {/* Hero */}
+{/* This hero was destroyed in the round-6 testimonial removal: the replacement
+    matched on the nearest enclosing `maxWidth: 900` wrapper, which happened to be
+    the hero's, not the testimonial section's. /florida - the page Google Ads points
+    at - shipped with no headline, no price and no CTA, opening straight into a
+    statistics block. Nothing caught it because I was grepping rendered text for
+    forbidden phrases rather than checking that the page still had a hero. */}
 <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
+<div style={{ maxWidth: 900, margin: "0 auto" }}>
+<div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Florida Property Tax Appeal Service</div>
+<h1 className="hero-title" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
+Appeal Your Florida Property Taxes — $89 + County Fee
+</h1>
+<p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
+Stop overpaying. We draft a formal VAB petition, you sign it, and we pay your county&apos;s mandatory filing fee and mail everything 7+ days before your deadline to ensure timely receipt. No percentage cuts. Keep 100% of your savings.
+</p>
+
+{/* Pricing breakdown banner */}
+<div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "inline-flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
+<div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ color: C.gold, fontWeight: 700 }}>$89</span> TaxAppeal service fee
+</div>
+<div style={{ fontSize: 13, color: "#5A7A9F" }}>+</div>
+<div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ color: C.gold, fontWeight: 700 }}>$15–$50</span> your county&apos;s VAB filing fee <span style={{ fontSize: 11, color: "#5A7A9F" }}>(set by your county, required by state law)</span>
+</div>
+<div style={{ fontSize: 13, color: "#5A7A9F" }}>=</div>
+<div style={{ fontSize: 15, color: C.white, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>
+$104–$139 total, depending on your county
+</div>
+</div>
+
+<div style={{ background: "#C0392B", display: "inline-block", borderRadius: 6, padding: "8px 14px", fontSize: 13, color: C.white, fontWeight: 500, marginBottom: 24 }}>
+⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
+</div>
+
+<div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+{[["$89", "Service fee"], ["0%", "Of your savings taken"], ["You", "Sign the petition"], ["67", "FL counties"]].map(([n, l]) => (
+<div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+<div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
+<div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
+</div>
+))}
+</div>
+<button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
+File My Florida Appeal — $89 + County Fee →
+</button>
+<div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. $89 service fee + your county&apos;s VAB filing fee (varies by county, typically $15–$50). You sign the petition; we pay the county and mail it.</div>
+</div>
+</section>
+
+{/* Published VAB outcomes — on a light background so the sourcing and the
+    disclaimer are legible. They were previously rendered in body-gray on navy. */}
+<section style={{ padding: "56px 40px", background: C.bg }}>
 <JurisdictionOutcomes
           heading="What Florida Value Adjustment Board records show"
           intro="Every figure here comes from the Florida Department of Revenue's own statewide compilation of county Tax Impact Notices (Form DR-529) — linked below so you can check it."
