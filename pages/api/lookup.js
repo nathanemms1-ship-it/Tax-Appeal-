@@ -43,6 +43,9 @@ export default async function handler(req, res) {
 
   try {
     let assessedValue = manualAssessedValue ? Number(String(manualAssessedValue).replace(/[^0-9.]/g, "")) || null : null;
+    // Parcel / folio / APN. Most Florida VAB clerks index petitions by folio and
+    // will reject one without it — the DR-486 was printing "See county records".
+    let parcelId = null;
     let sqft = manualSqft ? Number(String(manualSqft).replace(/[^0-9.]/g, "")) || null : null;
     let yearBuilt = manualYearBuilt || null;
     let beds = manualBeds ? Number(manualBeds) || null : null;
@@ -189,6 +192,26 @@ export default async function handler(req, res) {
               prop?.appraisedValue ??
               null;
             console.log("ASSESSED VALUE EXTRACTED:", assessedValue);
+          }
+
+          if (!parcelId) {
+            // BatchData nests identifiers differently across record types, so try
+            // each known shape. `ids` is derived here rather than assumed — an
+            // undefined binding would throw inside the lookup and kill the funnel.
+            const ids = prop?.ids || prop?.identifier || prop?.parcel || {};
+            parcelId =
+              ids?.apn ??
+              ids?.parcelId ??
+              ids?.formattedApn ??
+              ids?.apnUnformatted ??
+              prop?.apn ??
+              prop?.parcelId ??
+              prop?.parcelNumber ??
+              assess?.apn ??
+              assess?.parcelNumber ??
+              null;
+            if (parcelId) parcelId = String(parcelId).trim();
+            console.log("PARCEL/FOLIO EXTRACTED:", parcelId);
           }
 
           if (!marketValue) {
@@ -412,10 +435,10 @@ Return ONLY this JSON:
     }
 
     const taxYear = new Date().getFullYear().toString();
-    console.log("FINAL:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county: countyName });
+    console.log("FINAL:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, parcelId, county: countyName });
 
     return res.status(200).json({
-      extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear },
+      extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear, parcelId },
       appraisalDistrict,
       resolvedCounty: countyName,
     });

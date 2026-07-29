@@ -19,7 +19,7 @@ export default function Terms() {
               <div style={{ fontSize: 20, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>TaxAppeal USA</div>
             </Link>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1B2A4A', margin: '16px 0 8px' }}>Terms of Service</h1>
-            <p style={{ fontSize: 13, color: '#999' }}>Last updated: June 2025</p>
+            <p style={{ fontSize: 13, color: '#999' }}>Last updated: July 2026</p>
           </div>
 
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
@@ -28,13 +28,14 @@ export default function Terms() {
             <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest; we then mail it via USPS Certified Mail to the county appraisal district in your name.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
-            <p>Our service is provided at a flat fee of $89 per property per filing season. This fee covers AI-generated letter preparation, USPS Certified Mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
+            <p>Our service fee is <strong>$89 per property per filing season</strong>. This covers preparation of your protest or petition, mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
+            <p style={{ marginTop: 10 }}><strong>Florida — county filing fee.</strong> Florida counties charge a Value Adjustment Board petition filing fee, currently <strong>$15 to $50 per parcel</strong> depending on the county (Fla. Stat. § 194.013). That fee is set by your county, not by us. We collect it at checkout as a separate line item and pay it to your county's Clerk of the Value Adjustment Board on your behalf, so your total in Florida is <strong>$104 to $139</strong>. The exact amount for your county is shown before you pay.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. No Outcome Guarantee</h2>
             <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the applicable county appraisal district. Our service guarantees only that your protest letter will be professionally prepared and dispatched via certified mail within the applicable filing window.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Refund Policy</h2>
-            <p>Due to the nature of document preparation and certified mail dispatch, all fees are non-refundable once your letter has been generated and dispatched. If your letter has not yet been dispatched and you contact us at <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a> within 24 hours of payment, we will review refund requests on a case-by-case basis.</p>
+            <p>Due to the nature of document preparation and mail dispatch, our $89 service fee is non-refundable once your protest or petition has been generated and dispatched. If a Florida county filing fee has been collected but the petition has not yet been mailed, that county fee is refunded in full. If your letter has not yet been dispatched and you contact us at <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a> within 24 hours of payment, we will review refund requests on a case-by-case basis.</p>
             <p>This 24-hour window applies to all orders, including pre-orders placed ahead of your filing window opening — it does not extend for the length of time your order is held before your filing window opens.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Filing Deadlines</h2>
@@ -47,7 +48,7 @@ export default function Terms() {
             </ul>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>6. Supported States</h2>
-            <p>Our service currently supports properties in Texas, Georgia, and Florida only. We reserve the right to expand or restrict supported states at any time.</p>
+            <p>Our service currently supports properties in Texas, Georgia, and Florida. In Florida we file only in counties where we have verified the Value Adjustment Board's filing address and fee directly with the county; if we cannot file in your county we will tell you before taking payment. We reserve the right to expand or restrict supported states and counties at any time.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. User Responsibilities</h2>
             <p>You agree to provide accurate property and contact information. Inaccurate information that results in a failed or improper filing does not entitle you to a refund. You are responsible for monitoring your mail and email for any response from the appraisal district.</p>
@@ -56,7 +57,7 @@ export default function Terms() {
             <p>To the maximum extent permitted by law, TaxAppeal USA's liability is limited to the amount paid for the service ($89). We are not liable for any indirect, incidental, or consequential damages arising from use of our service.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>9. Governing Law</h2>
-            <p>These Terms are governed by the laws of the State of Texas. Any disputes shall be resolved in Tarrant County, Texas.</p>
+            <p>These Terms are governed by the laws of the State of Texas, except that nothing in these Terms limits any right or remedy you may have under the consumer-protection laws of the state in which your property is located, including Florida. Disputes will be resolved in Tarrant County, Texas, unless applicable law in your state requires otherwise.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>10. Contact</h2>
             <p>

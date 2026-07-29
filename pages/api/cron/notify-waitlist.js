@@ -106,7 +106,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
         <p style="font-size:12px;color:#94a3b8;margin:0;">
           Questions? <a href="mailto:support@taxappealusa.com" style="color:#1B3A6B;text-decoration:none;">support@taxappealusa.com</a>
           <br><br>
-          <a href="${filingUrl}?unsubscribe=true" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(entry.email)}&token=${unsubToken(entry.email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
         </p>
       </div>
     </div>
@@ -119,6 +119,18 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
 </body>
 </html>`
   };
+}
+
+// Season cap per person. Opening reminder, midpoint, and a final warning.
+const MAX_NOTIFICATIONS_PER_SEASON = 3;
+
+import crypto from 'crypto';
+
+// Signed, per-address unsubscribe token so the link can't be used to unsubscribe
+// somebody else, and doesn't require a login.
+function unsubToken(email) {
+  const secret = process.env.INTERNAL_API_SECRET || '';
+  return crypto.createHmac('sha256', secret).update(String(email).toLowerCase()).digest('hex').slice(0, 32);
 }
 
 export default async function handler(req, res) {
