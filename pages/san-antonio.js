@@ -90,7 +90,7 @@ export default function SanAntonio() {
             {[
               ["📊","Bexar Appraisal District Uses Mass Appraisal","BCAD appraises over 700,000 properties annually using mass-appraisal methods that apply broad neighborhood trends rather than assessing each home individually — leading to systematic over-valuation for many homeowners."],
               ["📈","San Antonio's Rapid Growth Works Against You","San Antonio has been one of America's fastest-growing cities for a decade. BCAD's models often lag market corrections, leaving thousands of homeowners assessed above their property's actual current value."],
-              ["⚖️","Texas Law Guarantees Your Right to Protest","Under Texas Tax Code §41.41, every Bexar County homeowner has the legal right to protest their assessed value every year. You don't need an attorney — just evidence. TaxAppeal handles everything."],
+              ["⚖️","Texas Law Guarantees Your Right to Protest","Under Texas Tax Code §41.41, every Bexar County homeowner has the legal right to protest their assessed value every year. You don't need an attorney — just evidence. TaxAppeal builds it, you sign the protest, and we file it."],
             ].map(([icon,title,desc]) => (
               <div key={title} style={{display:"flex",gap:16}}>
                 <div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
