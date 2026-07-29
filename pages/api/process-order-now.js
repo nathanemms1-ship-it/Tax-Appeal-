@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   const { password, orderId } = req.body;
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   if (!orderId) {

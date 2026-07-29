@@ -4,17 +4,26 @@ import Head from 'next/head';
 const C_EMAIL = 'customerservice@taxappealusa.com';
 
 const STATUS_CONFIG = {
+  // These three were missing, so portal.js fell back to `filed` — meaning an order
+  // whose mailing FAILED and was flagged for review told the customer
+  // "Your dispute letter has been filed." The portal concealed failure.
+  awaiting_signature: { label: 'Signature needed', color: '#B45309', bg: '#FEF3C7', icon: '✍️',
+    description: 'We need your signature before we can file. Check your email for the link.' },
+  queued: { label: 'Queued for filing', color: '#1D4ED8', bg: '#DBEAFE', icon: '🗓️',
+    description: 'Your petition is prepared and will be filed as soon as your county\'s filing window opens.' },
+  needs_review: { label: 'Needs attention', color: '#B91C1C', bg: '#FEE2E2', icon: '⚠️',
+    description: 'We hit a problem filing this and our team has been alerted. We will contact you shortly.' },
   pending: {
     label: 'Under Review',
     color: '#D97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(217,119,6,0.3)',
     icon: '⏳',
-    description: 'Your certified mail dispute letter has been filed. Counties typically take 4–12 weeks to respond.'
+    description: 'Your dispute filing has been submitted. Counties typically take 4–12 weeks to respond.'
   },
   filed: {
     label: 'Under Review',
     color: '#D97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(217,119,6,0.3)',
     icon: '⏳',
-    description: 'Your certified mail dispute letter has been filed. Counties typically take 4–12 weeks to respond.'
+    description: 'Your dispute filing has been submitted. Counties typically take 4–12 weeks to respond.'
   },
   approved: {
     label: 'Approved ✓',

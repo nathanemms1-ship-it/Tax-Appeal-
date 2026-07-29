@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { password } = req.body;
 
   // Simple password protection — change this before going live
-  if (password !== process.env.ADMIN_PASSWORD) {
+  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

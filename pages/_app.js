@@ -20,12 +20,25 @@ export default function App({ Component, pageProps }) {
   const router = useRouter()
 
   // Capture partner referral code from ?ref= on ANY page (last-touch attribution).
-  // Whatever link the visitor most recently arrived on gets the $20 credit.
+  //
+  // Stored with a timestamp so pages/apply.js can enforce a 90-day attribution
+  // window. This used to persist forever, which meant a visitor who clicked a
+  // partner link once still credited that partner years later — and because it is
+  // captured on EVERY page, a partner dropping ?ref= links around the web could
+  // harvest $20 from organic customers they never actually referred.
+  //
+  // Normalized to uppercase to match the canonical code format. Previously
+  // ?ref=jane-smith and ?ref=JANE-SMITH produced different values, and the
+  // lowercase one matched no partner — so the referring partner was never paid
+  // and the order showed up on the payout sheet as an "Unknown" referrer.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const ref = new URLSearchParams(window.location.search).get('ref')
     if (ref && ref.trim()) {
-      localStorage.setItem('taxappeal_ref', ref.trim())
+      try {
+        localStorage.setItem('taxappeal_ref', ref.trim().toUpperCase().slice(0, 64))
+        localStorage.setItem('taxappeal_ref_at', String(Date.now()))
+      } catch (e) { /* private mode */ }
     }
   }, [router.asPath])
 

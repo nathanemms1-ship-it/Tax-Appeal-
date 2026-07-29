@@ -38,7 +38,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
             <td style="padding:36px 40px;">
               <p style="margin:0 0 20px;font-size:16px;color:#1B2A4A;">Hi ${firstName},</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
-                Your property tax dispute letter has been professionally prepared and dispatched via USPS Certified Mail to the ${county} Appraisal District. Here is a summary of your filing.
+                Your property tax dispute letter has been professionally prepared and dispatched via trackable USPS mail to the ${county} Appraisal District. Here is a summary of your filing.
               </p>
 
               <!-- Order Summary Box -->
@@ -71,7 +71,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                       </tr>` : ''}
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Filing Fee Paid</td>
-                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">${((amountPaid || 8900)/100).toFixed(2)}</td>
+                        <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">$${((amountPaid || 8900)/100).toFixed(2)}</td>
                       </tr>
                     </table>
                   </td>
@@ -188,7 +188,7 @@ export function deliveryEmailTemplate({ firstName, trackingNumber, address, coun
             <td style="padding:36px 40px;">
               <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${firstName},</p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                Your property tax protest letter for <strong>${address}</strong> has been successfully delivered to the <strong>${county}</strong> Appraisal District via USPS Certified Mail.
+                Your property tax protest letter for <strong>${address}</strong> has been successfully delivered to the <strong>${county}</strong> Appraisal District via trackable USPS mail.
               </p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
                 The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
@@ -252,7 +252,7 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
             <td style="padding:36px 40px;">
               <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${name},</p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                Good news — your property tax protest letter${address ? ` for <strong>${address}</strong>` : ''} has been successfully delivered to <strong>${district}</strong> via USPS Certified Mail${deliveredLine}.
+                Good news — your property tax protest letter${address ? ` for <strong>${address}</strong>` : ''} has been successfully delivered to <strong>${district}</strong> via trackable USPS mail${deliveredLine}.
               </p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
                 The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
@@ -291,7 +291,7 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
 
   const text = `Hi ${name},
 
-Good news — your property tax protest letter${address ? ` for ${address}` : ''} has been successfully delivered to ${district} via USPS Certified Mail${deliveredDate ? ` on ${deliveredDate}` : ''}.
+Good news — your property tax protest letter${address ? ` for ${address}` : ''} has been successfully delivered to ${district} via trackable USPS mail${deliveredDate ? ` on ${deliveredDate}` : ''}.
 
 The district will review your protest and send their decision — typically within 30-90 days. Watch your mail and email for a notice from the appraisal district.
 ${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}\n` : ''}

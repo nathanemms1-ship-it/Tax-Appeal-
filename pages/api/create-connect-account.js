@@ -9,6 +9,15 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { refCode, email } = req.body;
+
+  // A referral code is a PUBLIC identifier — it is in every link a partner shares,
+  // and codes are FIRSTNAME-LASTNAME. Treating it as a credential let anyone bind
+  // their own bank account to another partner's payout record, or mint unlimited
+  // orphan Stripe Express accounts on the platform.
+  //
+  // The caller must now prove they know the code AND the registered email, and the
+  // pair must match a real partner row. Once stripe_account_id is set we refuse to
+  // rebind it — a partner changing banks does that inside Stripe's own onboarding.
   if (!refCode || !email) return res.status(400).json({ error: 'Missing refCode or email' });
 
   const supabase = getSupabaseAdmin();
@@ -16,11 +25,18 @@ export default async function handler(req, res) {
 
   try {
     // Check if this partner already has a Stripe account
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from('referrals')
-      .select('stripe_account_id')
-      .eq('code', refCode)
-      .single();
+      .select('stripe_account_id, email, code')
+      .eq('code', String(refCode).trim().toUpperCase())
+      .eq('email', String(email).trim().toLowerCase())
+      .maybeSingle();
+
+    // No matching (code, email) pair => not this partner. Generic message so the
+    // endpoint can't be used to confirm which codes or emails exist.
+    if (lookupErr || !existing) {
+      return res.status(403).json({ error: 'Referral code and email do not match a partner account.' });
+    }
 
     let accountId = existing?.stripe_account_id;
 

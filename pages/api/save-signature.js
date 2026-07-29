@@ -1,6 +1,6 @@
 // pages/api/save-signature.js
 // Persists the homeowner's e-signature + non-representation acknowledgment before the
-// protest is mailed (TX/GA/AR/AL; FL captures its signature pre-payment on the DR-486A).
+// protest is mailed (TX/GA/AR/AL; FL captures the owner's DR-486 Part 3 signature pre-payment).
 import { getSupabaseAdmin } from "./supabase";
 
 export default async function handler(req, res) {
