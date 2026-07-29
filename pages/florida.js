@@ -183,30 +183,30 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 {/* Hero */}
 <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
 <JurisdictionOutcomes
-          heading="What Florida VAB records show"
-          intro="We are a new company and have no results of our own to show you yet. These are published county figures — read them alongside the caveat below, because Florida counties differ enormously."
-          footnote="Florida VAB outcomes are not uniform: Marion County reduced 0 of 310 requested assessments in tax year 2022."
+          heading="What Florida Value Adjustment Board records show"
+          intro="Every figure here comes from the Florida Department of Revenue's own statewide compilation of county Tax Impact Notices (Form DR-529) — linked below so you can check it."
+          footnote="Petitions withdrawn or resolved before a decision are excluded from these rates. That bucket includes settlements agreed with the Property Appraiser, which are normally taxpayer wins, so the true win rate is higher than shown."
           cards={[
             {
-              stat: "35%",
-              head: "of residential Miami-Dade VAB petitions won a reduction",
-              body: "The Board reduced 14,856 of the 41,942 residential petitions filed for tax year 2024. Counting only petitions the Board actually decided — excluding those withdrawn or settled — the rate was 57%.",
-              source: "Miami-Dade County VAB, Form DR-529 Tax Impact Notice, Tax Year 2024",
-              url: "https://www.miamidade.gov/resources/legal-ads/2025/2025-06-10-public-notice-tax-impact-of-vab.pdf",
+              stat: "62%",
+              head: "of Miami-Dade VAB petitions that reached a decision won a reduction",
+              body: "28,956 of the 46,494 petitions the Board decided in tax year 2024. Miami-Dade has run between 53% and 62% for four consecutive years.",
+              source: "Florida Department of Revenue, DR-529 Report, tax year 2024",
+              url: "https://floridarevenue.com/property/Documents/dr529_report.xlsx",
             },
             {
-              stat: "$589",
-              head: "average tax reduction per residential parcel the Board reduced",
-              body: "Miami-Dade’s VAB shifted $8.76 million in residential taxes across 14,856 reduced parcels in tax year 2024 — about $589 each, every year until the property is reassessed.",
-              source: "Miami-Dade County VAB, Form DR-529 Tax Impact Notice, Tax Year 2024",
-              url: "https://www.miamidade.gov/resources/legal-ads/2025/2025-06-10-public-notice-tax-impact-of-vab.pdf",
+              stat: "49%",
+              head: "statewide — across all 67 Florida counties",
+              body: "Florida boards reduced 32,216 of the 65,437 petitions they decided in tax year 2024. Rates vary widely between counties, which is why we show you your own county's numbers before you file.",
+              source: "Florida Department of Revenue, DR-529 Report, tax year 2024",
+              url: "https://floridarevenue.com/property/Documents/dr529_report.xlsx",
             },
             {
-              stat: "$1.34B",
-              head: "in residential taxable value removed in one county, in one year",
-              body: "That is what Miami-Dade’s Value Adjustment Board took off the residential rolls for tax year 2024. Every dollar of it belonged to a homeowner who filed a petition before the deadline.",
-              source: "Miami-Dade County VAB, Form DR-529 Tax Impact Notice, Tax Year 2024",
-              url: "https://www.miamidade.gov/resources/legal-ads/2025/2025-06-10-public-notice-tax-impact-of-vab.pdf",
+              stat: "$6.0B",
+              head: "in taxable value removed by Florida VABs in one year",
+              body: "$6,045,180,241 came off the Florida tax rolls in tax year 2024, shifting $59 million in taxes — all of it belonging to owners who filed a petition before their deadline.",
+              source: "Florida Department of Revenue, DR-529 Report, tax year 2024",
+              url: "https://floridarevenue.com/property/Documents/dr529_report.xlsx",
             },
           ]}
         />
