@@ -608,8 +608,32 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   // filing fee. Every one of these labels used to read a hardcoded "$89" while a
   // Hillsborough customer was charged $139 — including the checkbox attesting that
   // "the $89 fee is non-refundable". That is a chargeback waiting to happen.
-  const totalChargeCents = 8900 + ((flSignature && flSignature.vabFee) ? Number(flSignature.vabFee) : 0);
-  const totalChargeLabel = `$${(totalChargeCents / 100).toFixed(0)}`;
+  const SERVICE_FEE_CENTS = 8900;
+  const countyFeeCents = (flSignature && flSignature.vabFee) ? Number(flSignature.vabFee) : 0;
+  const totalChargeCents = SERVICE_FEE_CENTS + countyFeeCents;
+  const money = (cents) => `$${(cents / 100).toFixed(0)}`;
+  const totalChargeLabel = money(totalChargeCents);
+  const serviceFeeLabel = money(SERVICE_FEE_CENTS);
+  const countyFeeLabel = money(countyFeeCents);
+
+  // Refund terms.
+  //
+  // Sales open up to PRE_ORDER_DAYS (60) before a state's filing window, so a
+  // customer can pay in June for a petition we are not permitted to mail until
+  // late August. The old wording — "non-refundable once my dispute letter has
+  // been filed" — therefore promised an open-ended refund right for up to two
+  // months, and contradicted both the inline terms ("mailed") and /terms
+  // ("generated and dispatched"). Three different triggers in three places; in a
+  // dispute the reading most favourable to the customer governs, so we were
+  // effectively bound by the loosest one.
+  //
+  // The rule now matches what the system actually does: the document is prepared
+  // immediately on purchase, and preparation is the substance of the service. The
+  // county filing fee is treated separately on purpose — it is a pass-through we
+  // have not remitted until we mail, so we do not keep it.
+  const refundAgreementText = countyFeeCents > 0
+    ? `I understand my petition is prepared within 24 hours of purchase and that the ${serviceFeeLabel} service fee is non-refundable after that point. My ${countyFeeLabel} county filing fee is refunded in full if my petition has not yet been mailed. I agree to TaxAppeal's Terms of Service.`
+    : `I understand my protest is prepared within 24 hours of purchase and that the ${serviceFeeLabel} fee is non-refundable after that point. I agree to TaxAppeal's Terms of Service.`;
 
   // ── Florida Part 3 signature ────────────────────────────────────────────────
   // Captured HERE, on the review screen, because the owner attests "I have read
@@ -890,11 +914,20 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only.</p>
             <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy.</p>
             <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open.</p>
-            <p><strong>5. No refunds after filing.</strong> The {totalChargeLabel} fee is non-refundable once your filing has been mailed.</p>
+            <p><strong>5. Refunds.</strong> Your protest or petition is prepared in the TaxAppeal system within 24 hours of purchase. The {serviceFeeLabel} service fee may be refunded in full if you request it within 24 hours of payment; after that it is non-refundable, because your document has been prepared.{countyFeeCents > 0 ? ` Your ${countyFeeLabel} county filing fee is separate: it is refunded in full at any time before your petition is mailed.` : ''}</p>
             <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, FL, AR, and AL.</p>
           </div>
         </div>
-        {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the ${totalChargeLabel} fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
+        {/* NOTE: these MUST be template literals (backticks).
+            The third one used to be a double-quoted string containing
+            "${totalChargeLabel}", so it shipped to production with the literal
+            placeholder text in it — the single checkbox that constitutes the
+            customer's agreement to the price did not state a price. */}
+        {[
+          `I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.`,
+          `I confirm the property information I provided is accurate and I have reviewed the letter preview above.`,
+          refundAgreementText,
+        ].map((text, i) => (
           <div key={i} onClick={() => toggleAgreement(i)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
             <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[i] ? C.navy : "#C5D0E0"}`, background: agreements[i] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[i] ? "✓" : ""}</div>
             <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
