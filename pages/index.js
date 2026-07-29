@@ -470,32 +470,32 @@ export default function Landing() {
         <div style={{ textAlign: "center", marginBottom: 36, padding: "0 32px" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What the county records actually show</div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82", maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
-            We are a new company, so we do not have our own results to show you yet. Instead, here is what the public record says about appeals in the places we file.
+            Every figure below comes from a county&apos;s own published records or a peer-reviewed study of them — each one linked to its source.
           </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, maxWidth: 1080, margin: "0 auto", padding: "0 32px" }}>
           {[
             {
-              stat: STATS.TX_DALLAS_SUCCESS.value,
-              head: "of homeowner-filed Dallas County protests won a reduction",
-              body: "A peer-reviewed study of Dallas Central Appraisal District records found that homeowners who filed their own protest in 2020 succeeded 69.7% of the time, with average first-year savings of $485 on a successful protest.",
-              src: "Nathan, Perez-Truglia & Zentner, American Economic Journal: Economic Policy (2025), tax year 2020",
-              url: STATS.TX_DALLAS_SUCCESS.url,
+              stat: '70%',
+              head: 'of owner-filed Collin County protests won a lower market value',
+              body: 'Collin County publishes every protest as open data. In 2025, 9,731 of 13,910 owner-filed homestead protests ended with a lower market value than the county first noticed. On taxable value — what actually moves a tax bill — the figure is 44%, because the 10% homestead cap can hold taxes flat even when market value falls.',
+              src: 'Collin CAD Protest Data, Texas Open Data Portal (2025)',
+              url: 'https://data.texas.gov/dataset/Collin-CAD-Protest-Data/xmrt-bxjr',
             },
             {
-              stat: STATS.FL_MIAMIDADE_SUCCESS.value,
-              head: "of residential Miami-Dade VAB petitions won a reduction",
-              body: "Miami-Dade's Value Adjustment Board reduced 14,856 of the 41,942 residential petitions filed for tax year 2024 — removing $1.34 billion in taxable value. Counting only petitions the Board actually decided, the rate was 57%.",
-              src: "Miami-Dade County VAB, Form DR-529 Tax Impact Notice, Tax Year 2024",
-              url: STATS.FL_MIAMIDADE_SUCCESS.url,
+              stat: '69.7%',
+              head: 'of homeowner-filed Dallas County protests won a reduction',
+              body: 'A peer-reviewed study of Dallas Central Appraisal District records found homeowners who filed their own protest succeeded 69.7% of the time, with average first-year savings of $485 on a successful protest.',
+              src: 'Nathan, Perez-Truglia & Zentner, American Economic Journal: Economic Policy (2025), tax year 2020',
+              url: 'https://www.aeaweb.org/articles?id=10.1257%2Fpol.20220768',
             },
             {
-              stat: STATS.COOK_SUCCESS.value,
-              head: "of Cook County, Illinois appeals won a reduction",
-              body: "Across 2002\u20132015, a Quarterly Journal of Economics study of assessor records found appeals succeeded 67% of the time on average, with a mean reduction of 12% of assessed value.",
-              src: "Avenancio-Le\u00f3n & Howard, Quarterly Journal of Economics 137(3) (2022)",
-              url: STATS.COOK_SUCCESS.url,
+              stat: '49%',
+              head: 'of Florida VAB petitions that reached a decision won a reduction',
+              body: 'Across all 67 Florida counties in tax year 2024, boards reduced 32,216 of the 65,437 petitions they decided, taking $6.0 billion in taxable value off the rolls. In Miami-Dade the rate was 62%.',
+              src: 'Florida Department of Revenue, DR-529 Report (2024)',
+              url: 'https://floridarevenue.com/property/Documents/dr529_report.xlsx',
             },
           ].map((c, i) => (
             <div key={i} style={{ background: "#FFFFFF", border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
@@ -510,7 +510,7 @@ export default function Landing() {
         </div>
 
         <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8596AF", lineHeight: 1.65, textAlign: "center" }}>
-          {OUTCOME_DISCLAIMER} Outcomes differ sharply between counties: Marion County, Florida reduced 0 of 310 requested assessments in tax year 2022.
+          {OUTCOME_DISCLAIMER}
         </div>
       </div>
 

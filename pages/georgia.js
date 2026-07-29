@@ -154,7 +154,7 @@ export default function Georgia() {
       <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
         <JurisdictionOutcomes
           heading="What Georgia appeal records show"
-          intro="We are a new company and have no results of our own to show you yet. Georgia’s Department of Revenue publishes appeal counts but not outcomes, so we will not quote you a Georgia success rate — no such published figure exists."
+          intro="Georgia’s Department of Revenue publishes how many appeals are filed but not how they turn out, so there is no official Georgia success rate to quote — and you should be sceptical of any service that quotes you one. Here is what the record does show."
           footnote="The Georgia DOR appeal file records how many appeals were filed and where they were heard. It contains no “value reduced” column, so any Georgia “approval rate” you see advertised is not coming from the state."
           cards={[
             {

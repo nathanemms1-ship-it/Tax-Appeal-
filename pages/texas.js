@@ -207,7 +207,7 @@ export default function Texas() {
       <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
         <JurisdictionOutcomes
           heading="What Texas appraisal district records show"
-          intro="We are a new company and have no results of our own to show you yet. These figures come from a peer-reviewed study of appraisal district records and from HCAD’s audited annual report."
+          intro="Every figure here comes from an appraisal district's own published data or a peer-reviewed study of it — linked so you can check it yourself."
           
           cards={[
             {
@@ -225,11 +225,11 @@ export default function Texas() {
               url: "https://hcad.org/assets/uploads/pdf/ACFR-YE-2024_upload.pdf",
             },
             {
-              stat: "6.98%",
-              head: "average value reduction across protested Harris County accounts",
-              body: "This is the average size of the reduction across all protested accounts in 2024 — not a success rate. On a $400,000 assessment, a reduction of that size is roughly $28,000 in taxable value.",
-              source: "Harris Central Appraisal District, Annual Comprehensive Financial Report, YE 2024",
-              url: "https://hcad.org/assets/uploads/pdf/ACFR-YE-2024_upload.pdf",
+              stat: "70%",
+              head: "of owner-filed Collin County homestead protests won a lower market value",
+              body: "Collin County publishes every protest as open data: 9,731 of 13,910 owner-filed homestead protests in 2025 ended below the noticed market value. On taxable value the figure is 44% \u2014 Texas's 10% homestead cap can hold your taxes flat even when market value drops.",
+              source: "Collin CAD Protest Data, Texas Open Data Portal, appraisal year 2025",
+              url: "https://data.texas.gov/dataset/Collin-CAD-Protest-Data/xmrt-bxjr",
             },
           ]}
         />
