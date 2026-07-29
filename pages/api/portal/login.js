@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { enforceRateLimit } from '../../../lib/rateLimit';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -31,6 +32,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // credential stuffing
+  if (await enforceRateLimit(req, res, 'login', 8, 300)) return;
 
   const { email, password } = req.body;
   if (!email || !password) {

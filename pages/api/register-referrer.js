@@ -3,6 +3,7 @@
 import { getSupabaseAdmin } from './supabase';
 import { Resend } from 'resend';
 import { Redis } from '@upstash/redis';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -100,6 +101,9 @@ console.error('Referral reminder email failed:', emailErr.message);
 
 export default async function handler(req, res) {
 if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // partner-program abuse surface
+  if (await enforceRateLimit(req, res, 'referrer', 5, 60)) return;
 
 const { firstName, lastName, email, phone, role, statesActive, clientVolume } = req.body;
 if (!firstName || !lastName || !email) {

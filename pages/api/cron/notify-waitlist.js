@@ -91,8 +91,8 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
       <div style="border-top:1px solid #e2e8f0;padding-top:20px;">
         <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:12px;">Why file this year?</div>
         ${[
-          ['💰', '$1,840 average savings per homeowner'],
-          ['✅', '82% of protests result in a reduction'],
+          ['💰', 'Flat $89 — we never take a percentage of your savings'],
+          ['✅', 'Certified mail with tracking, so you have proof you filed on time'],
           ['📬', 'We handle everything — certified mail filing'],
           ['🔒', '$89 flat fee, no percentage cuts'],
         ].map(([icon, text]) => `

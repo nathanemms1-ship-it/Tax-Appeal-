@@ -104,7 +104,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 ⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
 </div>
 <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-{[["82%","Approval rate"],["$2,800","Avg. savings"],["$104","All-in total"],["Miami-Dade","Service area"]].map(([n,l]) => (
+{[["$89","Service fee"],["$104","All-in total"],["0%","Of your savings taken"],["Miami-Dade","Service area"]].map(([n,l]) => (
 <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
@@ -119,7 +119,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{padding:"56px 40px",background:C.white}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Miami Homeowners Should File</h2>
-<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>82% of Florida property tax protests result in a reduction. Here's why Miami homeowners have especially strong grounds.</p>
+<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>For tax year 2024 the Miami-Dade Value Adjustment Board reduced 14,856 of the 41,942 residential petitions filed, removing $1.34 billion in taxable value (Miami-Dade VAB, Form DR-529). Here's why Miami homeowners have especially strong grounds.</p>
 <div style={{display:"grid",gap:24}}>
 {[
 ["📊","Miami-Dade Uses Mass Appraisal — Your Home May Be Over-Valued","Florida's TRIM notice arrives every August showing your assessed value. You have only 25 days to file a petition with the Value Adjustment Board — and Florida requires RECEIPT by the deadline, not just postmark."],

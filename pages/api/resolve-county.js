@@ -23,6 +23,7 @@
  */
 
 import { Redis } from '@upstash/redis';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 let redis = null;
 try {
@@ -35,6 +36,8 @@ const CENSUS_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/addres
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (await enforceRateLimit(req, res, 'county', 20, 60)) return;
 
   const { street, city, state, zip } = req.body || {};
   if (!street || !state) return res.status(400).json({ error: 'street and state are required' });

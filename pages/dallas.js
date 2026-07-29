@@ -60,7 +60,7 @@ export default function Dallas() {
           <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Dallas Property Tax Protest — $89 Flat Fee</h1>
           <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Dallas property values have surged in recent years — meaning many homeowners are now over-assessed. TaxAppeal files your formal protest with DCAD backed by comparable sales data for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$1,950","Avg. savings"],["$89","Flat fee"],["Dallas County","Service area"]].map(([n,l]) => (
+            {[["$89","Flat fee"],["0%","Of your savings taken"],["Certified","Mail with tracking"],["Dallas County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
@@ -75,7 +75,7 @@ export default function Dallas() {
       <section style={{padding:"56px 40px",background:C.white}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Dallas Homeowners Should File</h2>
-          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>82% of Texas property tax protests result in a reduction. Here's why Dallas homeowners have especially strong grounds.</p>
+          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Economists studying Dallas Central Appraisal District records found that 69.7% of homeowner-filed protests won a reduction in 2020 (American Economic Journal: Economic Policy, 2025). Here's why Dallas homeowners have especially strong grounds.</p>
           <div style={{display:"grid",gap:24}}>
             {[
               ["📊","Dallas Central Appraisal District (DCAD) Uses Mass Appraisal","DCAD appraises over 700,000 properties in Dallas County annually. Mass-appraisal methods mean errors are common — especially in fast-moving markets like Dallas."],

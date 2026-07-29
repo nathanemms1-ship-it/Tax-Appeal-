@@ -4,5 +4,8 @@ Allow: /api/sitemap.xml
 Disallow: /admin
 Disallow: /api/
 Disallow: /success
+Disallow: /portal
+Disallow: /partners/dashboard
+Disallow: /partners/connect
 
 Sitemap: https://www.taxappealusa.com/api/sitemap.xml

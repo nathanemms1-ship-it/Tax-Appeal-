@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { getCountyPortal } from './county_portals';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 // Initialize Redis gracefully
 let redis = null;
@@ -28,6 +29,10 @@ async function cacheSet(key, value, ttl) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // BatchData is billed per lookup
+  if (await enforceRateLimit(req, res, 'lookup', 12, 60)) return;
+  if (await enforceRateLimit(req, res, 'lookup', 60, 3600)) return;
 
   const { street, city, state, zip, manualAssessedValue, manualSqft, manualYearBuilt, manualBeds, manualBaths } = req.body;
   if (!street || !city || !state || !zip) {

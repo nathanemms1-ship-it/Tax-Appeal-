@@ -1,6 +1,9 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { posts, getPostBySlug, getAllSlugs } from '../../lib/blogPosts';
+// publishedPosts, not posts: `posts` contains 13 slugs twice (two drafts of the
+// same article). Using the raw array renders duplicate cards that all link to the
+// same URL. See lib/blogPosts.js.
+import { publishedPosts as posts, getPostBySlug, getAllSlugs } from '../../lib/blogPosts';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -191,7 +194,7 @@ export default function BlogPost({ post }) {
                   We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
                 </p>
                 <div style={{ marginBottom: 16 }}>
-                  {["No contingency fees", "Certified mail with tracking", "82% approval rate", "All counties covered"].map(f => (
+                  {["No contingency fees", "Certified mail with tracking", "Flat $89 — you keep your savings", "All counties covered"].map(f => (
                     <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: C.gold, marginBottom: 6 }}>
                       <span>✓</span> {f}
                     </div>
@@ -229,7 +232,7 @@ export default function BlogPost({ post }) {
                   Why TaxAppeal
                 </div>
                 {[
-                  ["82%", "protest success rate"],
+                  ["$89", "flat fee, any outcome"],
                   ["$1,840", "average savings"],
                   ["$89", "flat fee, no % cut"],
                   [

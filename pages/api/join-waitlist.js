@@ -1,7 +1,11 @@
 import { getSupabaseAdmin } from './supabase';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // signup spam
+  if (await enforceRateLimit(req, res, 'waitlist', 5, 60)) return;
 
   const { email, name, state, county, propertyAddress, notifyDate } = req.body;
   if (!email || !state) return res.status(400).json({ error: 'Missing required fields' });
