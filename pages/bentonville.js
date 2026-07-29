@@ -89,7 +89,7 @@ export default function Bentonville() {
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:10}}>How TaxAppeal Works in Bentonville</h2>
-          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>We handle everything in 4 minutes.</p>
+          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Four minutes of your time. You sign it, we do the rest.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20}}>
             {[["1","Enter your address","We pull your Benton County property data — assessed value, square footage, year built, and comparable sales."],["2","We build your case","Our system generates a professional appeal letter citing Arkansas Code §26-27-317 and §26-26-1901 with comparable sales from your area."],["3","We file via certified mail","Your appeal is mailed to the Benton County Board of Equalization secretary via USPS certified mail before August 17."]].map(([n,t,d]) => (
               <div key={n} style={{background:C.white,borderRadius:12,padding:24,border:"1.5px solid "+C.border}}>
@@ -131,7 +131,7 @@ export default function Bentonville() {
 
       <div style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>File Before August 17, 2026</h2>
-        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>Don't miss the Benton County Board of Equalization deadline. We handle everything for $89.</p>
+        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>Don't miss the Benton County Board of Equalization deadline. You sign it, we file it — $89 flat.</p>
         <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}} onClick={go}>Start My Bentonville Appeal — $89</button>
       </div>
 

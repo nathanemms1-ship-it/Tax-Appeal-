@@ -52,7 +52,7 @@ const cities = [
   { name: "Bentonville / Rogers", county: "Benton County", stats: ["Fastest growing market", "High assessed values", "Strong comparable sales evidence"], desc: "Northwest Arkansas is the fastest-growing region in the state. Benton County home values have surged — making the Board of Equalization hearing one of the most valuable financial moves a homeowner can make." },
   { name: "Little Rock", county: "Pulaski County", stats: ["Most populous county", "BOE meets every August", "Written letter accepted"], desc: "Pulaski County homeowners file with the Board of Equalization every August. TaxAppeal files your protest letter via certified mail directly to the BOE secretary with comparable sales data." },
   { name: "Fayetteville", county: "Washington County", stats: ["University market", "Rising assessments", "Strong comp sales data"], desc: "Washington County is home to the University of Arkansas, driving consistent real estate demand and rising assessments that frequently outpace actual market values." },
-  { name: "Fort Smith", county: "Sebastian County", stats: ["Second largest city", "Industrial market", "Rolling assessment notices"], desc: "Sebastian County homeowners can appeal their assessment to the Board of Equalization every August. TaxAppeal handles everything — evidence, letter, and certified mail filing." },
+  { name: "Fort Smith", county: "Sebastian County", stats: ["Second largest city", "Industrial market", "Rolling assessment notices"], desc: "Sebastian County homeowners can appeal their assessment to the Board of Equalization every August. TaxAppeal builds the evidence and the letter; you sign it and we file it by certified mail." },
 ];
 
 export default function Arkansas() {
@@ -258,7 +258,7 @@ export default function Arkansas() {
       {/* Footer CTA */}
       <div className="footer-cta">
         <h2>File before August 17, 2026</h2>
-        <p>Don\'t miss the Arkansas Board of Equalization deadline. We handle everything for $89.</p>
+        <p>Don\'t miss the Arkansas Board of Equalization deadline. You sign it, we file it — $89 flat.</p>
         <button className="btn-gold" onClick={go}>Start my Arkansas appeal — $89 →</button>
       </div>
 

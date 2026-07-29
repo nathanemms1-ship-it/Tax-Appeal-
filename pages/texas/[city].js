@@ -208,7 +208,7 @@ export default function TexasCityPage({ city }) {
             How TaxAppeal Works in {city.name}
           </h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
-            Four steps. About 4 minutes of your time. We handle everything else.
+            Four steps. About 4 minutes of your time. You sign the protest; we do the rest.
           </p>
           <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 20 }}>
             {steps.map(s => (
