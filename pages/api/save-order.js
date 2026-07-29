@@ -101,7 +101,7 @@ export default async function handler(req, res) {
         const { data: referral } = await supabase
           .from('referrals')
           .select('stripe_account_id, id')
-          .eq('ref_code', refCode)
+          .eq('code', refCode)
           .single();
 
         if (referral?.stripe_account_id) {
@@ -124,9 +124,10 @@ export default async function handler(req, res) {
           await supabase
             .from('referrals')
             .update({
-              total_orders: supabase.rpc ? undefined : undefined, // use increment below
+              total_referrals: (referral.total_referrals || 0) + 1,
+              total_paid: (referral.total_paid || 0) + 20,
             })
-            .eq('ref_code', refCode);
+            .eq('code', refCode);
 
           // Insert payout record into referral_payouts table (if it exists)
           await supabase.from('referral_payouts').insert({

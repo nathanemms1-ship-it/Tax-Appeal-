@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const { data: existing } = await supabase
       .from('referrals')
       .select('stripe_account_id')
-      .eq('ref_code', refCode)
+      .eq('code', refCode)
       .single();
 
     let accountId = existing?.stripe_account_id;
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       const { error: updateError } = await supabase
         .from('referrals')
         .update({ stripe_account_id: accountId })
-        .eq('ref_code', refCode);
+        .eq('code', refCode);
 
       if (updateError) {
         console.error('Failed to save stripe_account_id:', updateError);

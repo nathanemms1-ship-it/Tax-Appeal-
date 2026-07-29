@@ -19,7 +19,7 @@ const C = {
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
-function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter }) {
+function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter, amountPaid = 8900 }) {
   const firstName = customerName ? customerName.split(' ')[0] : 'there';
   return `
 <!DOCTYPE html>
@@ -50,7 +50,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
               ${targetReduction ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Reduction requested</td><td style="font-size:13px;color:#2E7D52;font-weight:500;text-align:right;">Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
               ${savings ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Potential annual savings</td><td style="font-size:13px;color:#2E7D52;font-weight:700;text-align:right;">$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
               ${trackingNumber ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">USPS Tracking</td><td style="font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;">${trackingNumber}</td></tr></table>` : ''}
-              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">$89.00</td></tr></table>
+              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">${(amountPaid/100).toFixed(2)}</td></tr></table>
             </td></tr>
           </table>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
@@ -81,7 +81,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
 </html>`;
 }
 
-function buildReservedEmail({ customerName, address, county, scheduledFileDate, assessedValue, targetReduction, savings }) {
+function buildReservedEmail({ customerName, address, county, scheduledFileDate, assessedValue, targetReduction, savings, amountPaid = 8900 }) {
   const firstName = customerName ? customerName.split(' ')[0] : 'there';
   const fileDateStr = scheduledFileDate ? new Date(scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'the opening day of your filing window';
   return `
@@ -113,7 +113,7 @@ function buildReservedEmail({ customerName, address, county, scheduledFileDate, 
               ${assessedValue ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Current assessed value</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>$${Number(assessedValue).toLocaleString()}</td></tr></table>` : ''}
               ${targetReduction ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Reduction requested</td><td style='font-size:13px;color:#2E7D52;font-weight:500;text-align:right;'>Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
               ${savings ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Potential annual savings</td><td style='font-size:13px;color:#2E7D52;font-weight:700;text-align:right;'>$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
-              <table width='100%' style='border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;'><tr><td style='font-size:14px;color:#0F1F3D;font-weight:600;'>Amount paid</td><td style='font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;'>$89.00</td></tr></table>
+              <table width='100%' style='border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;'><tr><td style='font-size:14px;color:#0F1F3D;font-weight:600;'>Amount paid</td><td style='font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;'>${(amountPaid/100).toFixed(2)}</td></tr></table>
             </td></tr>
           </table>
           <table width='100%' cellpadding='0' cellspacing='0' style='background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;'>
@@ -527,7 +527,7 @@ export default function Success() {
               ) : null)}
               <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", fontSize: 15 }}>
                 <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-                <span style={{ fontWeight: 700, color: C.darkNavy }}>$89.00</span>
+                <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((data && data.amountPaid) || 8900)/100).toFixed(2)}</span>
               </div>
             </div>
 

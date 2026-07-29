@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import StepFloridaFee, { getFlVabFee } from './StepFloridaFee';
+import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import { isFlCountySupported } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 
@@ -619,18 +619,24 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
     if (!allAgreed) return;
     setCheckingOut(true);
 
+    // Actual amount the customer is about to be charged: $89 base plus the
+    // Florida county VAB filing fee. This was hardcoded to 89, so Google Ads'
+    // Smart Bidding was learning from understated values in the launch market
+    // (FL orders are $104-$139).
+    const totalChargeDollars = 89 + ((flSignature && flSignature.vabFee ? flSignature.vabFee : 0) / 100);
+
     // Google Ads / GA4 — begin_checkout conversion event
     // Fires the moment the homeowner clicks "File my dispute · $89" and agrees to terms.
     // Set NEXT_PUBLIC_GADS_CHECKOUT_LABEL in your Vercel env to activate Google Ads conversion.
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'begin_checkout', {
         currency: 'USD',
-        value: 89,
+        value: totalChargeDollars,
         items: [{
           item_id: 'property-tax-appeal',
           item_name: 'Property Tax Appeal Filing',
           item_category: stateCode,
-          price: 89,
+          price: totalChargeDollars,
           quantity: 1,
         }],
       });
@@ -639,7 +645,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
       if (gadsId && checkoutLabel) {
         window.gtag('event', 'conversion', {
           send_to: `${gadsId}/${checkoutLabel}`,
-          value: 89,
+          value: totalChargeDollars,
           currency: 'USD',
         });
       }

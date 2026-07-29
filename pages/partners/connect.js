@@ -25,7 +25,7 @@ export default function PartnersConnect() {
     fetch('/api/create-connect-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ referralCode: ref, email, name }),
+      body: JSON.stringify({ refCode: ref, email, name }),
     })
       .then(r => r.json())
       .then(data => {

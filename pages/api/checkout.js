@@ -21,6 +21,7 @@ agentAuthGranted,
 agentAuthTimestamp,
 isPreOrder,
 scheduledFileDate,
+refCode,
 } = req.body;
 
 try {
@@ -94,6 +95,10 @@ flSignatureTimestamp: flSignatureTimestamp || '',
 flAuthDate: flAuthDate || '',
 agentAuthGranted: agentAuthGranted ? 'true' : 'false',
 agentAuthTimestamp: agentAuthTimestamp || '',
+// refCode was sent by apply.js but never destructured or stored, so
+// orders.ref_code was always NULL and the entire $20 payout block in
+// save-order.js was dead code. No partner could ever be paid.
+refCode: refCode || '',
 isPreOrder: isPreOrder ? 'true' : 'false',
 scheduledFileDate: scheduledFileDate || '',
 },
