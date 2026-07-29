@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/verify-fl-data.mjs && next build && node scripts/verify-sitemap.mjs && node scripts/verify-pages.mjs",
+    "build": "node scripts/verify-fl-data.mjs && node scripts/verify-valuation.mjs && next build && node scripts/verify-sitemap.mjs && node scripts/verify-pages.mjs",
     "start": "next start",
     "verify:fl": "node scripts/verify-fl-data.mjs",
     "verify:sitemap": "node scripts/verify-sitemap.mjs",
-    "verify:pages": "node scripts/verify-pages.mjs"
+    "verify:pages": "node scripts/verify-pages.mjs",
+    "verify:valuation": "node scripts/verify-valuation.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

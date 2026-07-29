@@ -187,6 +187,8 @@ export default async function handler(req, res) {
     ownerStreet, ownerCity, ownerState, ownerZip,
     propertyAddress, county, parcelId,
     assessedValue, requestedValue, taxYear,
+    // Derived in lib/valuation.js with the statutory grounds supporting the ask.
+    valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
     zip,
     ownerSignatureName, ownerSignatureDate,
@@ -246,6 +248,7 @@ COUNTY: ${county} County, Florida
 PARCEL/FOLIO: ${parcelId || 'not provided'}
 CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
+${valuationBasis ? 'GROUNDS FOR THE REQUESTED VALUE (these were derived from the facts below — argue THESE, and do not substitute your own):\n' + valuationBasis : ''}
 ${propertyDetails ? 'PROPERTY DETAILS:\n' + propertyDetails : ''}
 ${issuesBlock}
 OWNER NOTES: ${notes || 'None.'}
@@ -255,11 +258,22 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, say what evidence the owner should submit instead.
+- DO NOT argue the "eighth criterion" (§ 193.011(8)) deduction of costs of sale, and do not
+  assert the Property Appraiser failed to deduct costs of sale. Every Florida property
+  appraiser files Form DR-493 ("Adjustments Made to Recorded Selling Prices or Fair Market
+  Value IN ARRIVING AT ASSESSED VALUE") and in practice certifies roughly 15% across all use
+  codes, so the just value on the TRIM notice is normally already net of it. Arguing it again
+  is double counting, and asserting it was omitted would be a false statement of fact on a
+  petition signed under penalty of perjury.
+- DO NOT cite Deltona Corp. v. Bailey, Valencia Center v. Bystrom, or Bystrom v. Whitman for a
+  cost-of-sale proposition. None of them holds that. Bystrom v. Equitable Life, 416 So. 2d
+  1133, is directly adverse, and Mazourek v. Wal-Mart, 831 So. 2d 85 (Fla. 2002), is Supreme
+  Court authority against the expansive theory.
 
 Write exactly 4 sections:
 1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing Fla. Stat. § 193.011(1)-(8) criteria and applying them to the property details given above.
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
-3. VALUATION METHODOLOGY — the comparable-sales approach the Board should apply under § 193.011(8), including the adjustments warranted for this property type. Describe the method; do not invent comparables.
+3. VALUATION METHODOLOGY — the approach the Board should apply under § 193.011(1) (present cash value: what a willing buyer would pay a willing seller), including the adjustments warranted for this property type. Describe the method; do not invent comparables.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).
 
 Professional, factual, first person as the property owner. Output only the four sections.`;
