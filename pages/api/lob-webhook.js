@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
       const emailRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_API_SECRET || '' },
         body: JSON.stringify({ to: ownerEmail, subject, html, text }),
       });
 

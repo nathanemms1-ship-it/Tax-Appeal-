@@ -953,7 +953,7 @@ function StepDispute({ formData, onRestart }) {
         if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
         pd.isGA = true;
       } else {
-        const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, address: addr, county, assessedValue, zip: property.zip, state: property.state }) });
+        const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr, county, assessedValue, zip: property.zip, state: property.state, letterInputs: { ownerName: `${account.firstName} ${account.lastName}`, ownerEmail: account.email, taxYear, propertyDetails: propDetails, marketValue, annualTax, targetReduction, reductionPctDisplay, issues, notes: property.notes, districtBlock, deadlineNote: stateInfo.deadlineNote, statute: stateInfo.statute } }) });
         claudeJson = await claudeRes.json();
         if (claudeJson.error) throw new Error(claudeJson.error);
         if (!claudeJson.letter) throw new Error("Letter generation returned empty.");

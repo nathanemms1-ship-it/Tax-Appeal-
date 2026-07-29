@@ -19,6 +19,9 @@ const C = {
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
 
+// DEAD CODE as of the webhook migration — receipts are now composed and sent
+// server-side by lib/fulfillOrder.js -> /api/send-email. Kept only so a diff
+// reviewer can see what moved; safe to delete.
 function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter, amountPaid = 8900 }) {
   const firstName = customerName ? customerName.split(' ')[0] : 'there';
   return `
@@ -148,213 +151,47 @@ export default function Success() {
 
   // Mail chain. `sig` is null for FL (already signed the DR-486A pre-payment);
   // for TX/GA/AR/AL it carries the owner's post-payment e-signature.
+  /**
+   * The browser no longer fulfills anything.
+   *
+   * The Stripe webhook (pages/api/webhooks/stripe.js) creates the order row and,
+   * for Florida, mails the petition — server-side, on Stripe's delivery guarantee
+   * rather than on this tab staying open. All this function does now is hand over
+   * the post-payment signature for TX/GA/AR/AL and report the outcome.
+   *
+   * What used to live here: /api/save-order with a client-built body, then
+   * /api/send-letter with a client-supplied check amount, payee, and mailing
+   * address, then /api/send-email. Every reload re-ran the whole chain and cut a
+   * second real check; closing the tab mid-chain lost the order entirely.
+   */
   async function runMail(data, sig) {
     setMailStatus('sending');
-
-    if (data.isPreOrder) {
-      try {
-        await fetch('/api/save-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerName: data.customerName,
-            customerEmail: data.email,
-            passwordHash: data.passwordHash,
-            propertyAddress: data.address,
-            county: data.county,
-            state: data.ownerState,
-            assessedValue: data.assessedValue,
-            targetReduction: data.targetReduction,
-            estimatedSavings: data.savings,
-            stripeSessionId: session_id,
-            amountPaid: data.amountPaid || 8900,
-            vabFee: data.vabFee || 0,
-            vabPayableTo: data.vabPayableTo || null,
-            flSignatureName: data.flSignatureName || null,
-            stateCode: data.stateCode || null,
-            flAuthDate: data.flAuthDate || null,
-            ownerStreet: data.ownerStreet || null,
-            ownerCity: data.ownerCity || null,
-            ownerState: data.ownerState || null,
-            ownerZip: data.ownerZip || null,
-            districtName: data.districtName,
-            districtAddress: data.districtAddress,
-            districtCity: data.districtCity,
-            districtState: data.districtState,
-            districtZip: data.districtZip,
-            disputeStatus: 'queued',
-            scheduledFileDate: data.scheduledFileDate || null,
-            letterText: data.letter || null,
-          }),
-        });
-      } catch (dbErr) { console.error('Database save failed:', dbErr); }
-
-      if (sig) {
-        try {
-          await fetch('/api/save-signature', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: session_id,
-              signatureImage: sig.image,
-              typedName: sig.typedName,
-              acknowledged: sig.acknowledged,
-              signedAt: sig.signedAt,
-            }),
-          });
-        } catch (e) { console.error('Signature save failed:', e); }
-      }
-
-      setSigned(true);
-      setMailStatus('reserved');
-
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: data.email,
-            subject: `You are first in line for filing -- ${data.address}`,
-            html: buildReservedEmail({
-              customerName: data.customerName,
-              address: data.address,
-              county: data.county,
-              scheduledFileDate: data.scheduledFileDate,
-              assessedValue: data.assessedValue,
-              targetReduction: data.targetReduction,
-              savings: data.savings,
-            }),
-            text: `Your property tax protest for ${data.address} is reserved and will be filed via USPS certified mail as soon as your filing window opens.`,
-          }),
-        });
-      } catch (emailErr) { console.error('Email send failed:', emailErr); }
-
-      return;
-    }
     try {
-      const mailRes = await fetch('/api/send-letter', {
+      const res = await fetch('/api/finalize-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          districtName: data.districtName,
-          districtAddress: data.districtAddress,
-          districtCity: data.districtCity,
-          districtState: data.districtState,
-          districtZip: data.districtZip,
-          ownerName: data.customerName,
-          ownerStreet: data.ownerStreet,
-          ownerCity: data.ownerCity,
-          ownerState: data.ownerState,
-          ownerZip: data.ownerZip,
-          ownerEmail: data.email,
-          letterContent: data.letter,
-          propertyAddress: data.address,
-          county: data.county,
           sessionId: session_id,
-          stateCode: data.stateCode || '',
-          isFL: data.isFL || false,
-          vabFee: data.vabFee || 0,
-          vabPayableTo: data.vabPayableTo || '',
-          flSignatureName: data.flSignatureName || '',
-          flAuthDate: data.flAuthDate || '',
-          // Owner e-signature (TX/GA/AR/AL)
-          signedName: sig ? (sig.typedName || data.customerName) : '',
-          signedAt: sig ? sig.signedAt : '',
-          signatureImage: sig ? sig.image : '',
+          signatureImage: sig ? sig.image : null,
+          typedName: sig ? sig.typedName : null,
         }),
       });
-
-      const mailData = await mailRes.json();
-
-      // Always save the order regardless of mail status
-      try {
-        await fetch('/api/save-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerName: data.customerName,
-            customerEmail: data.email,
-            passwordHash: data.passwordHash,
-            propertyAddress: data.address,
-            county: data.county,
-            state: data.ownerState,
-            assessedValue: data.assessedValue,
-            targetReduction: data.targetReduction,
-            estimatedSavings: data.savings,
-            stripeSessionId: session_id,
-            amountPaid: data.amountPaid || 8900,
-            vabFee: data.vabFee || 0,
-            vabPayableTo: data.vabPayableTo || null,
-            flSignatureName: data.flSignatureName || null,
-            stateCode: data.stateCode || null,
-            flAuthDate: data.flAuthDate || null,
-            ownerStreet: data.ownerStreet || null,
-            ownerCity: data.ownerCity || null,
-            ownerState: data.ownerState || null,
-            ownerZip: data.ownerZip || null,
-            lobLetterId: mailData.letterId || null,
-            lobTrackingNumber: mailData.trackingNumber || null,
-            districtName: data.districtName,
-            districtAddress: data.districtAddress,
-            districtCity: data.districtCity,
-            districtState: data.districtState,
-            districtZip: data.districtZip,
-          }),
-        });
-      } catch (dbErr) { console.error('Database save failed:', dbErr); }
-
-      // Record the owner's e-signature AFTER the order row exists (save-order inserts it).
-      if (sig) {
-        try {
-          await fetch('/api/save-signature', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: session_id,
-              signatureImage: sig.image,
-              typedName: sig.typedName,
-              acknowledged: sig.acknowledged,
-              signedAt: sig.signedAt,
-            }),
-          });
-        } catch (e) { console.error('Signature save failed:', e); }
-      }
-
-      setSigned(true);
-
-      if (mailData.success) {
-        setMailStatus('sent');
-        setTrackingNumber(mailData.trackingNumber);
-        setLobPreviewUrl(mailData.url);
-        try {
-          await fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: data.email,
-              subject: `Your property tax protest has been filed — ${data.address}`,
-              html: buildConfirmationEmail({
-                customerName: data.customerName,
-                address: data.address,
-                county: data.county,
-                districtName: data.districtName,
-                assessedValue: data.assessedValue,
-                targetReduction: data.targetReduction,
-                savings: data.savings,
-                trackingNumber: mailData.trackingNumber,
-                letter: data.letter,
-              }),
-              text: `Your property tax protest for ${data.address} has been filed. Tracking: ${mailData.trackingNumber || 'Pending'}`,
-            }),
-          });
-        } catch (emailErr) { console.error('Email send failed:', emailErr); }
-      } else {
-        console.error('Mail send failed:', mailData.error);
+      const out = await res.json();
+      if (!res.ok || !out.success) {
         setMailStatus('error');
+        return;
+      }
+      const status = out.result && out.result.status;
+      if (status === 'filed') {
+        setMailStatus('sent');
+        if (out.result.trackingNumber) setTrackingNumber(out.result.trackingNumber);
+      } else if (status === 'queued') {
+        setMailStatus('queued');
+      } else {
+        setMailStatus('manual');
       }
     } catch (e) {
-      console.error('Mail send error:', e);
-      setSigned(true);
+      console.error('finalize-order failed:', e);
       setMailStatus('error');
     }
   }
@@ -499,7 +336,7 @@ export default function Success() {
               <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
               <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{session?.isPreOrder ? 'You are reserved — first in line!' : 'Your protest is filed!'}</h1>
               <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed via USPS certified mail with return receipt as soon as your filing window opens on ' + scheduledDateLabel + '.') : 'Your property tax protest is being sent via USPS certified mail with return receipt.'}
+                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed as soon as your filing window opens on ' + scheduledDateLabel + '.') : (session?.stateCode === 'FL' ? 'Your petition and county filing fee are on their way to the Value Adjustment Board by trackable USPS First Class mail.' : 'Your property tax protest is being sent via USPS certified mail with return receipt.')}
               </p>
             </div>
 
@@ -549,14 +386,14 @@ export default function Success() {
             <div style={{ background: C.amber, border: "1px solid #FFD97A", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#7A5C10", marginBottom: 6 }}>📧 Confirmation email sent</div>
               <div style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>A confirmation has been sent to <strong>{session?.email}</strong>. We will email you again with your USPS certified mail tracking number once your protest is filed on {scheduledDateLabel}.</> : <>A confirmation has been sent to <strong>{session?.email}</strong>. Your USPS certified mail tracking number will follow once your letter has been dispatched.</>}
+                {session?.isPreOrder ? <>A confirmation has been sent to <strong>{session?.email}</strong>. We will email you again with tracking once your protest is filed on {scheduledDateLabel}.</> : <>A confirmation has been sent to <strong>{session?.email}</strong>. Your tracking number will follow once your letter has been dispatched.</>}
               </div>
             </div>
 
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched with your USPS certified mail tracking number.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we will help you understand it.</>}
+                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we will help you understand it.</>}
               </div>
             </div>
 
