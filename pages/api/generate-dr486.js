@@ -180,7 +180,7 @@ export default async function handler(req, res) {
 
   // Anthropic call per request
   if (await enforceRateLimit(req, res, 'dr486', 8, 60)) return;
-  if (await enforceRateLimit(req, res, 'dr486', 40, 3600)) return;
+  if (await enforceRateLimit(req, res, 'dr486', 100, 3600)) return;
 
   const {
     ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
