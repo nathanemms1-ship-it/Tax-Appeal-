@@ -620,8 +620,64 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const [flSigError, setFlSigError] = useState('');
   const [flWillAttend, setFlWillAttend] = useState(false);
   const [flShareInfo, setFlShareInfo] = useState(true);
-  const expectedSig = `${account?.firstName || ''} ${account?.lastName || ''}`.trim().toLowerCase();
-  const flSigned = !isFLFlow || (flSigName.trim().length >= 3 && flSigName.trim().toLowerCase() === expectedSig);
+  // Signature matching.
+  //
+  // This used to require flSigName.trim().toLowerCase() to EQUAL
+  // "<firstName> <lastName>" exactly. Two things went wrong with that:
+  //
+  //   1. Anyone who signs the way people actually sign legal documents - with a
+  //      middle name, an initial, or a suffix ("Nathan A. Emms", "Nathan Emms Jr")
+  //      - failed the check, as did any stray double space or trailing period.
+  //   2. The failure was SILENT. The pay button is disabled while !flSigned, so
+  //      doCheckout never ran, so setFlSigError never fired. The customer saw a
+  //      locked button reading "Sign your petition above to continue" directly
+  //      beneath the signature they had just typed, with nothing telling them what
+  //      was wrong. There was no way to discover the rule from the UI.
+  //
+  // The exact-match rule was never a legal requirement - Fla. Stat. 194.011(3)
+  // asks for the taxpayer's signature, not for it to match our account record
+  // character for character. Its real job is catching someone signing a name that
+  // is not theirs, and typos. So: require the first and last name to both be
+  // present, in that order, and allow anything in between or after.
+  const sigNorm = (v) => String(v || '')
+    .toLowerCase()
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const expectedFirst = sigNorm(account?.firstName);
+  const expectedLast = sigNorm(account?.lastName);
+  const expectedSig = `${expectedFirst} ${expectedLast}`.trim();
+
+  const flSigCheck = (() => {
+    const typed = sigNorm(flSigName);
+    if (!typed) return { ok: false, reason: '' };
+    if (typed.length < 3) return { ok: false, reason: 'Please type your full legal name.' };
+    if (!expectedFirst || !expectedLast) return { ok: true, reason: '' };
+
+    // Pad so we match on whole words, and match on the SUBSTRING rather than on
+    // split tokens - a first or last name that itself contains a space ("Mary Jo",
+    // "Van Dyke") is never a single token and would otherwise never match.
+    const padded = ` ${typed} `;
+    const firstIdx = padded.indexOf(` ${expectedFirst} `);
+    const lastIdx = padded.lastIndexOf(` ${expectedLast} `);
+
+    if (firstIdx === -1 && lastIdx === -1) {
+      return { ok: false, reason: `This needs to be signed by the property owner. Please type ${account?.firstName} ${account?.lastName}.` };
+    }
+    if (firstIdx === -1) {
+      return { ok: false, reason: `Please include your first name (${account?.firstName}).` };
+    }
+    if (lastIdx === -1) {
+      return { ok: false, reason: `Please include your last name (${account?.lastName}).` };
+    }
+    if (lastIdx < firstIdx) {
+      return { ok: false, reason: `Please sign first name first: ${account?.firstName} ${account?.lastName}.` };
+    }
+    return { ok: true, reason: '' };
+  })();
+
+  const flSigned = !isFLFlow || flSigCheck.ok;
   const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
   const pd = propData || {};
@@ -673,11 +729,26 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             authorizeConfidential: flSig.authorizeConfidential,
           }),
         });
-        const signedJson = await signedRes.json();
-        if (signedJson.error) throw new Error(signedJson.error);
+        const signedJson = await signedRes.json().catch(() => ({}));
+        if (!signedRes.ok || signedJson.error) {
+          // Surface what actually went wrong. This used to collapse every failure
+          // into "We could not finalize your signed petition", which hid the two
+          // cases that actually happen: an unverified county (we genuinely cannot
+          // file there and the customer must not be charged), and rate limiting.
+          const err = new Error(signedJson.error || `Request failed (${signedRes.status})`);
+          err.code = signedJson.code;
+          err.status = signedRes.status;
+          throw err;
+        }
         if (signedJson.letterKey) signedLetterKey = signedJson.letterKey;
       } catch (e) {
-        setFlSigError('We could not finalize your signed petition. Please try again.');
+        if (e.code === 'FL_COUNTY_UNSUPPORTED') {
+          setFlSigError(e.message);
+        } else if (e.status === 429) {
+          setFlSigError('Too many requests from your network. Please wait a minute and try again — you have not been charged.');
+        } else {
+          setFlSigError(`${e.message || 'We could not finalize your signed petition.'} You have not been charged — please try again, or email customerservice@taxappealusa.com.`);
+        }
         setCheckingOut(false);
         return;
       }
@@ -879,9 +950,22 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 value={flSigName}
                 onChange={e => { setFlSigName(e.target.value); setFlSigError(""); }}
                 placeholder={`${account?.firstName || "First"} ${account?.lastName || "Last"}`}
-                style={{ width: "100%", background: C.white, border: `1.5px solid ${flSigError ? "#C0392B" : C.border}`, borderRadius: 7, padding: "12px 14px", fontSize: 16, fontFamily: "Georgia, serif", fontStyle: "italic", color: C.darkNavy }}
+                style={{ width: "100%", background: C.white, border: `1.5px solid ${(flSigError || (!flSigCheck.ok && flSigCheck.reason)) ? "#C0392B" : flSigCheck.ok && flSigName.trim() ? "#2E7D52" : C.border}`, borderRadius: 7, padding: "12px 14px", fontSize: 16, fontFamily: "Georgia, serif", fontStyle: "italic", color: C.darkNavy }}
               />
-              {flSigError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>{flSigError}</div>}
+              {/* Show the reason live, as they type. Previously the only error text
+                  was set inside doCheckout, which the disabled pay button made
+                  unreachable - so a mismatched signature produced a locked button
+                  and no explanation anywhere on the page. */}
+              {(flSigError || (!flSigCheck.ok && flSigCheck.reason)) && (
+                <div style={{ fontSize: 12, color: "#C0392B", marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
+                  {flSigError || flSigCheck.reason}
+                </div>
+              )}
+              {flSigCheck.ok && flSigName.trim() && (
+                <div style={{ fontSize: 12, color: "#2E7D52", marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
+                  &#10003; Signed
+                </div>
+              )}
               <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
                 Electronically signed under Florida&rsquo;s Electronic Signature Act (&sect; 668.50, F.S.).
               </div>
