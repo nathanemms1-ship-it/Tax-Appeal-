@@ -2,7 +2,11 @@
 // Post-payment review + electronic signature (delivery-only model, TX/GA/AR/AL).
 // The homeowner reviews the full protest, signs on-screen (draw default, type fallback),
 // and checks the ownership/non-representation acknowledgment. onSigned() then fires,
-// which triggers /api/save-signature + /api/send-letter upstream.
+// which triggers /api/finalize-order upstream. (This used to say
+// /api/save-signature + /api/send-letter; both are gone. save-signature was an
+// UNAUTHENTICATED write to the signature columns on sworn petitions with no caller
+// left, and send-letter is internal-only. finalize-order is the one door, and it
+// authenticates by re-reading the Stripe session server-side.)
 //
 // Props: letter, ownerName, propertyAddress, sending (bool), onSigned(fn)
 import { useRef, useState, useEffect } from "react";

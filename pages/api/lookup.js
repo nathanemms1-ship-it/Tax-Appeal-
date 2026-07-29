@@ -1,6 +1,13 @@
 import { Redis } from '@upstash/redis';
 import { getCountyPortal } from './county_portals';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
+import { checkSpend } from '../../lib/spendGuard';
+
+// This route interpolates the address into three separate Anthropic prompts, so it
+// needs the same 64 KB body ceiling as the other prompt-building routes rather than
+// Next's 1 MB default. See lib/inputLimits.js.
+export const config = PROMPT_ROUTE_CONFIG;
 
 // Initialize Redis gracefully
 let redis = null;
@@ -30,11 +37,21 @@ async function cacheSet(key, value, ttl) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // BatchData is billed per lookup
+  // BatchData is billed per lookup, and this route can also fall through to an
+  // Anthropic call for the county. A daily cap is added because bogus incrementing
+  // addresses ("1 Main St", "2 Main St", ...) miss every cache BY CONSTRUCTION, so
+  // the cache below is no defence against a deliberate attacker — only against
+  // ordinary repeat traffic.
   if (await enforceRateLimit(req, res, 'lookup', 12, 60)) return;
   if (await enforceRateLimit(req, res, 'lookup', 60, 3600)) return;
+  if (await enforceRateLimit(req, res, 'lookup', 250, 86400)) return;
 
-  const { street, city, state, zip, manualAssessedValue, manualSqft, manualYearBuilt, manualBeds, manualBaths } = req.body;
+  const b = req.body || {};
+  const street = cap(b.street, LIMITS.address);
+  const city = cap(b.city, 120);
+  const state = cap(b.state, 40);
+  const zip = cap(b.zip, 20);
+  const { manualAssessedValue, manualSqft, manualYearBuilt, manualBeds, manualBaths } = b;
   if (!street || !city || !state || !zip) {
     return res.status(400).json({ error: "Missing address fields" });
   }
@@ -88,6 +105,7 @@ export default async function handler(req, res) {
     // Claude county fallback
     if (!county) {
       try {
+        if (!(await checkSpend('anthropic', 1)).ok) throw new Error('anthropic daily ceiling');
         const countyRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
@@ -116,6 +134,21 @@ export default async function handler(req, res) {
     if (appraisalDistrict) console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
 
     // ── STEP 2: BatchData PRIMARY lookup with Core + Valuation datasets ───────
+    //
+    // The BatchData response was NOT cached at all, while county and district (which
+    // are cheaper to obtain) were cached for 180 days. Every re-visit, every browser
+    // back-button, every abandoned-then-resumed funnel paid for a fresh billed
+    // lookup of an address whose assessment does not change more than once a year.
+    //
+    // 30 days rather than 180: assessed values and parcel data DO change on the
+    // county's annual roll, and a stale assessed value would put a wrong number on a
+    // sworn petition. A month is long enough to absorb the funnel's repeat traffic
+    // and short enough that a new roll is picked up promptly.
+    const BD_TTL = 30 * 24 * 60 * 60;
+    const bdKey = `bd:${stateUpper}:${addrSlug}`;
+    let bdData = await cacheGet(bdKey);
+    if (bdData) console.log(`BATCHDATA FROM CACHE (${bdKey})`);
+
     try {
       console.log("Calling BatchData with Core dataset...");
       // Parse street number and name separately as BatchData may need them split
@@ -124,7 +157,15 @@ export default async function handler(req, res) {
       const streetName = streetParts ? streetParts[2] : street.trim();
       console.log("ADDRESS FORMAT:", { street: street.trim(), streetNumber, streetName, city: city.trim(), state: stateUpper, zip: zip.trim() });
 
-      const bdRes = await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
+      // Only a cache MISS costs money, so the ceiling is checked here.
+      let bdAllowed = true;
+      if (!bdData) {
+        const spend = await checkSpend('batchdata', 1);
+        bdAllowed = spend.ok;
+        if (!bdAllowed) console.error('[lookup] daily BatchData ceiling reached; falling back to manual entry.');
+      }
+
+      const bdRes = (bdData || !bdAllowed) ? null : await fetch("https://api.batchdata.com/api/v1/property/lookup/all-attributes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -145,18 +186,23 @@ export default async function handler(req, res) {
         }),
       });
 
-      if (bdRes.ok) {
-        const bdData = await bdRes.json();
-        console.log("BATCHDATA FULL RESPONSE:", JSON.stringify(bdData, null, 2));
+      if (bdRes && bdRes.ok) {
+        bdData = await bdRes.json();
+        if ((bdData?.results?.properties || []).length > 0) {
+          await cacheSet(bdKey, bdData, BD_TTL);
+        }
+      }
+
+      if (bdData) {
 
         const properties = bdData?.results?.properties || [];
         if (properties.length > 0) {
           const prop = properties[0];
-          console.log("PROPERTY KEYS:", Object.keys(prop));
-
-          // Log every nested object so we can see exact field names
-          const allKeys = JSON.stringify(prop);
-          console.log("FULL PROPERTY:", allKeys);
+          // The previous version logged Object.keys(prop) AND JSON.stringify(prop)
+          // on every lookup — an entire property record, including owner name and
+          // mailing address, written to Vercel's logs for every address anyone typed.
+          // Log the shape only.
+          console.log("BatchData property received, keys:", Object.keys(prop).length);
 
           // Try every possible path for assessment data
           const assess =
@@ -259,7 +305,7 @@ export default async function handler(req, res) {
         } else {
           console.log("BatchData returned 0 properties");
         }
-      } else {
+      } else if (bdRes) {
         const errText = await bdRes.text();
         console.log("BatchData error response:", bdRes.status, errText.slice(0, 300));
       }
@@ -362,6 +408,7 @@ Return ONLY this JSON:
   "district": { "districtName": null, "mailingAddress": null, "city": null, "state": "${stateUpper}", "zip": null, "phone": null, "website": null, "filingDeadlineNote": null, "filingMethod": null }
 }`;
 
+        if (!(await checkSpend('anthropic', 1)).ok) throw new Error('anthropic daily ceiling');
         const searchRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
@@ -404,6 +451,7 @@ Return ONLY this JSON:
     // ── STEP 4: District Claude fallback ──────────────────────────────────────
     if (!appraisalDistrict) {
       try {
+        if (!(await checkSpend('anthropic', 1)).ok) throw new Error('anthropic daily ceiling');
         const fallbackRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },

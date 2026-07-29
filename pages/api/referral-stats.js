@@ -1,12 +1,21 @@
 // pages/api/referral-stats.js
-// Monthly payout query — GET /api/referral-stats?password=XXX&month=2026-07
+// Monthly payout query. The admin password NO LONGER goes in the query string —
+// see lib/adminAuth.js for why. Call it one of these two ways:
+//
+//   curl -H "X-Admin-Password: $PW" 'https://taxappealusa.com/api/referral-stats?month=2026-07'
+//   curl -X POST -H 'Content-Type: application/json' \
+//        -d '{"password":"...","month":"2026-07"}' https://taxappealusa.com/api/referral-stats
 import { getSupabaseAdmin } from './supabase';
+import { requireAdmin } from '../../lib/adminAuth';
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  const { password, month } = req.query;
-  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
+  if (await requireAdmin(req, res, 'referral-stats')) return;
+
+  const month = req.body?.month || req.query?.month;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });

@@ -2,14 +2,29 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
+//
+// At module scope, createClient() throws "supabaseUrl is required" as soon as the env
+// var is absent, and a module-scope throw returns 500 before the auth check runs. On
+// THIS route that is the wrong order twice over: a misconfigured deployment reports
+// "Internal Server Error" instead of naming the missing variable, and the one check
+// standing between a caller and 8 real certified mailings is not the first thing to
+// execute. Auth first, dependencies second.
+let _supabase = null;
+let _resend = null;
+function clients() {
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return { supabase: _supabase, resend: _resend };
+}
 
 function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay, filingUrl }) {
   const firstName = name ? name.split(' ')[0] : 'there';
   const stateNames = { TX: 'Texas', GA: 'Georgia', FL: 'Florida' };
   const stateName = stateNames[state] || state;
-  const location = county ? `${county}, ${stateName}` : stateName;
+  // county and stateName land in an HTML email; escape at the point of assembly so
+  // every downstream use (subject line, headline, body) inherits it.
+  const location = county ? `${h(county)}, ${h(stateName)}` : h(stateName);
 
   const urgency = daysLeft <= 3 ? 'critical' : daysLeft <= 7 ? 'urgent' : daysLeft <= 14 ? 'warning' : 'normal';
   const urgencyColors = { critical: '#C0392B', urgent: '#E67E22', warning: '#F39C12', normal: '#1B3A6B' };
@@ -28,8 +43,8 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
     : `${daysLeft} Days Left to File`;
 
   const message = isFirstDay
-    ? `Great news, ${firstName}! The property tax protest filing window for ${location} just opened. You can now file your dispute and potentially save hundreds or thousands on your tax bill this year.`
-    : `Hi ${firstName}, just a reminder that you have <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> left to file your property tax protest in ${location}. Don't let the deadline pass — filing takes about 4 minutes and could save you significant money.`;
+    ? `Great news, ${h(firstName)}! The property tax protest filing window for ${location} just opened. You can now file your dispute and potentially save hundreds or thousands on your tax bill this year.`
+    : `Hi ${h(firstName)}, just a reminder that you have <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> left to file your property tax protest in ${location}. Don't let the deadline pass — filing takes about 4 minutes and could save you significant money.`;
 
   return {
     subject,
@@ -64,7 +79,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
       ${propertyAddress ? `
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
         <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Your Property</div>
-        <div style="font-size:14px;color:#1e293b;font-weight:500;">📍 ${propertyAddress}</div>
+        <div style="font-size:14px;color:#1e293b;font-weight:500;">📍 ${h(propertyAddress)}</div>
       </div>
       ` : ''}
 
@@ -125,6 +140,8 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
 const MAX_NOTIFICATIONS_PER_SEASON = 3;
 
 import crypto from 'crypto';
+import { requireCronSecret } from '../../../lib/webhookAuth';
+import { escapeHtml as h } from '../../../lib/escape';
 
 // Signed, per-address unsubscribe token so the link can't be used to unsubscribe
 // somebody else, and doesn't require a login.
@@ -134,11 +151,17 @@ function unsubToken(email) {
 }
 
 export default async function handler(req, res) {
-  // Security: only allow Vercel cron or internal calls
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Security: only allow Vercel cron or internal calls.
+  // The old inline check compared against `Bearer ${process.env.CRON_SECRET}`, which
+  // becomes the literal string "Bearer undefined" when the env var is missing — so an
+  // unset secret authenticated anyone who guessed that. See lib/webhookAuth.js.
+  if (requireCronSecret(req, res)) return;
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    console.error('[cron] Supabase env vars missing. Refusing.');
+    return res.status(503).json({ error: 'Not configured.' });
   }
+  const { supabase, resend } = clients();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

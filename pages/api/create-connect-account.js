@@ -2,13 +2,21 @@
 // Creates a Stripe Connect Express account for a partner and saves the account ID to Supabase
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from './supabase';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { refCode, email } = req.body;
+  // The (code, email) pair below is the only thing gating this, and both halves are
+  // guessable — codes are FIRSTNAME-LASTNAME and appear in public links. Without a
+  // limiter the pair can be brute-forced offline-fast, and each success creates a
+  // real Stripe Express account on our platform.
+  if (await enforceRateLimit(req, res, 'connect-account', 5, 60)) return;
+  if (await enforceRateLimit(req, res, 'connect-account', 20, 3600)) return;
+
+  const { refCode, email } = req.body || {};
 
   // A referral code is a PUBLIC identifier — it is in every link a partner shares,
   // and codes are FIRSTNAME-LASTNAME. Treating it as a credential let anyone bind
@@ -23,13 +31,21 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
+  // Normalise ONCE and use the normalised value everywhere below. The lookup used
+  // to uppercase the code while the UPDATE used the raw `refCode`, so a caller
+  // sending a lowercase code passed the lookup and then silently failed the write:
+  // a real Stripe Express account was created and its id was never saved. Those
+  // orphan accounts accumulate on the platform and are invisible to us.
+  const code = String(refCode).trim().toUpperCase();
+  const partnerEmail = String(email).trim().toLowerCase();
+
   try {
     // Check if this partner already has a Stripe account
     const { data: existing, error: lookupErr } = await supabase
       .from('referrals')
       .select('stripe_account_id, email, code')
-      .eq('code', String(refCode).trim().toUpperCase())
-      .eq('email', String(email).trim().toLowerCase())
+      .eq('code', code)
+      .eq('email', partnerEmail)
       .maybeSingle();
 
     // No matching (code, email) pair => not this partner. Generic message so the
@@ -44,7 +60,7 @@ export default async function handler(req, res) {
     if (!accountId) {
       const account = await stripe.accounts.create({
         type: 'express',
-        email,
+        email: partnerEmail,
         capabilities: {
           transfers: { requested: true },
         },
@@ -60,21 +76,27 @@ export default async function handler(req, res) {
       const { error: updateError } = await supabase
         .from('referrals')
         .update({ stripe_account_id: accountId })
-        .eq('code', refCode);
+        .eq('code', code);
 
       if (updateError) {
-        console.error('Failed to save stripe_account_id:', updateError);
-        // Still continue — return the onboarding URL even if DB update fails
-      } else {
-        console.log('Saved stripe_account_id', accountId, 'for', refCode);
+        // Do NOT hand out an onboarding link for an account id we failed to store.
+        // The payout run reads stripe_account_id from this table, so an unsaved id
+        // is an account that can never be paid — the partner would complete Stripe's
+        // whole bank-verification flow and still never receive money, and we would
+        // have no record that the account exists.
+        console.error('Failed to save stripe_account_id:', accountId, code, updateError);
+        return res.status(500).json({
+          error: 'Could not link your payout account. Please contact support@taxappealusa.com.',
+        });
       }
+      console.log('Saved stripe_account_id', accountId, 'for', code);
     }
 
     // Generate onboarding link for the partner to connect their bank
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=refresh&ref=' + refCode,
-      return_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=complete&ref=' + refCode,
+      refresh_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=refresh&ref=' + encodeURIComponent(code),
+      return_url: process.env.NEXT_PUBLIC_BASE_URL + '/partners?onboarding=complete&ref=' + encodeURIComponent(code),
       type: 'account_onboarding',
     });
 

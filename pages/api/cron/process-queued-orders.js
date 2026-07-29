@@ -9,9 +9,23 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { dispatchQueuedOrder } from '../../../lib/processOrder';
+import { requireCronSecret } from '../../../lib/webhookAuth';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
+//
+// At module scope, createClient() throws "supabaseUrl is required" as soon as the env
+// var is absent, and a module-scope throw returns 500 before the auth check runs. On
+// THIS route that is the wrong order twice over: a misconfigured deployment reports
+// "Internal Server Error" instead of naming the missing variable, and the one check
+// standing between a caller and 8 real certified mailings is not the first thing to
+// execute. Auth first, dependencies second.
+let _supabase = null;
+let _resend = null;
+function clients() {
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return { supabase: _supabase, resend: _resend };
+}
 
 // Cap per run so we never risk a Vercel function timeout — remaining queued
 // orders simply get picked up on the next day's run (Nathan: no same-day
@@ -27,11 +41,17 @@ export const config = { maxDuration: 300 };
 const MAX_PER_RUN = 8;
 
 export default async function handler(req, res) {
-  // Security: only allow Vercel cron or internal calls
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Security: only allow Vercel cron or internal calls.
+  // The old inline check compared against `Bearer ${process.env.CRON_SECRET}`, which
+  // becomes the literal string "Bearer undefined" when the env var is missing — so an
+  // unset secret authenticated anyone who guessed that. See lib/webhookAuth.js.
+  if (requireCronSecret(req, res)) return;
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    console.error('[cron] Supabase env vars missing. Refusing.');
+    return res.status(503).json({ error: 'Not configured.' });
   }
+  const { supabase, resend } = clients();
 
   console.log(`[process-queued-orders] Running for ${new Date().toISOString()}`);
 

@@ -1,5 +1,10 @@
 import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { validateVendorInput, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
+import { checkSpend } from '../../lib/spendGuard';
+
+// 64 KB instead of Next's 1 MB default. See lib/inputLimits.js.
+export const config = PROMPT_ROUTE_CONFIG;
 
 let redis = null;
 try {
@@ -84,13 +89,33 @@ export default async function handler(req, res) {
   // Client-supplied prompts are now refused outright. The prompt is assembled here
   // from structured fields, so the caller can only ever generate a property-tax
   // protest letter for a real address.
-  const { address, county, assessedValue, zip, state, letterInputs } = req.body;
-  if (req.body.prompt) {
+  if (req.body?.prompt) {
     return res.status(400).json({ error: "Client-supplied prompts are not accepted." });
   }
+
+  // Refusing a client prompt stopped the caller CHOOSING the prompt. It did not
+  // stop them SIZING it: notes/propertyDetails/issues are still interpolated into
+  // the prompt we build, so length has to be bounded too.
+  const outer = validateVendorInput(req.body || {});
+  if (!outer.ok) return res.status(400).json({ error: outer.error });
+  const inner = validateVendorInput(req.body?.letterInputs || {});
+  if (!inner.ok) return res.status(400).json({ error: inner.error });
+
+  const { address, county, assessedValue, zip, state } = outer.clean;
+  const letterInputs = req.body?.letterInputs ? inner.clean : null;
   if (!address || !state) return res.status(400).json({ error: "Missing address or state" });
 
   const prompt = buildProtestPrompt({ address, county, assessedValue, zip, state, ...(letterInputs || {}) });
+
+  // Global daily ceiling across ALL callers. Per-IP limits bound one attacker; a
+  // proxy pool defeats them. See lib/spendGuard.js.
+  const spend = await checkSpend('anthropic', 1);
+  if (!spend.ok) {
+    return res.status(503).json({
+      error: 'We are temporarily unable to generate documents. Please try again shortly.',
+      code: 'CAPACITY',
+    });
+  }
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {

@@ -1,17 +1,70 @@
+/**
+ * Inbound decision-letter parser.
+ *
+ * ============================================================================
+ * THIS ROUTE WAS COMPLETELY UNAUTHENTICATED
+ * ============================================================================
+ * Any anonymous POST could:
+ *   1. spend our Anthropic budget (a Sonnet call per request, no limiter),
+ *   2. overwrite dispute_status / savings_amount / decision_detail on a real
+ *      customer's order — the address match used ILIKE with the caller's own
+ *      string interpolated into the pattern, so "%" matched the newest order in
+ *      the table and let the caller pick a victim without knowing anything, and
+ *   3. cause an email to be sent to that customer from disputes@taxappealusa.com,
+ *      DKIM-signed by us, with attacker-controlled text in the body.
+ *
+ * Fixed here: shared-secret auth that fails CLOSED, LIKE-wildcard escaping, a
+ * minimum-specificity requirement on the address match, a column allowlist instead
+ * of select('*') (which was pulling bcrypt password hashes into memory), and HTML
+ * escaping on every value interpolated into the outbound email.
+ */
+
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { requireWebhookSecret, escapeHtml, escapeLike } from '../../../lib/webhookAuth';
+import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../../lib/inputLimits';
+import { checkSpend } from '../../../lib/spendGuard';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const config = PROMPT_ROUTE_CONFIG;
+
+// Constructed lazily, INSIDE the handler, after authentication.
+//
+// At module scope, createClient() throws "supabaseUrl is required" the moment the env
+// var is absent — and a module-scope throw makes the route return 500 before the auth
+// check runs. That is the wrong failure: a misconfigured deployment then reports
+// "Internal Server Error" instead of "webhook not configured", and no log line ever
+// says which variable is missing. Auth first, dependencies second.
+let _anthropic = null;
+let _supabase = null;
+let _resend = null;
+
+function clients() {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return { anthropic: _anthropic, supabase: _supabase, resend: _resend };
+}
+
+// Only the columns this route actually reads. select('*') shipped every column of
+// the orders row, including the password hash, into this function's memory and
+// into any log line that stringified it.
+const ORDER_FIELDS = 'id, customer_name, customer_email, property_address, account_number, dispute_status';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { From, Subject, TextBody, HtmlBody } = req.body;
+  if (requireWebhookSecret(req, res, 'INBOUND_EMAIL_SECRET')) return;
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    console.error('[inbound-email] Supabase env vars missing. Refusing.');
+    return res.status(503).json({ error: 'Not configured.' });
+  }
+  const { anthropic, supabase, resend } = clients();
+
+  const { From, Subject, TextBody, HtmlBody } = req.body || {};
   const emailBody = TextBody || HtmlBody || '';
 
   if (!emailBody) {
@@ -20,6 +73,14 @@ export default async function handler(req, res) {
   }
 
   // ── Step 1: Use Claude to parse the appeal decision ──
+  // Authenticated now, but still metered: a provider retry storm or a loop on their
+  // side would otherwise spend without limit. See lib/spendGuard.js.
+  if (!(await checkSpend('anthropic', 1)).ok) {
+    console.error('[inbound-email] daily Anthropic ceiling reached; asking the sender to retry.');
+    // 503 so the mail provider retries later rather than dropping the decision letter.
+    return res.status(503).json({ error: 'Capacity reached, retry later.' });
+  }
+
   let parsed;
   try {
     const parseResponse = await anthropic.messages.create({
@@ -40,8 +101,8 @@ Return ONLY a valid JSON object — no preamble, no markdown:
   "confidence": "high" | "medium" | "low"
 }
 
-Email Subject: ${Subject}
-Email From: ${From}
+Email Subject: ${cap(Subject, 300)}
+Email From: ${cap(From, LIMITS.email)}
 Email Body:
 ${emailBody.substring(0, 4000)}`
       }]
@@ -60,25 +121,43 @@ ${emailBody.substring(0, 4000)}`
   let order = null;
 
   if (parsed.property_address) {
-    const parts = parsed.property_address.trim().split(/\s+/);
-    const streetNum = parts[0];
+    const parts = String(parsed.property_address).trim().split(/\s+/);
+    const streetNum = parts[0] || '';
     const streetWord = parts[1] || '';
 
-    const { data } = await supabase
-      .from('orders')
-      .select('*')
-      .ilike('property_address', `%${streetNum}%${streetWord}%`)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    // Require a real street number AND a street word before matching. Without this,
+    // a one-token address produced the pattern `%7%%` and matched the newest order
+    // whose address contains a 7 — which is most of them.
+    const specificEnough = /^\d{1,8}[A-Za-z]?$/.test(streetNum) && streetWord.length >= 2;
 
-    if (data?.length) order = data[0];
+    if (specificEnough) {
+      const { data } = await supabase
+        .from('orders')
+        .select(ORDER_FIELDS)
+        .ilike('property_address', `%${escapeLike(streetNum)}%${escapeLike(streetWord)}%`)
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      // Two matches means we cannot tell which customer this letter is about. Do
+      // not guess: writing the wrong decision onto the wrong order and emailing
+      // that customer about it is worse than not matching at all.
+      if (data?.length === 1) order = data[0];
+      else if (data?.length > 1) {
+        console.error('[inbound-email] Ambiguous address match, refusing to guess.', {
+          parsedAddress: parsed.property_address,
+        });
+        return res.status(200).json({ received: true, matched: false, reason: 'ambiguous' });
+      }
+    } else {
+      console.warn('[inbound-email] Parsed address too vague to match:', parsed.property_address);
+    }
   }
 
   if (!order && parsed.account_number) {
     const { data } = await supabase
       .from('orders')
-      .select('*')
-      .eq('account_number', parsed.account_number)
+      .select(ORDER_FIELDS)
+      .eq('account_number', cap(parsed.account_number, LIMITS.parcelId))
       .limit(1);
 
     if (data?.length) order = data[0];
@@ -95,14 +174,27 @@ ${emailBody.substring(0, 4000)}`
   }
 
   // ── Step 3: Update Supabase order ──
+  // parsed.* is model output derived from an inbound email. Constrain it to the
+  // three values the rest of the app switches on rather than writing whatever
+  // string came back into dispute_status.
+  const DECISIONS = ['approved', 'denied', 'partial'];
+  if (!DECISIONS.includes(parsed.decision)) {
+    console.error('[inbound-email] Unrecognised decision value, not writing:', parsed.decision);
+    return res.status(200).json({ received: true, matched: true, error: 'bad_decision' });
+  }
+
+  const savings = Number(parsed.savings_amount);
+  const safeSavings = Number.isFinite(savings) && savings > 0 ? Math.round(savings) : 0;
+  const summary = cap(parsed.summary, 1200);
+
   const { error: updateError } = await supabase
     .from('orders')
     .update({
       dispute_status: parsed.decision,
       decision_date: new Date().toISOString(),
-      decision_detail: parsed.summary,
-      savings_amount: parsed.savings_amount || 0,
-      actual_savings: parsed.savings_amount || 0,
+      decision_detail: summary,
+      savings_amount: safeSavings,
+      actual_savings: safeSavings,
       raw_email_content: emailBody.substring(0, 10000)
     })
     .eq('id', order.id);
@@ -115,9 +207,14 @@ ${emailBody.substring(0, 4000)}`
   // ── Step 4: Notify the customer via email ──
   // Use customer_name and customer_email (actual column names)
   const isGoodNews = parsed.decision === 'approved' || parsed.decision === 'partial';
-  const firstName = order.customer_name?.split(' ')[0] || 'there';
-  const savingsDisplay = parsed.savings_amount > 0
-    ? `$${Number(parsed.savings_amount).toLocaleString()}`
+  // Escaped: the name comes from our own DB but the summary is model output derived
+  // from an inbound email, so it is untrusted text going into an HTML document that
+  // we DKIM-sign. An unescaped </div><a href=...> in there is a phishing email
+  // sent by us, to our own customer, from our own domain.
+  const firstName = escapeHtml(order.customer_name?.split(' ')[0] || 'there');
+  const safeSummary = escapeHtml(summary);
+  const savingsDisplay = safeSavings > 0
+    ? `$${safeSavings.toLocaleString()}`
     : null;
 
   try {
@@ -150,7 +247,7 @@ ${emailBody.substring(0, 4000)}`
     </div>
     <div style="padding:36px;">
       <p style="font-size:16px;color:#334155;margin:0 0 20px;">Hi ${firstName},</p>
-      <p style="font-size:16px;color:#334155;line-height:1.7;margin:0 0 28px;">${parsed.summary}</p>
+      <p style="font-size:16px;color:#334155;line-height:1.7;margin:0 0 28px;">${safeSummary}</p>
       ${savingsDisplay ? `
       <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:24px;text-align:center;margin:0 0 28px;">
         <div style="font-size:12px;font-weight:700;color:#15803d;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">

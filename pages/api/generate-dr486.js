@@ -56,6 +56,11 @@
 import { Redis } from '@upstash/redis';
 import { getFlVabAddress } from '../../lib/flVabAddresses';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { validateVendorInput, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
+import { checkSpend } from '../../lib/spendGuard';
+
+// 64 KB instead of Next's 1 MB default. See lib/inputLimits.js.
+export const config = PROMPT_ROUTE_CONFIG;
 
 let redis = null;
 try {
@@ -182,6 +187,10 @@ export default async function handler(req, res) {
   if (await enforceRateLimit(req, res, 'dr486', 8, 60)) return;
   if (await enforceRateLimit(req, res, 'dr486', 100, 3600)) return;
 
+  // Bound the free-text fields that get interpolated into the prompt below.
+  const checked = validateVendorInput(req.body || {});
+  if (!checked.ok) return res.status(400).json({ error: checked.error });
+
   const {
     ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
     ownerStreet, ownerCity, ownerState, ownerZip,
@@ -197,7 +206,7 @@ export default async function handler(req, res) {
     // evidenceText: on the signing pass, reuse the evidence already generated for
     // the preview so signing costs no additional model call.
     preview, evidenceText: providedEvidence,
-  } = req.body;
+  } = checked.clean;
 
   if (!propertyAddress || !county) {
     return res.status(400).json({ error: 'Missing required fields: propertyAddress and county' });
@@ -283,6 +292,15 @@ Professional, factual, first person as the property owner. Output only the four 
       // Signing pass — reuse the evidence the owner actually read.
       evidenceText = String(providedEvidence);
     } else {
+    // Global daily ceiling across ALL callers. Per-IP limits bound one attacker; a
+    // residential proxy pool defeats them. See lib/spendGuard.js.
+    const spend = await checkSpend('anthropic', 1);
+    if (!spend.ok) {
+      return res.status(503).json({
+        error: 'We are temporarily unable to prepare petitions. Please try again shortly.',
+        code: 'CAPACITY',
+      });
+    }
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },

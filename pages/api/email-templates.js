@@ -1,3 +1,11 @@
+import { escapeHtml as h } from '../../lib/escape';
+
+/**
+ * Every ${...} below that carries a customer-supplied or vendor-supplied value is
+ * wrapped in h(). These bodies go out SPF/DKIM-aligned on taxappealusa.com, so an
+ * unescaped value is arbitrary markup inside an email that mail clients will show
+ * as authentically from us, delivered to our own customer. See lib/escape.js.
+ */
 // pages/api/email-templates.js
 
 export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900 }) {
@@ -36,9 +44,9 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
           <!-- Body -->
           <tr>
             <td style="padding:36px 40px;">
-              <p style="margin:0 0 20px;font-size:16px;color:#1B2A4A;">Hi ${firstName},</p>
+              <p style="margin:0 0 20px;font-size:16px;color:#1B2A4A;">Hi ${h(firstName)},</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
-                Your property tax dispute letter has been professionally prepared and dispatched via trackable USPS mail to the ${county} Appraisal District. Here is a summary of your filing.
+                Your property tax dispute letter has been professionally prepared and dispatched via trackable USPS mail to the ${h(county)} Appraisal District. Here is a summary of your filing.
               </p>
 
               <!-- Order Summary Box -->
@@ -49,25 +57,25 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Property Owner</td>
-                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${fullName}</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(fullName)}</td>
                       </tr>
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Property Address</td>
-                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${address}</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(address)}</td>
                       </tr>
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">County</td>
-                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${county}</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(county)}</td>
                       </tr>
                       ${trackingNumber ? `
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">USPS Tracking</td>
-                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${trackingNumber}</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(trackingNumber)}</td>
                       </tr>` : ''}
                       ${lobId ? `
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Letter ID</td>
-                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${lobId}</td>
+                        <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(lobId)}</td>
                       </tr>` : ''}
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Filing Fee Paid</td>
@@ -114,7 +122,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
                 <tr>
                   <td align="center" style="padding:16px;background:#1B2A4A;border-radius:6px;">
-                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}"
+                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}"
                        style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
                       📦 Track Your Letter on USPS.com →
                     </a>
@@ -126,7 +134,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <!-- Full Letter -->
               <div style="margin-bottom:28px;">
                 <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:14px;">Your Dispute Letter — For Your Records</div>
-                <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:28px 32px;font-family:Georgia,serif;font-size:13px;color:#222;line-height:1.8;white-space:pre-wrap;">${letter}</div>
+                <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:28px 32px;font-family:Georgia,serif;font-size:13px;color:#222;line-height:1.8;white-space:pre-wrap;">${h(letter)}</div>
                 <div style="margin-top:10px;font-size:11px;color:#999;text-align:center;">Keep this email as your official record of the protest you filed.</div>
               </div>` : ''}
 
@@ -186,14 +194,14 @@ export function deliveryEmailTemplate({ firstName, trackingNumber, address, coun
           </tr>
           <tr>
             <td style="padding:36px 40px;">
-              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${firstName},</p>
+              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${h(firstName)},</p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                Your property tax protest letter for <strong>${address}</strong> has been successfully delivered to the <strong>${county}</strong> Appraisal District via trackable USPS mail.
+                Your property tax protest letter for <strong>${h(address)}</strong> has been successfully delivered to the <strong>${h(county)}</strong> Appraisal District via trackable USPS mail.
               </p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
                 The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
               </p>
-              ${trackingNumber ? `<p style="font-size:13px;color:#888;">USPS Tracking: <strong>${trackingNumber}</strong></p>` : ''}
+              ${trackingNumber ? `<p style="font-size:13px;color:#888;">USPS Tracking: <strong>${h(trackingNumber)}</strong></p>` : ''}
               <p style="font-size:14px;color:#444;">
                 Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
               </p>
@@ -252,7 +260,7 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
             <td style="padding:36px 40px;">
               <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${name},</p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                Good news — your property tax protest letter${address ? ` for <strong>${address}</strong>` : ''} has been successfully delivered to <strong>${district}</strong> via trackable USPS mail${deliveredLine}.
+                Good news — your property tax protest letter${address ? ` for <strong>${h(address)}</strong>` : ''} has been successfully delivered to <strong>${h(district)}</strong> via trackable USPS mail${deliveredLine}.
               </p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
                 The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
@@ -261,13 +269,13 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
                 <tr>
                   <td align="center" style="padding:14px;background:#1B2A4A;border-radius:6px;">
-                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}" style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
+                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}" style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
                       📦 View USPS Delivery Confirmation →
                     </a>
                   </td>
                 </tr>
               </table>
-              <p style="font-size:13px;color:#888;">USPS Tracking: <strong>${trackingNumber}</strong></p>` : ''}
+              <p style="font-size:13px;color:#888;">USPS Tracking: <strong>${h(trackingNumber)}</strong></p>` : ''}
               <p style="font-size:14px;color:#444;">
                 Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
               </p>
@@ -294,7 +302,7 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
 Good news — your property tax protest letter${address ? ` for ${address}` : ''} has been successfully delivered to ${district} via trackable USPS mail${deliveredDate ? ` on ${deliveredDate}` : ''}.
 
 The district will review your protest and send their decision — typically within 30-90 days. Watch your mail and email for a notice from the appraisal district.
-${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}\n` : ''}
+${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}\n` : ''}
 Questions? Email us at customerservice@taxappealusa.com
 
 © ${year} TaxAppeal USA`;

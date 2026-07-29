@@ -1,12 +1,49 @@
+import crypto from 'crypto';
 import { getSupabaseAdmin } from './supabase';
+import { enforceRateLimit } from '../../lib/rateLimit';
+
+/**
+ * Columns the admin UI actually renders (see pages/admin.js). This replaces
+ * select('*').
+ *
+ * select('*') returned EVERY column of EVERY order to the browser, including
+ * password_hash for every customer — a full bcrypt hash dump behind one shared
+ * password, sitting in the admin tab's memory and in any HAR file or client-side
+ * error report. It also returned the signature name/timestamp fields, i.e. the
+ * attestation data on sworn petitions. None of it was displayed.
+ */
+const ADMIN_FIELDS = [
+  'id', 'created_at',
+  'customer_name', 'customer_email',
+  'property_address', 'county', 'state', 'state_code',
+  'assessed_value', 'market_value', 'target_reduction', 'reduction_pct',
+  'estimated_savings', 'actual_savings',
+  'district_name', 'district_address', 'district_city', 'district_state', 'district_zip',
+  'lob_letter_id', 'lob_tracking_number', 'lob_status',
+  'amount_paid', 'payment_status', 'stripe_session_id',
+  'dispute_status', 'outcome', 'outcome_reported_at',
+  'scheduled_file_date',
+].join(', ');
+
+/** Constant-time password compare, so response timing does not reveal a prefix. */
+function passwordMatches(supplied) {
+  const expected = process.env.ADMIN_PASSWORD;
+  if (!expected) return false;
+  const a = crypto.createHash('sha256').update(String(supplied ?? '')).digest();
+  const b = crypto.createHash('sha256').update(String(expected)).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password } = req.body;
+  // A single shared password with no lockout is online-guessable. Cap the attempts.
+  if (await enforceRateLimit(req, res, 'admin-orders', 10, 60)) return;
+  if (await enforceRateLimit(req, res, 'admin-orders', 60, 3600)) return;
 
-  // Simple password protection — change this before going live
-  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
+  const { password } = req.body || {};
+
+  if (!passwordMatches(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -18,7 +55,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select(ADMIN_FIELDS)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -8,17 +8,23 @@
 // Auth:
 //   - Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` automatically when the
 //     CRON_SECRET env var is set. That authorizes the scheduled daily run.
-//   - Manual/targeted runs use `?secret=<INDEXNOW_SECRET>`.
+//   - Manual/targeted runs send `X-IndexNow-Secret: <INDEXNOW_SECRET>` as a HEADER.
+//     It used to be `?secret=...`; a query string is written in plaintext to Vercel's
+//     request logs and to the Referer of any outbound link, and this secret lets a
+//     caller push arbitrary URLs into Bing's and Yandex's crawl queues under our key.
 //
 // Usage:
-//   GET  /api/indexnow?secret=XXX                       -> submit the full sitemap
-//   GET  /api/indexnow?secret=XXX&urls=/counties/hillsborough-county-fl,/florida/tampa-fl
-//                                                        -> submit only those URLs (use after editing specific pages)
+//   curl -H "X-IndexNow-Secret: $INDEXNOW_SECRET" \
+//        'https://www.taxappealusa.com/api/indexnow'                 -> full sitemap
+//   curl -H "X-IndexNow-Secret: $INDEXNOW_SECRET" \
+//        '.../api/indexnow?urls=/counties/hillsborough-county-fl'    -> only those URLs
 //
 // Required env vars (Vercel -> Settings -> Environment Variables):
 //   INDEXNOW_KEY     = 64bcda3c09a0d08cc8286468ee6b541f   (must match the /public/<key>.txt filename + contents)
 //   INDEXNOW_SECRET  = <any long random string of your choice>   (gate for manual calls)
 //   CRON_SECRET      = <any long random string>                  (Vercel auto-sends this to the cron)
+
+import { requireCronSecret } from '../../lib/webhookAuth';
 
 const HOST = "www.taxappealusa.com";
 const BASE = `https://${HOST}`;
@@ -28,12 +34,20 @@ export default async function handler(req, res) {
   const SECRET = process.env.INDEXNOW_SECRET;
 
   // --- Auth: allow either the Vercel cron bearer token or the manual secret ---
-  const authHeader = req.headers.authorization || "";
-  const cronOk =
-    process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
-  const secretOk = SECRET && req.query.secret === SECRET;
-  if (!cronOk && !secretOk) {
-    return res.status(401).json({ error: "Unauthorized" });
+  //
+  // The `process.env.CRON_SECRET &&` guard here is what kept this route from having
+  // the "Bearer undefined" bypass that the two /cron routes did have. It is routed
+  // through the shared helper anyway, so there is one implementation of the check and
+  // one place doing the constant-time compare.
+  const manualOk = SECRET && req.headers["x-indexnow-secret"] === SECRET;
+  if (!manualOk) {
+    if (req.query.secret) {
+      return res.status(400).json({
+        error: "Send the secret in the X-IndexNow-Secret header, not the query string.",
+        code: "PASSWORD_IN_QUERY",
+      });
+    }
+    if (requireCronSecret(req, res)) return;
   }
   if (!KEY) {
     return res.status(500).json({ error: "INDEXNOW_KEY env var not set" });

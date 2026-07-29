@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import { Redis } from '@upstash/redis';
 import { getFlVabFee } from '../../lib/flCountyFees';
 import { getFlVabAddress } from '../../lib/flVabAddresses';
+import { checkSpend } from '../../lib/spendGuard';
 
 let redis = null;
 try {
@@ -206,6 +207,15 @@ export default async function handler(req, res) {
 
       console.log('Sending FL Lob check:', JSON.stringify({ to: checkPayload.to, amount: checkPayload.amount, memo: checkPayload.memo }));
 
+      // REAL MONEY, REAL MAIL, IRREVERSIBLE. This endpoint is already restricted to
+      // internal callers, so the ceiling is not defending against the public — it
+      // bounds the damage if a bug upstream (a retry storm, a bad cron, a loop in
+      // fulfillment) starts dispatching. See lib/spendGuard.js.
+      if (!(await checkSpend('lob', 1)).ok) {
+        console.error('[send-letter] daily Lob ceiling reached; refusing to write a check.');
+        return res.status(503).json({ error: 'Mail dispatch is paused. Please contact support.', code: 'MAIL_CEILING' });
+      }
+
       const lobRes = await fetch('https://api.lob.com/v1/checks', {
         method: 'POST',
         headers: { 'Authorization': LOB_AUTH, 'Content-Type': 'application/json' },
@@ -252,6 +262,13 @@ export default async function handler(req, res) {
     };
 
     console.log('Sending Lob letter:', JSON.stringify({ to: lobPayload.to, from: lobPayload.from, extra_service: lobPayload.extra_service }));
+
+    // Same ceiling as the check path above — certified mail is ~$8-12 and cannot be
+    // recalled once Lob accepts it.
+    if (!(await checkSpend('lob', 1)).ok) {
+      console.error('[send-letter] daily Lob ceiling reached; refusing to mail a letter.');
+      return res.status(503).json({ error: 'Mail dispatch is paused. Please contact support.', code: 'MAIL_CEILING' });
+    }
 
     const lobRes = await fetch('https://api.lob.com/v1/letters', {
       method: 'POST',

@@ -41,10 +41,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  // Look up most recent order by email
+  // Look up most recent order by email.
+  //
+  // An explicit allowlist rather than select('*'). The row below is returned to the
+  // browser, and select('*') meant the response carried every column that existed —
+  // signature_image, signer_ip, stripe_session_id, the DR-486 elections — none of
+  // which pages/portal.js renders. The old code stripped password_hash by name,
+  // which protects exactly the one field somebody remembered, and nothing added
+  // later. password_hash is still selected here because login has to verify it, and
+  // it is still stripped before the response; the allowlist is what stops the NEXT
+  // sensitive column from shipping automatically.
+  const PORTAL_FIELDS = [
+    'id', 'created_at', 'customer_name', 'customer_email',
+    'property_address', 'county', 'state', 'state_code', 'assessed_value',
+    'dispute_status', 'decision_date', 'decision_detail',
+    'lob_letter_id', 'lob_tracking_number', 'mailed_at',
+    'password_hash',
+  ].join(', ');
+
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('*')
+    .select(PORTAL_FIELDS)
     .eq('customer_email', email.toLowerCase().trim())
     .order('created_at', { ascending: false })
     .limit(1);

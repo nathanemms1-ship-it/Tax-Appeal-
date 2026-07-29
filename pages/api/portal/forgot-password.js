@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import { enforceRateLimit } from '../../../lib/rateLimit';
+import { escapeHtml as h } from '../../../lib/escape';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
         </tr>
         <tr>
           <td style="padding:36px 40px;">
-            <p style="font-size:16px;color:#1B2A4A;margin:0 0 16px;font-weight:600;">Hi ${firstName},</p>
+            <p style="font-size:16px;color:#1B2A4A;margin:0 0 16px;font-weight:600;">Hi ${h(firstName)},</p>
             <p style="font-size:15px;color:#444;line-height:1.6;margin:0 0 24px;">
               We received a request to reset your TaxAppeal USA portal password. Click the button below to set a new password.
             </p>
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
             </table>
             <p style="font-size:12px;color:#aaa;line-height:1.6;margin:0;word-break:break-all;">
               If the button doesn't work, paste this URL into your browser:<br/>
-              <span style="color:#1B2A4A;">${resetUrl}</span>
+              <span style="color:#1B2A4A;">${h(resetUrl)}</span>
             </p>
           </td>
         </tr>

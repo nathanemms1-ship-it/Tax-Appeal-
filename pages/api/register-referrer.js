@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from './supabase';
 import { Resend } from 'resend';
 import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { escapeHtml } from '../../lib/webhookAuth';
+import { LIMITS, cap } from '../../lib/inputLimits';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -69,19 +71,19 @@ html: `<!DOCTYPE html>
 <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who files</p>
 </div>
 <div style="padding:32px 36px;">
-<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${firstName || 'there'}, looks like you already have a TaxAppeal referral link tied to this email address — here it is again. Share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>
+<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${escapeHtml(firstName || 'there')}, looks like you already have a TaxAppeal referral link tied to this email address — here it is again. Share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:20px 24px;margin-bottom:20px;text-align:center;">
 <div style="font-size:11px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your Referral Link</div>
-<div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${referralLink}</div>
-<div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${code}</strong></div>
+<div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
+<div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
 <div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
 <p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. Stripe also handles your W-9 and any required 1099 tax forms automatically.</p>
-<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${code}&email=${email}&name=${encodeURIComponent(firstName || '')}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
+<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
 </div>
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${referralLink}"</div>
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
 <p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>
@@ -102,10 +104,23 @@ console.error('Referral reminder email failed:', emailErr.message);
 export default async function handler(req, res) {
 if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // partner-program abuse surface
+  // partner-program abuse surface. The per-minute cap alone still allowed 7,200
+  // emails a day from customerservice@taxappealusa.com off a single IP, which is a
+  // domain-reputation problem before it is a cost problem — mail we send that
+  // nobody asked for is what gets a sending domain blocklisted.
   if (await enforceRateLimit(req, res, 'referrer', 5, 60)) return;
+  if (await enforceRateLimit(req, res, 'referrer', 20, 3600)) return;
 
-const { firstName, lastName, email, phone, role, statesActive, clientVolume } = req.body;
+const body = req.body || {};
+// These values are interpolated into the referral CODE, into a URL, and into an
+// HTML email we DKIM-sign. Bound the length before any of that happens.
+const firstName = cap(body.firstName, LIMITS.name);
+const lastName = cap(body.lastName, LIMITS.name);
+const email = cap(body.email, LIMITS.email);
+const phone = cap(body.phone, LIMITS.phone);
+const role = cap(body.role, 120);
+const statesActive = cap(body.statesActive, 200);
+const clientVolume = cap(body.clientVolume, 120);
 if (!firstName || !lastName || !email) {
 return res.status(400).json({ error: 'First name, last name, and email are required' });
 }
@@ -198,19 +213,19 @@ html: `<!DOCTYPE html>
 <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who files</p>
 </div>
 <div style="padding:32px 36px;">
-<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${firstName}, welcome to the TaxAppeal partner program. Your unique referral link is below — share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>
+<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${escapeHtml(firstName)}, welcome to the TaxAppeal partner program. Your unique referral link is below — share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:20px 24px;margin-bottom:20px;text-align:center;">
 <div style="font-size:11px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your Referral Link</div>
-<div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${referralLink}</div>
-<div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${code}</strong></div>
+<div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
+<div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
 <div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
 <p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. Stripe also handles your W-9 and any required 1099 tax forms automatically.</p>
-<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${code}&email=${normalizedEmail}&name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
+<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
 </div>
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${referralLink}"</div>
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
 <p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>

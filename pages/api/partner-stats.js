@@ -3,11 +3,19 @@
 // GET /api/partner-stats?ref=JANE-SMITH&email=jane@example.com
 import { getSupabaseAdmin } from './supabase';
 import Stripe from 'stripe';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  // The (ref, email) pair is the credential, and a referral code is public by
+  // design — it is in every link the partner shares. That makes this an email
+  // guessing oracle against a known code, and each call also hits Stripe's
+  // accounts.retrieve. Bound it.
+  if (await enforceRateLimit(req, res, 'partner-stats', 15, 60)) return;
+  if (await enforceRateLimit(req, res, 'partner-stats', 100, 3600)) return;
 
   const { ref, email } = req.query;
   if (!ref || !email) return res.status(400).json({ error: 'Missing ref or email' });
@@ -31,7 +39,10 @@ export default async function handler(req, res) {
     // Fetch all orders attributed to this ref code
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('id, amount_paid, created_at, property_address, state_code, customer_name')
+      // No customer_name. The response only ever exposes date/state/city (see
+      // recentActivity below), so there is no reason to pull a buyer's name into a
+      // partner-facing handler where a later edit could leak it.
+      .select('id, amount_paid, created_at, property_address, state_code')
       .eq('ref_code', partner.code)
       .order('created_at', { ascending: false });
 

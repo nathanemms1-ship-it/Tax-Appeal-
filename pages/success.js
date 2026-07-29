@@ -216,11 +216,18 @@ export default function Success() {
         setLoading(false);
 
         // Google Ads / GA4 — purchase conversion event (primary conversion for ROAS tracking).
-        // Fires once per successful payment — Stripe session_id deduplicates repeat page loads.
-        // Set NEXT_PUBLIC_GADS_PURCHASE_LABEL in your Vercel env to activate Google Ads conversion.
+        // Fires once per successful payment — the transaction id deduplicates repeat
+        // page loads. Set NEXT_PUBLIC_GADS_PURCHASE_LABEL in your Vercel env to
+        // activate the Google Ads conversion.
+        //
+        // We send data.transactionId, a hash of the session id, NOT session_id
+        // itself. session_id authenticates /api/verify-payment, which returns the
+        // customer's name, email and property address — it does not belong in a
+        // payload sent to Google. The hash is stable, so dedupe still works.
+        const transactionId = data.transactionId || 'unknown';
         if (typeof window !== 'undefined' && window.gtag) {
           window.gtag('event', 'purchase', {
-            transaction_id: session_id,
+            transaction_id: transactionId,
             currency: 'USD',
             value: (data.amountPaid || 8900) / 100,
             items: [{
@@ -238,7 +245,7 @@ export default function Success() {
               send_to: `${gadsId}/${purchaseLabel}`,
               value: (data.amountPaid || 8900) / 100,
               currency: 'USD',
-              transaction_id: session_id,
+              transaction_id: transactionId,
             });
           }
         }
