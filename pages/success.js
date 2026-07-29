@@ -175,6 +175,10 @@ export default function Success() {
           sessionId: session_id,
           signatureImage: sig ? sig.image : null,
           typedName: sig ? sig.typedName : null,
+          // Florida: DR-486 Part 3 name plus the owner's own two elections.
+          flSignatureName: sig ? sig.flSignatureName : undefined,
+          flWillNotAttend: sig ? sig.flWillNotAttend : undefined,
+          flAuthorizeConfidential: sig ? sig.flAuthorizeConfidential : undefined,
         }),
       });
       const out = await res.json();
@@ -249,7 +253,9 @@ export default function Success() {
         // mailed the petition. Calling finalize-order here always returned 400
         // ("A signature is required") and showed the customer a failure banner for
         // an order that actually succeeded.
-        if (data.isFL) setMailStatus(data.isPreOrder ? 'queued' : 'sent');
+        // Florida used to be marked sent/queued here because it had signed before
+        // payment and the webhook mailed immediately. It now waits for the signature
+        // below, exactly like TX/GA/AR/AL, so nothing is set here for any state.
       })
       .catch(() => {
         setError('Could not verify payment. Please contact disputes@taxappealusa.com');
@@ -286,7 +292,18 @@ export default function Success() {
     { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days.', done: false },
   ];
 
-  const needsSignature = session && !session.isFL && !signed && session.letter && session.districtName && session.ownerStreet;
+  // Florida is no longer excluded. It used to sign Part 3 before payment, on the
+  // review screen where half the petition is blurred - attesting under penalties of
+  // perjury to having read a document the page was hiding. Florida now signs here,
+  // on the complete petition, like every other state.
+  //
+  // Florida also has no appraisal "district": its petition goes to the Clerk of the
+  // Value Adjustment Board, so districtName/ownerStreet are not the right gate.
+  const needsSignature = session && !signed && (
+    session.isFL
+      ? !!session.letter
+      : !!(session.letter && session.districtName && session.ownerStreet)
+  );
 
   return (
     <>
@@ -339,6 +356,10 @@ export default function Success() {
             propertyAddress={session.address}
             sending={mailStatus === 'sending'}
             onSigned={handleSigned}
+            isFL={!!session.isFL}
+            // For Florida the letterKey holds the rendered DR-486 HTML, so
+            // session.letter IS the petition. Other states store plain text.
+            petitionHtml={session.isFL ? session.letter : null}
           />
         ) : (
           <>

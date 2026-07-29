@@ -13,7 +13,12 @@ const C = {
   border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
 };
 
-export default function SignatureStep({ letter, ownerName, propertyAddress, sending, onSigned }) {
+export default function SignatureStep({
+  letter, ownerName, propertyAddress, sending, onSigned,
+  // Florida: the petition is HTML (the rendered DR-486), not plain text, and the
+  // owner makes two elections of their own alongside the Part 3 signature.
+  isFL = false, petitionHtml = null,
+}) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
@@ -22,6 +27,11 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
   const [typedName, setTypedName] = useState(ownerName || "");
   const [hasSignature, setHasSignature] = useState(false);
   const [ack, setAck] = useState(false);
+  // Florida elections. Defaults chosen to be the safe ones: "I will not attend" is
+  // the common case but is shown and changeable, and sharing confidential info is
+  // opt-IN because it is the owner's information to release, not ours to assume.
+  const [flWillAttend, setFlWillAttend] = useState(false);
+  const [flShareInfo, setFlShareInfo] = useState(true);
 
   useEffect(() => {
     if (mode !== "draw") return;
@@ -70,13 +80,22 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
     setHasSignature(false);
   };
 
-  const ready = ack && (mode === "type" ? typedName.trim().length > 1 : hasSignature);
+  // Florida's Part 3 is signed with the owner's name, so a typed signature is
+  // required there regardless of which tab is showing.
+  const ready = isFL
+    ? ack && typedName.trim().length > 1
+    : ack && (mode === "type" ? typedName.trim().length > 1 : hasSignature);
 
   const submit = () => {
     if (!ready || sending) return;
     const image =
       mode === "draw" && canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
     onSigned({
+      ...(isFL ? {
+        flSignatureName: typedName.trim(),
+        flWillNotAttend: !flWillAttend,
+        flAuthorizeConfidential: flShareInfo,
+      } : {}),
       image,
       typedName: mode === "type" ? typedName.trim() : (ownerName || ""),
       acknowledged: true,
@@ -110,8 +129,41 @@ export default function SignatureStep({ letter, ownerName, propertyAddress, send
           color: "#111", whiteSpace: "pre-wrap",
         }}
       >
-        {letter}
+        {isFL && petitionHtml
+          ? <div dangerouslySetInnerHTML={{ __html: petitionHtml }} />
+          : letter}
       </div>
+
+      {isFL && (
+        <div style={{ background: "#F7FAFF", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 20 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: "#1B3A6B", fontWeight: 600, marginBottom: 10 }}>
+            Form DR-486, Part 3 — your signature
+          </div>
+          <div style={{ fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginBottom: 14 }}>
+            <strong style={{ color: "#0F1F3D" }}>Under penalties of perjury</strong>, I declare that I am the
+            owner of the property described above, that I have read this petition, and that the facts stated
+            in it are true. The complete petition is shown above — nothing is hidden.
+          </div>
+
+          <div style={{ fontSize: 13, color: "#5A6B82", marginBottom: 8 }}>Will you attend the hearing, if one is scheduled?</div>
+          <div onClick={() => setFlWillAttend(false)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${!flWillAttend ? "#1B3A6B" : C.border}`, background: !flWillAttend ? "#EEF4FF" : "#fff", cursor: "pointer", marginBottom: 8 }}>
+            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${!flWillAttend ? "#1B3A6B" : "#C5D0E0"}`, background: !flWillAttend ? "#1B3A6B" : "#fff" }} />
+            <span style={{ fontSize: 13, lineHeight: 1.5 }}>No — decide my petition on the written evidence.</span>
+          </div>
+          <div onClick={() => setFlWillAttend(true)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flWillAttend ? "#1B3A6B" : C.border}`, background: flWillAttend ? "#EEF4FF" : "#fff", cursor: "pointer", marginBottom: 12 }}>
+            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${flWillAttend ? "#1B3A6B" : "#C5D0E0"}`, background: flWillAttend ? "#1B3A6B" : "#fff" }} />
+            <span style={{ fontSize: 13, lineHeight: 1.5 }}>Yes — I want a hearing. TaxAppeal cannot attend for you; you would appear yourself.</span>
+          </div>
+
+          <div onClick={() => setFlShareInfo(!flShareInfo)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : C.border}`, background: flShareInfo ? "#EEF4FF" : "#fff", cursor: "pointer" }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : "#C5D0E0"}`, background: flShareInfo ? "#1B3A6B" : "#fff", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{flShareInfo ? "\u2713" : ""}</div>
+            <span style={{ fontSize: 13, lineHeight: 1.5 }}>
+              I authorize the Property Appraiser to release information about my property to TaxAppeal USA so
+              they can prepare and file my petition (&sect; 194.011(3), Fla. Stat.). Optional.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Signature */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>

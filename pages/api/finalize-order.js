@@ -31,7 +31,16 @@ const MAX_SIGNATURE_BYTES = 400_000;
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { sessionId, signatureImage, typedName } = req.body || {};
+  // Florida additionally carries the DR-486 Part 3 signature and the two elections
+  // that belong to the OWNER, not to us: whether they will attend a hearing, and
+  // whether the Property Appraiser may release their confidential information to us
+  // (Fla. Stat. s. 194.011(3), second sentence). These used to be captured before
+  // payment; willNotAttend was also hardcoded true at mail time, which silently made
+  // an election on the owner's behalf.
+  const {
+    sessionId, signatureImage, typedName,
+    flSignatureName, flWillNotAttend, flAuthorizeConfidential,
+  } = req.body || {};
   if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
 
   // Authenticate by proving the payment exists and is paid.
@@ -48,7 +57,7 @@ export default async function handler(req, res) {
   if (signatureImage && signatureImage.length > MAX_SIGNATURE_BYTES) {
     return res.status(413).json({ error: 'Signature image too large' });
   }
-  if (!signatureImage && !typedName) {
+  if (!signatureImage && !typedName && !flSignatureName) {
     return res.status(400).json({ error: 'A signature is required' });
   }
 
@@ -70,6 +79,11 @@ export default async function handler(req, res) {
       .update({
         signature_image: signatureImage || null,
         signature_typed_name: typedName || null,
+        // fl_signature_name is what processOrder feeds into DR-486 Part 3 when it
+        // rebuilds the petition immediately before mailing.
+        ...(flSignatureName ? { fl_signature_name: String(flSignatureName).trim() } : {}),
+        ...(flWillNotAttend === undefined ? {} : { fl_will_not_attend: !!flWillNotAttend }),
+        ...(flAuthorizeConfidential === undefined ? {} : { fl_authorize_confidential: !!flAuthorizeConfidential }),
         owner_ack: true,
         signed_at: new Date().toISOString(),
         signer_ip: signerIp,
