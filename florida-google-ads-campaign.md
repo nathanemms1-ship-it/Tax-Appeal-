@@ -81,7 +81,9 @@ Run two separate campaigns — one for search (intent-based), one for display/re
 **Ad Group 5: Competitor / Alternative** *(homeowners comparing options)*
 ```
 "property tax attorney florida appeal"
-"property tax consultant florida"
+# REMOVED: "property tax consultant florida" — we are a document preparation
+# and mailing service, not consultants. Serving ads against a self-descriptive
+# "consultant" query positions us as something our own disclaimer denies.
 "property tax appeal company florida"
 "florida property tax protest service"
 "who can help me appeal property taxes florida"
@@ -171,7 +173,7 @@ Florida's appeal market is not uniform. Bid more aggressively in high-value coun
 9. All 67 Florida Counties Served
 10. 82% of Appeals Are Approved
 11. File 7+ Days Early — We Guarantee
-12. 4 Minutes. We Handle Everything
+12. 4 Minutes. You Sign, We File
 13. TRIM Notice Arriving in August
 ```
 
@@ -205,7 +207,7 @@ Florida's appeal market is not uniform. Bid more aggressively in high-value coun
 **Descriptions:**
 ```
 1. Florida's TRIM deadline is firm — 25 days from your notice, receipt required (not just postmark). TaxAppeal files 7+ days early and tracks delivery. $89 + county fee.
-2. You received your TRIM notice. You have 25 days. We draft, sign (you review), and mail your VAB petition with your county's filing fee included. One flat $89 fee.
+2. You received your TRIM notice. You have 25 days. We draft it, you sign it, and we mail your VAB petition with your county's filing fee paid. One flat $89 fee.
 ```
 
 ---
@@ -245,7 +247,7 @@ Florida's appeal market is not uniform. Bid more aggressively in high-value coun
 4. Value Adjustment Board Filing
 5. DR-486 Petition Prepared for You
 6. County VAB Fee Paid on Your Behalf
-7. Florida § 194.011 — We Know It
+7. Florida § 194.011 — Cited In Your Petition
 8. VAB Deadline: 25 Days from TRIM
 ```
 
@@ -287,7 +289,7 @@ Add these to all campaigns:
 |---|---|
 | Why $89 Flat? | No % cuts. You keep every dollar saved. |
 | All 67 FL Counties | From Miami to Jacksonville — we cover all. |
-| How It Works | 4 steps. 4 minutes. We handle the filing. |
+| How It Works | 4 steps. 4 minutes. You sign it, we file it. |
 | What's Included | DR-486 petition + county fee + certified mail. |
 | Florida Tax FAQ | TRIM notices, VAB, deadlines — answers here. |
 

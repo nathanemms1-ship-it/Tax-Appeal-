@@ -25,7 +25,7 @@ export default function Terms() {
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>1. Service Description</h2>
-            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest; we then mail it via USPS Certified Mail to the county appraisal district in your name.</p>
+            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest or petition yourself; we then mail it in your name to the correct county authority — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Clerk of the Value Adjustment Board in Florida. We are not your agent or representative in any of those proceedings and do not appear before any board on your behalf. See section 7A for Florida specifically.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
             <p>Our service fee is <strong>$89 per property per filing season</strong>. This covers preparation of your protest or petition, mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
@@ -71,6 +71,31 @@ export default function Terms() {
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>7. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal for you, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
+            </p>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+              <strong>7A. Florida &mdash; Value Adjustment Board Petitions.</strong>{' '}
+              <strong>You sign your own petition.</strong> Fla. Stat. &sect; 194.011(3) requires a petition to the
+              Value Adjustment Board to be signed by the taxpayer, or else to be accompanied by the taxpayer&rsquo;s
+              written authorization or power of attorney. We rely on the first of those: we prepare your Form DR-486,
+              show it to you to read, and you sign Part 3 yourself before you pay. We do not file Form DR-486A or Form
+              DR-486POA on your behalf and no such authorization is required, because you are the signatory.
+              {' '}<strong>We are not your representative.</strong> TaxAppeal USA does not sign your petition as a
+              representative, is not listed as your representative on it, does not appear before the Value Adjustment
+              Board or any special magistrate, does not present evidence or argument at a hearing, and does not
+              negotiate or settle with the Property Appraiser. Parts 4 and 5 of your DR-486 are left not applicable.
+              If a hearing is scheduled, whether to attend is your decision and your responsibility; we notify you when
+              we receive notice, and the evidence filed with your petition remains on the record whether or not you
+              attend.
+              {' '}<strong>What we do.</strong> We prepare the petition and its evidence package, pay your county&rsquo;s
+              Value Adjustment Board filing fee on your behalf, and mail the petition to your county&rsquo;s Clerk of
+              the Value Adjustment Board so that it is received before your deadline. Florida requires receipt by the
+              deadline, not merely a postmark.
+              {' '}<strong>Not legal or tax advice.</strong> TaxAppeal USA is not a law firm, is not a certified public
+              accountant, and is not a licensed real estate appraiser or broker. Nothing we prepare or send you is legal
+              or tax advice, and no attorney-client relationship is created.
             </p>
           </div>
 

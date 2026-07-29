@@ -30,7 +30,7 @@ export default function FloridaCityPage({ city }) {
   const faqs = [
     {
       q: `How do I appeal my property tax in ${city.name}, Florida?`,
-      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA handles the entire process for you — we generate a professional protest letter with comparable sales evidence and mail it 7+ days before your deadline, all for a flat $89 fee.`,
+      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA prepares your petition and mails it for you — you sign it yourself — we generate a professional protest letter with comparable sales evidence and mail it 7+ days before your deadline, all for a flat $89 fee.`,
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,

@@ -93,7 +93,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
         ${[
           ['💰', 'Flat $89 — we never take a percentage of your savings'],
           ['✅', 'Certified mail with tracking, so you have proof you filed on time'],
-          ['📬', 'We handle everything — certified mail filing'],
+          ['📬', 'You sign it, we mail it certified'],
           ['🔒', '$89 flat fee, no percentage cuts'],
         ].map(([icon, text]) => `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;color:#475569;">
