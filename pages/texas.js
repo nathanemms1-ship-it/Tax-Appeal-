@@ -205,6 +205,32 @@ export default function Texas() {
 
       {/* Hero */}
       <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Texas Property Tax Protest Service</div>
+          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
+            Protest Your Texas Property Taxes for $89 Flat
+          </h1>
+          <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
+            Stop overpaying. We draft a formal protest letter backed by comparable sales data and legal citations under Texas Tax Code §41.41 & §41.43. You sign it, we file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
+          </p>
+          <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+            {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["Certified", "Mail with tracking"], ["254", "TX counties"]].map(([n, l]) => (
+              <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
+                <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
+            File My Texas Protest — $89 →
+          </button>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
+        </div>
+      </section>
+
+      {/* Published outcomes - on a light background so the source links and
+          the disclaimer are legible. They were rendered in body-gray on navy. */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
         <JurisdictionOutcomes
           heading="What Texas appraisal district records show"
           intro="Every figure here comes from an appraisal district's own published data or a peer-reviewed study of it — linked so you can check it yourself."
@@ -234,6 +260,7 @@ export default function Texas() {
           ]}
         />
       </section>
+
 
       {/* All 254 Counties */}
       <section style={{ padding: "56px 40px", background: C.white }}>
