@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/process-queued-orders",
-      "schedule": "0 13 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/notify-waitlist",

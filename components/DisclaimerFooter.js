@@ -16,7 +16,7 @@ export default function DisclaimerFooter() {
         textAlign: "center",
       }}
     >
-      TaxAppeal USA is a self-service document-preparation and certified-mail filing service. Outside
+      TaxAppeal USA is a self-service document-preparation and mail filing service. Outside
       Florida, we are not property tax consultants, agents, or representatives, do not provide tax or
       legal advice, and do not represent customers before any appraisal district, board of equalization,
       or review board &mdash; all protests are filed in the property owner&rsquo;s name and signed by

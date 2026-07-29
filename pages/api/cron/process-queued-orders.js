@@ -16,7 +16,15 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Cap per run so we never risk a Vercel function timeout — remaining queued
 // orders simply get picked up on the next day's run (Nathan: no same-day
 // completion required).
-const MAX_PER_RUN = 20;
+// Vercel Pro caps a serverless function at 300s. Each order now costs a full
+// property re-lookup (BatchData) plus a DR-486 regeneration (Sonnet) plus the Lob
+// call — roughly 25-35s. Eight per run leaves headroom; the cron runs HOURLY, so
+// real throughput is ~192/day rather than the old 20/day. That matters: at 355
+// pre-orders the old daily cap would have taken 18 days to clear, inside a 25-day
+// window that also requires physical receipt.
+export const config = { maxDuration: 300 };
+
+const MAX_PER_RUN = 8;
 
 export default async function handler(req, res) {
   // Security: only allow Vercel cron or internal calls
@@ -59,7 +67,11 @@ export default async function handler(req, res) {
       }
 
       const windowStatus = getFilingWindowStatus(stateCode, order.county);
-      if (!windowStatus || !windowStatus.isOpen) {
+      // Gate on canFile, not isOpen. canFile also honours the minDays receipt
+      // buffer. Florida requires physical RECEIPT by the deadline, so dispatching
+      // on Sept 17 produces a petition that arrives after Sept 18 — rejected as
+      // untimely, customer loses the year, no refund path exists.
+      if (!windowStatus || !windowStatus.canFile) {
         totalSkippedWindowClosed++;
         continue;
       }
