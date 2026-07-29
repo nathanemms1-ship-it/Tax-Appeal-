@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
-import { isFlCountySupported } from '../lib/flVabAddresses';
+import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
@@ -1079,20 +1079,60 @@ function StepDispute({ formData, onRestart }) {
  * 25-day window is a hard receipt deadline and a missed one costs the homeowner
  * the entire tax year.
  */
-function FloridaCountyBlocked({ info, onBack }) {
+/**
+ * County picker. Replaces a dead end.
+ *
+ * When /api/resolve-county could not place the address, this screen used to be
+ * terminal: a "we need your county" message, an email address, and a Back button.
+ * The customer was lost. Nathan hit it on four consecutive Florida addresses -
+ * not because the addresses were unusual, but because the Census geocoder was
+ * degraded for a few minutes and one timeout was treated as unknowable.
+ *
+ * A DROPDOWN, never a free-text field. County determines the filing fee, the
+ * check payee, and which government office receives the petition. "Miami" instead
+ * of "Miami-Dade", or a misspelled "Hillsborough", means we mail a petition and a
+ * cheque to the wrong clerk while the customer believes they have filed - a worse
+ * failure than the one this screen exists to fix.
+ */
+function FloridaCountyPicker({ info, onConfirm, onBack }) {
+  const [picked, setPicked] = useState(info.county || '');
+  const counties = FL_COUNTY_NAMES;
+
   return (
-    <div style={{ maxWidth: 640, margin: "48px auto", padding: "0 20px", textAlign: "center" }}>
-      <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
-      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
-        {info.kind === 'unsupported'
-          ? `We're not filing in ${info.county} County yet`
-          : "We need your county"}
+    <div style={{ maxWidth: 560, margin: "48px auto", padding: "0 20px" }}>
+      <div style={{ fontSize: 40, marginBottom: 16, textAlign: "center" }}>🗺️</div>
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>
+        Which Florida county is this property in?
       </h2>
-      <p style={{ fontSize: 15, lineHeight: 1.6, color: "#444", marginBottom: 24 }}>{info.message}</p>
-      <p style={{ fontSize: 14, lineHeight: 1.6, color: "#666", marginBottom: 28 }}>
-        Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: "#0B7A4B", fontWeight: 600 }}>customerservice@taxappealusa.com</a> with your address and we'll tell you where you stand — including whether we can file for you manually this season.
+      <p style={{ fontSize: 15, lineHeight: 1.6, color: "#444", marginBottom: 24, textAlign: "center" }}>
+        {info.message}
       </p>
-      <button onClick={onBack} style={{ padding: "12px 28px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+
+      <label style={{ display: "block", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#5A6B82", fontWeight: 500, marginBottom: 6 }}>
+        County
+      </label>
+      <select
+        value={picked}
+        onChange={(e) => setPicked(e.target.value)}
+        style={{ width: "100%", background: "#F8FAFD", border: "1.5px solid #DDE4EE", borderRadius: 7, padding: "12px 13px", fontSize: 15, color: "#0F1F3D", marginBottom: 8 }}
+      >
+        <option value="">Select your county…</option>
+        {counties.map((c) => <option key={c} value={c}>{c} County</option>)}
+      </select>
+      <p style={{ fontSize: 12, color: "#8596AF", lineHeight: 1.6, marginBottom: 22 }}>
+        Your county sets the filing fee, who the fee cheque is made out to, and which
+        Value Adjustment Board receives your petition — so this has to be right. It is on
+        your TRIM notice and your tax bill.
+      </p>
+
+      <button
+        onClick={() => picked && onConfirm(picked)}
+        disabled={!picked}
+        style={{ width: "100%", padding: "14px 28px", borderRadius: 8, border: "none", background: picked ? "#1B3A6B" : "#C5D0E0", color: "#fff", fontSize: 15, fontWeight: 500, cursor: picked ? "pointer" : "not-allowed", marginBottom: 10 }}
+      >
+        Continue with {picked ? `${picked} County` : "my county"}
+      </button>
+      <button onClick={onBack} style={{ width: "100%", padding: "12px 28px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", fontSize: 14, color: "#5A6B82", cursor: "pointer" }}>
         ← Back
       </button>
     </div>
@@ -1135,34 +1175,44 @@ export default function App() {
 
       if (!j.found || !j.county) {
         setFlCountyError({
-          kind: 'unresolved',
-          message: "We couldn't automatically determine which Florida county this property is in. Your county determines the filing fee and where the petition is mailed, so we need it to be exact.",
+          kind: 'pick',
+          county: '',
+          message: "We couldn't confirm your county automatically — the county lookup service didn't respond. Please pick it below and we'll carry on.",
         });
         return;
       }
 
       const feeInfo = getFlVabFee(j.county);
 
-      // Hard gate: never take money for a county we cannot correctly file in.
-      if (!isFlCountySupported(j.county)) {
-        setFlCountyError({
-          kind: 'unsupported',
-          county: j.county,
-          message: `We're not filing in ${j.county} County yet. We only file where we've verified the Value Adjustment Board's mailing address directly with the county — we won't take your money and guess at where to send your petition.`,
-        });
-        return;
-      }
-
-      setProperty(p => ({ ...p, county: j.county }));
-      setFlFeeData({ ...feeInfo, county: j.county });
-      setStep('florida-fee');
-      window.scrollTo(0, 0);
+      applyResolvedCounty(j.county);
     } catch (e) {
       setFlCountyError({ kind: 'error', message: 'We had trouble looking up your county. Please try again in a moment.' });
     } finally {
       setResolvingCounty(false);
     }
   };
+  /**
+   * Accept a county — resolved automatically or chosen by the customer — and move
+   * on to the fee step.
+   *
+   * Counties whose VAB mailing address we have NOT confirmed directly with the
+   * county used to be a hard block. Nathan's call is to accept those orders and
+   * file them by hand. That is fine commercially, but it must not be silent: the
+   * automated mail path refuses an unconfirmed address (getFlVabAddress returns
+   * null and send-letter rejects), so without a flag the customer would pay, see
+   * "filed", and nothing would ever go out. `needsManualFiling` rides with the
+   * order so it lands in the ops queue instead of the automated one.
+   */
+  const applyResolvedCounty = (county) => {
+    const feeInfo = getFlVabFee(county);
+    const verified = isFlCountySupported(county);
+    setProperty(p => ({ ...p, county }));
+    setFlFeeData({ ...feeInfo, county, needsManualFiling: !verified });
+    setFlCountyError(null);
+    setStep('florida-fee');
+    window.scrollTo(0, 0);
+  };
+
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
   const restart = () => {
@@ -1238,7 +1288,11 @@ export default function App() {
       <NavBar step={step} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
       {flCountyError ? (
-        <FloridaCountyBlocked info={flCountyError} onBack={() => setFlCountyError(null)} />
+        <FloridaCountyPicker
+          info={flCountyError}
+          onConfirm={applyResolvedCounty}
+          onBack={() => setFlCountyError(null)}
+        />
       ) : closedWindow ? (
         <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} account={account} property={property} />
       ) : unsupportedState ? (
@@ -1248,7 +1302,7 @@ export default function App() {
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
+          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
         </>
       )}
