@@ -1,7 +1,9 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
+import { floridaCities } from '../lib/floridaCities';
 
 const C = {
 navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -130,6 +132,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 @media (max-width: 768px) {
 .hero-stats { grid-template-columns: 1fr 1fr !important; }
 .counties-grid { grid-template-columns: 1fr 1fr !important; }
+.cities-grid { grid-template-columns: 1fr 1fr !important; }
 .compare-grid { grid-template-columns: 1fr !important; }
 .hero-title { font-size: 30px !important; }
 .testimonials-grid { grid-template-columns: 1fr !important; }
@@ -245,6 +248,44 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 </div>
 ))}
 </div>
+</div>
+</section>
+
+{/* City directory.
+    These 131 pages existed but nothing linked to them - /florida had no internal
+    link to a single one, so they were reachable only through the sitemap. Grouped
+    by county because county is what determines the board, the deadline and the
+    filing fee. */}
+<section style={{ padding: "56px 40px", background: C.white }}>
+<div style={{ maxWidth: 980, margin: "0 auto" }}>
+<h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida cities we file in</h2>
+<p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.6 }}>
+Your deadline, filing fee and Value Adjustment Board are all set by your county — find yours below.
+</p>
+{Object.entries(
+  floridaCities.reduce((acc, c) => {
+    (acc[c.county] = acc[c.county] || []).push(c);
+    return acc;
+  }, {})
+)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([county, cities]) => (
+    <div key={county} style={{ marginBottom: 26 }}>
+      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1.5px", color: C.navy, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}` }}>
+        {county} County
+      </div>
+      <div className="cities-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px 16px" }}>
+        {cities
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((c) => (
+            <Link key={c.slug} href={`/florida/${c.slug}`} style={{ fontSize: 13, color: C.bodyGray, padding: "4px 0", textDecoration: "none" }}>
+              {c.name}
+            </Link>
+          ))}
+      </div>
+    </div>
+  ))}
 </div>
 </section>
 

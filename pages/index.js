@@ -521,7 +521,7 @@ export default function Landing() {
           <div className="section-sub">Three steps. Four minutes. We handle the rest.</div>
           <div className="steps">
             {[
-              ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and 2.1M+ comparable sales from public records — no manual data entry needed."],
+              ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and recent comparable sales from public records — no manual data entry needed."],
               ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
               ["3", "We file for you", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
             ].map(([num, title, desc]) => (
@@ -577,7 +577,7 @@ export default function Landing() {
             {[
               ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
               ["Certified mail receipt delivered to you", "Official USPS proof of submission emailed directly to you. Keep it as your legal record."],
-              ["Real comparable sales evidence", "We search 2.1M+ recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
+              ["Real comparable sales evidence", "We search recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
               ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
               ["20% reduction requested on your behalf", "We argue for a 20% reduction from your current assessed value — the strongest defensible position supported by market data."],
             ].map(([title, desc]) => (

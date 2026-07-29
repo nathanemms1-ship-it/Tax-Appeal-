@@ -305,7 +305,7 @@ function StepAccount({ data, onChange, onNext }) {
           </div>
           <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>Our system searches millions of comparable sales, calculates your property's fair market value, and builds a professional appeal — so when your dispute lands on a reviewer's desk, it's backed by real data and impossible to ignore.</p>
           <div className="three-col-equal" style={{ marginBottom: 14 }}>
-            {[["2.1M+", "Comparable sales searched"], ["Fair", "Market value calculated"], ["100%", "Code-compliant appeals"]].map(([n, l]) => (
+            {[["Nearby", "Comparable sales searched"], ["Fair", "Market value calculated"], ["100%", "Code-compliant appeals"]].map(([n, l]) => (
               <div key={l} style={{ background: C.bg, borderRadius: 8, padding: "12px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.navy }}>{n}</div>
                 <div style={{ fontSize: 10, color: C.mutedGray, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>{l}</div>
@@ -467,7 +467,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
           </div>
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What we look up</div>
-            {[["🏛️", "County appraisal records"], ["📊", "2.1M+ comparable sales"], ["🏠", "Property characteristics"], ["⚖️", "Tax code alignment"]].map(([icon, text]) => (
+            {[["🏛️", "County appraisal records"], ["📊", "Recent comparable sales"], ["🏠", "Property characteristics"], ["⚖️", "Tax code alignment"]].map(([icon, text]) => (
               <div key={text} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>
                 <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
                 {text}
@@ -536,7 +536,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
 const LOAD_STAGES = [
   { label: "Determining your county", desc: "Looking up jurisdiction via Census geocoder", ms: 2800 },
   { label: "Retrieving appraisal data", desc: "Searching county appraisal district records", ms: 2200 },
-  { label: "Searching comparable sales", desc: "Scanning 2.1M+ recent transactions nearby", ms: 3500 },
+  { label: "Searching comparable sales", desc: "Scanning recent transactions near your property", ms: 3500 },
   { label: "Finding your appraisal district", desc: "Locating where to file your dispute", ms: 2000 },
   { label: "Drafting your dispute letter", desc: "Building legal arguments with comp evidence", ms: 3000 },
 ];

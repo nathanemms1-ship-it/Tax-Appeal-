@@ -1,6 +1,8 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { posts } from '../../lib/blogPosts';
+// publishedPosts, not posts - see lib/blogPosts.js. The raw array has 13 duplicate
+// slugs, which showed up here as 13 pairs of identical-looking cards.
+import { publishedPosts as posts } from '../../lib/blogPosts';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",

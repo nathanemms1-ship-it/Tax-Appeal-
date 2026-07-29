@@ -1,6 +1,9 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { posts, getPostBySlug, getAllSlugs } from '../../lib/blogPosts';
+// publishedPosts, not posts: `posts` contains 13 slugs twice (two drafts of the
+// same article). Using the raw array renders duplicate cards that all link to the
+// same URL. See lib/blogPosts.js.
+import { publishedPosts as posts, getPostBySlug, getAllSlugs } from '../../lib/blogPosts';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
