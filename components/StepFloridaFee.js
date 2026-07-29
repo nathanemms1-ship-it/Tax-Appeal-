@@ -44,10 +44,8 @@ border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", red: "#C0392B",
 * Pass flSignature into formData for DisputeLetter/doCheckout.
 */
 export default function StepFloridaFee({ feeData, property, account, onAuthorize, onBack }) {
-const [sigName, setSigName] = useState('');
 const [agreedAuth, setAgreedAuth] = useState(false);
 const [agreedFee, setAgreedFee] = useState(false);
-const [sigError, setSigError] = useState('');
 
 const vabFee = feeData?.vabFee || 5000;
 const payableTo = feeData?.payableTo || 'Board of County Commissioners';
@@ -56,29 +54,24 @@ const vabFeeDisplay = `$${(vabFee / 100).toFixed(0)}`;
 const totalDisplay = `$${((8900 + vabFee) / 100).toFixed(0)}`;
 const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-const canProceed = agreedAuth && agreedFee && sigName.trim().length >= 3;
+const canProceed = agreedAuth && agreedFee;
 
 const handleAuthorize = () => {
 if (!canProceed) return;
-if (account?.firstName && account?.lastName) {
-const expected = `${account.firstName} ${account.lastName}`.toLowerCase();
-if (sigName.trim().toLowerCase() !== expected) {
-setSigError(`Please type your full name exactly as entered: ${account.firstName} ${account.lastName}`);
-return;
-}
-}
-setSigError('');
+// NOTE: no signature is captured here any more.
+//
+// This step used to take the owner's Part 3 signature two screens BEFORE the
+// petition was generated — so the attestation "I have read this petition" carried
+// a timestamp that predated the document. The signature now happens on the review
+// screen, after the owner has actually seen what they are signing.
+//
+// This step's only job is to disclose the county filing fee and the real total.
 onAuthorize({
-name: sigName.trim(),
-date: today,
-timestamp: new Date().toISOString(),
 county: feeData?.county,
 vabFee,
 payableTo,
-      // The owner's election, not ours. The DR-486 generator was silently
-      // checking "I will not attend" under the customer's perjury signature.
-      willNotAttend: true,
-      authorizeConfidential: true,});
+acknowledgedAt: new Date().toISOString(),
+});
 };
 
 const checkbox = (checked, onClick, children) => (
@@ -149,36 +142,18 @@ Board for the property at{' '}
 <strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>PETITION SIGNATURE BEFORE THE VALUE ADJUSTMENT BOARD (DR-486)</strong>
 I, the undersigned property owner, hereby authorize <strong>TaxAppeal USA</strong> to act as my
 document preparer for purposes of filing and prosecuting a petition before the {countyDisplay} Value
-Adjustment Board regarding the above property, pursuant to Florida Statute § 194.011(3). I
-understand TaxAppeal USA is a document preparation service. This authorization includes the right to
-file Form DR-486, submit evidence, and receive VAB correspondence on my behalf. I certify the
-information I provided is accurate and I am the owner or authorized agent of the property described.
+Adjustment Board regarding the above property. TaxAppeal USA is a document preparation and
+mailing service: we will prepare your petition, show it to you to review and sign, pay the county
+filing fee on your behalf, and mail it. We do not represent you and will not appear before the Board.
 <br /><br />
 <strong>Date: {today}</strong>
 </div>
 
-{/* Typed e-signature */}
-<label style={{ display: 'block', fontSize: 11, letterSpacing: '1px', textTransform: 'uppercase', color: C.bodyGray, fontWeight: 500, marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>
-Type Your Full Legal Name to Sign
-</label>
-<input
-type="text"
-value={sigName}
-onChange={e => { setSigName(e.target.value); setSigError(''); }}
-placeholder={account ? `${account.firstName} ${account.lastName}` : 'First Last'}
-style={{ width: '100%', background: C.bg, border: `1.5px solid ${sigError ? C.red : C.border}`, borderRadius: 7, padding: '12px 14px', fontSize: 16, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: C.darkNavy, outline: 'none', boxSizing: 'border-box', letterSpacing: '0.5px' }}
-/>
-{sigError && (
-<div style={{ fontSize: 12, color: C.red, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>{sigError}</div>
-)}
-<div style={{ fontSize: 11, color: C.mutedGray, marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
-By typing your name you are electronically signing this authorization under Florida’s Electronic Signature Act (§ 668.50, F.S.).
-</div>
 </div>
 
 {/* Checkboxes */}
 {checkbox(agreedAuth, () => setAgreedAuth(!agreedAuth), (
-<><strong style={{ color: C.darkNavy }}>I am signing my own VAB petition (Form DR-486, Part 3)</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
+<><strong style={{ color: C.darkNavy }}>I understand I will review and sign my own petition on the next screen</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
 ))}
 {checkbox(agreedFee, () => setAgreedFee(!agreedFee), (
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
@@ -186,7 +161,7 @@ By typing your name you are electronically signing this authorization under Flor
 
 {!canProceed && (
 <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: 'center', marginBottom: 10 }}>
-{!sigName.trim() ? 'Type your full name above to sign' : 'Check both boxes to continue'}
+{'Check both boxes to continue'}
 </div>
 )}
 
