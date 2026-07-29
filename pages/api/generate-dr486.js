@@ -55,6 +55,7 @@
 
 import { Redis } from '@upstash/redis';
 import { getFlVabAddress } from '../../lib/flVabAddresses';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 let redis = null;
 try {
@@ -176,6 +177,10 @@ function buildDR486Html({
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Anthropic call per request
+  if (await enforceRateLimit(req, res, 'dr486', 8, 60)) return;
+  if (await enforceRateLimit(req, res, 'dr486', 40, 3600)) return;
 
   const {
     ownerFirstName, ownerLastName, ownerEmail, ownerPhone,

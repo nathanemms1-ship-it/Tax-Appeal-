@@ -1,6 +1,10 @@
+import { enforceRateLimit } from '../../lib/rateLimit';
 // pages/api/autocomplete.js - simplified proxy
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Google Places is billed per call
+  if (await enforceRateLimit(req, res, 'autocomplete', 40, 60)) return;
   const { query } = req.body;
   if (!query || query.length < 3) return res.status(200).json({ suggestions: [] });
 

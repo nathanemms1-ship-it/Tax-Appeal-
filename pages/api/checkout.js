@@ -1,11 +1,15 @@
 import Stripe from 'stripe';
 import bcrypt from 'bcryptjs';
 import { getFlVabFee } from '../../lib/flCountyFees';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
 if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Stripe session creation
+  if (await enforceRateLimit(req, res, 'checkout', 10, 60)) return;
 
 const {
 email, firstName, lastName, password,

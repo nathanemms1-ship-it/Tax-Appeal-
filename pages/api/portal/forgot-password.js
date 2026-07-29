@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { enforceRateLimit } from '../../../lib/rateLimit';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -11,6 +12,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // reset-email flooding
+  if (await enforceRateLimit(req, res, 'forgot', 4, 900)) return;
 
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });

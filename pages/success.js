@@ -293,6 +293,10 @@ export default function Success() {
       <Head>
         <title>TaxAppeal — Review and sign your protest</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        {/* This page renders the customer's order, property address and petition.
+            robots.txt Disallow only stops crawling, not indexing of a URL that is
+            linked from elsewhere - noindex is what actually keeps it out of results. */}
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <style>{`
         ${FONT_IMPORT}

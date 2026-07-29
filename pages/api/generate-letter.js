@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { enforceRateLimit } from '../../lib/rateLimit';
 
 let redis = null;
 try {
@@ -70,6 +71,10 @@ Output ONLY the complete formal letter.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Anthropic call per request
+  if (await enforceRateLimit(req, res, 'letter', 8, 60)) return;
+  if (await enforceRateLimit(req, res, 'letter', 40, 3600)) return;
 
   // This endpoint is called pre-payment from the browser, so it cannot require an
   // internal secret. The actual vulnerability was that `req.body.prompt` was passed
