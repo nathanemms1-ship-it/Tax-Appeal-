@@ -139,12 +139,23 @@ Board for the property at{' '}
 
 {/* Authorization text */}
 <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 16, fontSize: 12, color: C.bodyGray, lineHeight: 1.8, fontFamily: "'DM Sans', sans-serif" }}>
-<strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>PETITION SIGNATURE BEFORE THE VALUE ADJUSTMENT BOARD (DR-486)</strong>
-I, the undersigned property owner, hereby authorize <strong>TaxAppeal USA</strong> to act as my
-document preparer for purposes of filing and prosecuting a petition before the {countyDisplay} Value
-Adjustment Board regarding the above property. TaxAppeal USA is a document preparation and
-mailing service: we will prepare your petition, show it to you to review and sign, pay the county
-filing fee on your behalf, and mail it. We do not represent you and will not appear before the Board.
+<strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>WHAT TAXAPPEAL USA WILL DO (AND WILL NOT DO)</strong>
+{/* This paragraph used to read "...authorize TaxAppeal USA to act as my document
+    preparer for purposes of filing and PROSECUTING a petition before the ... Value
+    Adjustment Board". "Prosecuting a petition before the Board" is representation
+    language lifted from power-of-attorney forms, and it sat two sentences above
+    "We do not represent you" - the operative document the customer agreed to
+    contradicted itself, and the representation reading is the one that would have
+    governed. Under Fla. Admin. Code R. 12D-9.018(3) a COMPENSATED representative
+    who is not a Bar attorney, CPA, or licensed appraiser/broker must file a
+    DR-486POA with two witnesses and a notary. We file no such form, so we must not
+    describe ourselves in terms that imply representation. */}
+I am the property owner. I am engaging <strong>TaxAppeal USA</strong> to prepare my petition to the{' '}
+{countyDisplay} Value Adjustment Board, to pay the county filing fee on my behalf, and to mail the
+petition for me. <strong>I will sign the petition myself</strong> after reviewing it, as
+&sect;&nbsp;194.011(3), Florida Statutes requires. TaxAppeal USA is not my representative or agent
+in this proceeding, will not appear before the Board, and gives no tax or legal advice. If a
+hearing is scheduled, attending is my decision and my responsibility.
 <br /><br />
 <strong>Date: {today}</strong>
 </div>

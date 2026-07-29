@@ -98,7 +98,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <span style={{color:"#5A7A9F"}}>+</span>
 <span style={{fontSize:13,color:"#8596AF"}}><span style={{color:C.gold,fontWeight:700}}>$15</span> Miami-Dade VAB fee <span style={{fontSize:11,color:"#5A7A9F"}}>(required by FL law)</span></span>
 <span style={{color:"#5A7A9F"}}>=</span>
-<span style={{fontSize:14,color:C.white,fontWeight:700}}>$104 total — we handle everything</span>
+<span style={{fontSize:14,color:C.white,fontWeight:700}}>$104 total — you sign it, we file and pay the county fee</span>
 </div>
 <div style={{background:"#C0392B",display:"inline-block",borderRadius:6,padding:"8px 14px",fontSize:13,color:C.white,fontWeight:500,marginBottom:24,marginLeft:0}}>
 ⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
@@ -141,7 +141,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{padding:"56px 40px",background:C.lightBlue}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Filing With Miami-Dade County Property Appraiser</h2>
-<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal files your appeal directly with the Miami-Dade County appraisal authority, mailed 7+ days before your deadline to ensure timely receipt.</p>
+<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal prepares your petition, you sign it, and we mail it with the county filing fee paid to the Miami-Dade Value Adjustment Board, mailed 7+ days before your deadline to ensure timely receipt.</p>
 <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
@@ -154,7 +154,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 </div>
 <div style={{background:C.navy,borderRadius:12,padding:24,color:C.white}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>What TaxAppeal Does</div>
-<div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>We Handle Everything</div>
+<div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>What We Do For You</div>
 {["Analyze comparable sales in Miami","Draft formal VAB petition citing Florida Statute §194.011","Pay the $15 Miami-Dade filing fee on your behalf","File via mail 7+ days early","You receive copy and tracking number","Keep 100% of your savings"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10,fontSize:13}}>
 <span style={{flexShrink:0,marginTop:1,color:C.gold}}>✓</span><span style={{color:"#cbd5e1"}}>{item}</span>

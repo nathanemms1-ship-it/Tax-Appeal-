@@ -34,7 +34,7 @@ const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", 
 const directAnswer = (county) => {
   const t = termsFor(county);
   if (county.code === "FL") {
-    return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) within 25 days of your TRIM notice — typically by mid-September. Include evidence of overassessment such as recent comparable sales, and pay your county's VAB filing fee. Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition and mails it via trackable USPS mail to the ${county.district} for a flat $89.`;
+    return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) within 25 days of your TRIM notice — typically by mid-September. Include evidence of overassessment such as recent comparable sales, and pay your county's VAB filing fee. Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition, you sign it yourself as ${county.statute} requires, and we pay the county filing fee and mail it to the ${county.district} for a flat $89 plus that fee. TaxAppeal USA is not your representative and does not appear before the Board.`;
   }
   if (county.code === "GA") {
     return `To appeal your ${county.name} County property taxes in 2026, file a property tax appeal (${t.form}) with the ${county.district} within 45 days of your annual assessment notice. Support your appeal with comparable sales showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
@@ -92,7 +92,8 @@ const faqs = (county) => {
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,
-      a: `The average successful ${t.verb} in ${county.state} reduces the assessed value by 10–20%, saving homeowners $600–$2,000+ per year. TaxAppeal USA charges a flat $89 — far better than the 25–50% contingency fee charged by most protest companies.`,
+      // "10-20% / $600-$2,000+" had no source. Replaced with a figure that does.
+      a: `It depends entirely on the gap between your assessment and your property's market value, and your county makes the final call. For scale, Harris County reported an average value reduction of 6.98% across 516,205 protested accounts in 2024 (HCAD Annual Comprehensive Financial Report). TaxAppeal USA charges a flat $89 — versus the 25–50% of your savings that contingency firms take, every year.`,
     },
     {
       q: `What appraisal district handles ${county.name} County?`,
@@ -100,11 +101,17 @@ const faqs = (county) => {
     },
     {
       q: `Is it worth protesting my ${county.name} County property taxes?`,
-      a: `Yes. Between 60–80% of ${county.state} homeowners who file a ${t.verb} receive a reduction. The cost to try is just $89 with TaxAppeal USA — and if you save even $500/year, you'll earn back that fee in under two months.`,
+      // "Between 60-80%" traced to an uncited vendor blog post, not to any agency
+      // or study, and was rendering on 572 county pages. See lib/stats.js.
+      a: `It costs nothing to file in most counties, and TaxAppeal USA charges a flat $89. Outcome rates are not published by every state — where they are, they vary widely: a peer-reviewed study of Dallas County records found 69.7% of homeowner-filed protests won a reduction in 2020 (American Economic Journal: Economic Policy, 2025), while Florida counties reported anywhere from 57% down to 0% for tax year 2024. Your county decides, and we cannot promise a result.`,
     },
     {
       q: `Do I need to attend a hearing for my ${county.name} County ${t.verb}?`,
-      a: `Not with TaxAppeal USA. We send your certified letter with a complete evidence package. Many ${county.state} counties settle protests informally before any hearing is required. If your county schedules a formal ${t.process}, we'll notify you with guidance on what to expect.`,
+      // This used to answer "Not with TaxAppeal USA." We are a document preparation
+      // and mailing service and cannot appear for you, so answering a
+      // hearing-attendance question that way implied representation we do not
+      // provide - and left the owner believing someone would be there.
+      a: `That decision is yours. Many ${county.state} ${t.verb}s are resolved on the written evidence without anyone appearing. If a formal hearing is scheduled, TaxAppeal USA cannot attend for you — we are a document preparation and mailing service, not your representative — so you would attend yourself or choose not to. We notify you when we receive a hearing notice, and your evidence package stays on the record either way.`,
     },
   ];
 };
@@ -252,8 +259,13 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
             {[
               { num: "$89", label: "Flat fee — never a %" },
               { num: county.deadline, label: `${county.name} County deadline` },
-              { num: "60–80%", label: "Protest success rate" },
-              { num: "$600–$2K+", label: "Avg annual savings" },
+              // These two tiles read "60-80% Protest success rate" and "$600-$2K+
+              // Avg annual savings" on all 572 county pages. Neither traced to any
+              // source - the 60-80% is an uncited vendor-blog figure. A bare stat
+              // tile has no room for attribution, so these are now facts about our
+              // own service, which are true by construction. See lib/stats.js.
+              { num: "0%", label: "Of your savings taken" },
+              { num: "You", label: "Sign it — we mail it" },
             ].map(({ num, label }) => (
               <div key={label}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: C.navy, marginBottom: 4 }}>{num}</div>
@@ -269,14 +281,18 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
             How to {action} Your {county.name} County Property Taxes
           </h2>
           <p style={{ textAlign: "center", color: C.muted, fontFamily: "Arial,sans-serif", fontSize: 16, marginBottom: 48 }}>
-            Under {county.statute} — we handle the filing so you don't have to
+            Under {county.statute} — we prepare it, you sign it, we mail it
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 24 }}>
             {[
               { n: "1", title: "Enter your address", body: `We look up your ${county.name} County assessed value, comparable sales, and property details automatically.` },
               { n: "2", title: "Review your case", body: `We calculate your estimated overassessment and show you exactly what evidence we'll submit to the ${county.district}.` },
-              { n: "3", title: "Pay $89 flat", body: "No percentage of savings. No surprise fees. One flat fee covers your entire protest from filing to delivery." },
-              { n: "4", title: "We mail it certified", body: `Your protest letter goes out via trackable USPS mail to the ${county.district} — with tracking and proof of delivery.` },
+              // The signing step was missing from this block entirely. In Florida the
+              // owner's signature on DR-486 Part 3 is what makes the petition valid
+              // (s. 194.011(3), Fla. Stat.), so a "how it works" that omits it
+              // describes a process that cannot happen.
+              { n: "3", title: "Read it and sign it", body: `You review the completed filing and sign it yourself — it is filed in your name, as ${county.state === "Florida" ? "s. 194.011(3), Florida Statutes requires" : "the property owner"}.` },
+              { n: "4", title: "We mail it certified", body: `Your signed filing goes out via trackable USPS mail to the ${county.district}${county.code === "FL" ? ", with the county filing fee paid" : ""} — with tracking and proof of delivery.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{n}</div>
@@ -343,7 +359,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
             )}
           </div>
           <p style={{ marginTop: 20, fontSize: 14, color: C.muted, fontFamily: "Arial,sans-serif", lineHeight: 1.7 }}>
-            TaxAppeal USA automatically routes your certified protest letter to the correct {county.name} County authority. You don't need to look up addresses, forms, or deadlines — we handle all of it.
+            TaxAppeal USA routes your protest to the correct {county.name} County authority automatically, so you don&apos;t have to track down addresses, forms or deadlines. You review and sign the filing; we pay any county fee and mail it.
           </p>
         </div>
 

@@ -265,7 +265,7 @@ export default function BlogPost({ post }) {
           Ready to protest your property taxes?
         </h2>
         <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>
-          $89 flat fee. We handle everything. You keep 100% of your savings.
+          $89 flat fee. You sign it, we file it. You keep 100% of your savings.
         </p>
         <button
           className="btn-primary"

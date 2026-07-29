@@ -112,7 +112,7 @@ export default function BlogIndex() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "56px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.white, marginBottom: 12 }}>Ready to file your protest?</h2>
-        <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>$89 flat fee. We handle everything. You keep 100% of your savings.</p>
+        <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>$89 flat fee. You sign it, we file it. You keep 100% of your savings.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 16, padding: "16px 40px" }} onClick={() => router.push('/apply')}>
           Start My Dispute — $89 →
         </button>
