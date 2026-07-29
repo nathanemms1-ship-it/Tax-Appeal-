@@ -290,12 +290,12 @@ function StepAccount({ data, onChange, onNext }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it certified</div>
         <h1 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>We fight your property tax bill. You keep the savings.</h1>
         <p style={{ fontSize: 20, fontWeight: 700, color: "#1B3A6B", marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. We do it all.</p>
-        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>Nearly 50% of properties are over-assessed — meaning millions of homeowners are overpaying on their taxes every year. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
         <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>82%</div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>&lt;5%</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.white, marginBottom: 4 }}>of property tax disputes are approved</div>
-            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.5 }}>The odds are in your favor — don't leave money on the table. File today and start saving.</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.white, marginBottom: 4 }}>of taxpayers ever challenge their assessment</div>
+            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.5 }}>Most over-assessed homeowners simply pay the bill. Filing takes about four minutes and costs $89 — whether your county grants a reduction is up to your county. Source: National Taxpayers Union Foundation.</div>
           </div>
         </div>
         <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 }}>
@@ -463,7 +463,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
           <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: "22px 24px", marginBottom: 16 }}>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.navy, marginBottom: 4 }}>$1,840</div>
             <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>avg. savings per homeowner</div>
-            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>82% of disputes are approved</div>
+            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>Flat fee — we never take a percentage</div>
           </div>
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What we look up</div>

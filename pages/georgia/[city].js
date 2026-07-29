@@ -14,11 +14,11 @@ export default function GeorgiaCityPage({ city }) {
 
   const faqs = [
     { q:`How do I appeal my ${city.name} property taxes?`, a:`File a formal appeal with the ${city.district} within 45 days of your Notice of Assessment date. TaxAppeal prepares your appeal letter with comparable sales evidence and mails via USPS certified mail under O.C.G.A. § 48-5-311.` },
-    { q:`How much can ${city.name} homeowners save?`, a:`${city.name} homeowners who appeal successfully save an average of $${fSavings} per year. TaxAppeal's flat $89 fee means you keep 100% of those savings.` },
+    { q:`How much can ${city.name} homeowners save?`, a:`It depends entirely on the gap between your assessment and your property's market value, and on whether the board grants a reduction — we cannot promise a number. As an illustration: a reduction worth $${fSavings} a year on a ${city.name} home would repay the $89 fee in the first year and keep saving after that, because TaxAppeal takes no percentage of it. Georgia does not publish appeal outcome statistics, so treat any service quoting you a Georgia success rate with caution.` },
     { q:`What is the appeal deadline for ${city.name}?`, a:`45 days from the date on your Notice of Assessment from the ${city.district}. The clock starts from the notice date — not when you receive it. Missing this means waiting a full year.` },
     { q:`Can my ${city.name} assessment go up if I appeal?`, a:`In rare cases, yes. Georgia does not prohibit assessment increases from appeals. TaxAppeal reviews all comparable sales before filing to ensure your appeal is well-supported.` },
     { q:`What is the Board of Equalization in ${city.county} County?`, a:`The BOE is a three-member independent panel that hears formal property tax appeals. If the ${city.district} does not offer an acceptable reduction informally, your appeal proceeds to the BOE.` },
-    { q:`Is the $89 fee worth it for ${city.name} homeowners?`, a:`With average savings of $${fSavings}/year, TaxAppeal pays for itself many times over. Contingency firms charge 25-40% of savings — on a $${fSavings} win that's $${Math.round(city.avgSavings*0.35).toLocaleString()} gone.` },
+    { q:`Is the $89 fee worth it for ${city.name} homeowners?`, a:`The $89 is what you pay whether or not the board reduces your value. What it buys you is that the petition is prepared, the evidence is attached, and it is mailed on time. The comparison worth making is against contingency firms, which charge 25-40% of whatever you save, every year: on a $${fSavings} reduction that is about $${Math.round(city.avgSavings*0.35).toLocaleString()} a year, forever. Ours is $89, once.` },
   ];
 
   const schema = { "@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(f=>({ "@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a} })) };
@@ -62,7 +62,7 @@ export default function GeorgiaCityPage({ city }) {
           <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{city.name} Property Tax Appeal — $89 Flat Fee</h1>
           <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["45 days","Appeal window"],[`$${fSavings}`,"Avg. annual savings"],["$89","Flat fee"],[city.county+" Co.","Service area"]].map(([n,l])=>(
+            {[["45 days","Appeal window"],["$89","Flat fee"],["0%","Of your savings taken"],[city.county+" Co.","Service area"]].map(([n,l])=>(
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:26,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>

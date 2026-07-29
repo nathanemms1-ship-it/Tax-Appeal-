@@ -49,7 +49,7 @@ export default function Bentonville() {
           <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Bentonville Property Tax Appeal — $89 Flat Fee</h1>
           <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals. TaxAppeal files your certified protest letter for a flat $89.</p>
           <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["Aug 17","2026 Deadline"],["$950","Avg. savings"],["$89","Flat fee"],["Benton County","Service area"]].map(([n,l]) => (
+            {[["Aug 17","2026 Deadline"],["0%","Of your savings taken"],["$89","Flat fee"],["Benton County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>

@@ -191,7 +191,7 @@ export default function BlogPost({ post }) {
                   We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
                 </p>
                 <div style={{ marginBottom: 16 }}>
-                  {["No contingency fees", "Certified mail with tracking", "82% approval rate", "All counties covered"].map(f => (
+                  {["No contingency fees", "Certified mail with tracking", "Flat $89 — you keep your savings", "All counties covered"].map(f => (
                     <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: C.gold, marginBottom: 6 }}>
                       <span>✓</span> {f}
                     </div>
@@ -229,7 +229,7 @@ export default function BlogPost({ post }) {
                   Why TaxAppeal
                 </div>
                 {[
-                  ["82%", "protest success rate"],
+                  ["$89", "flat fee, any outcome"],
                   ["$1,840", "average savings"],
                   ["$89", "flat fee, no % cut"],
                   [

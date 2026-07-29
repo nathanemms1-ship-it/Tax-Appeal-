@@ -180,7 +180,7 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,
-      a: `${city.name} homeowners with a median home value of $${formattedValue} save an average of $${formattedSavings} per year when their appeal is successful. At a flat $89 fee, TaxAppeal USA pays for itself many times over.`,
+      a: `It depends on the gap between your assessed value and your property's market value, and the Value Adjustment Board makes the final decision - we cannot promise a number. For scale, Miami-Dade's VAB reduced 14,856 residential parcels for tax year 2024, shifting about $589 per reduced parcel (Miami-Dade VAB, Form DR-529). ${city.county} County publishes its own figures each year, and Florida counties differ sharply. Whatever reduction you get, you keep all of it - our fee is $89 flat.`,
     },
     {
       q: `What is a TRIM notice in Florida?`,
@@ -223,11 +223,11 @@ export default function FloridaCityPage({ city }) {
     <>
       <Head>
         <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
-        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We mail your VAB petition 7+ days before your deadline. No percentage fees ever.`} />
+        <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. We prepare your ${city.county} County VAB petition, you sign it, and we mail it 7+ days before your deadline with the county filing fee paid. No percentage fees ever.`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Appeal | $89 Flat | TaxAppeal USA`} />
-        <meta property="og:description" content={`Save an average of $${formattedSavings} on your ${city.name} property taxes. Flat $89 fee - no percentages. We handle the paperwork.`} />
+        <meta property="og:description" content={`Appeal your ${city.name} property taxes. Flat $89 fee - no percentages, ever. We prepare the petition, you sign it, we mail it on time.`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
@@ -268,7 +268,7 @@ export default function FloridaCityPage({ city }) {
         <section style={{ padding: "60px 0 40px", textAlign: "center" }}>
           <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
-          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} Save an average of <strong style={{ color: "#1B2A4A" }}>${formattedSavings}</strong> per year for just <strong style={{ color: "#C9A84C" }}>$89 flat</strong>.</p>
+          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} We prepare your petition and mail it for <strong style={{ color: "#C9A84C" }}>$89 flat</strong> plus your county's filing fee - and we never take a percentage of what you save.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes</button></Link>
         </section>
 
@@ -298,7 +298,7 @@ export default function FloridaCityPage({ city }) {
           <h2 style={{ fontSize: "32px", fontWeight: "800", textAlign: "center", marginBottom: "12px" }}>$89 Flat vs. The Competition</h2>
           <p style={{ textAlign: "center", color: "#6b7280", fontSize: "17px", marginBottom: "36px" }}>Every other {city.name} property tax service charges a percentage of your savings.</p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px" }}>
-            <thead><tr style={{ background: "#1B2A4A", color: "white" }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on ${formattedSavings} Win</th></tr></thead>
+            <thead><tr style={{ background: "#1B2A4A", color: "white" }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on an example ${formattedSavings} reduction</th></tr></thead>
             <tbody>
               <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$89 flat fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>$89</td></tr>
               <tr><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>Ownwell</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>25-35% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.30).toLocaleString()}</td></tr>
@@ -331,7 +331,7 @@ export default function FloridaCityPage({ city }) {
 
         <section style={{ padding: "60px 0", textAlign: "center", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
-          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>Join thousands of Florida homeowners saving an average of ${formattedSavings}/year. Just $89 flat.</p>
+          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>File before your county's VAB deadline. Just $89 flat, plus the county filing fee - and we never take a percentage of your savings.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $89 Flat</button></Link>
           <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · Mailed Filing</p>
         </section>

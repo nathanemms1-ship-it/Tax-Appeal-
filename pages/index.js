@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { STATS, OUTCOME_DISCLAIMER } from '../lib/stats';
 
 const C = {
   navy:     "#1B3A6B",
@@ -38,21 +39,21 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. 82% approval rate. Available in TX, GA, FL, AR, and AL." />
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. Flat fee, no percentage of your savings. Available in TX, GA, FL, AR, and AL." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. 82% approval rate. TX, GA, FL, AR, AL." />
+        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. 82% approval rate. TX, GA, FL, AR, AL." />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. TX, GA, FL, AR, AL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. 82% approval rate. TX, GA, FL, AR, AL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -72,7 +73,7 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, certified mail filing, 82% approval rate.",
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, certified mail filing.",
           "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"],
           "offers": {
             "@type": "Offer",
@@ -427,118 +428,89 @@ export default function Landing() {
           <div className="trust-item">✅ TX · GA · FL · AR · AL</div>
         </div>
         <div className="stats-row">
-          <div className="stat-card"><div className="stat-num">82%</div><div className="stat-label">Approval rate</div></div>
-          <div className="stat-card"><div className="stat-num">$1,840</div><div className="stat-label">Avg. savings</div></div>
           <div className="stat-card"><div className="stat-num">$89</div><div className="stat-label">Flat fee</div></div>
+          <div className="stat-card"><div className="stat-num">0%</div><div className="stat-label">Of your savings taken</div></div>
+          <div className="stat-card"><div className="stat-num">4 min</div><div className="stat-label">To complete</div></div>
         </div>
       </section>
 
-            {/* Social proof banner */}
+            {/* Why homeowners appeal — third-party data only.
+                This block previously read "Over 7,200 Homeowners and counting / with a
+                total savings over $3.2 Million!" TaxAppeal USA has not yet filed its
+                first petition. See lib/stats.js for why that mattered. */}
       <div style={{ background: "#1B3A6B", padding: "48px 32px", textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Real Results From Real Homeowners</div>
+        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#FFFFFF", lineHeight: 1.2, marginBottom: 10 }}>
-          Over 7,200 Homeowners and counting
+          Most over-assessed homeowners never say anything
         </div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: "#8596AF", marginBottom: 16 }}>
-          with a total savings over <span style={{ color: "#FFC940", fontWeight: 700 }}>$3.2 Million!</span>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: "#8596AF", marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
+          The National Taxpayers Union Foundation estimates that{" "}
+          <span style={{ color: "#FFC940", fontWeight: 700 }}>{STATS.US_OVERASSESSED.value}</span>{" "}
+          of taxable property in the United States is over-assessed — and that{" "}
+          <span style={{ color: "#FFC940", fontWeight: 700 }}>fewer than 5%</span>{" "}
+          of taxpayers ever challenge it.
         </div>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "#FFC940" }}>
-          Don't Delay, Dispute Today!
+          Don&apos;t Delay, Dispute Today!
+        </div>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#6B84A6", marginTop: 18 }}>
+          Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: "#8596AF", textDecoration: "underline" }}>National Taxpayers Union Foundation</a>. Estimate by an advocacy organization, not a peer-reviewed study.
         </div>
       </div>
 
-      {/* Scrolling testimonials */}
-      <div style={{ background: "#F4F7FC", padding: "48px 0", overflow: "hidden" }}>
-        <div style={{ textAlign: "center", marginBottom: 32, padding: "0 32px" }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What homeowners are saying</div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82" }}>Real results from real customers across Texas, Georgia, Florida, Arkansas, and Alabama.</div>
+      {/* Published county outcomes.
+          This block previously held 20 fabricated customer testimonials with named
+          "customers", star ratings and "Saved $1,840" badges, under the heading
+          "Real results from real customers". TaxAppeal USA has never had a customer.
+          Fake testimonials are prohibited by 16 C.F.R. Part 465 (FTC Rule on the Use
+          of Consumer Reviews and Testimonials), which carries per-violation civil
+          penalties. Do not reintroduce testimonials until they are real, verifiable,
+          and given with the customer's permission. See lib/stats.js. */}
+      <div style={{ background: "#F4F7FC", padding: "56px 0" }}>
+        <div style={{ textAlign: "center", marginBottom: 36, padding: "0 32px" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What the county records actually show</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82", maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
+            We are a new company, so we do not have our own results to show you yet. Instead, here is what the public record says about appeals in the places we file.
+          </div>
         </div>
 
-        <style>{`
-          @keyframes scroll-testimonials {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .t-track {
-            display: flex;
-            gap: 20px;
-            width: max-content;
-            animation: scroll-testimonials 50s linear infinite;
-          }
-          .t-track:hover { animation-play-state: paused; }
-          .t-wrap {
-            overflow: hidden;
-            position: relative;
-          }
-          .t-wrap::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 80px;
-            background: linear-gradient(to right, #F4F7FC, transparent);
-            z-index: 2;
-            pointer-events: none;
-          }
-          .t-wrap::after {
-            content: '';
-            position: absolute;
-            right: 0; top: 0; bottom: 0;
-            width: 80px;
-            background: linear-gradient(to left, #F4F7FC, transparent);
-            z-index: 2;
-            pointer-events: none;
-          }
-          .t-card {
-            background: #FFFFFF;
-            border: 1.5px solid #E8EDF4;
-            border-radius: 12px;
-            padding: 20px 24px;
-            width: 300px;
-            flex-shrink: 0;
-          }
-        `}</style>
-
-        <div className="t-wrap">
-          <div className="t-track">
-            {[
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
-              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
-              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
-              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
-              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
-              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
-              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
-              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
-              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-              { name: "Michael R.", location: "Tarrant County, TX", saved: "$1,840", text: "I had no idea my home was over-assessed. TaxAppeal found the discrepancy, filed everything, and I got a $1,840 reduction in my annual tax bill. Worth every penny of the $89 fee." },
-              { name: "Sandra T.", location: "Fulton County, GA", saved: "$2,210", text: "The process took me about 4 minutes. A few weeks later I got a letter from the county saying my assessment had been reduced. I saved over $2,200 this year alone." },
-              { name: "James & Lisa M.", location: "Hillsborough County, FL", saved: "$1,590", text: "We've lived in our home for 12 years and never thought to dispute our taxes. First time using TaxAppeal and we saved $1,590. Should have done this years ago." },
-              { name: "David K.", location: "Dallas County, TX", saved: "$3,100", text: "My assessed value was way above what comparable homes were selling for. TaxAppeal's letter cited 4 recent sales in my ZIP code and the district lowered my assessment by $40,000." },
-              { name: "Patricia W.", location: "Cobb County, GA", saved: "$980", text: "Super simple process. I was skeptical at first but the certified mail with return receipt gave me confidence they were doing it right. Got approved in 6 weeks." },
-              { name: "Robert H.", location: "Orange County, FL", saved: "$2,450", text: "The letter they generated was incredibly detailed — comparable sales, market conditions, legal citations. The district approved my protest without even requesting a hearing." },
-              { name: "Angela B.", location: "Harris County, TX", saved: "$1,720", text: "I paid $89 and saved $1,720. That's a 21x return. I've already referred three of my neighbors. This is the easiest money I've ever saved." },
-              { name: "Tom & Karen S.", location: "Gwinnett County, GA", saved: "$1,340", text: "We were nervous about disputing our taxes but TaxAppeal made it completely hands-off. They handled everything and the county reduced our assessment by $18,000." },
-              { name: "Maria G.", location: "Miami-Dade County, FL", saved: "$2,880", text: "Filed before the TRIM deadline and got approved. The certified mail tracking gave me peace of mind that the letter was received in time. Saved nearly $3,000 this year." },
-              { name: "Chris P.", location: "Travis County, TX", saved: "$2,100", text: "Austin home values went through the roof and so did our tax bill. TaxAppeal got it reduced back to a fair level. The comparable sales data they used was spot on." },
-            ].map((t, i) => (
-              <div key={i} className="t-card">
-                <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
-                  {[1,2,3,4,5].map(s => <span key={s} style={{ color: "#FFC940", fontSize: 16 }}>★</span>)}
-                </div>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginBottom: 16, fontStyle: "italic" }}>"{t.text}"</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F1F3D" }}>{t.name}</div>
-                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#8596AF", marginTop: 2 }}>📍 {t.location}</div>
-                  </div>
-                  <div style={{ background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#2E7D52", whiteSpace: "nowrap" }}>
-                    Saved {t.saved}
-                  </div>
-                </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, maxWidth: 1080, margin: "0 auto", padding: "0 32px" }}>
+          {[
+            {
+              stat: STATS.TX_DALLAS_SUCCESS.value,
+              head: "of homeowner-filed Dallas County protests won a reduction",
+              body: "A peer-reviewed study of Dallas Central Appraisal District records found that homeowners who filed their own protest in 2020 succeeded 69.7% of the time, with average first-year savings of $485 on a successful protest.",
+              src: "Nathan, Perez-Truglia & Zentner, American Economic Journal: Economic Policy (2025), tax year 2020",
+              url: STATS.TX_DALLAS_SUCCESS.url,
+            },
+            {
+              stat: STATS.FL_MIAMIDADE_SUCCESS.value,
+              head: "of residential Miami-Dade VAB petitions won a reduction",
+              body: "Miami-Dade's Value Adjustment Board reduced 14,856 of the 41,942 residential petitions filed for tax year 2024 — removing $1.34 billion in taxable value. Counting only petitions the Board actually decided, the rate was 57%.",
+              src: "Miami-Dade County VAB, Form DR-529 Tax Impact Notice, Tax Year 2024",
+              url: STATS.FL_MIAMIDADE_SUCCESS.url,
+            },
+            {
+              stat: STATS.COOK_SUCCESS.value,
+              head: "of Cook County, Illinois appeals won a reduction",
+              body: "Across 2002\u20132015, a Quarterly Journal of Economics study of assessor records found appeals succeeded 67% of the time on average, with a mean reduction of 12% of assessed value.",
+              src: "Avenancio-Le\u00f3n & Howard, Quarterly Journal of Economics 137(3) (2022)",
+              url: STATS.COOK_SUCCESS.url,
+            },
+          ].map((c, i) => (
+            <div key={i} style={{ background: "#FFFFFF", border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#1B3A6B", lineHeight: 1 }}>{c.stat}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F1F3D", marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, color: "#8596AF", marginTop: 14, lineHeight: 1.5 }}>
+                Source: <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: "#5A6B82" }}>{c.src}</a>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8596AF", lineHeight: 1.65, textAlign: "center" }}>
+          {OUTCOME_DISCLAIMER} Outcomes differ sharply between counties: Marion County, Florida reduced 0 of 310 requested assessments in tax year 2022.
         </div>
       </div>
 
@@ -567,10 +539,19 @@ export default function Landing() {
       <section className="section">
         <div className="section-inner">
           <div className="stat-banner">
-            <div className="stat-big">82%</div>
+            <div className="stat-big">&lt;5%</div>
             <div className="stat-text">
-              <h3>of property tax disputes are approved</h3>
-              <p>The odds are in your favor — don't leave money on the table. Most homeowners who file a well-prepared protest save $800–$2,500 per year. File today and start saving.</p>
+              <h3>of taxpayers ever challenge their assessment</h3>
+              <p>
+                The National Taxpayers Union Foundation estimates that fewer than 5% of taxpayers
+                dispute their assessment, while {STATS.US_OVERASSESSED.value} of taxable U.S.
+                property is over-assessed. Filing costs you $89 and about four minutes. Whether
+                your county grants a reduction is up to your county — we make sure your case is
+                in front of them, on time, with the evidence attached.
+              </p>
+              <p style={{ fontSize: 11, opacity: 0.75, marginTop: 10 }}>
+                Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ textDecoration: 'underline' }}>National Taxpayers Union Foundation</a>. Advocacy-organization estimate, not a peer-reviewed study.
+              </p>
             </div>
           </div>
           <div className="price-box">

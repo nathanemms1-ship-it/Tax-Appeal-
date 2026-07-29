@@ -60,7 +60,7 @@ export default function Houston() {
           <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Houston Property Tax Protest — $89 Flat Fee</h1>
           <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Harris County homeowners pay some of the highest property taxes in Texas. TaxAppeal files your formal protest with HCAD — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["82%","Approval rate"],["$2,100","Avg. savings"],["$89","Flat fee"],["Harris County","Service area"]].map(([n,l]) => (
+            {[["$89","Flat fee"],["0%","Of your savings taken"],["Certified","Mail with tracking"],["Harris County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
@@ -75,7 +75,7 @@ export default function Houston() {
       <section style={{padding:"56px 40px",background:C.white}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Houston Homeowners Should File</h2>
-          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>82% of Texas property tax protests result in a reduction. Here's why Houston homeowners have especially strong grounds.</p>
+          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Texas gives you the right to protest your appraised value every single year, and Harris County processes more than half a million protested accounts annually. Here's why Houston homeowners have especially strong grounds.</p>
           <div style={{display:"grid",gap:24}}>
             {[
               ["📊","Harris County Appraisal District (HCAD) Uses Mass Appraisal","HCAD appraises over 1.7 million properties annually using mass-appraisal methods that frequently contain errors."],

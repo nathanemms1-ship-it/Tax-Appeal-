@@ -73,13 +73,13 @@ export default function App({ Component, pageProps }) {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it via USPS certified mail. 82% approval rate. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it via USPS certified mail. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
-        <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it certified. 82% approval rate. $89 flat — no percentage cuts." />
+        <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it certified. $89 flat — no percentage cuts." />
         {/* Canonical */}
         <link rel="canonical" href="https://www.taxappealusa.com" />
         {/* Favicon */}
