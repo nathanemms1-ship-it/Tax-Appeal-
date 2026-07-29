@@ -25,6 +25,28 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
+  // VERIFY THE PAYMENT SERVER-SIDE.
+  // This handler previously accepted an arbitrary JSON body, trusted amountPaid
+  // verbatim, hardcoded payment_status:'paid', and — if refCode was present —
+  // fired a real $20 stripe.transfers.create(). An attacker could register as a
+  // partner and loop this endpoint with random session ids to drain the Stripe
+  // balance $20 per HTTP request, with no payment ever received. It also allowed
+  // injecting 'queued' rows with an attacker-chosen district_address, which the
+  // cron would then mail real Lob checks to.
+  if (!stripeSessionId) return res.status(400).json({ error: 'stripeSessionId is required' });
+  let verifiedSession;
+  try {
+    verifiedSession = await stripe.checkout.sessions.retrieve(stripeSessionId);
+  } catch (e) {
+    return res.status(400).json({ error: 'Unknown Stripe session' });
+  }
+  if (!verifiedSession || verifiedSession.payment_status !== 'paid') {
+    return res.status(402).json({ error: 'Session is not paid' });
+  }
+  // Trust Stripe for the amount, never the caller.
+  const verifiedAmount = verifiedSession.amount_total;
+  const verifiedRefCode = (verifiedSession.metadata && verifiedSession.metadata.refCode) || null;
+
   try {
     // Prevent duplicate orders
     const { data: existing } = await supabase
@@ -61,7 +83,7 @@ export default async function handler(req, res) {
         reduction_pct: reductionPct ? Math.round(Number(reductionPct)) : null,
         estimated_savings: estimatedSavings ? Number(estimatedSavings) : null,
         stripe_session_id: stripeSessionId,
-        amount_paid: amountPaid || 8900,
+        amount_paid: verifiedAmount,
         payment_status: 'paid',
         lob_letter_id: lobLetterId || null,
         lob_tracking_number: lobTrackingNumber || null,
@@ -83,7 +105,7 @@ export default async function handler(req, res) {
         owner_city: ownerCity || null,
         owner_state: ownerState || null,
         owner_zip: ownerZip || null,
-        ref_code: refCode || null,
+        ref_code: verifiedRefCode,
       })
       .select()
       .single();
@@ -96,12 +118,13 @@ export default async function handler(req, res) {
     console.log('Order saved:', data.id);
 
     // ── Referral payout: fire $20 transfer to partner's Stripe account ──
-    if (refCode) {
+    if (verifiedRefCode) {
+      const refCodeVerified = verifiedRefCode;
       try {
         const { data: referral } = await supabase
           .from('referrals')
           .select('stripe_account_id, id')
-          .eq('ref_code', refCode)
+          .eq('code', refCode)
           .single();
 
         if (referral?.stripe_account_id) {
@@ -112,7 +135,7 @@ export default async function handler(req, res) {
             destination: referral.stripe_account_id,
             description: 'TaxAppeal referral payout — order ' + data.id,
             metadata: {
-              ref_code: refCode,
+              ref_code: verifiedRefCode,
               order_id: data.id,
               customer_email: customerEmail || '',
             },
@@ -124,13 +147,14 @@ export default async function handler(req, res) {
           await supabase
             .from('referrals')
             .update({
-              total_orders: supabase.rpc ? undefined : undefined, // use increment below
+              total_referrals: (referral.total_referrals || 0) + 1,
+              total_paid: (referral.total_paid || 0) + 20,
             })
-            .eq('ref_code', refCode);
+            .eq('code', verifiedRefCode);
 
           // Insert payout record into referral_payouts table (if it exists)
           await supabase.from('referral_payouts').insert({
-            ref_code: refCode,
+            ref_code: verifiedRefCode,
             order_id: data.id,
             stripe_transfer_id: transfer.id,
             amount_cents: REFERRAL_PAYOUT_CENTS,

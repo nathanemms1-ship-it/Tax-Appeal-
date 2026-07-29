@@ -1,3 +1,19 @@
+import crypto from 'crypto';
+
+/**
+ * Internal-only guard. Fails CLOSED when INTERNAL_API_SECRET is unset —
+ * `!== `Bearer ${undefined}`` style checks are an authentication bypass, not a
+ * default. Constant-time compare so the secret can't be recovered by timing.
+ */
+function authorized(req) {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return false;
+  const provided = req.headers['x-internal-secret'];
+  if (!provided || typeof provided !== 'string') return false;
+  const a = Buffer.from(provided), b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 // pages/api/send-email.js
 import { Resend } from 'resend';
 import { confirmationEmailTemplate } from './email-templates';
@@ -6,6 +22,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const TRUSTPILOT_BCC = 'taxappealusa.com+73f5a040d9@invite.trustpilot.com';
 
 export default async function handler(req, res) {
+  // Anyone could POST {to, subject, html} and send verbatim mail from
+  // disputes@taxappealusa.com with full SPF/DKIM alignment — perfect phishing of
+  // your own customer list, plus unlimited quota burn.
+  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const {
@@ -18,6 +38,7 @@ export default async function handler(req, res) {
     lobId,
     sessionId,
     letter,
+    amountPaid,
     type = 'confirmation',
     subject: prebuiltSubject,
     html: prebuiltHtml,
@@ -59,8 +80,7 @@ export default async function handler(req, res) {
         trackingNumber,
         lobId,
         sessionId,
-        letter,
-      });
+        letter, amountPaid });
     }
 
     const emailPayload = {

@@ -9,7 +9,7 @@ border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", red: "#C0392B",
 };
 
 /**
-* StepFloridaFee — Florida VAB fee disclosure + DR-486A e-signature authorization
+* StepFloridaFee — Florida VAB fee disclosure + DR-486 e-signature authorization
 *
 * Props:
 * feeData { vabFee, payableTo, county } — from getFlVabFee()
@@ -129,10 +129,10 @@ ORDER SUMMARY — {countyDisplay.toUpperCase()}
 </div>
 </div>
 
-{/* DR-486A Authorization block */}
+{/* DR-486 Authorization block */}
 <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
 <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>
-✍️ Written Authorization — Form DR-486A
+✍️ Written Authorization — Form DR-486
 </div>
 <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>
 Florida Statute § 194.011(3) requires written authorization when an unlicensed compensated
@@ -143,11 +143,11 @@ to act as your representative before the {countyDisplay} Value Adjustment Board 
 
 {/* Authorization text */}
 <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 16, fontSize: 12, color: C.bodyGray, lineHeight: 1.8, fontFamily: "'DM Sans', sans-serif" }}>
-<strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>WRITTEN AUTHORIZATION FOR REPRESENTATION BEFORE THE VALUE ADJUSTMENT BOARD (DR-486A)</strong>
+<strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>PETITION SIGNATURE BEFORE THE VALUE ADJUSTMENT BOARD (DR-486)</strong>
 I, the undersigned property owner, hereby authorize <strong>TaxAppeal USA</strong> to act as my
-authorized representative for purposes of filing and prosecuting a petition before the {countyDisplay} Value
-Adjustment Board regarding the above property, pursuant to Florida Statute § 194.011(3)(h). I
-understand TaxAppeal USA is a compensated representative. This authorization includes the right to
+document preparer for purposes of filing and prosecuting a petition before the {countyDisplay} Value
+Adjustment Board regarding the above property, pursuant to Florida Statute § 194.011(3). I
+understand TaxAppeal USA is a document preparation service. This authorization includes the right to
 file Form DR-486, submit evidence, and receive VAB correspondence on my behalf. I certify the
 information I provided is accurate and I am the owner or authorized agent of the property described.
 <br /><br />
@@ -175,7 +175,7 @@ By typing your name you are electronically signing this authorization under Flor
 
 {/* Checkboxes */}
 {checkbox(agreedAuth, () => setAgreedAuth(!agreedAuth), (
-<><strong style={{ color: C.darkNavy }}>I authorize TaxAppeal USA to file as my VAB representative</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486A.</>
+<><strong style={{ color: C.darkNavy }}>I authorize TaxAppeal USA to file as my VAB representative</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
 ))}
 {checkbox(agreedFee, () => setAgreedFee(!agreedFee), (
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
@@ -204,7 +204,7 @@ style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'n
 </div>
 
 <div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-🔒 Your signed authorization is stored securely and attached to your VAB petition as required by Florida Statute § 194.011(3)(h). A copy is included in your mailed filing package.
+🔒 Your signed authorization is stored securely and attached to your VAB petition as required by Florida Statute § 194.011(3). A copy is included in your mailed filing package.
 </div>
 </div>
 </div>

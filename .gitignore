@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Environment — NEVER commit these.
+# This repo's env includes a Supabase service key, a Lob live key, a Stripe
+# secret key, and a bank account id. There was no .gitignore before this file,
+# so a single `git add .` would have committed all of them.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

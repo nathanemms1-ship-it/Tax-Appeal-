@@ -17,7 +17,7 @@ export default function PartnersPage() {
       const res = await fetch('/api/create-connect-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referralCode: result.code, email: form.email, name: `${form.firstName} ${form.lastName}` }),
+        body: JSON.stringify({ refCode: result.code, email: form.email, name: `${form.firstName} ${form.lastName}` }),
       });
       const data = await res.json();
       if (data.url) { window.location.href = data.url; }
