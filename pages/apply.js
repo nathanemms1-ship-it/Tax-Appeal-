@@ -640,68 +640,9 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   // this petition". Previously it was taken two screens earlier, before the
   // petition had been generated at all.
   const isFLFlow = (property?.state || '').trim().toUpperCase() === 'FL';
-  const [flSigName, setFlSigName] = useState('');
-  const [flSigError, setFlSigError] = useState('');
-  const [flWillAttend, setFlWillAttend] = useState(false);
-  const [flShareInfo, setFlShareInfo] = useState(true);
-  // Signature matching.
-  //
-  // This used to require flSigName.trim().toLowerCase() to EQUAL
-  // "<firstName> <lastName>" exactly. Two things went wrong with that:
-  //
-  //   1. Anyone who signs the way people actually sign legal documents - with a
-  //      middle name, an initial, or a suffix ("Nathan A. Emms", "Nathan Emms Jr")
-  //      - failed the check, as did any stray double space or trailing period.
-  //   2. The failure was SILENT. The pay button is disabled while !flSigned, so
-  //      doCheckout never ran, so setFlSigError never fired. The customer saw a
-  //      locked button reading "Sign your petition above to continue" directly
-  //      beneath the signature they had just typed, with nothing telling them what
-  //      was wrong. There was no way to discover the rule from the UI.
-  //
-  // The exact-match rule was never a legal requirement - Fla. Stat. 194.011(3)
-  // asks for the taxpayer's signature, not for it to match our account record
-  // character for character. Its real job is catching someone signing a name that
-  // is not theirs, and typos. So: require the first and last name to both be
-  // present, in that order, and allow anything in between or after.
-  const sigNorm = (v) => String(v || '')
-    .toLowerCase()
-    .replace(/[.,]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const expectedFirst = sigNorm(account?.firstName);
-  const expectedLast = sigNorm(account?.lastName);
-  const expectedSig = `${expectedFirst} ${expectedLast}`.trim();
-
-  const flSigCheck = (() => {
-    const typed = sigNorm(flSigName);
-    if (!typed) return { ok: false, reason: '' };
-    if (typed.length < 3) return { ok: false, reason: 'Please type your full legal name.' };
-    if (!expectedFirst || !expectedLast) return { ok: true, reason: '' };
-
-    // Pad so we match on whole words, and match on the SUBSTRING rather than on
-    // split tokens - a first or last name that itself contains a space ("Mary Jo",
-    // "Van Dyke") is never a single token and would otherwise never match.
-    const padded = ` ${typed} `;
-    const firstIdx = padded.indexOf(` ${expectedFirst} `);
-    const lastIdx = padded.lastIndexOf(` ${expectedLast} `);
-
-    if (firstIdx === -1 && lastIdx === -1) {
-      return { ok: false, reason: `This needs to be signed by the property owner. Please type ${account?.firstName} ${account?.lastName}.` };
-    }
-    if (firstIdx === -1) {
-      return { ok: false, reason: `Please include your first name (${account?.firstName}).` };
-    }
-    if (lastIdx === -1) {
-      return { ok: false, reason: `Please include your last name (${account?.lastName}).` };
-    }
-    if (lastIdx < firstIdx) {
-      return { ok: false, reason: `Please sign first name first: ${account?.firstName} ${account?.lastName}.` };
-    }
-    return { ok: true, reason: '' };
-  })();
-
-  const flSigned = !isFLFlow || flSigCheck.ok;
+  // NOTE: no signature is captured on this screen any more. Florida's DR-486
+  // Part 3 signature now happens on /success, after payment, against the complete
+  // unblurred petition. See lib/fulfillOrder.js for why.
   const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
   const pd = propData || {};
@@ -715,68 +656,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const agentAuthGranted = requiresAuth && agreements[3];
   const doCheckout = async () => {
     if (!allAgreed) return;
-    if (isFLFlow && !flSigned) {
-      setFlSigError(`Please type your full name exactly as entered: ${account?.firstName} ${account?.lastName}`);
-      return;
-    }
     setCheckingOut(true);
 
-    // Re-render the petition WITH the owner's signature. Reuses the evidence text
-    // they just read, so this costs no additional model call.
-    let signedLetterKey = propData?.letterKey || '';
-    let flSig = null;
-    if (isFLFlow) {
-      flSig = {
-        name: flSigName.trim(),
-        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        timestamp: new Date().toISOString(),
-        willNotAttend: !flWillAttend,
-        authorizeConfidential: flShareInfo,
-      };
-      try {
-        const signedRes = await fetch('/api/generate-dr486', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ownerFirstName: account.firstName, ownerLastName: account.lastName,
-            ownerEmail: account.email, ownerPhone: account.phone || '',
-            ownerStreet: property.street, ownerCity: property.city,
-            ownerState: property.state, ownerZip: property.zip,
-            propertyAddress: `${property.street}, ${property.city}, ${property.state} ${property.zip}`,
-            county: propData?.county, parcelId: propData?.parcelId || '',
-            assessedValue: propData?.assessedValue, requestedValue: propData?.targetReduction,
-            taxYear: propData?.taxYear, zip: property.zip,
-            evidenceText: propData?.evidenceText || letter || '',
-            ownerSignatureName: flSig.name,
-            ownerSignatureDate: flSig.date,
-            willNotAttend: flSig.willNotAttend,
-            authorizeConfidential: flSig.authorizeConfidential,
-          }),
-        });
-        const signedJson = await signedRes.json().catch(() => ({}));
-        if (!signedRes.ok || signedJson.error) {
-          // Surface what actually went wrong. This used to collapse every failure
-          // into "We could not finalize your signed petition", which hid the two
-          // cases that actually happen: an unverified county (we genuinely cannot
-          // file there and the customer must not be charged), and rate limiting.
-          const err = new Error(signedJson.error || `Request failed (${signedRes.status})`);
-          err.code = signedJson.code;
-          err.status = signedRes.status;
-          throw err;
-        }
-        if (signedJson.letterKey) signedLetterKey = signedJson.letterKey;
-      } catch (e) {
-        if (e.code === 'FL_COUNTY_UNSUPPORTED') {
-          setFlSigError(e.message);
-        } else if (e.status === 429) {
-          setFlSigError('Too many requests from your network. Please wait a minute and try again — you have not been charged.');
-        } else {
-          setFlSigError(`${e.message || 'We could not finalize your signed petition.'} You have not been charged — please try again, or email customerservice@taxappealusa.com.`);
-        }
-        setCheckingOut(false);
-        return;
-      }
-    }
+    // The petition is NOT regenerated with a signature here any more - there is no
+    // signature yet. propData.letterKey holds the unsigned preview, which is what
+    // /success shows the owner to read and sign. processOrder's
+    // refreshPetitionBeforeFiling rebuilds it with their signature at mail time.
+    const signedLetterKey = propData?.letterKey || '';
 
     // Actual amount the customer is about to be charged: $89 base plus the
     // Florida county VAB filing fee. This was hardcoded to 89, so Google Ads'
@@ -838,9 +724,11 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           // FL: the SIGNED petition (re-rendered after the owner read and signed it).
           // Other states: the generated protest letter.
           letterKey: signedLetterKey || pd.letterKey || null,
-          flSignatureName: flSig ? flSig.name : '',
-          flSignatureTimestamp: flSig ? flSig.timestamp : '',
-          flAuthDate: flSig ? flSig.date : '',
+          // Florida signs after payment on /success; finalize-order writes the
+          // Part 3 name and elections to the order row from there.
+          flSignatureName: '',
+          flSignatureTimestamp: '',
+          flAuthDate: '',
           refCode: (() => {
             if (typeof window === 'undefined') return '';
             try {
@@ -961,80 +849,18 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             </div>
           </div>
         )}
-        {/* ── Florida: sign Part 3 of the petition shown above ──────────────
-            This sits AFTER the petition, deliberately. The owner is attesting
-            "I have read this petition", so they have to have been shown it first. */}
-        {isFLFlow && (
-          <div style={{ background: "#F7FAFF", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: C.navy, fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
-              Sign your petition — Form DR-486, Part 3
-            </div>
-            <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong style={{ color: C.darkNavy }}>Under penalties of perjury</strong>, I declare that I am the owner of the
-              property described above, that I have read this petition, and that the facts stated in it are true.
-            </div>
+        {/* The Florida Part 3 signature used to live here, under a preview whose
+            second half is deliberately blurred - so the owner attested, under
+            penalties of perjury, that they had "read this petition and the facts
+            stated in it are true" about a document this page was hiding from them,
+            including comparable sales they could not check.
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: C.bodyGray, fontWeight: 500, marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>
-                Type your full legal name to sign
-              </label>
-              <input
-                type="text"
-                value={flSigName}
-                onChange={e => { setFlSigName(e.target.value); setFlSigError(""); }}
-                placeholder={`${account?.firstName || "First"} ${account?.lastName || "Last"}`}
-                style={{ width: "100%", background: C.white, border: `1.5px solid ${(flSigError || (!flSigCheck.ok && flSigCheck.reason)) ? "#C0392B" : flSigCheck.ok && flSigName.trim() ? "#2E7D52" : C.border}`, borderRadius: 7, padding: "12px 14px", fontSize: 16, fontFamily: "Georgia, serif", fontStyle: "italic", color: C.darkNavy }}
-              />
-              {/* Show the reason live, as they type. Previously the only error text
-                  was set inside doCheckout, which the disabled pay button made
-                  unreachable - so a mismatched signature produced a locked button
-                  and no explanation anywhere on the page. */}
-              {(flSigError || (!flSigCheck.ok && flSigCheck.reason)) && (
-                <div style={{ fontSize: 12, color: "#C0392B", marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
-                  {flSigError || flSigCheck.reason}
-                </div>
-              )}
-              {flSigCheck.ok && flSigName.trim() && (
-                <div style={{ fontSize: 12, color: "#2E7D52", marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
-                  &#10003; Signed
-                </div>
-              )}
-              <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 5, fontFamily: "'DM Sans', sans-serif" }}>
-                Electronically signed under Florida&rsquo;s Electronic Signature Act (&sect; 668.50, F.S.).
-              </div>
-            </div>
-
-            {/* The hearing election is the OWNER's to make. It used to be defaulted
-                to "I will not attend" under their signature without being shown. */}
-            <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>
-              <strong style={{ color: C.darkNavy }}>Your VAB hearing</strong>
-            </div>
-            <div onClick={() => setFlWillAttend(false)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${!flWillAttend ? C.navy : C.border}`, background: !flWillAttend ? "#EEF4FF" : C.white, cursor: "pointer", marginBottom: 8 }}>
-              <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${!flWillAttend ? C.navy : "#C5D0E0"}`, background: !flWillAttend ? C.navy : C.white }} />
-              <span style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.55 }}>
-                <strong style={{ color: C.darkNavy }}>I will not attend</strong> — decide on my evidence without me. Most homeowners choose this.
-              </span>
-            </div>
-            <div onClick={() => setFlWillAttend(true)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flWillAttend ? C.navy : C.border}`, background: flWillAttend ? "#EEF4FF" : C.white, cursor: "pointer", marginBottom: 12 }}>
-              <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${flWillAttend ? C.navy : "#C5D0E0"}`, background: flWillAttend ? C.navy : C.white }} />
-              <span style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.55 }}>
-                <strong style={{ color: C.darkNavy }}>I intend to attend</strong> — the county will notify you of the date. You go on your own; we do not appear for you.
-              </span>
-            </div>
-
-            <div onClick={() => setFlShareInfo(!flShareInfo)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flShareInfo ? C.navy : C.border}`, background: flShareInfo ? "#EEF4FF" : C.white, cursor: "pointer" }}>
-              <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${flShareInfo ? C.navy : "#C5D0E0"}`, background: flShareInfo ? C.navy : C.white, color: C.white, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{flShareInfo ? "\u2713" : ""}</div>
-              <span style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.55 }}>
-                Let TaxAppeal USA receive status updates about this petition from the county (optional).
-              </span>
-            </div>
-          </div>
-        )}
-
-        {!allAgreed && <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: "center", marginBottom: 10 }}>All three boxes must be checked to proceed</div>}
-        <button style={(allAgreed && flSigned) ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={(allAgreed && flSigned) ? doCheckout : undefined} disabled={!allAgreed || !flSigned || checkingOut}>
-          <span>{(!allAgreed || !flSigned) ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
-          <span>{!allAgreed ? "Agree to all terms to continue" : !flSigned ? "Sign your petition above to continue" : checkingOut ? "Redirecting to payment..." : `File my dispute · ${totalChargeLabel} — Your letter will be emailed to you`}</span>
+            It now happens on /success, after payment, on the complete unblurred
+            petition - the same post-payment flow TX/GA/AR/AL already used. Nothing
+            mails until it is signed. See lib/fulfillOrder.js. */}
+        <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
+          <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
+          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : `Continue to payment · ${totalChargeLabel} — you sign your petition next`}</span>
         </button>
         <div style={{ marginTop: 20, textAlign: "center" }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
