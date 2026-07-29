@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
+import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -30,6 +31,10 @@ const ISSUE_CATEGORIES = [
   { category: "Exterior & Site", color: C.teal, icon: "🌿", issues: ["Poor drainage causing yard or foundation flooding","Floodplain location or high flood insurance costs","Erosion, steep unusable land, or poor lot configuration","Proximity to busy road, industrial site, or airport","Proximity to landfill or other nuisance","Unpermitted outbuildings, fences, or encroachments"] },
   { category: "Appearance & Maintenance", color: C.purple, icon: "🔧", issues: ["Deferred maintenance (peeling paint, rotten trim)","Severely dated kitchen requiring full update","Severely dated bathrooms requiring full update","Significant curb appeal issues reducing buyer interest","Overgrown or neglected landscaping"] },
 ];
+
+// Issue text -> category, so the valuation module can weight defects by severity
+// without duplicating the category list.
+const ISSUE_CATEGORY_INDEX = buildCategoryIndex(ISSUE_CATEGORIES);
 
 const base = { fontFamily: "'DM Sans', sans-serif", color: C.darkNavy, background: C.bg, minHeight: "100vh" };
 const cardStyle = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "32px" };
@@ -1043,26 +1048,48 @@ function StepDispute({ formData, onRestart }) {
       const appraisalDistrict = bdJson?.appraisalDistrict || null;
       const issueCount = issues ? issues.length : 0;
       const overAssessedPct = assessedValue && marketValue && marketValue > 0 ? ((assessedValue - marketValue) / marketValue) * 100 : 0;
-      let reductionPct;
-      if (issueCount >= 5 || overAssessedPct >= 15) reductionPct = 0.22 + (Math.random() * 0.02);
-      else if (issueCount >= 3 || overAssessedPct >= 8) reductionPct = 0.20 + (Math.random() * 0.02);
-      else if (issueCount >= 1) reductionPct = 0.19 + (Math.random() * 0.015);
-      else reductionPct = 0.18 + (Math.random() * 0.015);
-      const reductionPctDisplay = Math.round(reductionPct * 100);
-      const targetReduction = assessedValue ? Math.round(Number(assessedValue) * (1 - reductionPct)) : null;
+
+      // The requested reduction is DERIVED, in one state-agnostic place, and comes
+      // back with the statutory grounds supporting it. It used to be
+      // 0.18-0.22 + Math.random(), which meant the number the owner signs for was
+      // drawn at random, the letter's claim that it reflected property-specific
+      // factors was untrue, and reloading changed the ask. See lib/valuation.js.
+      //
+      // The 18-22% band is unchanged and is applied as a hard clamp, so this never
+      // reduces the ask and never makes it conditional on finding comparable sales.
+      const valuation = deriveValuation({
+        stateCode,
+        assessedValue,
+        marketValue,
+        issues,
+        categoryOf: ISSUE_CATEGORY_INDEX,
+        corrections: {
+          sqft: property.manualSqft || null,
+          countySqft: sqft || null,
+          beds: property.manualBeds || null,
+          countyBeds: beds || null,
+          baths: property.manualBaths || null,
+          countyBaths: baths || null,
+          yearBuilt: property.manualYearBuilt || null,
+          countyYearBuilt: yearBuilt || null,
+        },
+      });
+      const reductionPct = valuation.reductionPct;
+      const reductionPctDisplay = valuation.reductionPctDisplay;
+      const targetReduction = valuation.requestedValue;
       const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
       const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
       const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
       const savings = savingsFromMarket || savingsFromReduction;
       const stateInfo = SUPPORTED_STATES[stateCode] || {};
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay };
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
       const issuesBlock = issues && issues.length > 0 ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}` : "No specific property issues reported beyond general market value discrepancy.";
       const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
       const arNote = stateCode === 'AR' ? '\n\nARKANSAS-SPECIFIC RULES:\n- Arkansas assesses property at 20% of market value. The appeal targets MARKET VALUE, not the 20% assessed figure.\n- Address to: Secretary, ' + county + ' County Board of Equalization\n- Cite Arkansas Code ss.26-27-317 (appeal rights) and ss.26-26-1901 (market value standard)\n- The Board meets in August - emphasize timely filing and postmark date\n- Do NOT mention ARB or appraisal districts - use "Board of Equalization" and "county assessor"' : '';
-      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis: ${issueCount} property issue${issueCount !== 1 ? "s" : ""} documented${overAssessedPct > 0 ? ", property over-assessed by approx " + Math.round(overAssessedPct) + "% vs market" : ""}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}\n11. Professional closing with owner name, address, and email address. Below the owner signature block, on its own line, include exactly this sentence: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@taxappealusa.com (Document Preparation Service)."\n\nOutput ONLY the complete formal letter.`;
+      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis (cite these, do not invent others):\n${valuation.basisSummary}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}, and state the grounds above as the reason. Do NOT claim the figure derives from comparable sales unless comparable sales are actually listed in section 7.\n11. Professional closing with owner name, address, and email address. Below the owner signature block, on its own line, include exactly this sentence: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@taxappealusa.com (Document Preparation Service)."\n\nOutput ONLY the complete formal letter.`;
       // Florida: use generate-dr486 (official DR-486; the OWNER signs Part 3 and
     // Parts 4/5 are left N/A — TaxAppeal is never the representative)
       // All other states: use generate-letter (free-form protest letter)
@@ -1084,6 +1111,8 @@ function StepDispute({ formData, onRestart }) {
             county,
             assessedValue,
             requestedValue: targetReduction,
+            valuationBasis: valuation.basisSummary,
+            valuationGrounds: valuation.grounds,
             taxYear,
             issues,
             propertyDetails: propDetails,
@@ -1124,6 +1153,8 @@ function StepDispute({ formData, onRestart }) {
             county,
             assessedValue,
             requestedValue: targetReduction,
+            valuationBasis: valuation.basisSummary,
+            valuationGrounds: valuation.grounds,
             taxYear,
             issues,
             propertyDetails: propDetails,
