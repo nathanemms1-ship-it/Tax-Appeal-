@@ -603,6 +603,65 @@ function LoadingScreen({ addr }) {
   );
 }
 
+/**
+ * Render the evidence text.
+ *
+ * The model returns Markdown - "# EVIDENCE AND ARGUMENT", "## 1. BASIS OF
+ * PETITION", "**Present Cash Value (s 193.011(1))**" - and the preview printed it
+ * raw inside a <pre>-style block, so the customer saw literal #, ## and ** on the
+ * document they are about to swear to. It read like a broken export.
+ *
+ * Deliberately a tiny renderer rather than a Markdown dependency: this handles the
+ * three constructs the evidence prompt actually produces, and anything it does not
+ * recognise falls through as plain text rather than disappearing. Nothing here is
+ * dangerouslySetInnerHTML - the model's output is never injected as markup.
+ */
+function renderEvidence(text) {
+  if (!text) return null;
+
+  const inline = (line, keyBase) => {
+    // **bold** -> <strong>, leaving everything else untouched.
+    const parts = String(line).split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+    return parts.map((part, i) =>
+      /^\*\*[^*]+\*\*$/.test(part)
+        ? <strong key={`${keyBase}-${i}`} style={{ color: "#0F1F3D" }}>{part.slice(2, -2)}</strong>
+        : <span key={`${keyBase}-${i}`}>{part}</span>
+    );
+  };
+
+  return String(text).split(/\n/).map((raw, i) => {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) return <div key={i} style={{ height: 10 }} />;
+
+    const h2 = line.match(/^##\s+(.*)$/);
+    if (h2) {
+      return (
+        <div key={i} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: "#1B3A6B", marginTop: 16, marginBottom: 6 }}>
+          {h2[1]}
+        </div>
+      );
+    }
+    const h1 = line.match(/^#\s+(.*)$/);
+    if (h1) {
+      return (
+        <div key={i} style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: "#0F1F3D", marginTop: i === 0 ? 0 : 20, marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #E8EDF4" }}>
+          {h1[1]}
+        </div>
+      );
+    }
+    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
+    if (bullet) {
+      return (
+        <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+          <span style={{ color: "#8596AF" }}>•</span>
+          <span>{inline(bullet[1], i)}</span>
+        </div>
+      );
+    }
+    return <p key={i} style={{ marginBottom: 8 }}>{inline(line, i)}</p>;
+  });
+}
+
 function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
   // What the customer will ACTUALLY be charged: $89 plus the Florida county VAB
   // filing fee. Every one of these labels used to read a hardcoded "$89" while a
@@ -802,12 +861,39 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 Clerk of the Value Adjustment Board, so labelling this box with the
                 Property Appraiser told the customer it was going somewhere it is not. */}
             {!isFLFlow && pd.appraisalDistrict && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>{pd.appraisalDistrict.districtName}</div>}
-            {isFLFlow && pd.county && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{pd.county} County VAB</div>}
+            {isFLFlow && pd.county && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{String(pd.county).replace(/\s+County$/i, "")} County VAB</div>}
           </div>
-          <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, whiteSpace: "pre-wrap", overflowX: "hidden" }}>{visibleLines}</div>
+          {/* Petition details.
+              The preview rendered the evidence argument only. A Florida customer
+              signs Part 3 under penalties of perjury attesting the facts are true,
+              so they have to be able to check the facts that identify the property:
+              their name, the address, the parcel number and the values. Those live
+              in Parts 1-2 of the DR-486 and were nowhere on this screen. */}
+          <div style={{ padding: "14px 16px", background: C.bg, borderBottom: `1px solid ${C.border}`, fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, color: C.mutedGray, fontWeight: 600, marginBottom: 10 }}>
+              {isFLFlow ? "Petition details — please check these are correct" : "Filing details — please check these are correct"}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 18px", fontSize: 12.5 }}>
+              {[
+                ["Property owner", `${account?.firstName || ""} ${account?.lastName || ""}`.trim() || "—"],
+                ["Property address", pd.rawAddress || `${property?.street || ""}, ${property?.city || ""} ${property?.zip || ""}`],
+                ["Parcel / folio number", pd.parcelId || pd.apn || "Not listed in county records"],
+                [isFLFlow ? "Value Adjustment Board" : "Filed with", isFLFlow ? `${String(pd.county || "").replace(/\s+County$/i, "")} County VAB` : (pd.appraisalDistrict?.districtName || pd.county || "—")],
+                ["Tax year", pd.taxYear || new Date().getFullYear()],
+                ["Current assessed value", pd.assessedValue ? `$${Number(pd.assessedValue).toLocaleString()}` : "—"],
+                ["Value we are requesting", pd.targetReduction ? `$${Number(pd.targetReduction).toLocaleString()}` : "—"],
+              ].map(([label, val]) => (
+                <div key={label}>
+                  <div style={{ color: C.mutedGray, fontSize: 11 }}>{label}</div>
+                  <div style={{ color: C.darkNavy, fontWeight: 500, wordBreak: "break-word" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, overflowX: "hidden" }}>{renderEvidence(visibleLines)}</div>
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "pre-wrap" }}>{blurredLines || "The rest of your letter is being prepared — you will see all of it after checkout."}</div>
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
           </div>
           <div style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: "10px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
             🔒 The rest is hidden until checkout. Right after you pay you will see the
