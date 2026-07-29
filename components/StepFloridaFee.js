@@ -43,7 +43,7 @@ border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", red: "#C0392B",
 *
 * Pass flSignature into formData for DisputeLetter/doCheckout.
 */
-export default function StepFloridaFee({ feeData, property, account, onAuthorize, onBack }) {
+export default function StepFloridaFee({ feeData, property, account, onAuthorize, onBack, onChangeCounty }) {
 const [agreedAuth, setAgreedAuth] = useState(false);
 const [agreedFee, setAgreedFee] = useState(false);
 
@@ -70,6 +70,7 @@ onAuthorize({
 county: feeData?.county,
 vabFee,
 payableTo,
+needsManualFiling: !!feeData?.needsManualFiling,
 acknowledgedAt: new Date().toISOString(),
 });
 };
@@ -112,6 +113,34 @@ ORDER SUMMARY — {countyDisplay.toUpperCase()}
 <span style={{ color: '#8596AF' }}>TaxAppeal service fee</span>
 <span style={{ color: C.white, fontWeight: 500 }}>$89</span>
 </div>
+{/* County confirmation, inline.
+    County sets the fee, the cheque payee and which government office receives
+    the petition, so it is the one field worth confirming explicitly - but the fee
+    and payee shown here are DERIVED from it, so this screen is already where a
+    customer would notice a wrong county. A link beats a modal: no extra click for
+    the majority where the lookup is right, one click to fix it when it is not.
+    Correcting it opens a dropdown of all 67 counties, never a text box. */}
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ color: '#8596AF' }}>
+📍 We have this property in <strong style={{ color: C.white }}>{feeData?.county} County</strong>.
+</span>
+{onChangeCounty && (
+<button onClick={onChangeCounty} style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>
+Not right? Change it
+</button>
+)}
+</div>
+
+{feeData?.needsManualFiling && (
+<div style={{ background: 'rgba(255,201,64,0.12)', border: '1px solid rgba(255,201,64,0.35)', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 12.5, color: '#FFD97A', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
+<strong>{feeData?.county} County is filed by hand.</strong> We have not yet confirmed this
+county&rsquo;s Value Adjustment Board mailing address directly with the county, so your petition
+is prepared and reviewed by a person before it is mailed rather than going out automatically.
+We will email you once it is confirmed filed. If we cannot file it before your deadline we
+refund you in full, including the county fee.
+</div>
+)}
+
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
 <div>
 <div style={{ color: '#8596AF' }}>{countyDisplay} VAB filing fee</div>
