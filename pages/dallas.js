@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 const faqs = [["How do I protest my Dallas property taxes?","File a formal protest with the Dallas Central Appraisal District (DCAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your letter with comparable sales evidence and files via USPS certified mail."],["What is DCAD?","DCAD (Dallas Central Appraisal District) appraises all properties in Dallas County. Your DCAD assessed value determines your property tax bill. If overestimated, you have the legal right to protest under Texas Tax Code §41.41."],["How much can Dallas homeowners save?","Dallas homeowners who successfully protest save an average of $1,950 per year. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What evidence does TaxAppeal use for Dallas protests?","We analyze comparable sales in your Dallas neighborhood, current market conditions, property-specific issues, and any DCAD record discrepancies. Every letter cites Texas Tax Code §41.41 and §41.43."],["What is the Dallas property tax protest deadline?","May 15 or 30 days after DCAD mails your Notice of Appraised Value, whichever is later."]];
 
 export default function Dallas() {

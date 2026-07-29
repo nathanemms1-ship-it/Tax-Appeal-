@@ -7,7 +7,7 @@ const C = {
   border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
 };
 
-const FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');";
+const FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 
 const faqs = [
   ["What is the deadline to appeal property taxes in Arkansas?", "The deadline is the third Monday in August each year — August 17, 2026. Appeals must be filed with your county Board of Equalization by this date. Postmark by the deadline counts in Arkansas."],

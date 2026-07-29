@@ -9,7 +9,7 @@ const C = {
   border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
 };
 
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const faqs = [
   ["What is the deadline to appeal property taxes in Georgia?", "You have 45 days from the date on your annual Notice of Assessment to file an appeal. Assessment notices are typically mailed between April and June. Missing this deadline means waiting until next year."],
