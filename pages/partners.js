@@ -50,7 +50,7 @@ export default function PartnersPage() {
         <link rel="canonical" href="https://www.taxappealusa.com/partners" />
       </Head>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
         .container{max-width:860px;margin:0 auto;padding:0 24px;}

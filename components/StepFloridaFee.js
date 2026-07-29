@@ -45,6 +45,10 @@ border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", red: "#C0392B",
 */
 export default function StepFloridaFee({ feeData, property, account, onAuthorize, onBack, onChangeCounty }) {
 const [agreedAuth, setAgreedAuth] = useState(false);
+// County is the single field that sets the fee, the payee and the destination
+// office. It is confirmed explicitly, and the confirmation is recorded with the
+// order so there is a record of who chose it.
+const [countyConfirmed, setCountyConfirmed] = useState(false);
 const [agreedFee, setAgreedFee] = useState(false);
 
 const vabFee = feeData?.vabFee || 5000;
@@ -54,7 +58,7 @@ const vabFeeDisplay = `$${(vabFee / 100).toFixed(0)}`;
 const totalDisplay = `$${((8900 + vabFee) / 100).toFixed(0)}`;
 const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-const canProceed = agreedAuth && agreedFee;
+const canProceed = agreedAuth && agreedFee && countyConfirmed;
 
 const handleAuthorize = () => {
 if (!canProceed) return;
@@ -71,6 +75,11 @@ county: feeData?.county,
 vabFee,
 payableTo,
 needsManualFiling: !!feeData?.needsManualFiling,
+// Recorded so there is evidence the customer affirmatively confirmed the
+// county, rather than us having inferred it. A tick nobody stores proves
+// nothing later.
+countyConfirmedAt: new Date().toISOString(),
+countySource: feeData?.countySource || 'address',
 acknowledgedAt: new Date().toISOString(),
 });
 };
@@ -98,10 +107,10 @@ return (
 </div>
 
 <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>
-Two things Florida requires
+Your Florida filing details
 </h2>
 <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>
-Florida law requires a mandatory county filing fee and your signature on the petition before we can file it for you.
+Two things to confirm before checkout: the county this property is in, and the filing fee your county charges. You'll read and sign the petition itself right after payment.
 </p>
 
 {/* Order summary */}
@@ -120,15 +129,33 @@ ORDER SUMMARY — {countyDisplay.toUpperCase()}
     customer would notice a wrong county. A link beats a modal: no extra click for
     the majority where the lookup is right, one click to fix it when it is not.
     Correcting it opens a dropdown of all 67 counties, never a text box. */}
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ color: '#8596AF' }}>
-📍 We have this property in <strong style={{ color: C.white }}>{feeData?.county} County</strong>.
-</span>
+<div
+onClick={() => setCountyConfirmed(!countyConfirmed)}
+style={{ marginBottom: 14, padding: '14px 16px', background: countyConfirmed ? 'rgba(46,125,82,0.16)' : 'rgba(255,201,64,0.12)', border: `1.5px solid ${countyConfirmed ? 'rgba(120,200,150,0.5)' : 'rgba(255,201,64,0.45)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}
+>
+<div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+<div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${countyConfirmed ? '#7ED6A5' : '#FFC940'}`, background: countyConfirmed ? '#2E7D52' : 'transparent', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+{countyConfirmed ? '\u2713' : ''}
+</div>
+<div style={{ flex: 1, fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.55 }}>
+<div style={{ color: C.white, fontWeight: 600, marginBottom: 3 }}>
+Confirm this property is in {feeData?.county} County
+</div>
+<div style={{ color: '#8596AF', fontSize: 12 }}>
+Your county decides the filing fee, who the fee cheque is made out to, and which
+Value Adjustment Board receives your petition. It is on your TRIM notice and your
+tax bill.{onChangeCounty ? ' ' : ''}
 {onChangeCounty && (
-<button onClick={onChangeCounty} style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>
-Not right? Change it
+<button
+onClick={(e) => { e.stopPropagation(); onChangeCounty(); }}
+style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: 12, textDecoration: 'underline', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}
+>
+Not {feeData?.county}? Change it
 </button>
 )}
+</div>
+</div>
+</div>
 </div>
 
 {feeData?.needsManualFiling && (
@@ -157,12 +184,13 @@ refund you in full, including the county fee.
 {/* DR-486 Authorization block */}
 <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
 <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>
-✍️ Sign Your Petition — Form DR-486, Part 3
+📄 What happens after you pay
 </div>
 <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>
-Florida Statute § 194.011(3) requires a VAB petition to be signed by the property owner.
-By signing below you are signing your own petition to the {countyDisplay} Value Adjustment
-Board for the property at{' '}
+Florida Statute § 194.011(3) requires a VAB petition to be signed by the property owner —
+so you sign it yourself, not us. Straight after checkout we show you the complete petition
+with nothing hidden, you read it and sign it, and only then do we pay the county fee and mail
+it. The petition covers the property at{' '}
 <strong style={{ color: C.darkNavy }}>{property?.street}, {property?.city}, FL {property?.zip}</strong>.
 </p>
 
@@ -193,7 +221,7 @@ hearing is scheduled, attending is my decision and my responsibility.
 
 {/* Checkboxes */}
 {checkbox(agreedAuth, () => setAgreedAuth(!agreedAuth), (
-<><strong style={{ color: C.darkNavy }}>I understand I will review and sign my own petition on the next screen</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
+<><strong style={{ color: C.darkNavy }}>I understand I will read and sign my own petition after checkout</strong>, as Florida Statute § 194.011(3) requires. TaxAppeal USA does not sign it for me and is not my representative before the Board.</>
 ))}
 {checkbox(agreedFee, () => setAgreedFee(!agreedFee), (
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
@@ -201,7 +229,7 @@ hearing is scheduled, attending is my decision and my responsibility.
 
 {!canProceed && (
 <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: 'center', marginBottom: 10 }}>
-{'Check both boxes to continue'}
+{!countyConfirmed ? 'Confirm your county to continue' : 'Check both boxes to continue'}
 </div>
 )}
 
@@ -217,12 +245,12 @@ onClick={handleAuthorize}
 disabled={!canProceed}
 style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'none', borderRadius: 8, padding: '14px 24px', fontSize: 14, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", cursor: canProceed ? 'pointer' : 'not-allowed', flex: 1, transition: 'background 0.2s' }}
 >
-{canProceed ? 'Continue to My Dispute Letter →' : '🔒 Sign and check both boxes to continue'}
+{canProceed ? 'Continue to My Dispute Letter →' : !countyConfirmed ? '🔒 Confirm your county to continue' : '🔒 Check both boxes to continue'}
 </button>
 </div>
 
 <div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-🔒 Your signature is applied to Part 3 of your DR-486 petition, which is what Florida Statute § 194.011(3) requires. No separate authorization form is needed or filed.
+🔒 You sign Part 3 of your own DR-486 after checkout, which is what Florida Statute § 194.011(3) requires. No power of attorney or separate authorization form is needed or filed.
 </div>
 </div>
 </div>

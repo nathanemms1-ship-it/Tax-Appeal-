@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Atlanta homeowners who successfully appeal save an average of $1,840 per year. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
 
 export default function Atlanta() {

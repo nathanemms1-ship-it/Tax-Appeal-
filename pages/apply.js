@@ -3,7 +3,7 @@ import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -729,6 +729,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           flSignatureName: '',
           flSignatureTimestamp: '',
           flAuthDate: '',
+          // Evidence the customer affirmatively confirmed their county, rather than
+          // us having inferred it. County sets the fee, the payee and which office
+          // receives the petition, so if it is ever disputed this is the record of
+          // who chose it. Stripe metadata is durable and auditable, which is why it
+          // rides here rather than only in our own table.
+          countyConfirmedAt: flSignature?.countyConfirmedAt || '',
+          countySource: flSignature?.countySource || '',
           refCode: (() => {
             if (typeof window === 'undefined') return '';
             try {
@@ -783,13 +790,28 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
         <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
           <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Dispute Letter Preview</div>
-            {pd.appraisalDistrict && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>{pd.appraisalDistrict.districtName}</div>}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Dispute Letter Preview</div>
+              <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>
+                {isFLFlow
+                  ? "You'll see your complete petition after checkout, and sign it there."
+                  : "You'll see your complete letter after checkout, and sign it there."}
+              </div>
+            </div>
+            {/* Florida has no appraisal districts. A VAB petition goes to the county's
+                Clerk of the Value Adjustment Board, so labelling this box with the
+                Property Appraiser told the customer it was going somewhere it is not. */}
+            {!isFLFlow && pd.appraisalDistrict && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>{pd.appraisalDistrict.districtName}</div>}
+            {isFLFlow && pd.county && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{pd.county} County VAB</div>}
           </div>
           <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, whiteSpace: "pre-wrap", overflowX: "hidden" }}>{visibleLines}</div>
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "pre-wrap" }}>{blurredLines || "Your complete dispute letter will be emailed to you after payment..."}</div>
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "pre-wrap" }}>{blurredLines || "The rest of your letter is being prepared — you will see all of it after checkout."}</div>
+          </div>
+          <div style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: "10px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            🔒 The rest is hidden until checkout. Right after you pay you will see the
+            <strong> complete document with nothing blurred</strong>, read it, and sign it yourself.
           </div>
         </div>
         <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
@@ -1184,7 +1206,20 @@ export default function App() {
 
       const feeInfo = getFlVabFee(j.county);
 
-      applyResolvedCounty(j.county);
+      // A zip-centroid match resolved the ZIP, not the property. Most Florida ZIPs
+      // sit inside one county but some straddle a line, and county drives the fee,
+      // the cheque payee and which office receives the petition - so this one gets
+      // confirmed explicitly rather than accepted silently.
+      if (j.confidence === 'zip') {
+        setFlCountyError({
+          kind: 'pick',
+          county: j.county,
+          message: `We matched your ZIP code to ${j.county} County, but not your exact street address — please confirm this is right, or pick the correct county.`,
+        });
+        return;
+      }
+
+      applyResolvedCounty(j.county, j.source || 'address');
     } catch (e) {
       setFlCountyError({ kind: 'error', message: 'We had trouble looking up your county. Please try again in a moment.' });
     } finally {
@@ -1203,11 +1238,11 @@ export default function App() {
    * "filed", and nothing would ever go out. `needsManualFiling` rides with the
    * order so it lands in the ops queue instead of the automated one.
    */
-  const applyResolvedCounty = (county) => {
+  const applyResolvedCounty = (county, source = 'address') => {
     const feeInfo = getFlVabFee(county);
     const verified = isFlCountySupported(county);
     setProperty(p => ({ ...p, county }));
-    setFlFeeData({ ...feeInfo, county, needsManualFiling: !verified });
+    setFlFeeData({ ...feeInfo, county, needsManualFiling: !verified, countySource: source });
     setFlCountyError(null);
     setStep('florida-fee');
     window.scrollTo(0, 0);
@@ -1290,7 +1325,7 @@ export default function App() {
       {flCountyError ? (
         <FloridaCountyPicker
           info={flCountyError}
-          onConfirm={applyResolvedCounty}
+          onConfirm={(c) => applyResolvedCounty(c, 'customer-picked')}
           onBack={() => setFlCountyError(null)}
         />
       ) : closedWindow ? (

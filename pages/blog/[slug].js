@@ -11,7 +11,7 @@ const C = {
   border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
 };
 
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 export async function getStaticPaths() {
   return {

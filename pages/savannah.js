@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52"};
-const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');";
+const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 const faqs=[["What is the Savannah property tax appeal deadline?","45 days from the date on your Notice of Assessment, mailed April–June each year by Chatham County."],["How do I appeal Savannah property taxes?","File a formal appeal with the Chatham County Board of Tax Assessors before the 45-day deadline. TaxAppeal prepares your comparable sales evidence and files via certified mail."],["Is there a filing fee for Savannah property tax appeals?","No. Georgia BOE appeals are free."],["Can my Savannah assessment go up if I appeal?","Yes. Georgia is a two-way review state — the Board can increase, decrease, or maintain your value. TaxAppeal only files when evidence clearly supports a reduction."],["How much can Savannah homeowners save?","A successful appeal reduces your assessed value and builds a lower baseline for future years. At Georgia's 40% ratio and typical millage, a $50,000 FMV reduction saves $400–600/year."]];
 
 export default function Savannah(){

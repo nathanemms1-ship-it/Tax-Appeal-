@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 
 const C = { navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC", lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF", border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52" };
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 export default function WhyCertifiedMail() {
   const router = useRouter();

@@ -8,7 +8,7 @@ const C = {
   border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
 };
 
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`;
+const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const faqs = [
   ["What is the deadline to protest property taxes in Texas?", "The deadline is May 15 or 30 days after you receive your Notice of Appraised Value, whichever is later. If you miss this window, you cannot protest until the following year."],

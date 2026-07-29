@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
-const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap";
+const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap";
 const faqs = [
   ["What is the deadline to appeal Fort Smith property taxes?","The Sebastian County Board of Equalization deadline is the third Monday in August — August 17, 2026. Postmark by this date. TaxAppeal files via USPS certified mail."],
   ["How does Arkansas assess property taxes?","Arkansas assesses at 20% of fair market value. A home worth $168,000 has an assessed value of $33,600. You are appealing the market value — a 10% reduction means 10% less assessed value and tax."],

@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52"};
-const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');";
+const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 const faqs=[["What is the Augusta GA property tax appeal deadline?","45 days from the date on your Notice of Assessment, mailed April–June by Richmond County."],["How do I appeal Augusta property taxes?","File a formal appeal with the Richmond County Board of Tax Assessors before the 45-day deadline. TaxAppeal prepares comparable sales evidence and files via certified mail for $89."],["Is there a filing fee for Augusta property tax appeals?","No. Georgia BOE appeals are free."],["Can my Augusta assessment go up if I appeal?","Yes. Georgia is a two-way review state. TaxAppeal only files when comparable evidence clearly supports a reduction."],["Does TaxAppeal serve Augusta and surrounding areas?","Yes. TaxAppeal serves all Richmond County properties including Augusta, Hephzibah, and Blythe."]];
 export default function Augusta(){
   const router=useRouter();

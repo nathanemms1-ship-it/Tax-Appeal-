@@ -63,6 +63,50 @@ async function fetchJson(url, ms) {
 }
 
 /**
+ * Last-resort fallback: resolve the county from the ZIP CENTROID.
+ *
+ * Census's address matcher is strict and genuinely cannot match some real
+ * addresses - "15200 SW 136th St, Miami 33196" and "9500 Bay Pines Blvd,
+ * St Petersburg 33708" both fail all three attempts above. That was a third of a
+ * 12-address production sample, which is far too many customers to push onto a
+ * manual picker.
+ *
+ * Two free, keyless government-adjacent APIs chained:
+ *   api.zippopotam.us/us/{zip}         ZIP  -> latitude/longitude
+ *   geo.fcc.gov/api/census/block/find  lat/lon -> county (FCC, from Census blocks)
+ *
+ * IMPORTANT - this is deliberately marked lower confidence. It resolves the
+ * CENTROID of the ZIP, not the property. Most Florida ZIPs sit inside one county,
+ * but some straddle a line, and county drives the filing fee, the cheque payee and
+ * which government office receives the petition. So the caller must have the
+ * customer CONFIRM a zip-centroid result rather than accept it silently. Never
+ * promote this to `confidence: 'address'`.
+ */
+async function countyFromZipCentroid(zip, expectState) {
+  if (!zip) return null;
+  const clean = String(zip).trim().slice(0, 5);
+  if (!/^\d{5}$/.test(clean)) return null;
+
+  const z = await fetchJson(`https://api.zippopotam.us/us/${clean}`, 5000);
+  const place = z && z.places && z.places[0];
+  if (!place) return null;
+
+  const lat = place.latitude, lon = place.longitude;
+  if (!lat || !lon) return null;
+
+  const f = await fetchJson(
+    `https://geo.fcc.gov/api/census/block/find?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&format=json`,
+    5000
+  );
+  const name = f && f.County && f.County.name;
+  const st = f && f.State && f.State.code;
+  if (!name) return null;
+  // Guard against a ZIP that geocodes outside the state the customer gave us.
+  if (expectState && st && String(st).toUpperCase() !== String(expectState).toUpperCase()) return null;
+  return String(name).replace(/\s+County$/i, '').trim() || null;
+}
+
+/**
  * Resolve a county, tolerating a flaky upstream.
  *
  * The Census geocoder is free, authoritative and the same source the filing path
@@ -105,12 +149,25 @@ async function resolveCounty({ street, city, state, zip }) {
   for (const a of attempts) {
     try {
       const county = countyFromCensus(await fetchJson(a.url, a.ms));
-      if (county) return { found: true, county, source: a.via };
+      // Matched the actual street address - safe to use without asking.
+      if (county) return { found: true, county, source: a.via, confidence: 'address' };
       errors.push(`${a.via}: no match`);
     } catch (e) {
       errors.push(`${a.via}: ${e.message}`);
     }
   }
+
+  try {
+    const county = await countyFromZipCentroid(zip, state);
+    if (county) {
+      // ZIP centroid, NOT the property. The caller must have the customer confirm.
+      return { found: true, county, source: 'zip-centroid', confidence: 'zip' };
+    }
+    errors.push('zip-centroid: no match');
+  } catch (e) {
+    errors.push(`zip-centroid: ${e.message}`);
+  }
+
   return { found: false, county: null, tried: errors };
 }
 
@@ -142,7 +199,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (redis) await redis.set(cacheKey, { found: true, county: result.county, source: result.source }, { ex: 60 * 60 * 24 * 180 });
+    if (redis) await redis.set(cacheKey, { found: true, county: result.county, source: result.source, confidence: result.confidence }, { ex: 60 * 60 * 24 * 180 });
   } catch (e) { /* non-fatal */ }
 
   return res.status(200).json(result);
