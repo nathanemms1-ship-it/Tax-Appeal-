@@ -80,7 +80,7 @@ function buildDR486Html({
   ownerStreet, ownerCity, ownerState, ownerZip,
   propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear,
   evidenceText, vabName, ownerSignatureName, ownerSignatureDate, filingDate,
-  willNotAttend, authorizeConfidential,
+  willNotAttend, authorizeConfidential, preview,
 }) {
   const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : 'See county records';
   const today = filingDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -141,7 +141,7 @@ function buildDR486Html({
 
   <div class="part"><div class="part-header">PART 3 — TAXPAYER SIGNATURE</div><div class="part-body">
     <p style="font-size:9pt;margin-bottom:8px;">This petition is signed by the property owner pursuant to section 194.011(3), Florida Statutes.</p>
-    <div class="sig-block"><div class="sig-line">${esc(ownerSignatureName)}</div>
+    <div class="sig-block"><div class="sig-line">${preview ? '<span style="font-style:normal;font-size:10pt;color:#888;">— you will sign here after reviewing this petition —</span>' : esc(ownerSignatureName)}</div>
       <div class="sig-label">Signature of Taxpayer / Property Owner (electronically signed) &nbsp;&nbsp; Date: ${esc(ownerSignatureDate || today)}</div>
       <div class="attest"><strong>Under penalties of perjury</strong>, I declare that I am the owner of the property described in this petition, that I have read this petition, and that the facts stated in it are true.</div>
       ${authorizeConfidential ? `<div class="attest" style="margin-top:6px;">I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release information regarding this petition to ${esc(PREPARER.name)}, ${esc(PREPARER.email)}, which prepared and filed this petition at my direction.</div>` : ''}
@@ -186,15 +186,24 @@ export default async function handler(req, res) {
     zip,
     ownerSignatureName, ownerSignatureDate,
     willNotAttend, authorizeConfidential,
+    // preview: render the petition for the owner to READ before they sign it.
+    // evidenceText: on the signing pass, reuse the evidence already generated for
+    // the preview so signing costs no additional model call.
+    preview, evidenceText: providedEvidence,
   } = req.body;
 
   if (!propertyAddress || !county) {
     return res.status(400).json({ error: 'Missing required fields: propertyAddress and county' });
   }
 
-  // The owner's signature IS the authorization. Without it there is no valid
-  // petition — refuse rather than producing a document that cannot be filed.
-  if (!ownerSignatureName || !String(ownerSignatureName).trim()) {
+  // The owner's signature IS the authorization, so the FINAL petition cannot be
+  // built without it. A PREVIEW deliberately has no signature: the owner has to be
+  // able to read the petition before attesting that they have read it.
+  //
+  // The flow previously captured the signature two screens BEFORE the petition was
+  // generated, which meant the Part 3 attestation ("I have read this petition")
+  // carried a timestamp that predated the document's existence.
+  if (!preview && (!ownerSignatureName || !String(ownerSignatureName).trim())) {
     return res.status(400).json({ error: 'Owner signature is required before a Florida petition can be prepared.' });
   }
 
@@ -250,6 +259,11 @@ Write exactly 4 sections:
 
 Professional, factual, first person as the property owner. Output only the four sections.`;
 
+    let evidenceText;
+    if (providedEvidence && String(providedEvidence).trim()) {
+      // Signing pass — reuse the evidence the owner actually read.
+      evidenceText = String(providedEvidence);
+    } else {
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
@@ -258,7 +272,8 @@ Professional, factual, first person as the property owner. Output only the four 
 
     const claudeData = await claudeRes.json();
     if (claudeData.error) throw new Error(claudeData.error.message);
-    const evidenceText = claudeData.content?.[0]?.text || '';
+    evidenceText = claudeData.content?.[0]?.text || '';
+    }
 
     const filingDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const dr486Html = buildDR486Html({
@@ -267,7 +282,8 @@ Professional, factual, first person as the property owner. Output only the four 
       propertyAddress, county, parcelId: parcelId || 'See county records',
       assessedValue, requestedValue, taxYear,
       evidenceText, vabName: vab.vabName,
-      ownerSignatureName, ownerSignatureDate, filingDate,
+      ownerSignatureName: preview ? '' : ownerSignatureName,
+      ownerSignatureDate, filingDate, preview: !!preview,
       willNotAttend: willNotAttend !== false, // owner's disclosed election
       authorizeConfidential: !!authorizeConfidential,
     });
@@ -284,7 +300,7 @@ Professional, factual, first person as the property owner. Output only the four 
     }
 
     return res.status(200).json({
-      success: true, dr486Html, evidenceText, letterKey, isFL: true,
+      success: true, dr486Html, evidenceText, letterKey, isFL: true, preview: !!preview,
       vabName: vab.vabName,
     });
   } catch (err) {
