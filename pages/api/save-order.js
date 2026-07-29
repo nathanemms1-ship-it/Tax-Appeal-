@@ -1,3 +1,21 @@
+import crypto from 'crypto';
+
+/**
+ * INTERNAL ONLY. This endpoint has no in-app caller any more — fulfillment moved
+ * to lib/fulfillOrder.js behind the signature-verified Stripe webhook. It survived
+ * as a publicly reachable route that wrote order rows and moved money, with a
+ * read-then-insert duplicate check that a burst of concurrent requests could race.
+ * Fails CLOSED when the secret is unset.
+ */
+function authorized(req) {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return false;
+  const provided = req.headers['x-internal-secret'];
+  if (!provided || typeof provided !== 'string') return false;
+  const a = Buffer.from(provided), b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 // pages/api/save-order.js
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from './supabase';
@@ -8,6 +26,7 @@ const REFERRAL_PAYOUT_CENTS = 2000; // $20.00
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const {
     customerName, customerEmail, customerPassword, passwordHash,
@@ -117,85 +136,23 @@ export default async function handler(req, res) {
 
     console.log('Order saved:', data.id);
 
-    // ── Referral payout: fire $20 transfer to partner's Stripe account ──
-    if (verifiedRefCode) {
-      const refCodeVerified = verifiedRefCode;
-      try {
-        const { data: referral } = await supabase
-          .from('referrals')
-          .select('stripe_account_id, id')
-          .eq('code', refCode)
-          .single();
-
-        if (referral?.stripe_account_id) {
-          // Create the $20 transfer to the partner's connected Stripe account
-          const transfer = await stripe.transfers.create({
-            amount: REFERRAL_PAYOUT_CENTS,
-            currency: 'usd',
-            destination: referral.stripe_account_id,
-            description: 'TaxAppeal referral payout — order ' + data.id,
-            metadata: {
-              ref_code: verifiedRefCode,
-              order_id: data.id,
-              customer_email: customerEmail || '',
-            },
-          });
-
-          console.log('Referral transfer fired:', transfer.id, 'to', referral.stripe_account_id);
-
-          // Log the payout in Supabase referrals table
-          await supabase
-            .from('referrals')
-            .update({
-              total_referrals: (referral.total_referrals || 0) + 1,
-              total_paid: (referral.total_paid || 0) + 20,
-            })
-            .eq('code', verifiedRefCode);
-
-          // Insert payout record into referral_payouts table (if it exists)
-          await supabase.from('referral_payouts').insert({
-            ref_code: verifiedRefCode,
-            order_id: data.id,
-            stripe_transfer_id: transfer.id,
-            amount_cents: REFERRAL_PAYOUT_CENTS,
-            status: 'paid',
-          }).select(); // ignore error if table doesn't exist
-
-        } else {
-          console.log('Referral partner', refCode, 'has no stripe_account_id yet — payout skipped');
-        }
-      } catch (payoutErr) {
-        // Non-fatal — order is saved, payout failure logged but doesn't block the customer
-        console.error('Referral payout error for', refCode, ':', payoutErr.message);
-      }
-    }
-
-    // ── Auto-enroll in next year waitlist ──
-    try {
-      const nextYear = new Date().getFullYear() + 1;
-      const { data: alreadyEnrolled } = await supabase
-        .from('waitlist')
-        .select('id')
-        .eq('email', (customerEmail || '').toLowerCase())
-        .eq('state', state)
-        .eq('filing_year', nextYear)
-        .limit(1);
-
-      if (!alreadyEnrolled?.length) {
-        await supabase.from('waitlist').insert({
-          email: (customerEmail || '').toLowerCase(),
-          name: customerName,
-          state,
-          county: county || null,
-          property_address: propertyAddress || null,
-          filing_year: nextYear,
-          notified_count: 0,
-          enrolled_from_order: true,
-        });
-      }
-    } catch (waitlistErr) {
-      console.error('Waitlist enrollment failed:', waitlistErr.message);
-    }
+    // ────────────────────────────────────────────────────────────────────
+    // REFERRAL PAYOUT DELIBERATELY REMOVED FROM THIS PATH.
+    //
+    // The stated business policy is $20 per referral paid MONTHLY via Stripe.
+    // This handler used to fire an INSTANT stripe.transfers.create() while
+    // /api/referral-stats separately computed a month-end payout sheet from the
+    // orders table with no reference to what had already been transferred — so
+    // every referred order was paid twice.
+    //
+    // It was also exploitable: the transfer `destination` was looked up with the
+    // BODY-supplied refCode while the gate used the Stripe-metadata one, so an
+    // attacker could redirect another partner's $20 to themselves while the books
+    // recorded the innocent partner's code.
+    //
+    // Payouts now happen in exactly one place: the monthly settlement run, which
+    // reads and writes the referral_payouts ledger. See /api/referral-stats.
+    // ────────────────────────────────────────────────────────────────────
 
     return res.status(200).json({ success: true, orderId: data.id });
 

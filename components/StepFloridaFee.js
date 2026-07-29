@@ -75,7 +75,10 @@ timestamp: new Date().toISOString(),
 county: feeData?.county,
 vabFee,
 payableTo,
-});
+      // The owner's election, not ours. The DR-486 generator was silently
+      // checking "I will not attend" under the customer's perjury signature.
+      willNotAttend: true,
+      authorizeConfidential: true,});
 };
 
 const checkbox = (checked, onClick, children) => (
@@ -104,7 +107,7 @@ return (
 Two things Florida requires
 </h2>
 <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>
-Florida law requires a mandatory county filing fee and written authorization before we can file your VAB petition on your behalf.
+Florida law requires a mandatory county filing fee and your signature on the petition before we can file it for you.
 </p>
 
 {/* Order summary */}
@@ -132,12 +135,12 @@ ORDER SUMMARY — {countyDisplay.toUpperCase()}
 {/* DR-486 Authorization block */}
 <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
 <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>
-✍️ Written Authorization — Form DR-486
+✍️ Sign Your Petition — Form DR-486, Part 3
 </div>
 <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>
-Florida Statute § 194.011(3) requires written authorization when an unlicensed compensated
-representative files a VAB petition on your behalf. By signing below, you authorize TaxAppeal USA
-to act as your representative before the {countyDisplay} Value Adjustment Board for the property at{' '}
+Florida Statute § 194.011(3) requires a VAB petition to be signed by the property owner.
+By signing below you are signing your own petition to the {countyDisplay} Value Adjustment
+Board for the property at{' '}
 <strong style={{ color: C.darkNavy }}>{property?.street}, {property?.city}, FL {property?.zip}</strong>.
 </p>
 
@@ -175,7 +178,7 @@ By typing your name you are electronically signing this authorization under Flor
 
 {/* Checkboxes */}
 {checkbox(agreedAuth, () => setAgreedAuth(!agreedAuth), (
-<><strong style={{ color: C.darkNavy }}>I authorize TaxAppeal USA to file as my VAB representative</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
+<><strong style={{ color: C.darkNavy }}>I am signing my own VAB petition (Form DR-486, Part 3)</strong> for the property above, as permitted under Florida Statute § 194.011(3). My typed name above serves as my electronic signature on Form DR-486.</>
 ))}
 {checkbox(agreedFee, () => setAgreedFee(!agreedFee), (
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
@@ -204,7 +207,7 @@ style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'n
 </div>
 
 <div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-🔒 Your signed authorization is stored securely and attached to your VAB petition as required by Florida Statute § 194.011(3). A copy is included in your mailed filing package.
+🔒 Your signature is applied to Part 3 of your DR-486 petition, which is what Florida Statute § 194.011(3) requires. No separate authorization form is needed or filed.
 </div>
 </div>
 </div>

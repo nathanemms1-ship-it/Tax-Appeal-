@@ -604,6 +604,12 @@ function LoadingScreen({ addr }) {
 }
 
 function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
+  // What the customer will ACTUALLY be charged: $89 plus the Florida county VAB
+  // filing fee. Every one of these labels used to read a hardcoded "$89" while a
+  // Hillsborough customer was charged $139 — including the checkbox attesting that
+  // "the $89 fee is non-refundable". That is a chargeback waiting to happen.
+  const totalChargeCents = 8900 + ((flSignature && flSignature.vabFee) ? Number(flSignature.vabFee) : 0);
+  const totalChargeLabel = `$${(totalChargeCents / 100).toFixed(0)}`;
   const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
   const pd = propData || {};
@@ -623,10 +629,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
     // Florida county VAB filing fee. This was hardcoded to 89, so Google Ads'
     // Smart Bidding was learning from understated values in the launch market
     // (FL orders are $104-$139).
-    const totalChargeDollars = 89 + ((flSignature && flSignature.vabFee ? flSignature.vabFee : 0) / 100);
+    const totalChargeDollars = totalChargeCents / 100;
 
     // Google Ads / GA4 — begin_checkout conversion event
-    // Fires the moment the homeowner clicks "File my dispute · $89" and agrees to terms.
+    // Fires the moment the homeowner clicks `File my dispute · ${totalChargeLabel}" and agrees to terms.
     // Set NEXT_PUBLIC_GADS_CHECKOUT_LABEL in your Vercel env to activate Google Ads conversion.
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'begin_checkout', {
@@ -680,7 +686,16 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           flSignatureName: flSignature ? flSignature.name : '',
           flSignatureTimestamp: flSignature ? flSignature.timestamp : '',
           flAuthDate: flSignature ? flSignature.date : '',
-          refCode: (typeof window !== 'undefined' ? localStorage.getItem('taxappeal_ref') : null) || '',
+          refCode: (() => {
+            if (typeof window === 'undefined') return '';
+            try {
+              const code = localStorage.getItem('taxappeal_ref');
+              const at = Number(localStorage.getItem('taxappeal_ref_at') || 0);
+              // 90-day attribution window; anything older is not this partner's referral.
+              if (!code || !at || (Date.now() - at) > 90 * 24 * 60 * 60 * 1000) return '';
+              return code.trim().toUpperCase();
+            } catch (e) { return ''; }
+          })(),
           isPreOrder: !!(filingWindow && filingWindow.canPreOrder),
           scheduledFileDate: (filingWindow && filingWindow.canPreOrder) ? filingWindow.openDate.toISOString() : '',
         }),
@@ -744,11 +759,11 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only.</p>
             <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy.</p>
             <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open.</p>
-            <p><strong>5. No refunds after filing.</strong> The $89 fee is non-refundable once your certified mail has been sent.</p>
+            <p><strong>5. No refunds after filing.</strong> The {totalChargeLabel} fee is non-refundable once your filing has been mailed.</p>
             <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, FL, AR, and AL.</p>
           </div>
         </div>
-        {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the $89 fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
+        {["I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.", "I confirm the property information I provided is accurate and I have reviewed the letter preview above.", "I understand the ${totalChargeLabel} fee is non-refundable once my dispute letter has been filed, and I agree to TaxAppeal's Terms of Service."].map((text, i) => (
           <div key={i} onClick={() => toggleAgreement(i)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
             <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[i] ? C.navy : "#C5D0E0"}`, background: agreements[i] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[i] ? "✓" : ""}</div>
             <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
@@ -785,7 +800,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         {!allAgreed && <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: "center", marginBottom: 10 }}>All three boxes must be checked to proceed</div>}
         <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
           <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
-          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : "File my dispute · $89 — Your letter will be emailed to you"}</span>
+          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : `File my dispute · ${totalChargeLabel} — Your letter will be emailed to you`}</span>
         </button>
         <div style={{ marginTop: 20, textAlign: "center" }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
@@ -808,7 +823,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", "Secure $89 payment", "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
               <div>

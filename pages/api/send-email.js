@@ -39,6 +39,8 @@ export default async function handler(req, res) {
     sessionId,
     letter,
     amountPaid,
+    customerName,
+    stateCode,
     type = 'confirmation',
     subject: prebuiltSubject,
     html: prebuiltHtml,
@@ -73,7 +75,8 @@ export default async function handler(req, res) {
     } else {
       subject = '✅ Your Property Tax Dispute Has Been Filed — TaxAppeal USA';
       html = confirmationEmailTemplate({
-        firstName,
+        firstName: firstName || (customerName || '').split(' ')[0] || 'there',
+        stateCode,
         lastName,
         address,
         county,

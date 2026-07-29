@@ -149,7 +149,8 @@ export default function Success() {
   const [lobPreviewUrl, setLobPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
 
-  // Mail chain. `sig` is null for FL (already signed the DR-486A pre-payment);
+  // Hands the post-payment signature (TX/GA/AR/AL) to the server. FL signs DR-486
+  // Part 3 before payment, so it never calls this.
   // for TX/GA/AR/AL it carries the owner's post-payment e-signature.
   /**
    * The browser no longer fulfills anything.
@@ -241,9 +242,14 @@ export default function Success() {
         const canMail = data.districtName && data.districtAddress && data.letter && data.ownerStreet;
         if (!canMail) { setMailStatus('manual'); return; }
 
-        // FL already captured the owner's signature pre-payment (DR-486A) → mail now.
+
         // TX/GA/AR/AL wait for the on-screen signature step (handleSigned → runMail).
-        if (data.isFL) runMail(data, null);
+        // Florida signs Part 3 BEFORE payment, so there is no post-payment
+        // signature to submit. The Stripe webhook has already created the order and
+        // mailed the petition. Calling finalize-order here always returned 400
+        // ("A signature is required") and showed the customer a failure banner for
+        // an order that actually succeeded.
+        if (data.isFL) setMailStatus(data.isPreOrder ? 'queued' : 'sent');
       })
       .catch(() => {
         setError('Could not verify payment. Please contact disputes@taxappealusa.com');
@@ -267,13 +273,13 @@ export default function Success() {
   const scheduledDateLabel = session?.scheduledFileDate ? new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'your filing window opening';
 
   const steps = session?.isPreOrder ? [
-    { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
+    { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
     { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is prepared and held in your name.', done: true },
     { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. We will submit your protest via USPS certified mail with return receipt the moment it opens.`, done: false, active: true },
     { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS certified mail tracking number will be emailed to you once it is dispatched.', done: false },
     { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days after filing.', done: false },
   ] : [
-    { icon: '✓', title: 'Payment confirmed', desc: 'Your $89 payment has been processed successfully.', done: true },
+    { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
     { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is filed in your name.', done: true },
     { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
     { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS certified mail tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
@@ -364,7 +370,7 @@ export default function Success() {
               ) : null)}
               <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", fontSize: 15 }}>
                 <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-                <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((data && data.amountPaid) || 8900)/100).toFixed(2)}</span>
+                <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((session && session.amountPaid) || 8900)/100).toFixed(2)}</span>
               </div>
             </div>
 

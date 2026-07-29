@@ -41,7 +41,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Property Tax Dispute Filing',
-description: `VAB petition preparation & USPS certified mail filing for ${address} — ${county}`,
+description: `VAB petition preparation & Prepared and filed by mail for ${address} — ${county}`,
 },
 unit_amount: 8900,
 },
@@ -98,7 +98,12 @@ agentAuthTimestamp: agentAuthTimestamp || '',
 // refCode was sent by apply.js but never destructured or stored, so
 // orders.ref_code was always NULL and the entire $20 payout block in
 // save-order.js was dead code. No partner could ever be paid.
-refCode: refCode || '',
+// Normalize to the canonical uppercase form. Previously `?ref=jane-smith` and
+// `?ref=JANE-SMITH` produced different ref_code values: the lowercase one matched
+// no partner, so Jane saw 0 referrals and was never paid, while the payout sheet
+// listed an 'Unknown' referrer. Length-capped so it can't be used to stuff
+// Stripe metadata or a Supabase filter.
+refCode: String(refCode || '').trim().toUpperCase().slice(0, 64),
 isPreOrder: isPreOrder ? 'true' : 'false',
 scheduledFileDate: scheduledFileDate || '',
 },

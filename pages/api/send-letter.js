@@ -143,6 +143,18 @@ export default async function handler(req, res) {
       if (!feeInfo || !feeInfo.vabFee || feeInfo.vabFee <= 0) {
         return res.status(400).json({ error: `No verified VAB filing fee for ${county} County. Refusing to mail.` });
       }
+      // The address table and the fee table are verified independently. Columbia,
+      // Levy and Nassau have a CONFIRMED address but an ESTIMATED ($50 guess) fee,
+      // so they passed the address gate and would have had a guessed check mailed.
+      // An overpayment creates refund friction; an underpayment gets the petition
+      // rejected and the homeowner loses the year.
+      if (feeInfo.confidence !== 'confirmed') {
+        console.error(`send-letter: refusing to mail — ${county} County VAB fee is ${feeInfo.confidence}, not confirmed`);
+        return res.status(400).json({
+          error: `The Value Adjustment Board filing fee for ${county} County has not been confirmed. Refusing to mail a guessed amount.`,
+          code: 'FL_FEE_UNCONFIRMED',
+        });
+      }
 
       const checkAmountDollars = (feeInfo.vabFee / 100).toFixed(2);
       console.log(`FL order: Lob check $${checkAmountDollars} payable to "${feeInfo.payableTo}" → ${vabAddr.vabName}`);

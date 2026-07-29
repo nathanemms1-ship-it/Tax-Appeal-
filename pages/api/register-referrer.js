@@ -132,7 +132,11 @@ referralLink,
 await markReminderSent(normalizedEmail);
 }
 const message = alreadySentRecently ? 'You already have a referral code — here it is (we emailed it to you recently, check your inbox)' : 'You already have a referral code — we emailed it to you again';
-return res.status(200).json({ success: true, duplicate: true, code: existing.code, referralLink, message });
+// Do NOT return the code or link here. This endpoint is unauthenticated, so
+// returning them turned "email in, referral code out" into an oracle — and the
+// code alone was enough to hijack that partner's payout destination. We email it
+// to the address on file instead, which is the only party entitled to it.
+return res.status(200).json({ success: true, duplicate: true, message });
 }
 
 // Generate unique code — check for conflicts

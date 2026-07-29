@@ -34,7 +34,7 @@ const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", 
 const directAnswer = (county) => {
   const t = termsFor(county);
   if (county.code === "FL") {
-    return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) within 25 days of your TRIM notice — typically by mid-September. Include evidence of overassessment such as recent comparable sales, and pay your county's VAB filing fee. Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition and mails it via USPS Certified Mail to the ${county.district} for a flat $89.`;
+    return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) within 25 days of your TRIM notice — typically by mid-September. Include evidence of overassessment such as recent comparable sales, and pay your county's VAB filing fee. Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition and mails it via trackable USPS mail to the ${county.district} for a flat $89.`;
   }
   if (county.code === "GA") {
     return `To appeal your ${county.name} County property taxes in 2026, file a property tax appeal (${t.form}) with the ${county.district} within 45 days of your annual assessment notice. Support your appeal with comparable sales showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
@@ -88,7 +88,7 @@ const faqs = (county) => {
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
-      a: `We generate a professional protest letter using your ${county.name} County property data, comparable sales in your area, and the specific legal arguments that work best with the ${county.district}. You review and sign it, then we send it via USPS Certified Mail in your name — filed as your own protest.`,
+      a: `We generate a professional protest letter using your ${county.name} County property data, comparable sales in your area, and the specific legal arguments that work best with the ${county.district}. You review and sign it, then we send it via trackable USPS mail in your name — filed as your own protest.`,
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,
@@ -221,7 +221,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
               {county.name} County Property Tax {action} 2026
             </h1>
             <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 32px", lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
-              We write your protest letter, pull comparable sales in {county.name} County, and send it via USPS Certified Mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
+              We write your protest letter, pull comparable sales in {county.name} County, and send it via trackable USPS mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
             </p>
             <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
@@ -276,7 +276,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
               { n: "1", title: "Enter your address", body: `We look up your ${county.name} County assessed value, comparable sales, and property details automatically.` },
               { n: "2", title: "Review your case", body: `We calculate your estimated overassessment and show you exactly what evidence we'll submit to the ${county.district}.` },
               { n: "3", title: "Pay $89 flat", body: "No percentage of savings. No surprise fees. One flat fee covers your entire protest from filing to delivery." },
-              { n: "4", title: "We mail it certified", body: `Your protest letter goes out via USPS Certified Mail to the ${county.district} — with tracking and proof of delivery.` },
+              { n: "4", title: "We mail it certified", body: `Your protest letter goes out via trackable USPS mail to the ${county.district} — with tracking and proof of delivery.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{n}</div>
@@ -377,7 +377,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
               File My {action} — $89 Flat →
             </Link>
             <div style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "Arial,sans-serif" }}>
-              Flat $89 · USPS Certified Mail · No percentage fees · {county.state} only
+              Flat $89 · trackable USPS mail · No percentage fees · {county.state} only
             </div>
           </div>
         </div>
