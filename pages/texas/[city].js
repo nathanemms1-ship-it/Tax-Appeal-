@@ -85,7 +85,9 @@ export default function TexasCityPage({ city }) {
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
+        {/* Single template literal — see pages/florida/[city].js. The two-child form
+            served `Midland<!-- --> Property Tax Protest Service | ...`. */}
+        <title>{`${city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA`}</title>
         <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. No percentage cuts.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} />

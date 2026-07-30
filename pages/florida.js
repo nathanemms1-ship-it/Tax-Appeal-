@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
 import { floridaCities } from '../lib/floridaCities';
+import { counties as ALL_COUNTIES } from '../lib/countyData';
 
 const C = {
 navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -32,33 +33,19 @@ const faqs = [
 ["Which property appraisers handle Florida tax appeals?", "Each of Florida's 67 counties has its own elected Property Appraiser. Major ones include the Miami-Dade Property Appraiser, Broward County Property Appraiser, Palm Beach County Property Appraiser, Hillsborough County Property Appraiser, and Orange County Property Appraiser."],
 ];
 
-const counties = [
-"Alachua County (Gainesville)", "Baker County", "Bay County (Panama City)",
-"Bradford County", "Brevard County (Melbourne/Cocoa)",
-"Broward County (Fort Lauderdale)", "Calhoun County",
-"Charlotte County (Port Charlotte)", "Citrus County", "Clay County",
-"Collier County (Naples)", "Columbia County", "DeSoto County",
-"Dixie County", "Duval County (Jacksonville)", "Escambia County (Pensacola)",
-"Flagler County (Palm Coast)", "Franklin County", "Gadsden County",
-"Gilchrist County", "Glades County", "Gulf County", "Hamilton County",
-"Hardee County", "Hendry County", "Hernando County", "Highlands County",
-"Hillsborough County (Tampa)", "Holmes County",
-"Indian River County (Vero Beach)", "Jackson County", "Jefferson County",
-"Lafayette County", "Lake County", "Lee County (Fort Myers)",
-"Leon County (Tallahassee)", "Levy County", "Liberty County",
-"Madison County", "Manatee County (Bradenton)", "Marion County (Ocala)",
-"Martin County (Stuart)", "Miami-Dade County (Miami)",
-"Monroe County (Key West)", "Nassau County", "Okaloosa County (Fort Walton Beach)",
-"Okeechobee County", "Orange County (Orlando)", "Osceola County (Kissimmee)",
-"Palm Beach County (West Palm Beach)", "Pasco County (New Port Richey)",
-"Pinellas County (St. Petersburg)", "Polk County (Lakeland)",
-"Putnam County", "St. Johns County (St. Augustine)",
-"St. Lucie County (Port St. Lucie)", "Santa Rosa County",
-"Sarasota County (Sarasota)", "Seminole County (Sanford)",
-"Sumter County (The Villages)", "Suwannee County", "Taylor County",
-"Union County", "Volusia County (Daytona Beach)", "Wakulla County",
-"Walton County", "Washington County",
-];
+/*
+ * The 572 /counties/[slug] pages had ZERO inbound links from anywhere on the
+ * site — `grep -ln "counties/" pages/*.js` returned nothing. They were reachable
+ * only through the sitemap, which is the usual reason such pages never get
+ * indexed. This grid used to be a hardcoded string array rendered as plain
+ * <div>s, so it advertised the coverage and linked none of it.
+ *
+ * Now derived from lib/countyData.js — the same module pages/counties/[slug].js
+ * uses in getStaticPaths — so the list cannot drift from the pages that exist.
+ * Plain <a>, not next/link: prefetching 254 routes in the viewport is real
+ * bandwidth for no gain, and a plain anchor is exactly as crawlable.
+ */
+const counties = ALL_COUNTIES.filter(c => c.code === 'FL');
 
 
 
@@ -297,9 +284,9 @@ File My Florida Appeal — $89 + County Fee →
 <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Miami to Jacksonville, Tampa to Orlando — every Florida homeowner can file.</p>
 <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
 {counties.map(c => (
-<div key={c} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5 }}>
-<span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {c}
-</div>
+<a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
+<span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {`${c.name} County (${c.city})`}
+</a>
 ))}
 </div>
 </div>
@@ -325,9 +312,15 @@ Your deadline, filing fee and Value Adjustment Board are all set by your county 
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([county, cities]) => (
     <div key={county} style={{ marginBottom: 26 }}>
-      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1.5px", color: C.navy, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}` }}>
-        {county} County
-      </div>
+      {/* Heading links to the county page. floridaCities carries no countySlug,
+          so it is resolved by name against countyData — the same module the
+          county pages build from. */}
+      <a
+        href={`/counties/${(counties.find(fc => fc.name === county) || {}).slug || ''}`}
+        style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "1.5px", color: C.navy, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}`, textDecoration: "none" }}
+      >
+        {`${county} County`}
+      </a>
       <div className="cities-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px 16px" }}>
         {cities
           .slice()

@@ -2,6 +2,8 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
+import { georgiaSuburbs } from '../lib/georgiaSuburbs';
+import { counties as ALL_COUNTIES } from '../lib/countyData';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -26,53 +28,19 @@ const faqs = [
   ["Which appraisal districts handle Georgia property tax appeals?", "Georgia uses county tax assessors rather than centralized appraisal districts. Each of the 159 counties has its own Board of Tax Assessors. Major ones include the Fulton County Board of Assessors, Gwinnett County Tax Assessor, Cobb County Board of Tax Assessors, and DeKalb County Tax Commissioner."],
 ];
 
-const counties = [
-  "Appling County", "Atkinson County", "Bacon County", "Baker County",
-  "Baldwin County", "Banks County", "Barrow County", "Bartow County",
-  "Ben Hill County", "Berrien County", "Bibb County (Macon)",
-  "Bleckley County", "Brantley County", "Brooks County", "Bryan County",
-  "Bulloch County (Statesboro)", "Burke County", "Butts County",
-  "Calhoun County", "Camden County", "Candler County", "Carroll County",
-  "Catoosa County (Ringgold)", "Charlton County", "Chatham County (Savannah)",
-  "Chattahoochee County", "Chattooga County", "Cherokee County",
-  "Clarke County (Athens)", "Clay County", "Clayton County",
-  "Clinch County", "Cobb County (Marietta)", "Coffee County",
-  "Colquitt County", "Columbia County", "Cook County", "Coweta County",
-  "Crawford County", "Crisp County", "Dade County", "Dawson County",
-  "Decatur County", "DeKalb County (Decatur)", "Dodge County",
-  "Dooly County", "Dougherty County (Albany)", "Douglas County",
-  "Early County", "Echols County", "Effingham County", "Elbert County",
-  "Emanuel County", "Evans County", "Fannin County", "Fayette County",
-  "Floyd County (Rome)", "Forsyth County", "Franklin County",
-  "Fulton County (Atlanta)", "Gilmer County", "Glascock County",
-  "Glynn County (Brunswick)", "Gordon County", "Grady County",
-  "Greene County", "Gwinnett County", "Habersham County",
-  "Hall County (Gainesville)", "Hancock County", "Haralson County",
-  "Harris County", "Hart County", "Heard County", "Henry County",
-  "Houston County", "Irwin County", "Jackson County", "Jasper County",
-  "Jeff Davis County", "Jefferson County", "Jenkins County",
-  "Johnson County", "Jones County", "Lamar County", "Lanier County",
-  "Laurens County", "Lee County", "Liberty County", "Lincoln County",
-  "Long County", "Lowndes County (Valdosta)", "Lumpkin County",
-  "McDuffie County", "McIntosh County", "Macon County", "Madison County",
-  "Marion County", "Meriwether County", "Miller County", "Mitchell County",
-  "Monroe County", "Montgomery County", "Morgan County", "Murray County",
-  "Muscogee County (Columbus)", "Newton County", "Oconee County",
-  "Oglethorpe County", "Paulding County", "Peach County", "Pickens County",
-  "Pierce County", "Pike County", "Polk County", "Pulaski County",
-  "Putnam County", "Quitman County", "Rabun County", "Randolph County",
-  "Richmond County (Augusta)", "Rockdale County", "Schley County",
-  "Screven County", "Seminole County", "Spalding County",
-  "Stephens County", "Stewart County", "Sumter County", "Talbot County",
-  "Taliaferro County", "Tattnall County", "Taylor County", "Telfair County",
-  "Terrell County", "Thomas County", "Tift County", "Toombs County",
-  "Towns County", "Treutlen County", "Troup County (LaGrange)",
-  "Turner County", "Twiggs County", "Union County", "Upson County",
-  "Walker County", "Walton County", "Ware County", "Warren County",
-  "Washington County", "Wayne County", "Webster County", "Wheeler County",
-  "White County", "Whitfield County (Dalton)", "Wilcox County",
-  "Wilkes County", "Wilkinson County", "Worth County",
-];
+/*
+ * The 572 /counties/[slug] pages had ZERO inbound links from anywhere on the
+ * site — `grep -ln "counties/" pages/*.js` returned nothing. They were reachable
+ * only through the sitemap, which is the usual reason such pages never get
+ * indexed. This grid used to be a hardcoded string array rendered as plain
+ * <div>s, so it advertised the coverage and linked none of it.
+ *
+ * Now derived from lib/countyData.js — the same module pages/counties/[slug].js
+ * uses in getStaticPaths — so the list cannot drift from the pages that exist.
+ * Plain <a>, not next/link: prefetching 254 routes in the viewport is real
+ * bandwidth for no gain, and a plain anchor is exactly as crawlable.
+ */
+const counties = ALL_COUNTIES.filter(c => c.code === 'GA');
 
 
 
@@ -242,11 +210,52 @@ export default function Georgia() {
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Atlanta to Savannah, Augusta to Columbus — every Georgia homeowner can file.</p>
           <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
             {counties.map(c => (
-              <div key={c} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {c}
-              </div>
+              <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
+                <span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {`${c.name} County (${c.city})`}
+              </a>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* City directory.
+          The 52 /georgia/[city] pages had the same defect the Florida city pages
+          had before round 6: they existed, they were in the sitemap, and nothing on
+          the site linked to one. Grouped by county because county is what determines
+          the board and the deadline, and the county heading links to that county's
+          page — which is how the /counties/* set finally gets inbound links from
+          more than one place. */}
+      <section style={{ padding: "56px 40px", background: C.white }}>
+        <div style={{ maxWidth: 980, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Georgia cities we file in</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.6 }}>Your board of assessors, appeal deadline and local market data are all set by your county — find your city below.</p>
+          {Object.entries(
+            georgiaSuburbs.reduce((acc, c) => {
+              (acc[c.county] = acc[c.county] || []).push(c);
+              return acc;
+            }, {})
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([county, list]) => (
+              <div key={county} style={{ marginBottom: 26 }}>
+                <a
+                  href={`/counties/${list[0].countySlug}`}
+                  style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "1.5px", color: C.navy, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}`, textDecoration: "none" }}
+                >
+                  {`${county} County`}
+                </a>
+                <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px 16px" }}>
+                  {list
+                    .slice()
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <a key={c.slug} href={`/georgia/${c.slug}`} style={{ fontSize: 13, color: C.bodyGray, padding: "4px 0", textDecoration: "none" }}>
+                        {c.name}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            ))}
         </div>
       </section>
 

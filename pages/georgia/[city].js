@@ -27,7 +27,9 @@ export default function GeorgiaCityPage({ city }) {
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
+        {/* Single template literal — see pages/florida/[city].js. The two-child form
+            served `Rome<!-- --> Property Tax Appeal | ...`. */}
+        <title>{`${city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA`}</title>
         <meta name="description" content={`Appeal your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save $${fSavings}/year on average. Certified mail filing. 45-day deadline.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/georgia/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Appeal — $89 | TaxAppeal USA`} />

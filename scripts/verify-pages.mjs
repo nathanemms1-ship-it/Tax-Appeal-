@@ -127,14 +127,35 @@ function walk(dir, acc = []) {
 if (fs.existsSync(DIR)) {
   const all = walk(DIR);
   const offenders = new Map();
+  const brokenTitles = [];
   for (const f of all) {
-    const text = visibleText(fs.readFileSync(f, 'utf8'));
+    const html = fs.readFileSync(f, 'utf8');
+    const text = visibleText(html);
+
+    // A <title> holding an expression NEXT TO static text gets two children, and
+    // React SSR separates adjacent children with an HTML comment. The result went
+    // to Google as `Midland<!-- --> Property Tax Protest Service | ...` on 272 city
+    // pages. next build passed, the page rendered, the title looked right in every
+    // source file - it is only visible in the served HTML, which is what this reads.
+    // Fix is always the same: one template literal instead of two children.
+    const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (title && title[1].includes('<!--')) brokenTitles.push(path.relative(DIR, f));
+
     for (const b of BANNED) {
       if (b.re.test(text)) {
         if (!offenders.has(b.why)) offenders.set(b.why, []);
         offenders.get(b.why).push(path.relative(DIR, f));
       }
     }
+  }
+
+  if (brokenTitles.length) {
+    failures++;
+    console.error(`\n  FAIL  ${brokenTitles.length} pages render an HTML comment inside <title>:`);
+    console.error(`          ${brokenTitles.slice(0, 6).join(', ')}${brokenTitles.length > 6 ? ` … +${brokenTitles.length - 6} more` : ''}`);
+    console.error(`          use a single template literal: <title>{\`\${x} rest of title\`}</title>`);
+  } else {
+    console.log(`  swept ${all.length} built pages for comment markers in <title> — none found`);
   }
   if (offenders.size) {
     failures++;
@@ -145,6 +166,26 @@ if (fs.existsSync(DIR)) {
     }
   } else {
     console.log(`  swept ${all.length} built pages for banned claims — none found`);
+  }
+}
+
+// The 572 /counties/[slug] pages had no inbound link from anywhere on the site for
+// most of this build's life - sitemap-only discovery. The state hubs are the only
+// place that link them, so if a future edit turns that grid back into plain text
+// the whole set silently goes orphan again, and nothing else in the build notices.
+const { counties: ALL_COUNTIES } = await import('../lib/countyData.js');
+for (const [hub, code] of [['florida', 'FL'], ['texas', 'TX'], ['georgia', 'GA']]) {
+  const file = findHtml(hub);
+  if (!file) continue; // already reported by the REQUIRED loop
+  const html = fs.readFileSync(file, 'utf8');
+  const expected = ALL_COUNTIES.filter((c) => c.code === code).length;
+  const found = new Set([...html.matchAll(/href="\/counties\/([a-z0-9-]+)"/g)].map((m) => m[1])).size;
+  if (found < expected) {
+    failures++;
+    console.error(`  FAIL  /${hub}: links ${found} of ${expected} ${code} county pages`);
+    console.error(`          /counties/* is reachable from nowhere else — sitemap-only pages do not get indexed`);
+  } else {
+    console.log(`  /${hub} links all ${expected} ${code} county pages`);
   }
 }
 

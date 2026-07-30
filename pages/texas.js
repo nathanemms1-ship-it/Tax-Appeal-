@@ -1,6 +1,8 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
+import { texasCities } from '../lib/texasCities';
+import { counties as ALL_COUNTIES } from '../lib/countyData';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -25,81 +27,19 @@ const faqs = [
   ["Which appraisal districts handle Texas property tax protests?", "Texas has 254 county appraisal districts (CADs), one per county. Major ones include the Harris County Appraisal District (HCAD), Dallas Central Appraisal District (DCAD), Tarrant Appraisal District (TAD), Bexar Appraisal District, and Travis Central Appraisal District (TCAD). TaxAppeal files with whichever CAD covers your property."],
 ];
 
-const counties = [
-  "Anderson County", "Andrews County", "Angelina County", "Aransas County",
-  "Archer County", "Armstrong County", "Atascosa County", "Austin County",
-  "Bailey County", "Bandera County", "Bastrop County", "Baylor County",
-  "Bee County", "Bell County (Killeen)", "Bexar County (San Antonio)",
-  "Blanco County", "Borden County", "Bosque County", "Bowie County",
-  "Brazoria County", "Brazos County (Bryan/College Station)", "Brewster County",
-  "Briscoe County", "Brooks County", "Brown County", "Burleson County",
-  "Burnet County", "Caldwell County", "Calhoun County", "Callahan County",
-  "Cameron County (Brownsville)", "Camp County", "Carson County", "Cass County",
-  "Castro County", "Chambers County", "Cherokee County", "Childress County",
-  "Clay County", "Cochran County", "Coke County", "Coleman County",
-  "Collin County (Plano/Frisco)", "Collingsworth County", "Colorado County",
-  "Comal County (New Braunfels)", "Comanche County", "Concho County",
-  "Cooke County", "Coryell County", "Cottle County", "Crane County",
-  "Crockett County", "Crosby County", "Culberson County", "Dallam County",
-  "Dallas County (Dallas)", "Dawson County", "Deaf Smith County", "Delta County",
-  "Denton County (Denton/Lewisville)", "DeWitt County", "Dickens County",
-  "Dimmit County", "Donley County", "Duval County", "Eastland County",
-  "Ector County (Odessa)", "Edwards County", "Ellis County (Waxahachie)",
-  "El Paso County (El Paso)", "Erath County", "Falls County", "Fannin County",
-  "Fayette County", "Fisher County", "Floyd County", "Foard County",
-  "Fort Bend County (Sugar Land)", "Franklin County", "Freestone County",
-  "Frio County", "Gaines County", "Galveston County (Galveston)",
-  "Garza County", "Gillespie County (Fredericksburg)", "Glasscock County",
-  "Goliad County", "Gonzales County", "Gray County", "Grayson County (Sherman)",
-  "Gregg County (Longview)", "Grimes County", "Guadalupe County (Seguin)",
-  "Hale County (Plainview)", "Hall County", "Hamilton County", "Hansford County",
-  "Hardeman County", "Hardin County", "Harris County (Houston)",
-  "Harrison County (Marshall)", "Hartley County", "Haskell County",
-  "Hays County (San Marcos/Kyle)", "Hemphill County", "Henderson County",
-  "Hidalgo County (McAllen)", "Hill County", "Hockley County", "Hood County",
-  "Hopkins County", "Houston County", "Howard County (Big Spring)",
-  "Hudspeth County", "Hunt County (Greenville)", "Hutchinson County",
-  "Irion County", "Jack County", "Jackson County", "Jasper County",
-  "Jeff Davis County", "Jefferson County (Beaumont)", "Jim Hogg County",
-  "Jim Wells County", "Johnson County (Cleburne)", "Jones County",
-  "Karnes County", "Kaufman County", "Kendall County (Boerne)",
-  "Kenedy County", "Kent County", "Kerr County (Kerrville)", "Kimble County",
-  "King County", "Kinney County", "Kleberg County", "Knox County",
-  "Lamar County (Paris)", "Lamb County", "Lampasas County", "La Salle County",
-  "Lavaca County", "Lee County", "Leon County", "Liberty County",
-  "Limestone County", "Lipscomb County", "Live Oak County", "Llano County",
-  "Loving County", "Lubbock County (Lubbock)", "Lynn County", "Madison County",
-  "Marion County", "Martin County", "Mason County", "Matagorda County",
-  "Maverick County (Eagle Pass)", "McCulloch County", "McLennan County (Waco)",
-  "McMullen County", "Medina County", "Menard County", "Midland County (Midland)",
-  "Milam County", "Mills County", "Mitchell County", "Montague County",
-  "Montgomery County (Conroe/The Woodlands)", "Moore County", "Morris County",
-  "Motley County", "Nacogdoches County", "Navarro County (Corsicana)",
-  "Newton County", "Nolan County", "Nueces County (Corpus Christi)",
-  "Ochiltree County", "Oldham County", "Orange County", "Palo Pinto County",
-  "Panola County", "Parker County (Weatherford)", "Parmer County",
-  "Pecos County", "Polk County", "Potter County (Amarillo)", "Presidio County",
-  "Rains County", "Randall County (Canyon/Amarillo)", "Reagan County",
-  "Real County", "Red River County", "Reeves County", "Refugio County",
-  "Roberts County", "Robertson County", "Rockwall County (Rockwall)",
-  "Runnels County", "Rusk County", "Sabine County", "San Augustine County",
-  "San Jacinto County", "San Patricio County", "San Saba County",
-  "Schleicher County", "Scurry County", "Shackelford County", "Shelby County",
-  "Sherman County", "Smith County (Tyler)", "Somervell County",
-  "Starr County (Rio Grande City)", "Stephens County", "Sterling County",
-  "Stonewall County", "Sutton County", "Swisher County",
-  "Tarrant County (Fort Worth/Arlington)", "Taylor County (Abilene)",
-  "Terrell County", "Terry County", "Throckmorton County", "Titus County",
-  "Tom Green County (San Angelo)", "Travis County (Austin)",
-  "Trinity County", "Tyler County", "Upshur County", "Upton County",
-  "Uvalde County", "Val Verde County (Del Rio)", "Van Zandt County",
-  "Victoria County (Victoria)", "Walker County (Huntsville)", "Waller County",
-  "Ward County", "Washington County", "Webb County (Laredo)",
-  "Wharton County", "Wheeler County", "Wichita County (Wichita Falls)",
-  "Wilbarger County", "Willacy County", "Williamson County (Round Rock/Georgetown)",
-  "Wilson County", "Winkler County", "Wise County", "Wood County",
-  "Yoakum County", "Young County", "Zapata County", "Zavala County",
-];
+/*
+ * The 572 /counties/[slug] pages had ZERO inbound links from anywhere on the
+ * site — `grep -ln "counties/" pages/*.js` returned nothing. They were reachable
+ * only through the sitemap, which is the usual reason such pages never get
+ * indexed. This grid used to be a hardcoded string array rendered as plain
+ * <div>s, so it advertised the coverage and linked none of it.
+ *
+ * Now derived from lib/countyData.js — the same module pages/counties/[slug].js
+ * uses in getStaticPaths — so the list cannot drift from the pages that exist.
+ * Plain <a>, not next/link: prefetching 254 routes in the viewport is real
+ * bandwidth for no gain, and a plain anchor is exactly as crawlable.
+ */
+const counties = ALL_COUNTIES.filter(c => c.code === 'TX');
 
 
 
@@ -269,11 +209,52 @@ export default function Texas() {
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Houston to El Paso, Dallas to the Rio Grande Valley — every Texas homeowner can file.</p>
           <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
             {counties.map(c => (
-              <div key={c} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {c}
-              </div>
+              <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
+                <span style={{ color: C.green, fontSize: 11, flexShrink: 0 }}>✓</span> {`${c.name} County (${c.city})`}
+              </a>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* City directory.
+          The 69 /texas/[city] pages had the same defect the Florida city pages
+          had before round 6: they existed, they were in the sitemap, and nothing on
+          the site linked to one. Grouped by county because county is what determines
+          the board and the deadline, and the county heading links to that county's
+          page — which is how the /counties/* set finally gets inbound links from
+          more than one place. */}
+      <section style={{ padding: "56px 40px", background: C.bg }}>
+        <div style={{ maxWidth: 980, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Texas cities we file in</h2>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.6 }}>Your appraisal district, protest deadline and ARB are all set by your county — find your city below.</p>
+          {Object.entries(
+            texasCities.reduce((acc, c) => {
+              (acc[c.county] = acc[c.county] || []).push(c);
+              return acc;
+            }, {})
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([county, list]) => (
+              <div key={county} style={{ marginBottom: 26 }}>
+                <a
+                  href={`/counties/${list[0].countySlug}`}
+                  style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "1.5px", color: C.navy, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${C.border}`, textDecoration: "none" }}
+                >
+                  {`${county} County`}
+                </a>
+                <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px 16px" }}>
+                  {list
+                    .slice()
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <a key={c.slug} href={`/texas/${c.slug}`} style={{ fontSize: 13, color: C.bodyGray, padding: "4px 0", textDecoration: "none" }}>
+                        {c.name}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            ))}
         </div>
       </section>
 

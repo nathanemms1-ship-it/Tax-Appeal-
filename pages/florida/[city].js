@@ -80,7 +80,10 @@ export default function FloridaCityPage({ city }) {
   return (
     <>
       <Head>
-        <title>{city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
+        {/* One expression, not an expression next to static text. React SSR emits a
+            comment separator between adjacent children, so the two-child form served
+            `Miami<!-- --> Property Tax Appeal | ...` — visible in Google's results. */}
+        <title>{`${city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA`}</title>
         <meta name="description" content={`Appeal your ${city.name} property tax bill for just $89 flat. We prepare your ${city.county} County VAB petition, you sign it, and we mail it 7+ days before your deadline with the county filing fee paid. No percentage fees ever.`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
