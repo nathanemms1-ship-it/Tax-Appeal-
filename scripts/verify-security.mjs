@@ -29,7 +29,10 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const API_DIR = 'pages/api';
+// lib/ is scanned too. An earlier version looked only at pages/api, so a vendor call
+// added inside a lib file was invisible — which is exactly what happened when
+// lib/healthChecks.js started calling api.anthropic.com and this script said nothing.
+const SCAN_DIRS = ['pages/api', 'lib'];
 const failures = [];
 const notes = [];
 
@@ -57,7 +60,7 @@ function stripComments(src) {
     .replace(/(^|[^:'"\`])\/\/[^\n]*/g, '$1'); // line comments (leaves http:// alone)
 }
 
-const files = walk(API_DIR).sort();
+const files = SCAN_DIRS.flatMap(walk).sort();
 const sources = new Map(files.map((f) => [f, stripComments(readFileSync(f, 'utf8'))]));
 
 function fail(file, msg) {
@@ -68,10 +71,19 @@ function fail(file, msg) {
 // Requests are counted by lib/rateLimit.js; tokens are counted by nobody, so the
 // body size cap and the global ceiling are both load-bearing.
 for (const [file, src] of sources) {
-  if (!src.includes('api.anthropic.com') && !src.includes('@anthropic-ai/sdk')) continue;
+  // Match a COMPLETION call, not the hostname. `GET /v1/models` is free and is used by
+  // lib/healthChecks.js to validate the key — flagging that for a missing spend
+  // ceiling would be nonsense, and the fix would have been to delete the check.
+  // What costs money is /v1/messages, or the SDK's messages.create.
+  const buildsPrompt =
+    /v1\/messages/.test(src) || /messages\.create\s*\(/.test(src);
+  if (!buildsPrompt) continue;
 
   const isWebhook = file.includes('webhooks/');
   const isCron = file.includes('/cron/');
+  // A lib file cannot rate-limit or set a body cap — that is the calling route's job.
+  // It CAN and must respect the spend ceiling, since that is a global counter.
+  const isLib = file.startsWith('lib/');
 
   // Match a CALL, not an import. An earlier version of this script accepted the
   // mere presence of the identifier, so deleting every enforceRateLimit(...) call
@@ -87,13 +99,13 @@ for (const [file, src] of sources) {
 
   // A webhook authenticates by shared secret and a cron by CRON_SECRET; neither
   // needs a per-IP limiter, but a public route absolutely does.
-  if (!isCron && !callsRateLimit && !callsWebhookAuth) {
+  if (!isCron && !isLib && !callsRateLimit && !callsWebhookAuth) {
     fail(file, 'calls Anthropic on an unauthenticated route with no enforceRateLimit(). This is a free Sonnet proxy billed to us.');
   }
 
   // Next's default body limit is 1 MB ~= 190k input tokens ~= $0.57 of input per
   // request. Any route that interpolates a body into a prompt must cap the body.
-  if (!isCron && !src.includes('PROMPT_ROUTE_CONFIG') && !src.includes('bodyParser')) {
+  if (!isCron && !isLib && !src.includes('PROMPT_ROUTE_CONFIG') && !src.includes('bodyParser')) {
     fail(file, 'builds a prompt from req.body but does not set PROMPT_ROUTE_CONFIG — the 1 MB default body limit applies. See lib/inputLimits.js');
   }
 }
@@ -101,7 +113,11 @@ for (const [file, src] of sources) {
 // ── 2. Every Lob call site must be spend capped ────────────────────────────────
 // Lob is real mail: ~$8-12 per piece and it cannot be recalled.
 for (const [file, src] of sources) {
-  if (!src.includes('api.lob.com')) continue;
+  // Only endpoints that CREATE mail. `GET /v1/addresses` is a free read used by
+  // lib/healthChecks.js to validate the key and detect a test-mode key; requiring a
+  // spend ceiling on it would be nonsense. /v1/letters and /v1/checks put paper in
+  // the post and cannot be recalled.
+  if (!/api\.lob\.com\/v1\/(letters|checks|postcards|self_mailers)/.test(src)) continue;
   if (!/checkSpend\s*\(\s*'lob'/.test(src)) {
     fail(file, "sends real mail via Lob but never calls checkSpend('lob') — an upstream retry loop could mail unbounded certified letters.");
   }
@@ -189,7 +205,7 @@ for (const [file, src] of sources) {
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
-console.log(`Security check — ${files.length} API routes`);
+console.log(`Security check — ${files.length} files across ${SCAN_DIRS.join(', ')}`);
 
 if (notes.length) {
   console.log('');
