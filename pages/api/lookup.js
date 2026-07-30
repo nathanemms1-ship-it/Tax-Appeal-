@@ -63,6 +63,29 @@ export default async function handler(req, res) {
   const addrSlug = `${street.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}:${zip.trim()}`;
   const countyKey = `county:${stateUpper}:${addrSlug}`;
 
+  // Whole-result cache, checked before ANY vendor call. See the cacheSet at the end of
+  // this handler for the reasoning — in short, three of the six external calls here are
+  // gated on data being missing, so per-leg caching left the expensive path uncached.
+  const resultKey = `lookup:${stateUpper}:${addrSlug}`;
+
+  // A request carrying manual overrides must NEVER be served from cache, and must never
+  // write to it. Those values are what the customer typed on the "we couldn't find your
+  // assessed value — enter it yourself" path, so returning a cached payload here would
+  // silently discard their input and hand the funnel a null (or worse, a different
+  // property's number) for the value that drives the whole petition.
+  const hasManualOverrides = !!(
+    manualAssessedValue || manualSqft || manualYearBuilt || manualBeds || manualBaths
+  );
+
+  if (!hasManualOverrides) {
+    const cached = await cacheGet(resultKey);
+    if (cached) {
+      console.log(`LOOKUP FROM CACHE (${resultKey})`);
+      res.setHeader('X-Cache', 'HIT');
+      return res.status(200).json(cached);
+    }
+  }
+
   try {
     let assessedValue = manualAssessedValue ? Number(String(manualAssessedValue).replace(/[^0-9.]/g, "")) || null : null;
     // Parcel / folio / APN. Most Florida VAB clerks index petitions by folio and
@@ -145,6 +168,9 @@ export default async function handler(req, res) {
     // sworn petition. A month is long enough to absorb the funnel's repeat traffic
     // and short enough that a new roll is picked up promptly.
     const BD_TTL = 30 * 24 * 60 * 60;
+    // A negative result ("BatchData has no record") is cached too, but for 24h rather
+    // than 30 days — see the cacheSet call below for why this exists at all.
+    const BD_NEGATIVE_TTL = 24 * 60 * 60;
     const bdKey = `bd:${stateUpper}:${addrSlug}`;
     let bdData = await cacheGet(bdKey);
     if (bdData) console.log(`BATCHDATA FROM CACHE (${bdKey})`);
@@ -188,9 +214,26 @@ export default async function handler(req, res) {
 
       if (bdRes && bdRes.ok) {
         bdData = await bdRes.json();
-        if ((bdData?.results?.properties || []).length > 0) {
-          await cacheSet(bdKey, bdData, BD_TTL);
-        }
+        const found = (bdData?.results?.properties || []).length > 0;
+
+        // NEGATIVE CACHING. The first version of this only cached a HIT, following the
+        // "failures are never cached" rule from resolve-county. That rule is wrong
+        // here, and measurably so: production took ~30s on EVERY repeat request for an
+        // address BatchData has no record of, because the empty answer was re-bought
+        // each time and then the whole step-2b + Claude fallback chain re-ran behind it.
+        //
+        // It also inverted the intent of the cache against the one caller that matters.
+        // A scan of bogus incrementing addresses ("1 Main St", "2 Main St", ...) returns
+        // zero properties every time, so under HIT-only caching every one of those
+        // requests cost the maximum: a billed lookup, a billed search, and up to two
+        // Claude calls. The per-IP daily cap and the spend ceilings bound the total, but
+        // the per-request cost was the worst possible.
+        //
+        // "BatchData has no record for this address" is a stable fact, so cache it —
+        // just for less time than a hit, so a newly-built or newly-listed property is
+        // picked up within a day rather than a month.
+        await cacheSet(bdKey, bdData, found ? BD_TTL : BD_NEGATIVE_TTL);
+        if (!found) console.log(`BATCHDATA EMPTY, cached negative (${bdKey})`);
       }
 
       if (bdData) {
@@ -490,11 +533,45 @@ Return ONLY this JSON:
     const taxYear = new Date().getFullYear().toString();
     console.log("FINAL:", { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, parcelId, county: countyName });
 
-    return res.status(200).json({
+    const payload = {
       extractedData: { assessedValue, marketValue, sqft, yearBuilt, beds, baths, annualTax, county, taxYear, parcelId },
       appraisalDistrict,
       resolvedCounty: countyName,
-    });
+    };
+
+    // Cache the ASSEMBLED RESULT, not just the BatchData leg.
+    //
+    // Caching the individual legs was not enough. This handler can make SIX external
+    // calls — Census, a Claude county fallback, a BatchData lookup, a BatchData search,
+    // a Claude web-search for the assessed value, and a Claude district fallback — and
+    // the last three are gated on data being MISSING. For any address where BatchData
+    // has no assessed value, those three fired on every single request and nothing
+    // cached their outcome. Measured on production: ~30 seconds and a full set of
+    // vendor calls on a repeat request for the same address.
+    //
+    // The funnel only ever consumes this payload, so this is the thing to cache. TTL
+    // matches the BatchData hit TTL: 30 days, short enough to pick up a new county roll
+    // (a stale assessed value would put a wrong number on a sworn petition), long
+    // enough to absorb re-visits, back-buttons, and resumed sessions.
+    //
+    // An all-null result IS cached, but only for 24h, and the difference matters both
+    // ways. Not caching it at all was the first version, and it left the worst case
+    // uncapped: a scan of bogus incrementing addresses finds nothing by construction, so
+    // every request re-ran the full six-call chain at maximum cost. Caching it for 30
+    // days would be the opposite mistake — an all-null answer is also what a transient
+    // vendor outage looks like, and pinning that for a month would quietly push real
+    // customers to manual entry long after the data came back.
+    const foundSomething = assessedValue || marketValue || sqft || parcelId;
+    if (hasManualOverrides) {
+      // Never write a customer's own typed values into a cache keyed only on address —
+      // the next visitor to that address would be served this customer's numbers.
+      console.log('LOOKUP had manual overrides, not cached');
+    } else {
+      await cacheSet(resultKey, payload, foundSomething ? BD_TTL : BD_NEGATIVE_TTL);
+      if (!foundSomething) console.log(`LOOKUP found nothing, cached negative 24h (${resultKey})`);
+    }
+
+    return res.status(200).json(payload);
 
   } catch (err) {
     console.error("Lookup error:", err);
