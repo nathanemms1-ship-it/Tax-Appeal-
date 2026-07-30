@@ -169,6 +169,34 @@ if (fs.existsSync(DIR)) {
   }
 }
 
+// A city landing page that advertises a county VAB fee is quoting a number that lives in
+// lib/flCountyFees.js, by hand, in prose. This has now broken twice: /orlando said $15 while
+// checkout charged $50, and /jacksonville said $15 for a season after Duval adopted the $50
+// cap. Both are pricing misrepresentations — Google Ads suspends accounts over the first one
+// and FDUTPA covers the second — and both shipped green because no check connected the copy
+// to the table. This asserts the built HTML quotes the fee we will actually charge.
+const { getFlVabFee } = await import('../lib/flCountyFees.js');
+const FEE_PAGES = [
+  ['miami', 'Miami-Dade'], ['tampa', 'Hillsborough'], ['orlando', 'Orange'],
+  ['jacksonville', 'Duval'], ['fort-lauderdale', 'Broward'],
+];
+for (const [page, county] of FEE_PAGES) {
+  const file = findHtml(page);
+  if (!file) continue;
+  const html = fs.readFileSync(file, 'utf8');
+  const dollars = getFlVabFee(county).vabFee / 100;
+  // Every FL VAB fee is a whole number of dollars, so a bare "$NN" is the right match.
+  const quoted = [...html.matchAll(/\$(\d{1,3})\s*(?:per parcel\s*)?(?:county\s*)?(?:VAB|petition|filing)/gi)]
+    .map((m) => Number(m[1]));
+  const wrong = [...new Set(quoted.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars))];
+  if (wrong.length) {
+    failures++;
+    console.error(`  FAIL  /${page} advertises a ${county} County fee of $${wrong.join(', $')} — the table says $${dollars}`);
+    console.error(`          checkout charges from lib/flCountyFees.js, so the page is quoting a price we will not honour`);
+  }
+}
+if (!failures) console.log(`  ${FEE_PAGES.length} FL city pages quote the same county fee checkout charges`);
+
 // The 572 /counties/[slug] pages had no inbound link from anywhere on the site for
 // most of this build's life - sitemap-only discovery. The state hubs are the only
 // place that link them, so if a future edit turns that grid back into plain text
