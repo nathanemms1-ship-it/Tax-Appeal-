@@ -175,7 +175,9 @@ function buildDR486Html({
     Prepared and filed at the property owner's direction by ${esc(PREPARER.name)} — ${esc(PREPARER.role)}.<br/>
     ${esc(PREPARER.name)} is not the taxpayer's representative in these proceedings and will not appear before the Board.<br/>
     Filing date: ${esc(today)} &nbsp;|&nbsp; Questions: ${esc(PREPARER.email)}<br/>
-    Please send the Value Adjustment Board's determination to the property owner at the address above.
+    ${authorizeConfidential
+      ? `Please send the Value Adjustment Board's determination to the property owner at the address above, with a copy to ${esc(PREPARER.email)} as authorized by the owner in Part 3.`
+      : `Please send the Value Adjustment Board's determination to the property owner at the address above.`}
   </div>
 </div></body></html>`;
 }

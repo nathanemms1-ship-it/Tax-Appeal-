@@ -161,9 +161,23 @@ export default function SignatureStep({
 
           <div onClick={() => setFlShareInfo(!flShareInfo)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : C.border}`, background: flShareInfo ? "#EEF4FF" : "#fff", cursor: "pointer" }}>
             <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : "#C5D0E0"}`, background: flShareInfo ? "#1B3A6B" : "#fff", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{flShareInfo ? "\u2713" : ""}</div>
+            {/*
+              This label previously described only the PREPARATION use, but the same
+              authorization on the petition also names the Clerk of the Value Adjustment
+              Board — and the petition now asks the Board to copy us on the determination
+              (see the footer in pages/api/generate-dr486.js). Consent has to describe
+              what actually happens, so the decision copy is spelled out here.
+
+              Leaving it unchecked is a real choice and must stay one: the petition then
+              asks the Board to send the determination to the owner only, and we will not
+              know the outcome unless the owner tells us. That is stated plainly rather
+              than buried, because the checkbox defaults to ON.
+            */}
             <span style={{ fontSize: 13, lineHeight: 1.5 }}>
-              I authorize the Property Appraiser to release information about my property to TaxAppeal USA so
-              they can prepare and file my petition (&sect; 194.011(3), Fla. Stat.). Optional.
+              I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release
+              information about my property and this petition to TaxAppeal USA, so they can prepare and
+              file my petition and receive a copy of the Board&rsquo;s decision (&sect; 194.011(3), Fla. Stat.).
+              Optional &mdash; if you leave this unchecked, the Board will send the decision only to you.
             </span>
           </div>
         </div>
