@@ -10,6 +10,7 @@ import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { dispatchQueuedOrder } from '../../../lib/processOrder';
 import { requireCronSecret } from '../../../lib/webhookAuth';
+import { salesEnabled } from '../../../lib/salesGate';
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
 //
@@ -46,6 +47,17 @@ export default async function handler(req, res) {
   // becomes the literal string "Bearer undefined" when the env var is missing — so an
   // unset secret authenticated anyone who guessed that. See lib/webhookAuth.js.
   if (requireCronSecret(req, res)) return;
+
+  // Sales paused: dispatch nothing. This route mails REAL certified letters and
+  // cuts REAL checks, and it is irreversible once Lob accepts the piece. If the
+  // service is not open for business, an order that somehow reached the queue —
+  // a pre-pause purchase, a replayed webhook, a manual row — must not be mailed
+  // on a schedule while nobody is watching. Returns 200 so Vercel does not treat
+  // a deliberate pause as a failing cron and start alerting on it daily.
+  if (!salesEnabled()) {
+    console.log('[cron] SALES_ENABLED is not true — dispatching nothing.');
+    return res.status(200).json({ ok: true, skipped: 'sales_paused' });
+  }
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
     console.error('[cron] Supabase env vars missing. Refusing.');

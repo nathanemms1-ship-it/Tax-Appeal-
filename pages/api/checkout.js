@@ -2,11 +2,17 @@ import Stripe from 'stripe';
 import bcrypt from 'bcryptjs';
 import { getFlVabFee } from '../../lib/flCountyFees';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { blockIfSalesPaused } from '../../lib/salesGate';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
 if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Global kill switch, checked BEFORE the rate limiter and before any Stripe
+  // call. A paused service must not create a session, not take a card, and not
+  // consume a rate-limit slot. See lib/salesGate.js — this fails closed.
+  if (blockIfSalesPaused(res)) return;
 
   // Stripe session creation
   if (await enforceRateLimit(req, res, 'checkout', 10, 60)) return;
