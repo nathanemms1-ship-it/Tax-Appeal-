@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import WaitlistForm from '../components/WaitlistForm';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
@@ -1278,7 +1279,7 @@ function FloridaCountyPicker({ info, onConfirm, onBack }) {
   );
 }
 
-export default function App() {
+function ApplyFunnel() {
   const [step, setStep] = useState("account");
   const [account, setAccount] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
@@ -1460,4 +1461,26 @@ export default function App() {
       )}
     </div>
   );
+}
+
+/**
+ * SALES PAUSED -> the funnel never mounts.
+ *
+ * A wrapper rather than an early return inside ApplyFunnel, so no hook is ever
+ * skipped: this component calls none, and the branch is a build-time constant.
+ *
+ * Not mounting the funnel matters beyond hiding a button. ApplyFunnel calls
+ * /api/autocomplete on keystrokes, /api/lookup (BatchData + Google + Anthropic),
+ * and /api/generate-dr486 or /api/generate-letter — all before checkout, all
+ * billed. Hiding only the pay button would have kept every one of those calls
+ * running for visitors who now have nothing to buy.
+ *
+ * lib/salesGate.js is still what makes a CHARGE impossible; a stale tab or a
+ * direct POST bypasses this file entirely. This is the experience, that is the
+ * guarantee, and they read the same variable so they cannot drift — the build
+ * fails if SALES_ENABLED and NEXT_PUBLIC_SALES_ENABLED disagree.
+ */
+export default function App() {
+  if (process.env.NEXT_PUBLIC_SALES_ENABLED !== 'true') return <WaitlistForm />;
+  return <ApplyFunnel />;
 }

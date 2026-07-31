@@ -84,6 +84,26 @@ for (const [vendor, n] of Object.entries(DAILY_BUDGET)) {
 }
 t('lob budget is the tightest — real mail, irreversible', DAILY_BUDGET.lob < DAILY_BUDGET.anthropic);
 
+// ── Sales gate ────────────────────────────────────────────────────────────────
+// Two variables control one thing: SALES_ENABLED gates the server (runtime, in
+// checkout and the mailing cron) and NEXT_PUBLIC_SALES_ENABLED gates the UI
+// (inlined at build). If they ever disagree the site lies in one direction or
+// the other — a funnel that walks a customer to a 503, or a waitlist page on a
+// site that is quietly still charging cards. Neither is acceptable, and nothing
+// else in the build would notice, so it is asserted here.
+{
+  const server = process.env.SALES_ENABLED === 'true';
+  const client = process.env.NEXT_PUBLIC_SALES_ENABLED === 'true';
+  t(
+    `sales gate agrees across server (${server ? 'on' : 'off'}) and UI (${client ? 'on' : 'off'})`,
+    server === client
+  );
+  if (server !== client) {
+    console.error('    → set BOTH SALES_ENABLED and NEXT_PUBLIC_SALES_ENABLED to the same value,');
+    console.error('      then REDEPLOY. Saving an env var in Vercel alone changes nothing.');
+  }
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`Hardening check — ${failures.length} of ${pass + failures.length} FAILED:`);

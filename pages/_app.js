@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import DisclaimerFooter from '../components/DisclaimerFooter'
+import WaitlistBanner from '../components/WaitlistBanner'
 
 // Google Ads / GA4 tag IDs — set in .env.local and Vercel env vars:
 //   NEXT_PUBLIC_GTAG_ID=G-XXXXXXXXXX   (GA4 Measurement ID)
@@ -121,6 +122,7 @@ export default function App({ Component, pageProps }) {
           "areaServed": ["Texas", "Georgia", "Florida"]
         })}} />
       </Head>
+      <WaitlistBanner />
       <Component {...pageProps} />
       <DisclaimerFooter />
     </>

@@ -140,14 +140,14 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
     const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
     return (
       <div style={barStyle}>
-        🔒 Reserve your Florida spot now — TRIM notices start arriving in {days} days. Lock in the $89 rate today; we file the moment your county's window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+        🔒 Florida TRIM notices start arriving in {days} days. TaxAppeal USA is not filing yet — join the waitlist and we&apos;ll email you the moment we go live. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Join the waitlist →</a>
       </div>
     );
   }
   if (today >= windowOpen && today <= windowClose) {
     return (
       <div style={barStyle}>
-        🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+        🚨 Florida's filing window is open. TaxAppeal USA is not filing yet — join the waitlist and we&apos;ll email you the moment we go live. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Join the waitlist →</a>
       </div>
     );
   }
