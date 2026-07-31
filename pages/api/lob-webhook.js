@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { deliveryConfirmationEmail } from './email-templates';
+import { getSupabaseAdmin } from './supabase';
 
 /**
  * Lob signs every webhook. Without verification anyone could POST a forged
@@ -83,8 +84,75 @@ export default async function handler(req, res) {
       });
     }
 
-    // Send delivery confirmation email if we have the customer's email
-    if (ownerEmail && (eventType === 'letter.certified.delivered' || eventType === 'letter.delivered')) {
+    // ------------------------------------------------------------------
+    // Persist the event.
+    //
+    // Nothing here ever wrote to the database. save-order sets lob_status to
+    // 'dispatched' once at fulfillment and mailed_at was written NOWHERE in the
+    // repo — while /portal reads both to render the timeline and the USPS
+    // tracking link. So every customer's status froze at "dispatched" forever
+    // and the tracking number Lob hands us on each event was logged to Vercel
+    // and thrown away.
+    //
+    // This matters more for Florida than anywhere else: FL mails a check
+    // First-Class with no certified service and no return receipt, so these
+    // check.* events are the ONLY delivery evidence that exists for a state
+    // whose deadline is receipt, not postmark.
+    // ------------------------------------------------------------------
+    const STATUS_BY_EVENT = {
+      'check.mailed': 'mailed',
+      'letter.certified.mailed': 'mailed',
+      'check.in_transit': 'in_transit',
+      'letter.certified.in_transit': 'in_transit',
+      'check.in_local_area': 'in_transit',
+      'check.processed_for_delivery': 'out_for_delivery',
+      'letter.certified.out_for_delivery': 'out_for_delivery',
+      'check.delivered': 'delivered',
+      'letter.delivered': 'delivered',
+      'letter.certified.delivered': 'delivered',
+      'check.re_routed': 'needs_review',
+      'letter.certified.re_routed': 'needs_review',
+      'check.returned_to_sender': 'needs_review',
+      'letter.certified.returned_to_sender': 'needs_review',
+    };
+
+    const lobId = lobObject?.id || null;
+    const newStatus = STATUS_BY_EVENT[eventType];
+
+    if (lobId && newStatus) {
+      try {
+        const supabase = getSupabaseAdmin();
+        const patch = { lob_status: newStatus };
+        // Lob only populates tracking_number once the piece is actually in the
+        // mailstream, so take it whenever it appears rather than only at dispatch.
+        if (trackingNumber) patch.lob_tracking_number = trackingNumber;
+        if (newStatus === 'mailed') patch.mailed_at = event?.date_created || new Date().toISOString();
+
+        const { error } = await supabase
+          .from('orders')
+          .update(patch)
+          .eq('lob_letter_id', lobId);
+
+        if (error) {
+          // Do not fail the webhook on a write error — Lob would retry and we
+          // would re-send the delivery email. Log loudly instead.
+          console.error(`lob-webhook: DB update failed for ${lobId}:`, error.message);
+        } else {
+          console.log(`lob-webhook: ${lobId} -> ${newStatus}${trackingNumber ? ` (tracking ${trackingNumber})` : ''}`);
+        }
+      } catch (dbErr) {
+        console.error('lob-webhook: DB update threw:', dbErr.message);
+      }
+    } else if (!lobId) {
+      console.error(`lob-webhook: ${eventType} arrived with no object id — cannot match an order`);
+    }
+
+    // Send delivery confirmation email if we have the customer's email.
+    // check.delivered was whitelisted above but was NOT in this condition, so a
+    // Florida customer's petition could arrive and they would never be told.
+    // Florida is the state where that email matters most: it is the only proof
+    // of receipt they will ever get.
+    if (ownerEmail && newStatus === 'delivered') {
       const { subject, html, text } = deliveryConfirmationEmail({
         customerName: metadata?.customer_name || '',
         address: propertyAddress || '',
