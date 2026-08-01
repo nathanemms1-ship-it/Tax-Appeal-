@@ -20,7 +20,7 @@
 
 import { escapeHtml, escapeLike } from '../lib/escape.js';
 import { validateVendorInput, cap, LIMITS } from '../lib/inputLimits.js';
-import { DAILY_BUDGET } from '../lib/spendGuard.js';
+import { DAILY_BUDGET, MONTHLY_BUDGET } from '../lib/spendGuard.js';
 
 let pass = 0;
 const failures = [];
@@ -83,6 +83,33 @@ for (const [vendor, n] of Object.entries(DAILY_BUDGET)) {
   t(`daily budget for ${vendor} is a positive finite number`, Number.isFinite(n) && n > 0);
 }
 t('lob budget is the tightest — real mail, irreversible', DAILY_BUDGET.lob < DAILY_BUDGET.anthropic);
+
+// ── Monthly ceilings ──────────────────────────────────────────────────────────
+// RentCast has NO vendor-side spend cap — confirmed against their billing docs:
+// overage cannot be disabled or limited, only alerted on. So these ceilings are
+// the only bound on the bill, and a regression here is invisible until an invoice
+// arrives. Assert the arithmetic, not just the presence of a number.
+for (const [vendor, n] of Object.entries(MONTHLY_BUDGET)) {
+  t(`monthly budget for ${vendor} is a positive finite number`, Number.isFinite(n) && n > 0);
+  t(
+    `monthly ceiling for ${vendor} actually binds (below 28x the daily burst guard)`,
+    n < DAILY_BUDGET[vendor] * 28
+  );
+}
+// The specific failure this catches: a daily cap raised for a traffic spike, with
+// the monthly cap left alone, so the month silently overshoots while no single day
+// ever trips. 28 days is the shortest month — if the monthly number is above what
+// 28 compliant days can produce, the monthly ceiling is decorative.
+t(
+  'rentcast monthly ceiling is the binding constraint, not the daily one',
+  MONTHLY_BUDGET.rentcast < DAILY_BUDGET.rentcast * 28
+);
+// $0.06/call past 1,000 included. 2,000 would be ~$60/mo of overage; anything at
+// or above that is a number nobody chose on purpose.
+t(
+  'rentcast monthly ceiling keeps worst-case overage under $60/mo',
+  MONTHLY_BUDGET.rentcast < 2000
+);
 
 // ── Sales gate ────────────────────────────────────────────────────────────────
 // Two variables control one thing: SALES_ENABLED gates the server (runtime, in
