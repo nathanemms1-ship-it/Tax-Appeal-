@@ -57,7 +57,7 @@ export default function Privacy() {
                   ['Stripe', 'Payment processing', 'Name, email, payment amount'],
                   ['Lob.com', 'Certified mail dispatch', 'Name, property address, letter content'],
                   ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
-                  ['BatchData', 'Property data lookup', 'Property address'],
+                  ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
                   ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
                   ['Google', 'Address autocomplete', 'Address input (partial)'],
                   ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],

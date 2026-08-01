@@ -249,9 +249,13 @@ export default async function handler(req, res) {
     // asked for "3-4 recent comparable sales" with no data and no search tool,
     // which meant fabricated sales figures were mailed to a government board
     // over a homeowner's sworn signature.
-    // TODO: feed real comparables from BatchData (already a paid dependency,
-    // see pages/api/lookup.js) and cite them here instead of arguing from
-    // methodology alone.
+    // NEXT: /api/comps now returns REAL recorded sales (lib/providers/rentcast.js),
+    // each with an address, parcel ID, sale date, price and a source line. Once the
+    // funnel passes that set through to this route, the comps must be interpolated
+    // into the prompt as FACTS the model may only restate — never as a section it
+    // is asked to populate. The prohibition below stays exactly as it is; supplying
+    // real comps does not relax it, it just gives the model something true to cite.
+    // Do NOT wire this up until /api/comps has been verified against a live key.
     const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${county} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
