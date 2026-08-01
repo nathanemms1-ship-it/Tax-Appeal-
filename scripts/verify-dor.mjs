@@ -162,6 +162,22 @@ t('qual code 11 (family transfer) is NOT qualified', sdf.rows[1].is_qualified ==
 t('multi-parcel flag preserved so it can be excluded', sdf.rows[2].multi_par_sal === 'C');
 t('sale date built from year and month', sdf.rows[0].sale_date === '2025-10-01');
 
+// SALE_ID_CD is the sales table's primary key, so losing it silently would make
+// loads non-idempotent AND collapse distinct transfers. The Hillsborough 2026
+// roll has 1,343 sale groups sharing a parcel, month and price while being
+// genuinely different recorded instruments — usually two $100 quit-claim deeds
+// with different clerk numbers. Keying on (parcel, date, price) would have
+// discarded one of each pair.
+const SDF_DUP = [
+  'CO_NO,PARCEL_ID,ASMNT_YR,SALE_YR,SALE_MO,SALE_PRC,QUAL_CD,VI_CD,SALE_ID_CD',
+  '39,172702007000000000223U,2026,2025,08,100,11,I,2025350840',
+  '39,172702007000000000223U,2026,2025,08,100,11,I,2025354244',
+].join('\n');
+const dup = parseRoll(SDF_DUP, 'sdf');
+t('same parcel/month/price with different sale IDs are kept as two sales', dup.rows.length === 2);
+t('sale_id_cd is preserved — it is the primary key', dup.rows[0].sale_id_cd === '2025350840');
+t('...and the two sale IDs differ', dup.rows[0].sale_id_cd !== dup.rows[1].sale_id_cd);
+
 // ── Report ───────────────────────────────────────────────────────────────────
 if (fail.length) {
   console.error(`DOR check — ${fail.length} of ${pass + fail.length} FAILED:`);

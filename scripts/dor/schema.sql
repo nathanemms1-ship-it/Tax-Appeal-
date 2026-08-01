@@ -93,7 +93,19 @@ create table if not exists sales (
 
   loaded_at      timestamptz not null default now(),
 
-  primary key (co_no, parcel_id, asmnt_yr, sale_date, sale_prc)
+  -- KEYED ON SALE_ID_CD, not on (date, price).
+  --
+  -- The obvious key — parcel + date + price — is wrong, and the Hillsborough 2026
+  -- roll proves it: 1,343 groups (1.8% of 73,046 sales) share a parcel, month and
+  -- price while being genuinely DIFFERENT recorded instruments. The common shape
+  -- is two $100 quit-claim deeds recorded in the same month with different clerk
+  -- numbers. Collapsing them would silently discard real transfers.
+  --
+  -- SALE_ID_CD is the appraiser's own sale identifier, documented as stable
+  -- across submissions, and it is 100% populated with zero collisions in this
+  -- file. That makes reloading a roll idempotent: the same sale re-loads onto
+  -- itself instead of duplicating.
+  primary key (co_no, parcel_id, asmnt_yr, sale_id_cd)
 );
 
 -- ── Indexes ─────────────────────────────────────────────────────────────────
