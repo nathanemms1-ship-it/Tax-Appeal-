@@ -87,6 +87,21 @@ async function cacheSet(key, value, ttl) {
   try { await redis.set(key, value, { ex: ttl }); } catch (e) {}
 }
 
+/**
+ * CACHE VERSION — bump this whenever the logic that BUILDS a cached response
+ * changes shape or source.
+ *
+ * Learned the hard way: the Florida county-data path was added to this route and
+ * then appeared not to work at all. It worked fine. The cache was returning a
+ * RentCast response built hours earlier, because a cache key made only of the
+ * address does not encode WHICH CODE produced the value stored under it.
+ *
+ * A stale cache after a logic change is invisible in exactly the wrong way — the
+ * endpoint returns a valid, well-formed, confidently wrong answer, and every
+ * check you run to debug it hits the same cached entry.
+ */
+const CACHE_VERSION = 'v2-county';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -120,7 +135,7 @@ export default async function handler(req, res) {
   // external calls and some are gated on data being MISSING, so per-leg caching
   // left the expensive path uncached. The funnel only ever consumes this assembled
   // payload, so this is the thing to cache.
-  const resultKey = `lookup:${stateUpper}:${addrSlug}`;
+  const resultKey = `lookup:${CACHE_VERSION}:${stateUpper}:${addrSlug}`;
 
   // A request carrying manual overrides must NEVER be served from cache, and must
   // never write to it. Those values are what the customer typed on the "we
@@ -274,7 +289,7 @@ export default async function handler(req, res) {
     // property is picked up within a day. It is also what a transient vendor
     // outage looks like, which is the other reason not to pin it for a month.
     const NEGATIVE_TTL = 24 * 60 * 60;
-    const rcKey = `rc:${stateUpper}:${addrSlug}`;
+    const rcKey = `rc:${CACHE_VERSION}:${stateUpper}:${addrSlug}`;
 
     // Only when our own data did not answer: a Florida address off-roll, or any
     // other state. Every RentCast call is now an exception, not the norm.

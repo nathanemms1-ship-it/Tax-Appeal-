@@ -69,6 +69,21 @@ async function cacheSet(k, v, ttl) {
 // weaker without anyone noticing. A week is short enough that the evidence on a
 // petition is never materially stale and long enough to absorb the funnel's
 // re-visits and back-buttons.
+/**
+ * CACHE VERSION — bump this whenever the logic that BUILDS a cached response
+ * changes shape or source.
+ *
+ * Learned the hard way: the Florida county-data path was added to this route and
+ * then appeared not to work at all. It worked fine. The cache was returning a
+ * RentCast response built hours earlier, because a cache key made only of the
+ * address does not encode WHICH CODE produced the value stored under it.
+ *
+ * A stale cache after a logic change is invisible in exactly the wrong way — the
+ * endpoint returns a valid, well-formed, confidently wrong answer, and every
+ * check you run to debug it hits the same cached entry.
+ */
+const CACHE_VERSION = 'v2-county';
+
 const TTL = 7 * 24 * 60 * 60;
 const NEGATIVE_TTL = 12 * 60 * 60;
 
@@ -123,7 +138,7 @@ export default async function handler(req, res) {
     criteria.maxRadiusMiles, criteria.sqftTolerance,
     criteria.yearBuiltTolerance, criteria.monthsBack, criteria.maxComps,
   ].join('_');
-  const key = `comps:${stateUpper}:${addrSlug}:${critSlug}`;
+  const key = `comps:${CACHE_VERSION}:${stateUpper}:${addrSlug}:${critSlug}`;
 
   const cached = await cacheGet(key);
   if (cached) {
