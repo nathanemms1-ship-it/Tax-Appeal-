@@ -57,6 +57,7 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
 import { checkSpend } from '../../lib/spendGuard';
 import { lookupProperty, RentcastError } from '../../lib/providers/rentcast';
+import { lookupAndQualify } from '../../lib/dor/parcels';
 
 // Still interpolates the address into the district prompt, so it keeps the 64 KB
 // body ceiling rather than Next's 1 MB default. See lib/inputLimits.js.
@@ -162,6 +163,12 @@ export default async function handler(req, res) {
     let valueNeedsConfirmation = false;
     let lookupStatus = 'ok';
 
+    // Florida only. Null for every other state until their adapters exist.
+    let cappedAssessedValue = null;
+    let taxableValue = null;
+    let savings = null;
+    let valueSource = null;
+
     // ── STEP 1: County via Census geocoder ────────────────────────────────────
     //
     // Census is authoritative and free. There is deliberately NO LLM fallback for
@@ -197,6 +204,64 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── STEP 2: Florida — our own copy of the county assessment roll ─────────
+    //
+    // THIS REPLACES RENTCAST FOR FLORIDA, AND THE REASON IS NOT COST.
+    //
+    // Tested against a real Hillsborough parcel, RentCast returned the Save Our
+    // Homes CAPPED ASSESSED value, one roll year stale, with no way to tell which
+    // figure you had been given:
+    //
+    //              County roll     RentCast
+    //   Just       $608,998        —
+    //   Assessed   $459,927        $447,835   (2025, not 2026)
+    //   Taxable    $408,516        —
+    //
+    // A DR-486 disputes JUST value. RentCast was 26% below it, and also reported
+    // 2,399 sq ft against the county's 2,699. Three fields, three wrong answers.
+    // That is not a vendor defect — a national aggregator flattens every state
+    // into one assessment number, and Florida needs three.
+    //
+    // WHAT `assessedValue` MEANS BELOW, BECAUSE IT CHANGED:
+    // For Florida it now carries JUST (market) value, because that is the figure
+    // a VAB petition contests and the one Fla. Stat. § 193.011 governs. The
+    // capped assessed value is returned separately as `cappedAssessedValue`.
+    // Downstream code that treats `assessedValue` as "the value we are disputing"
+    // stays correct; anything that needs the capped figure must read the new
+    // field.
+    //
+    // Costs nothing, needs no vendor, and is the Property Appraiser's own
+    // submission to the Department of Revenue — so a special magistrate cannot
+    // dispute where it came from.
+    if (stateUpper === 'FL') {
+      try {
+        const dor = await lookupAndQualify({ street, zip, city });
+        if (dor.found) {
+          const p = dor.parcel;
+          if (assessedValue === null) assessedValue = p.justValue;
+          if (sqft === null) sqft = p.livingArea;
+          if (yearBuilt === null) yearBuilt = p.yearBuilt ? String(p.yearBuilt) : null;
+          parcelId = p.parcelId;
+          cappedAssessedValue = p.assessedValue?.nonSchool ?? null;
+          taxableValue = p.taxableValue?.nonSchool ?? null;
+          savings = dor.savings;
+          valueSource = p.source;
+          // County from the roll is retrieved, not inferred — but Census stays
+          // primary because it is the authority for the filing jurisdiction.
+          if (!county && p.coNo) county = null;
+          lookupStatus = 'ok';
+          console.log('DOR PARCEL:', p.parcelId, 'jv', p.justValue, 'av', cappedAssessedValue);
+        } else {
+          // Not an error. New construction and recently split parcels legitimately
+          // are not on the current roll, and only 13 counties are loaded so far.
+          // Fall through to RentCast rather than refusing the customer.
+          console.log('DOR PARCEL MISS:', dor.reason);
+        }
+      } catch (e) {
+        console.error('[lookup] DOR parcel lookup failed:', e?.message);
+      }
+    }
+
     // ── STEP 2: Property record via RentCast ──────────────────────────────────
     //
     // 30 days, not 180: assessed values and parcel data DO change on the county's
@@ -211,10 +276,14 @@ export default async function handler(req, res) {
     const NEGATIVE_TTL = 24 * 60 * 60;
     const rcKey = `rc:${stateUpper}:${addrSlug}`;
 
-    let record = await cacheGet(rcKey);
+    // Only when our own data did not answer: a Florida address off-roll, or any
+    // other state. Every RentCast call is now an exception, not the norm.
+    const needVendor = assessedValue === null || sqft === null || parcelId === null;
+
+    let record = needVendor ? await cacheGet(rcKey) : null;
     if (record) console.log(`RENTCAST FROM CACHE (${rcKey})`);
 
-    if (!record) {
+    if (!record && needVendor) {
       // Only a cache MISS costs money, so the ceiling is checked here.
       const spend = await checkSpend('rentcast', 1);
       if (!spend.ok) {
@@ -262,6 +331,8 @@ export default async function handler(req, res) {
       // Only flag for confirmation if the value actually came from the provider.
       // If the customer typed it, they were reading their TRIM notice and there is
       // nothing to confirm.
+      // Only vendor data needs confirming. County roll figures match the TRIM
+      // notice by construction, because they are the same submission.
       valueNeedsConfirmation = !manualAssessedValue && record.assessedValue !== null;
 
       // Census remains primary; this is a retrieved secondary, not a guess.
@@ -375,9 +446,18 @@ Return ONLY this JSON, with null for anything you cannot verify from an official
 
     const payload = {
       extractedData: {
+        // For Florida this is JUST (market) value — the figure the petition
+        // disputes. See STEP 2.
         assessedValue, marketValue, sqft, yearBuilt, beds, baths,
         annualTax, county, taxYear, parcelId,
+        // Florida only, from the county roll. Null elsewhere.
+        cappedAssessedValue, taxableValue,
       },
+      // The savings gate. `savings.eligible === false` means an appeal cannot
+      // lower this owner's bill and the funnel MUST NOT sell them a filing —
+      // see lib/dor/qualify.js for why that is not a judgement call.
+      savings,
+      valueSource,
       appraisalDistrict,
       resolvedCounty: countyName,
       // The UI uses these two. `valueNeedsConfirmation` must drive a visible
