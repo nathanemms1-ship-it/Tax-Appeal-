@@ -331,8 +331,29 @@ export default function CheckPage() {
                 <Row label="Property" value={d.parcel.address} />
                 <Row label="Parcel number" value={d.parcel.parcelId} mono />
                 <Row label="Market (just) value" value={fmt(d.parcel.justValue)} strong />
-                <Row label="Assessed value" value={fmt(d.parcel.assessedValue.nonSchool)} />
-                <Row label="Taxable value" value={fmt(d.parcel.taxableValue.nonSchool)} />
+                {/* TWO ASSESSED VALUES, SHOWN SEPARATELY WHEN THEY DIFFER.
+                    Florida caps school and non-school levies differently: Save Our
+                    Homes limits both, but the 10% non-homestead cap (s 193.1554)
+                    limits non-school ONLY. So a non-homesteaded property can be
+                    assessed at full market value for school taxes while capped
+                    below it for county and city.
+                    Showing only the non-school figure made the page contradict
+                    itself — "$514,930 assessed" directly above "Not capped" — on a
+                    live Broward property. Both are true; flattening them is what
+                    was wrong. */}
+                {d.parcel.assessedValue.school !== d.parcel.assessedValue.nonSchool ? (
+                  <>
+                    <Row label="Assessed value — school taxes" value={fmt(d.parcel.assessedValue.school)} />
+                    <Row label="Assessed value — county & city" value={fmt(d.parcel.assessedValue.nonSchool)} />
+                    <Row label="Taxable value — school taxes" value={fmt(d.parcel.taxableValue.school)} />
+                    <Row label="Taxable value — county & city" value={fmt(d.parcel.taxableValue.nonSchool)} />
+                  </>
+                ) : (
+                  <>
+                    <Row label="Assessed value" value={fmt(d.parcel.assessedValue.nonSchool)} />
+                    <Row label="Taxable value" value={fmt(d.parcel.taxableValue.nonSchool)} />
+                  </>
+                )}
                 <Row label="Homestead exemption" value={d.parcel.homesteaded ? 'Yes' : 'No'} />
                 <Row
                   label="Capped below market by"
@@ -345,6 +366,15 @@ export default function CheckPage() {
                   strong
                   last
                 />
+                {d.parcel.assessedValue.school !== d.parcel.assessedValue.nonSchool && (
+                  <p style={{ fontSize: 13, lineHeight: 1.6, color: C.muted, margin: '16px 0 0', paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+                    Your two assessed values differ because Florida caps them differently. The 10%
+                    cap on non-homesteaded property applies to county and city taxes but{' '}
+                    <strong style={{ color: C.body }}>not to school taxes</strong>, which are
+                    assessed on full market value. That is why a reduction reaches your bill
+                    straight away — it lowers the school portion immediately.
+                  </p>
+                )}
               </div>
 
               {/* ESTIMATES. Visually separated, and every figure carries the

@@ -154,6 +154,7 @@ export default async function handler(req, res) {
     // cannot dispute its provenance. Comps are drawn from the appraiser's own
     // neighbourhood code rather than a radius, and banded by size — see
     // lib/dor/comps.js for why the second of those matters more than it looks.
+    let countyDeclined = null;
     if (stateUpper === 'FL') {
       try {
         const subject = await findParcel({ street, zip, city });
@@ -189,10 +190,13 @@ export default async function handler(req, res) {
               retrievedAt: new Date().toISOString(),
             });
           }
-          // Not enough qualified, size-comparable sales. Fall through to
-          // RentCast rather than publishing a thin set — but never publish the
-          // thin set itself.
-          console.log('[comps] DOR insufficient:', r.reason, r.level || '');
+          // The county path ran and declined. Fall through to RentCast rather
+          // than publishing a thin set — but carry the reason forward so the
+          // caller can tell "our data says no" from "we had no data", and so a
+          // silent join failure can never masquerade as a quiet neighbourhood
+          // again.
+          console.log('[comps] DOR insufficient:', r.reason, r.level || '', `candidates=${r.candidateCount ?? 0}`);
+          countyDeclined = { reason: r.reason, level: r.level || null, candidatesConsidered: r.candidateCount ?? 0 };
         }
       } catch (e) {
         console.error('[comps] DOR path failed:', e?.message);
@@ -245,6 +249,7 @@ export default async function handler(req, res) {
       // Printed at the foot of the comps table on the petition. A cited sale with
       // no stated source is the thing we are fixing.
       attribution: 'Comparable sales retrieved from public property records via RentCast.',
+      countyDeclined,
       retrievedAt: new Date().toISOString(),
     };
 
