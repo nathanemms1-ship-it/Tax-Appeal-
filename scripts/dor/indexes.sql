@@ -16,9 +16,23 @@
 -- "8023 MARBELLA CREEK AVE") rather than prefix-only. This is what lets
 -- autocomplete run against our own data instead of a metered vendor, and it is
 -- why every suggestion is guaranteed to have a parcel behind it.
+--
+-- INDEXED ON phy_addr1 DIRECTLY, NOT ON AN EXPRESSION.
+--
+-- The first version indexed (phy_addr1 || ' ' || phy_city). That index is only
+-- usable by a query containing that exact same expression — and the autocomplete
+-- filters on phy_addr1 alone, so the planner ignored it and sequentially scanned
+-- 5.2 million rows on every keystroke. The suggestions were never wrong, just far
+-- too slow to arrive before the customer finished typing, which looks identical
+-- to "autocomplete is broken".
+--
+-- City is not in the index because the street box is the only thing typed into.
+-- If city-aware search is wanted later, add a second index rather than
+-- concatenating — a composite expression breaks the plain-column lookup again.
 create extension if not exists pg_trgm;
+drop index if exists parcels_addr_trgm;
 create index if not exists parcels_addr_trgm
-  on parcels using gin ((coalesce(phy_addr1,'') || ' ' || coalesce(phy_city,'')) gin_trgm_ops);
+  on parcels using gin (phy_addr1 gin_trgm_ops);
 
 -- Exact address lookup after the customer picks a suggestion.
 create index if not exists parcels_zip_addr
