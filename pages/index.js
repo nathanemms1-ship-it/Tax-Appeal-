@@ -429,7 +429,6 @@ export default function Landing() {
           </button>
           <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
         </div>
-        </div>
         <div className="trust-row">
           <div className="trust-item">🔒 256-bit encrypted</div>
           <div className="trust-item">⏱️ Takes 4 minutes</div>
