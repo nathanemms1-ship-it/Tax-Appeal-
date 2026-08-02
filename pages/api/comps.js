@@ -82,7 +82,7 @@ async function cacheSet(k, v, ttl) {
  * endpoint returns a valid, well-formed, confidently wrong answer, and every
  * check you run to debug it hits the same cached entry.
  */
-const CACHE_VERSION = 'v3-agebands';
+const CACHE_VERSION = 'v4-millage';
 
 const TTL = 7 * 24 * 60 * 60;
 const NEGATIVE_TTL = 12 * 60 * 60;

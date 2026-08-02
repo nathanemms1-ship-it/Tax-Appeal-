@@ -100,7 +100,7 @@ async function cacheSet(key, value, ttl) {
  * endpoint returns a valid, well-formed, confidently wrong answer, and every
  * check you run to debug it hits the same cached entry.
  */
-const CACHE_VERSION = 'v2-county';
+const CACHE_VERSION = 'v4-millage';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
