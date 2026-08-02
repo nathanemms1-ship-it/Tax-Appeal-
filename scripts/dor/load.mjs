@@ -98,6 +98,7 @@ let read = 0;
 let written = 0;
 let skipped = 0;
 let filtered = 0;
+let excluded = 0;
 // Counted separately from `skipped`, because a column-count mismatch means the
 // LAYOUT is wrong — a different roll year, or the wrong file kind — and that is
 // a stop-and-look problem rather than a bad row to shrug off.
@@ -136,11 +137,18 @@ for await (const line of rl) {
 
   const row = normalize(obj);
   if (!row) { skipped++; continue; }
+  // Deliberate exclusions, not failures. Kept out of pctSkipped so a normal
+  // county cannot trip the layout alarm below.
+  if (row.__excluded) { excluded++; continue; }
 
   // Counted separately from `skipped` — a filtered-out commercial parcel is a
   // deliberate exclusion, not a parse failure, and lumping them together would
   // trip the 5% unusable-rows alarm below on every single county.
-  if (residentialOnly && !(row.dor_uc >= 1 && row.dor_uc <= 8)) { filtered++; continue; }
+  // Drop only what is KNOWN to be non-residential. A missing use code is
+  // unknown, not commercial, and discarding it silently loses usable sales —
+  // the comps query filters on the joined parcel's use code anyway, so an
+  // unknown here costs nothing downstream.
+  if (residentialOnly && row.dor_uc != null && !(row.dor_uc >= 1 && row.dor_uc <= 8)) { filtered++; continue; }
 
   out.write(cols.map((c) => csvCell(row[c])).join(',') + '\n');
   written++;
@@ -157,6 +165,7 @@ console.log(`  read     ${read.toLocaleString()}`);
 console.log(`  written  ${written.toLocaleString()}`);
 console.log(`  skipped  ${skipped.toLocaleString()} (${pctSkipped.toFixed(2)}%)`);
 if (filtered) console.log(`  filtered ${filtered.toLocaleString()} non-residential (use --all to keep)`);
+if (excluded) console.log(`  excluded ${excluded.toLocaleString()} with no sale price or date (not usable as comps)`);
 if (ragged) console.log(`  ragged   ${ragged.toLocaleString()} rows had an unexpected column count`);
 
 // A handful of unusable rows in a county roll is normal. A large fraction means

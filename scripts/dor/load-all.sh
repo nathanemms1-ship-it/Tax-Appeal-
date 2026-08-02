@@ -144,8 +144,25 @@ for zip in "$SRC"/*NAL*.zip "$SRC"/*SDF*.zip; do
 
   echo ""
   echo "── $name"
+  # PIPESTATUS, not the pipeline's exit code.
+  #
+  # This previously read `node ... | grep ... || true`, which discarded the
+  # loader's exit status entirely — so its layout-mismatch guard (>5% unusable
+  # rows, or >1% ragged) could fire and the script would carry on to the next
+  # county reporting success. A safety check whose failure is swallowed is worse
+  # than no check, because it reads as reassurance.
+  set +e
   node "$REPO/scripts/dor/load.mjs" --kind "$kind" --in "$csv" --out "$TMP/out.csv" 2>&1 \
-    | grep -E '^\s+(read|written|skipped|filtered|ragged)' || true
+    | grep -E '^\s+(read|written|skipped|excluded|filtered|ragged)'
+  loader_status=${PIPESTATUS[0]}
+  set -e
+  if [ "$loader_status" -ne 0 ]; then
+    echo ""
+    echo "✗ $name failed its integrity check — NOT loaded."
+    echo "  Re-run the loader on this file alone to see the reason."
+    echo "  Continuing with the remaining counties."
+    continue
+  fi
 
   # Staging table + upsert rather than a bare \copy: a direct copy aborts the
   # whole county the moment it meets a row already present, which makes re-runs

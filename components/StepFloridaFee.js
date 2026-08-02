@@ -50,6 +50,22 @@ const [agreedAuth, setAgreedAuth] = useState(false);
 // order so there is a record of who chose it.
 const [countyConfirmed, setCountyConfirmed] = useState(false);
 const [agreedFee, setAgreedFee] = useState(false);
+/**
+ * THE HEARING ELECTION.
+ *
+ * Defaults to NOT attending, because that is what almost every homeowner wants
+ * and it is a normal, express option on the DR-486 — "I will not attend the
+ * hearing but would like my evidence considered."
+ *
+ * But it is SHOWN, not assumed. generate-dr486.js already defaulted this to true
+ * while its own header states the election "belongs to the OWNER and must be
+ * disclosed and chosen, never defaulted silently." A silent default is exactly
+ * the kind of thing that turns a document preparation service into someone
+ * making decisions on a petitioner's behalf.
+ *
+ * Unchecking it is the only way to attend, so the owner keeps the choice.
+ */
+const [willNotAttend, setWillNotAttend] = useState(true);
 
 const vabFee = feeData?.vabFee || 5000;
 const payableTo = feeData?.payableTo || 'Board of County Commissioners';
@@ -75,6 +91,9 @@ county: feeData?.county,
 vabFee,
 payableTo,
 needsManualFiling: !!feeData?.needsManualFiling,
+// The owner's own election, recorded with the order. Checked on Part 2 of
+// the DR-486.
+willNotAttend,
 // Recorded so there is evidence the customer affirmatively confirmed the
 // county, rather than us having inferred it. A tick nobody stores proves
 // nothing later.
@@ -226,6 +245,21 @@ hearing is scheduled, attending is my decision and my responsibility.
 {checkbox(agreedFee, () => setAgreedFee(!agreedFee), (
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
 ))}
+
+{/* The hearing election. Pre-ticked, but visible and reversible — see the
+    state declaration for why a silent default was the wrong shape. Not part
+    of canProceed: either answer is valid, so it must not gate the button. */}
+{checkbox(willNotAttend, () => setWillNotAttend(!willNotAttend), (
+<><strong style={{ color: C.darkNavy }}>I do not want to attend a hearing.</strong> Ask the Board to decide on my written petition alone. Most owners choose this — it is an express option on the DR-486 and does not weaken the petition. <span style={{ color: C.mutedGray }}>Untick this if you would rather attend in person; the Board will then schedule you a time.</span></>
+))}
+
+{!willNotAttend && (
+<div style={{ fontSize: 12.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, background: '#FFF8E6', border: '1px solid #F0DFB0', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+You&rsquo;ll be scheduled for a hearing and will need to attend or send someone. TaxAppeal USA
+prepares your documents and cannot appear or speak for you — we are not your representative
+before the Board.
+</div>
+)}
 
 {!canProceed && (
 <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: 'center', marginBottom: 10 }}>

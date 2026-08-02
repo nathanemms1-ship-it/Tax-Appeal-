@@ -156,7 +156,11 @@ const SDF_CSV = [
 ].join('\n');
 
 const sdf = parseRoll(SDF_CSV, 'sdf');
-t('SDF drops rows with no sale year or price', sdf.rows.length === 3 && sdf.skipped === 1);
+t('SDF drops rows with no sale year or price', sdf.rows.length === 3);
+// Counted as an EXCLUSION, not a skip. A transfer recorded with no
+// consideration is a real record we cannot use as a comp — not a parse failure —
+// and counting it as one made two healthy counties trip the layout alarm.
+t('...and counts it as an exclusion, not a parse failure', sdf.excluded === 1 && sdf.skipped === 0);
 t('qual code 01 is qualified', sdf.rows[0].is_qualified === true);
 t('qual code 11 (family transfer) is NOT qualified', sdf.rows[1].is_qualified === false);
 t('multi-parcel flag preserved so it can be excluded', sdf.rows[2].multi_par_sal === 'C');
