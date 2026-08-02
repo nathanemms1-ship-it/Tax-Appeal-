@@ -74,6 +74,14 @@ const kind = String(arg('kind', 'nal')).toLowerCase();
 const inPath = arg('in');
 const outPath = arg('out', kind === 'sdf' ? 'sales.csv' : 'parcels.csv');
 
+// DOR use codes 001-008 are the residential classes we serve. Everything else —
+// commercial, industrial, agricultural, institutional, government — is 17.5% of
+// rows we would store, index and back up forever without ever querying.
+//
+// On by default. Pass --all to keep every parcel; the only reason to do that is
+// if the product ever handles commercial appeals.
+const residentialOnly = !process.argv.includes('--all');
+
 if (!inPath || !['nal', 'sdf'].includes(kind)) {
   console.error('usage: node scripts/dor/load.mjs --kind nal|sdf --in <file.csv> [--out <out.csv>]');
   process.exit(2);
@@ -89,6 +97,7 @@ let headers = null;
 let read = 0;
 let written = 0;
 let skipped = 0;
+let filtered = 0;
 // Counted separately from `skipped`, because a column-count mismatch means the
 // LAYOUT is wrong — a different roll year, or the wrong file kind — and that is
 // a stop-and-look problem rather than a bad row to shrug off.
@@ -128,6 +137,11 @@ for await (const line of rl) {
   const row = normalize(obj);
   if (!row) { skipped++; continue; }
 
+  // Counted separately from `skipped` — a filtered-out commercial parcel is a
+  // deliberate exclusion, not a parse failure, and lumping them together would
+  // trip the 5% unusable-rows alarm below on every single county.
+  if (residentialOnly && !(row.dor_uc >= 1 && row.dor_uc <= 8)) { filtered++; continue; }
+
   out.write(cols.map((c) => csvCell(row[c])).join(',') + '\n');
   written++;
 
@@ -142,6 +156,7 @@ console.log(`\n${basename(inPath)} -> ${outPath}`);
 console.log(`  read     ${read.toLocaleString()}`);
 console.log(`  written  ${written.toLocaleString()}`);
 console.log(`  skipped  ${skipped.toLocaleString()} (${pctSkipped.toFixed(2)}%)`);
+if (filtered) console.log(`  filtered ${filtered.toLocaleString()} non-residential (use --all to keep)`);
 if (ragged) console.log(`  ragged   ${ragged.toLocaleString()} rows had an unexpected column count`);
 
 // A handful of unusable rows in a county roll is normal. A large fraction means

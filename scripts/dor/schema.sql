@@ -108,40 +108,21 @@ create table if not exists sales (
   primary key (co_no, parcel_id, asmnt_yr, sale_id_cd)
 );
 
--- ── Indexes ─────────────────────────────────────────────────────────────────
-
--- Address autocomplete. Trigram, so it matches mid-string ("marbella" finding
--- "8023 MARBELLA CREEK AVE") rather than prefix-only. This is what lets
--- autocomplete run against our own data instead of a metered vendor, and it is
--- why every suggestion is guaranteed to have a parcel behind it.
-create extension if not exists pg_trgm;
-create index if not exists parcels_addr_trgm
-  on parcels using gin ((coalesce(phy_addr1,'') || ' ' || coalesce(phy_city,'')) gin_trgm_ops);
-
--- Exact address lookup after the customer picks a suggestion.
-create index if not exists parcels_zip_addr
-  on parcels (phy_zipcd, phy_addr1);
-
--- The comp query: same county, same appraiser neighborhood, same roll year,
--- filtered on size and age. Ordering matches how the query filters.
-create index if not exists parcels_comp_lookup
-  on parcels (co_no, asmnt_yr, nbrhd_cd, dor_uc, tot_lvg_area);
-
--- Fallback comp stratum when a parcel has no neighborhood code assigned.
-create index if not exists parcels_mktarea_lookup
-  on parcels (co_no, asmnt_yr, mkt_ar, dor_uc, tot_lvg_area);
-
--- Joining sales to parcels, and pulling recent qualified sales in an area.
-create index if not exists sales_parcel
-  on sales (co_no, parcel_id, sale_date desc);
-create index if not exists sales_qualified_recent
-  on sales (co_no, nbrhd_cd, sale_date desc) where is_qualified;
-
--- Targeting: find every parcel where an appeal can actually work. This is the
--- query that turns the roll into a marketing asset — it is the thing no
--- competitor can run, because the Department publishes only county aggregates.
-create index if not exists parcels_differential
-  on parcels (co_no, asmnt_yr, dor_uc) include (jv, av_sd, av_nsd, tv_sd, tv_nsd);
+-- ── Indexes are NOT created here ────────────────────────────────────────────
+--
+-- They live in scripts/dor/indexes.sql and are applied AFTER the data is loaded.
+--
+-- This is not stylistic. Loading into a table that already carries six indexes —
+-- one of them a trigram GIN — means every inserted row updates all of them, and
+-- the write-ahead log churn that produces can triple peak disk usage during a
+-- load. On a Supabase nano instance that is the difference between finishing and
+-- "could not extend file: No space left on device" three counties in, which is
+-- exactly what happened on the first full run.
+--
+-- Building an index once over a finished table is also far faster than
+-- maintaining it across five million individual inserts.
+--
+-- Order is therefore: schema.sql -> load all counties -> indexes.sql
 
 -- ── Load provenance ─────────────────────────────────────────────────────────
 -- Every petition must be able to state which roll its numbers came from. A sworn
