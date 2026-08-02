@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { ADVERTISED_STATES } from '../lib/dor/coverage';
+import { getFilingWindowStatus } from '../lib/filingWindows';
 
 /**
  * THE FREE SAVINGS CHECK — public page.
@@ -63,6 +65,7 @@ export default function CheckPage() {
   const suggestTimer = useRef(null);
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');
+  const [leadState, setLeadState] = useState('FL');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -135,7 +138,7 @@ export default function CheckPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          state: 'FL',
+          state: leadState || 'FL',
           county: state.data?.parcel?.coNo ? String(state.data.parcel.coNo) : '',
           propertyAddress: state.data?.parcel?.address || `${form.street}, ${form.zip}`,
         }),
@@ -172,7 +175,7 @@ export default function CheckPage() {
           <p style={{ fontSize: 16, lineHeight: 1.6, color: C.body, margin: '0 0 32px' }}>
             Save Our Homes caps how fast your assessed value can rise. Once that cap opens a
             gap, winning a reduction in market value doesn&rsquo;t change what you pay. We check
-            your property against your county&rsquo;s own tax roll and tell you either way.
+            your property against your county&rsquo;s own records and tell you either way.
             Free, no account, no card.
           </p>
 
@@ -235,7 +238,7 @@ export default function CheckPage() {
                 cursor: state.status === 'loading' ? 'wait' : 'pointer', fontFamily: 'inherit',
               }}
             >
-              {state.status === 'loading' ? 'Checking the county roll…' : 'Check my property — free'}
+              {state.status === 'loading' ? 'Checking county records…' : 'Check my property — free'}
             </button>
             <p style={{ fontSize: 13, color: C.muted, margin: '12px 0 0' }}>
               Currently covering 13 Florida counties: Brevard, Broward, Duval, Hillsborough, Lee,
@@ -250,13 +253,46 @@ export default function CheckPage() {
           {/* ── No record ─────────────────────────────────────────────────── */}
           {d && !d.found && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
-              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t find that property</h2>
-              <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>
-              <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
-                Check the street number and spelling. New construction and recently split parcels
-                sometimes aren&rsquo;t on the current roll yet, and we only cover the 13 counties
-                listed above so far.
-              </p>
+              {d.reason === 'outside_coverage' ? (
+                <>
+                  <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We&rsquo;re not in your state yet</h2>
+                  <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>
+                    Florida is the only state we can check right now — it publishes one statewide
+                    property file that makes this possible, and we&rsquo;re working through the
+                    others. Tell us where you are and we&rsquo;ll email you before your filing
+                    window opens, with your deadline.
+                  </p>
+                  <LeadForm
+                    email={email} setEmail={setEmail}
+                    leadState={leadState} setLeadState={setLeadState}
+                    emailState={emailState} onSubmit={joinList}
+                    showStates
+                  />
+                </>
+              ) : (
+                <>
+                  <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t check that address yet</h2>
+                  <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 12px' }}>
+                    Either it&rsquo;s in a Florida county we haven&rsquo;t loaded yet, or it&rsquo;s
+                    too new to be in the county&rsquo;s records. Worth double-checking the street
+                    number and spelling first.
+                  </p>
+                  {d.coveredCounties && (
+                    <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
+                      Counties we can check today: {d.coveredCounties.join(', ')}.
+                    </p>
+                  )}
+                  <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>
+                    Leave your email and we&rsquo;ll check it by hand and come back to you — well
+                    before the September 18 petition deadline.
+                  </p>
+                  <LeadForm
+                    email={email} setEmail={setEmail}
+                    leadState={leadState} setLeadState={setLeadState}
+                    emailState={emailState} onSubmit={joinList}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -288,8 +324,8 @@ export default function CheckPage() {
               <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }}>
                 <h2 style={{ fontSize: 18, margin: '0 0 4px' }}>What the county says</h2>
                 <p style={{ fontSize: 13, color: C.muted, margin: '0 0 18px' }}>
-                  Straight from the {d.parcel.rollYear} Florida Department of Revenue assessment roll.
-                  Check it against your TRIM notice — these should match exactly.
+                  Your county&rsquo;s official {d.parcel.rollYear} figures, as filed with the Florida
+                  Department of Revenue. Check them against your TRIM notice — they should match exactly.
                 </p>
 
                 <Row label="Property" value={d.parcel.address} />
@@ -344,9 +380,10 @@ export default function CheckPage() {
                   <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We&rsquo;ll tell you when that changes</h2>
                   <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>
                     This can change. Buying or selling resets the cap, and if market values fall
-                    far enough, your just value drops toward your assessed value and an appeal
-                    starts to be worth filing. We re-check every roll and will email you the year
-                    yours crosses that line. Nothing else — no marketing.
+                    far enough, your market value drops toward your assessed value and an appeal
+                    starts to be worth filing. Your county sets new values once a year — we check
+                    yours every time, and will email you the year it crosses that line.
+                    Nothing else, no marketing.
                   </p>
                   {emailState === 'done' ? (
                     <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
@@ -386,6 +423,70 @@ export default function CheckPage() {
           )}
         </div>
       </main>
+    </>
+  );
+}
+
+/**
+ * Shared capture form for every outcome we cannot answer.
+ *
+ * The state selector shows that state's REAL filing window from
+ * lib/filingWindows.js rather than a generic line. "Your window opens April 1,
+ * we'll email you that morning" is both true and more useful than "we'll be in
+ * touch" — and it is the same data the funnel uses to decide whether it can file
+ * at all, so the two can never disagree.
+ */
+function LeadForm({ email, setEmail, leadState, setLeadState, emailState, onSubmit, showStates = false }) {
+  let windowNote = null;
+  if (showStates && leadState) {
+    try {
+      const w = getFilingWindowStatus(leadState);
+      if (w) {
+        const dd = (dt) => new Date(dt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        windowNote = w.isOpen
+          ? `Filing is open in ${leadState} until ${dd(w.closeDate)}.`
+          : `Filing in ${leadState} opens ${dd(w.openDate)}. We'll email you that morning.`;
+      }
+    } catch { /* a date calculation must never break lead capture */ }
+  }
+
+  if (emailState === 'done') {
+    return <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>Got it — we&rsquo;ll be in touch.</p>;
+  }
+
+  return (
+    <>
+      <form onSubmit={onSubmit} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {showStates && (
+          <select
+            value={leadState}
+            onChange={(e) => setLeadState(e.target.value)}
+            aria-label="Your state"
+            style={{ flex: '1 1 130px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit', background: C.white }}
+          >
+            {ADVERTISED_STATES.map((st) => <option key={st.code} value={st.code}>{st.name}</option>)}
+          </select>
+        )}
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          aria-label="Email address"
+          style={{ flex: '2 1 220px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+        />
+        <button
+          type="submit"
+          disabled={emailState === 'loading'}
+          style={{ flex: '1 1 150px', padding: '13px 20px', fontSize: 16, fontWeight: 600, background: C.navy, color: C.white, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {emailState === 'loading' ? 'Saving…' : 'Keep me posted'}
+        </button>
+      </form>
+      {windowNote && <p style={{ color: C.muted, fontSize: 14, marginTop: 10 }}>{windowNote}</p>}
+      {emailState === 'error' && (
+        <p style={{ color: C.amber, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
+      )}
     </>
   );
 }

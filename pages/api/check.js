@@ -48,6 +48,7 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { lookupAndQualify } from '../../lib/dor/parcels';
 import { DEFAULT_MILLAGE } from '../../lib/dor/qualify';
+import { isFloridaZip, LOADED_COUNTY_NAMES } from '../../lib/dor/coverage';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -68,14 +69,34 @@ export default async function handler(req, res) {
   }
 
   try {
+    // OUTSIDE FLORIDA — a coverage gap, not a missing property.
+    //
+    // Answered before touching the database, because the honest message is
+    // different in kind: we hold a tax roll, just not theirs. Telling a Texas
+    // homeowner we have no record of their property reads as "your house does
+    // not exist", which is both wrong and the fastest way to lose a lead we
+    // could have captured.
+    if (zip && !isFloridaZip(zip)) {
+      return res.status(200).json({
+        found: false,
+        reason: 'outside_coverage',
+        message: 'We only cover Florida so far. Tell us your state and we\'ll email you before your filing window opens.',
+      });
+    }
+
     const result = await lookupAndQualify({ street, zip, city });
 
     if (!result.found) {
       return res.status(200).json({
         found: false,
+        // Inside Florida but no parcel. Could be a county we have not loaded, or
+        // genuine new construction. We cannot tell which without the county, and
+        // the county comes from a geocoder we are not calling here — so the
+        // message covers both rather than asserting either.
         reason: result.reason,
         candidates: result.candidates || null,
         message: result.message,
+        coveredCounties: result.reason === 'no_parcel' ? LOADED_COUNTY_NAMES : undefined,
       });
     }
 
