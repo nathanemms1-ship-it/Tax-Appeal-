@@ -595,6 +595,15 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
   }
 
   // ── Worth filing. Show the county's own arithmetic, then continue. ─────────
+  //
+  // UNCAPPED IS NOT "NO ROOM". A parcel where assessed value equals just value
+  // has no Save Our Homes differential to absorb a reduction, which is the
+  // strongest position a Florida homeowner can be in — every dollar off just
+  // value reaches the bill. Rendering that as "Room between them: $0" made the
+  // best case on the page read as a failure.
+  const uncapped = !d.facts?.differential || Number(d.facts.differential) <= 0;
+  const px = d.parcel || {};
+
   return (
     <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E8F5EE', color: C.green, borderRadius: 20, padding: '5px 12px', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 14, fontWeight: 600 }}>
@@ -603,17 +612,31 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
       <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
         Your property is worth appealing
       </h2>
+
+      {/* Identify the parcel we matched. A customer needs to see we found THEIR
+          house before any figure below it means anything. */}
+      {px.address && (
+        <div style={{ background: '#FBFCFE', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>{px.address}</div>
+          <div style={{ color: C.mutedGray, fontSize: 13 }}>
+            {[px.livingArea ? `${Number(px.livingArea).toLocaleString()} sq ft` : null,
+              px.yearBuilt ? `built ${px.yearBuilt}` : null,
+              px.parcelId ? `parcel ${px.parcelId}` : null].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+      )}
+
       <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 20 }}>
-        These are your county&rsquo;s own figures from the {d.parcel?.rollYear || ''} assessment roll.
+        These are your county&rsquo;s own figures from the {px.rollYear || ''} assessment roll.
         You can check every one of them against your TRIM notice.
       </p>
 
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
         {[
-          ['Just value (what a petition disputes)', money(d.facts?.justValue)],
-          ['Your assessed value is capped at', money(d.facts?.cappedAt)],
-          ['Room between them', money(d.facts?.differential)],
-        ].filter(([, v]) => v).map(([label, value], i) => (
+          ['Just value — the figure a petition disputes', money(d.facts?.justValue)],
+          uncapped ? null : ['Your assessed value is capped at', money(d.facts?.cappedAt)],
+          uncapped ? null : ['A reduction has to clear this much first', money(d.facts?.differential)],
+        ].filter(Boolean).filter(([, v]) => v).map(([label, value], i) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
             <span style={{ color: C.bodyGray }}>{label}</span>
             <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
@@ -621,17 +644,52 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
         ))}
       </div>
 
-      {d.estimates?.likely != null && (
-        <p style={{ fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginBottom: 24 }}>
-          A typical reduction on a property like yours would save roughly {money(d.estimates.likely)} a year.
-          That is an estimate built on average millage rates, not a promise — your county decides the outcome.
-        </p>
+      <div style={{ background: uncapped ? '#E8F5EE' : C.lightBlue, border: `1px solid ${uncapped ? '#B8DFC9' : '#C5D3E8'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+        {uncapped
+          ? <>Your assessed value is <strong>not capped</strong> — it equals your just value. That is the
+             best position to appeal from: every dollar taken off your just value comes straight off
+             the value you are taxed on, with nothing absorbing it first.</>
+          : (d.facts?.statement || <>Save Our Homes caps your assessed value below your just value, so a
+             reduction only reaches your bill once it clears that gap.</>)}
+      </div>
+
+      {/* Three scenarios rather than one number. A single figure reads as a
+          promise; the range is what we can actually stand behind. */}
+      {d.estimates && (d.estimates.conservative != null || d.estimates.likely != null) && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.bodyGray, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+            If your appeal succeeds, a year
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[['Modest', d.estimates.conservative], ['Typical', d.estimates.likely], ['Strong result', d.estimates.optimistic]]
+              .filter(([, v]) => v != null).map(([label, v]) => (
+              <div key={label} style={{ flex: '1 1 150px', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', background: C.white }}>
+                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.navy }}>{money(v)}</div>
+                <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          {d.estimates.millageIsEstimated && (
+            <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginTop: 10 }}>
+              Estimates only. The reduction figures are ours; the millage rate used is a county
+              average, so your actual saving depends on your exact taxing districts and on what
+              your Value Adjustment Board decides.
+            </p>
+          )}
+        </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
         <button style={{ ...secondaryBtn, width: 'auto', padding: '14px 24px' }} onClick={onBack}>← Back</button>
         <button style={primaryBtn} onClick={onEligible}>Continue →</button>
       </div>
+
+      <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+        {px.source ? `Source: ${px.source}. ` : ''}
+        We report the county&rsquo;s own figures and the arithmetic that follows from them. TaxAppeal
+        USA is a document preparation service — not appraisers, attorneys or tax advisers — and we do
+        not represent you before the Value Adjustment Board. You sign and file in your own name.
+      </p>
     </div>
   );
 }
