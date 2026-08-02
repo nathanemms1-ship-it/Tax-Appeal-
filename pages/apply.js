@@ -1012,12 +1012,20 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   );
 }
 
-function StepDispute({ formData, onRestart }) {
+function StepDispute({ formData, onRestart, onEditIssues }) {
   const [loading, setLoading] = useState(true);
   const [propData, setPropData] = useState(null);
   // Non-null when the county's own figures show an appeal cannot reduce this
   // owner's tax. See the block in run() for why this stops the sale outright.
   const [noSavings, setNoSavings] = useState(null);
+  // Set when the county's own sales could not support a lower value. Not a
+  // failure — it changes what the petition rests on, and the owner should learn
+  // that before paying rather than after reading the finished document.
+  const [compsNotice, setCompsNotice] = useState(null);
+  // A REF, not state. "Continue without sales evidence" re-runs the lookup
+  // immediately, so a state update would not have landed by the time run()
+  // re-checks it — and the notice would show again, forever.
+  const compsAcknowledged = useRef(false);
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const ran = useRef(false);
@@ -1127,6 +1135,45 @@ function StepDispute({ formData, onRestart }) {
       let claudeJson;
       if (stateCode === 'FL') {
         const flSig = formData.flSignature || {};
+
+        // Real comparable sales from the county's own sale data file. Fetched
+        // here rather than inside generate-dr486 so a comps failure can never
+        // block the petition — no comps means the petition argues methodology
+        // alone, exactly as it did before, and never invents any.
+        let flComps = null;
+        try {
+          const cRes = await fetch('/api/comps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ street: property.street, city: property.city, state: 'FL', zip: property.zip }),
+          });
+          if (cRes.ok) {
+            const cJson = await cRes.json();
+            // Only a set that is BOTH sufficient and actually supports a
+            // reduction may reach the petition. Comps indicating a value above
+            // the county's would be evidence against our own customer.
+            if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps)) {
+              flComps = cJson.comps;
+            } else {
+              // Two different situations, one consequence. Either there were not
+              // enough qualified, size- and age-comparable sales nearby, or there
+              // were and they indicate a value at or above the county's. The
+              // petition can still be filed either way — it just rests entirely
+              // on the condition of the property, which is a weaker argument and
+              // one the owner has to supply the facts for.
+              if (!compsAcknowledged.current) {
+                setCompsNotice({
+                  kind: cJson?.supportsReduction === false ? 'not_supportive' : 'insufficient',
+                });
+                setLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('comps unavailable, filing on methodology alone:', e?.message);
+        }
+
         const dr486Res = await fetch("/api/generate-dr486", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1138,6 +1185,7 @@ function StepDispute({ formData, onRestart }) {
             ownerCity: property.city,
             ownerState: property.state,
             ownerZip: property.zip,
+            comps: flComps,
             propertyAddress: addr,
             county,
             assessedValue,
@@ -1247,6 +1295,58 @@ function StepDispute({ formData, onRestart }) {
             toward the capped figure.
           </p>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Shown BEFORE the petition is generated and before any charge, so the owner
+  // can go back and record condition issues while it still helps. Deliberately
+  // not an error and not a blocker — a condition-based petition is legitimate
+  // under s 193.011, it is simply the weaker one, and the owner is the only
+  // person who knows what is wrong with their house.
+  if (compsNotice) {
+    const hasIssues = Array.isArray(issues) && issues.length > 0;
+    return (
+      <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
+        <div style={cardStyle}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 25, color: C.darkNavy, marginBottom: 12 }}>
+            We couldn&rsquo;t find sales that support a lower value
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.body, marginBottom: 16 }}>
+            {compsNotice.kind === 'not_supportive'
+              ? `Recent qualified sales in your neighborhood came in at or above your county's value, so they won't help your case. We won't put them in your petition.`
+              : `There weren't enough recent, comparable arms-length sales close enough to your property in size and age to build a reliable comparison.`}
+          </p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.body, marginBottom: 16 }}>
+            You can still file. Your petition would argue from the <strong>condition of your
+            property</strong> instead — Florida law (§ 193.011) requires the appraiser to
+            account for condition, and a house with real problems is worth less than its
+            neighbors whatever they sold for.
+          </p>
+          <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, lineHeight: 1.6, color: C.darkNavy, margin: 0 }}>
+              {hasIssues
+                ? <>You&rsquo;ve noted {issues.length} issue{issues.length === 1 ? '' : 's'}. Worth going back to check nothing is missing — roof age, foundation movement, HVAC, water intrusion, deferred maintenance, or anything about the location. Each one you can document strengthens the petition.</>
+                : <>You haven&rsquo;t noted any property issues yet, and without sales evidence the petition would have very little to argue from. Go back and record anything wrong with the property — roof, foundation, HVAC, water intrusion, deferred maintenance, location.</>}
+            </p>
+          </div>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.6, color: C.muted, marginBottom: 20 }}>
+            Bring photos, repair estimates or inspection reports to your hearing — the Board
+            gives far more weight to a documented problem than a described one. You haven&rsquo;t
+            been charged.
+          </p>
+          <button style={{ ...primaryBtn, width: "auto", padding: "13px 26px" }} onClick={onEditIssues}>
+            {hasIssues ? 'Review my property issues' : 'Add property issues'}
+          </button>
+          <div style={{ marginTop: 12 }}>
+            <button
+              style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }}
+              onClick={() => { compsAcknowledged.current = true; setCompsNotice(null); ran.current = false; run(); ran.current = true; }}
+            >
+              Continue without sales evidence →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1523,7 +1623,7 @@ function ApplyFunnel() {
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} onEditIssues={() => { setStep("issues"); window.scrollTo(0,0); }} />}
         </>
       )}
     </div>

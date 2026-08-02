@@ -84,7 +84,7 @@ function esc(s) {
 function buildDR486Html({
   ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
   ownerStreet, ownerCity, ownerState, ownerZip,
-  propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear,
+  propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear, comps,
   evidenceText, vabName, ownerSignatureName, ownerSignatureDate, filingDate,
   willNotAttend, authorizeConfidential, preview,
 }) {
@@ -249,13 +249,40 @@ export default async function handler(req, res) {
     // asked for "3-4 recent comparable sales" with no data and no search tool,
     // which meant fabricated sales figures were mailed to a government board
     // over a homeowner's sworn signature.
-    // NEXT: /api/comps now returns REAL recorded sales (lib/providers/rentcast.js),
-    // each with an address, parcel ID, sale date, price and a source line. Once the
-    // funnel passes that set through to this route, the comps must be interpolated
-    // into the prompt as FACTS the model may only restate — never as a section it
-    // is asked to populate. The prohibition below stays exactly as it is; supplying
-    // real comps does not relax it, it just gives the model something true to cite.
-    // Do NOT wire this up until /api/comps has been verified against a live key.
+    // COMPARABLE SALES ARE NOW SUPPLIED AS FACTS, NOT REQUESTED AS A SECTION.
+    //
+    // They come from lib/dor/comps.js: qualified arms-length sales (DOR
+    // QUAL_CD 01/02) drawn from the subject's own appraiser neighbourhood code,
+    // banded by living area and construction year, taken from the county's
+    // Sale Data File — the same record set the Property Appraiser used to value
+    // the subject.
+    //
+    // The distinction that matters: the model is handed a finished table and
+    // told it may restate those rows and nothing else. It is never asked to
+    // "include a comparable sales section", which is the phrasing that produced
+    // fabricated addresses and prices in the first place. Supplying real comps
+    // does not relax the prohibition below by one word — it just gives the model
+    // something true to cite.
+    //
+    // No comps supplied means the petition argues methodology alone, exactly as
+    // before. Absence of evidence must never become invented evidence.
+    const compRows = Array.isArray(comps) ? comps.filter((c) => c && c.salePrice && c.address) : [];
+    const compsBlock = compRows.length
+      ? `\nVERIFIED COMPARABLE SALES — these are real recorded transactions supplied to you.
+You MAY restate these rows exactly as given. You MUST NOT add, alter, round, or
+extrapolate from them, and you must not introduce any sale not listed here.
+
+${compRows.map((c, i) =>
+  `${i + 1}. ${c.address} | Parcel ${c.parcelId || 'n/a'} | Sold ${c.saleDate} for ${fmt(c.salePrice)}` +
+  `${c.sqft ? ` | ${Number(c.sqft).toLocaleString()} sq ft` : ''}` +
+  `${c.pricePerSqft ? ` | ${fmt(c.pricePerSqft)}/sq ft` : ''}` +
+  `${c.yearBuilt ? ` | built ${c.yearBuilt}` : ''}`
+).join('\n')}
+
+Source: qualified arms-length sales from the Florida Department of Revenue sale
+data file for ${county} County, drawn from the same appraiser neighborhood as the
+subject property.\n`
+      : '';
     const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${county} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
@@ -265,11 +292,13 @@ CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
 ${valuationBasis ? 'GROUNDS FOR THE REQUESTED VALUE (these were derived from the facts below — argue THESE, and do not substitute your own):\n' + valuationBasis : ''}
 ${propertyDetails ? 'PROPERTY DETAILS:\n' + propertyDetails : ''}
+${compsBlock}
 ${issuesBlock}
 OWNER NOTES: ${notes || 'None.'}
 
 CRITICAL RULES — this document is signed by the property owner UNDER PENALTY OF PERJURY:
 - DO NOT invent, estimate, or state any specific comparable sale. No street addresses, no sale prices, no sale dates, no parcel numbers other than the one given above.
+- The ONLY comparable sales you may reference are those listed under VERIFIED COMPARABLE SALES, if that section is present. Restate them exactly. If it is absent, cite no sales at all.
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, say what evidence the owner should submit instead.
@@ -288,7 +317,7 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 Write exactly 4 sections:
 1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing Fla. Stat. § 193.011(1)-(8) criteria and applying them to the property details given above.
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
-3. VALUATION METHODOLOGY — the approach the Board should apply under § 193.011(1) (present cash value: what a willing buyer would pay a willing seller), including the adjustments warranted for this property type. Describe the method; do not invent comparables.
+3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, describe the approach the Board should apply and state plainly that the owner will submit comparable sales separately. Either way: do not invent comparables.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).
 
 Professional, factual, first person as the property owner. Output only the four sections.`;

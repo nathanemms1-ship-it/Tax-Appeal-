@@ -178,6 +178,36 @@ t('same parcel/month/price with different sale IDs are kept as two sales', dup.r
 t('sale_id_cd is preserved — it is the primary key', dup.rows[0].sale_id_cd === '2025350840');
 t('...and the two sale IDs differ', dup.rows[0].sale_id_cd !== dup.rows[1].sale_id_cd);
 
+
+// ── DR-486 evidence integrity ────────────────────────────────────────────────
+// The petition is signed under penalty of perjury. These assertions guard the
+// one property that matters: the prompt may contain ONLY comps that were
+// supplied, and must never ask the model to produce a comparable sales section
+// of its own. An earlier version did exactly that and mailed invented addresses
+// and sale prices to a government board over a homeowner's signature.
+import { readFileSync } from 'node:fs';
+const dr486 = readFileSync(new URL('../pages/api/generate-dr486.js', import.meta.url), 'utf8');
+
+t('DR-486 accepts comps as an input', /propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear, comps,/.test(dr486));
+t('DR-486 only builds a comps block from supplied rows', dr486.includes('const compRows = Array.isArray(comps)'));
+t('DR-486 requires both an address and a sale price per comp', dr486.includes('c.salePrice && c.address'));
+t('DR-486 forbids sales outside the supplied set', dr486.includes('The ONLY comparable sales you may reference are those listed under VERIFIED COMPARABLE SALES'));
+t('DR-486 tells the model to cite nothing when none are supplied', dr486.includes('If it is absent, cite no sales at all'));
+t('DR-486 keeps the fabrication prohibition', dr486.includes('DO NOT invent, estimate, or state any specific comparable sale'));
+// Scoped to the PROMPT, not the file — the comments deliberately quote the old
+// fabricating phrasing to explain why it was removed, and a naive whole-file
+// scan flags its own changelog.
+const promptStart = dr486.indexOf('const evidencePrompt = `');
+const promptBody = promptStart > -1 ? dr486.slice(promptStart, dr486.indexOf('`;', promptStart)) : '';
+t('the prompt itself exists', promptBody.length > 200);
+t('the prompt never asks the model to produce comparables', !/3-4 recent comparable sales|4-5 recent sales|include a comparable sales section/i.test(promptBody));
+t('the prompt forbids unlisted sales', promptBody.includes('cite no sales at all'));
+
+const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+t('funnel only forwards comps that support a reduction', apply.includes('cJson?.supportsReduction !== false'));
+t('funnel only forwards a sufficient comp set', apply.includes('cJson?.sufficient'));
+t('a comps failure does not block the petition', apply.includes('filing on methodology alone'));
+
 // ── Report ───────────────────────────────────────────────────────────────────
 if (fail.length) {
   console.error(`DOR check — ${fail.length} of ${pass + fail.length} FAILED:`);
