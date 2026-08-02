@@ -74,7 +74,12 @@ function NavBar({ step }) {
 }
 
 function ProgressBar({ currentStep }) {
-  const idx = STEPS.indexOf(currentStep);
+  // The eligibility check and the Florida fee screen are not their own numbered
+  // steps — they sit between "Your Property" and "Property Issues". Without this
+  // STEPS.indexOf returns -1 on those screens and the whole bar renders as though
+  // the customer had not started, which reads as progress being lost.
+  const SUBSTEPS = { 'florida-check': 'property', 'florida-fee': 'issues' };
+  const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
       {STEPS.map((step, i) => {
@@ -503,6 +508,134 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * decorate a page. `/api/lookup` is cached, so the call the dispute step makes
  * later is served from cache and costs nothing extra.
  */
+/**
+ * THE FLORIDA ELIGIBILITY CHECK, INSIDE THE FUNNEL.
+ *
+ * Roughly 6 in 10 Florida residential parcels cannot benefit from an appeal at
+ * all — Save Our Homes caps assessed value, and a petition can only move JUST
+ * value, so a reduction that does not clear the cap changes nothing on the bill.
+ * Those people must be turned away, and this is where that happens: after the
+ * property step, before a single question about defects, and long before payment.
+ *
+ * WHY HERE AND NOT ON A SEPARATE PAGE FIRST.
+ * By this point we hold their email (step 1) and their address (step 2). Someone
+ * we turn away is therefore someone we can email the year their situation
+ * changes — a sale, a market fall, a homestead ending. Putting the check on the
+ * doorstep instead would mean the people we cannot help leave without a trace,
+ * and they are the majority.
+ *
+ * A failure to reach the check is NOT a refusal. If the lookup errors we
+ * continue, because refusing on absence of evidence would turn an outage into
+ * lost customers who were perfectly eligible.
+ */
+function StepFloridaCheck({ property, onEligible, onBack }) {
+  const [state, setState] = useState({ status: 'loading', data: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ street: property.street, zip: property.zip, city: property.city }),
+        });
+        const j = await r.json();
+        if (cancelled) return;
+        if (!j || j.found === false || j.eligible === undefined) { onEligible(); return; }
+        setState({ status: 'done', data: j });
+      } catch {
+        if (!cancelled) onEligible();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (state.status === 'loading') {
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '64px 24px', textAlign: 'center' }}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10 }}>
+          Checking your county&rsquo;s roll
+        </div>
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          We&rsquo;re reading the {property.city || 'county'} assessment roll to see whether an appeal
+          can actually lower your bill. This takes a moment and costs you nothing.
+        </p>
+      </div>
+    );
+  }
+
+  const d = state.data;
+  const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
+
+  // ── Cannot win. Say so, plainly, and keep the door open. ───────────────────
+  if (!d.eligible) {
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
+          An appeal wouldn&rsquo;t lower your bill this year
+        </h2>
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
+          {d.message || 'Your assessed value is capped well below your just value, so reducing the just value would not reach your tax bill.'}
+        </p>
+        {d.facts?.statement && (
+          <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            {d.facts.statement}
+          </div>
+        )}
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
+          We&rsquo;re not going to take $89 for a filing that cannot help you. We re-read every
+          roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.
+        </p>
+        <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
+          ← Check a different property
+        </button>
+      </div>
+    );
+  }
+
+  // ── Worth filing. Show the county's own arithmetic, then continue. ─────────
+  return (
+    <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E8F5EE', color: C.green, borderRadius: 20, padding: '5px 12px', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 14, fontWeight: 600 }}>
+        ✓ Worth appealing
+      </div>
+      <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
+        Your property is worth appealing
+      </h2>
+      <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 20 }}>
+        These are your county&rsquo;s own figures from the {d.parcel?.rollYear || ''} assessment roll.
+        You can check every one of them against your TRIM notice.
+      </p>
+
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+        {[
+          ['Just value (what a petition disputes)', money(d.facts?.justValue)],
+          ['Your assessed value is capped at', money(d.facts?.cappedAt)],
+          ['Room between them', money(d.facts?.differential)],
+        ].filter(([, v]) => v).map(([label, value], i) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            <span style={{ color: C.bodyGray }}>{label}</span>
+            <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {d.estimates?.likely != null && (
+        <p style={{ fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginBottom: 24 }}>
+          A typical reduction on a property like yours would save roughly {money(d.estimates.likely)} a year.
+          That is an estimate built on average millage rates, not a promise — your county decides the outcome.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button style={{ ...secondaryBtn, width: 'auto', padding: '14px 24px' }} onClick={onBack}>← Back</button>
+        <button style={primaryBtn} onClick={onEligible}>Continue →</button>
+      </div>
+    </div>
+  );
+}
+
 function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange, property, costOverrides, onCostChange }) {
   const count = selectedIssues.length;
   const [parcel, setParcel] = useState(null);
@@ -1721,7 +1854,8 @@ function ApplyFunnel() {
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { const sc = property.state.trim().toUpperCase(); setStep(sc === 'FL' ? 'florida-check' : 'issues'); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} onEligible={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} />}
