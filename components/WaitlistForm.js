@@ -105,12 +105,18 @@ export default function WaitlistForm() {
         <link rel="canonical" href="https://www.taxappealusa.com/apply" />
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child.
+          React escapes text children, so the apostrophes in @import url('...')
+          became &#x27; in the server HTML and stayed literal on the client. The
+          two strings differ, React reports "Text content does not match
+          server-rendered HTML", and the dev overlay covers the whole page. The
+          CSS is a constant in this file, not user input. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
         input:focus, select:focus { border-color: ${C.navy} !important; }
         .wl-wrap { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
         @media (max-width: 640px) { .wl-wrap { padding: 32px 18px 64px; } }
-      `}</style>
+      ` }} />
 
       <div className="wl-wrap">
         <a href="/" style={{ color: C.navy, fontSize: 14, textDecoration: 'none', fontWeight: 600 }}>← TaxAppeal USA</a>

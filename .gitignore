@@ -34,3 +34,6 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+
+# local helper, not for the repo
+setkey.sh

@@ -198,6 +198,11 @@ export default async function handler(req, res) {
     ownerStreet, ownerCity, ownerState, ownerZip,
     propertyAddress, county, parcelId,
     assessedValue, requestedValue, taxYear,
+    // Verified comparable sales from lib/dor/comps.js. THIS WAS MISSING, and its
+    // absence threw ReferenceError: comps is not defined at the compRows line
+    // below — the identifier existed only as a parameter of buildDR486Html, a
+    // different function. Every Florida petition failed at the final step.
+    comps,
     // Derived in lib/valuation.js with the statutory grounds supporting the ask.
     valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
@@ -266,7 +271,12 @@ export default async function handler(req, res) {
     //
     // No comps supplied means the petition argues methodology alone, exactly as
     // before. Absence of evidence must never become invented evidence.
-    const compRows = Array.isArray(comps) ? comps.filter((c) => c && c.salePrice && c.address) : [];
+    // Bounded before use. The engine returns at most MAX_COMPS (6), but this
+    // route is reachable by direct POST and every row is interpolated into the
+    // prompt, so the cap is enforced here rather than assumed upstream.
+    const compRows = (Array.isArray(comps) ? comps : [])
+      .filter((c) => c && c.salePrice && c.address)
+      .slice(0, 12);
     const compsBlock = compRows.length
       ? `\nVERIFIED COMPARABLE SALES — these are real recorded transactions supplied to you.
 You MAY restate these rows exactly as given. You MUST NOT add, alter, round, or

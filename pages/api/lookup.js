@@ -182,6 +182,10 @@ export default async function handler(req, res) {
     let cappedAssessedValue = null;
     let taxableValue = null;
     let savings = null;
+    // Florida only. Feeds the finish-level multiplier in lib/costToCure.js —
+    // without it cost to cure still works, it just stops scaling with how the
+    // house is built. Degrades, never breaks.
+    let landValue = null;
     let valueSource = null;
 
     // ── STEP 1: County via Census geocoder ────────────────────────────────────
@@ -258,6 +262,7 @@ export default async function handler(req, res) {
           if (yearBuilt === null) yearBuilt = p.yearBuilt ? String(p.yearBuilt) : null;
           parcelId = p.parcelId;
           cappedAssessedValue = p.assessedValue?.nonSchool ?? null;
+          landValue = p.landValue ?? null;
           taxableValue = p.taxableValue?.nonSchool ?? null;
           savings = dor.savings;
           valueSource = p.source;
@@ -466,7 +471,7 @@ Return ONLY this JSON, with null for anything you cannot verify from an official
         assessedValue, marketValue, sqft, yearBuilt, beds, baths,
         annualTax, county, taxYear, parcelId,
         // Florida only, from the county roll. Null elsewhere.
-        cappedAssessedValue, taxableValue,
+        cappedAssessedValue, taxableValue, landValue,
       },
       // The savings gate. `savings.eligible === false` means an appeal cannot
       // lower this owner's bill and the funnel MUST NOT sell them a filing —

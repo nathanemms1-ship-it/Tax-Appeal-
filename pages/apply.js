@@ -4,6 +4,7 @@ import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
+import { curePriceFor, totalCostToCure } from '../lib/costToCure';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -486,8 +487,52 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
   );
 }
 
-function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange }) {
+/**
+ * The issues step, with what each defect costs to fix.
+ *
+ * The cost figure is the thing the petition actually asks for, so it is shown
+ * here — before the owner pays — rather than appearing for the first time on a
+ * letter they have already been charged for. Every figure is editable, because
+ * an owner holding a contractor's quote has better information than a published
+ * regional average and their number should win.
+ *
+ * PARCEL FACTS ARE FETCHED FOR FLORIDA ONLY. The costs scale by living area and
+ * improvement value, which for Florida come free from the county roll. Every
+ * other state would mean a metered RentCast call at a step the customer may
+ * abandon, so those fall back to unscaled figures rather than spending money to
+ * decorate a page. `/api/lookup` is cached, so the call the dispute step makes
+ * later is served from cache and costs nothing extra.
+ */
+function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange, property, costOverrides, onCostChange }) {
   const count = selectedIssues.length;
+  const [parcel, setParcel] = useState(null);
+  const [parcelState, setParcelState] = useState('idle');
+
+  useEffect(() => {
+    if (stateCode !== 'FL') { setParcelState('unscaled'); return; }
+    let cancelled = false;
+    setParcelState('loading');
+    (async () => {
+      try {
+        const r = await fetch('/api/lookup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ street: property.street, city: property.city, state: property.state, zip: property.zip }),
+        });
+        const j = await r.json();
+        if (cancelled) return;
+        const e = j?.extractedData || {};
+        if (e.assessedValue || e.sqft) {
+          setParcel({ jv: e.assessedValue, lnd_val: e.landValue, tot_lvg_area: e.sqft });
+          setParcelState('ok');
+        } else setParcelState('unscaled');
+      } catch { if (!cancelled) setParcelState('unscaled'); }
+    })();
+    return () => { cancelled = true; };
+  }, [stateCode, property.street, property.city, property.state, property.zip]);
+
+  const cure = totalCostToCure(selectedIssues, parcel, costOverrides);
+  const curable = cure.priced.length;
+
   return (
     <div className="page-grid-issues">
       <div>
@@ -508,10 +553,44 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {cat.issues.map((issue) => {
                 const selected = selectedIssues.includes(issue);
+                const price = selected ? curePriceFor(issue, parcel) : null;
+                const override = costOverrides[issue];
                 return (
-                  <div key={issue} onClick={() => onToggle(issue)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${selected ? C.navy : C.border}`, background: selected ? C.lightBlue : C.white, cursor: "pointer", transition: "all 0.15s" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected ? C.navy : "#C5D0E0"}`, background: selected ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700 }}>{selected ? "✓" : ""}</div>
-                    <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: selected ? C.darkNavy : "#3D4F66", fontWeight: selected ? 500 : 400 }}>{issue}</span>
+                  <div key={issue}>
+                    <div onClick={() => onToggle(issue)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: selected && price ? "8px 8px 0 0" : 8, border: `1.5px solid ${selected ? C.navy : C.border}`, borderBottom: selected && price ? "none" : undefined, background: selected ? C.lightBlue : C.white, cursor: "pointer", transition: "all 0.15s" }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected ? C.navy : "#C5D0E0"}`, background: selected ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700 }}>{selected ? "✓" : ""}</div>
+                      <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: selected ? C.darkNavy : "#3D4F66", fontWeight: selected ? 500 : 400 }}>{issue}</span>
+                    </div>
+                    {selected && price && price.curable && price.asked != null && (
+                      <div style={{ border: `1.5px solid ${C.navy}`, borderTop: "none", borderRadius: "0 0 8px 8px", background: C.white, padding: "12px 14px 12px 44px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Cost to repair</span>
+                          <div style={{ display: "flex", alignItems: "center", border: `1px solid ${C.border}`, borderRadius: 6, paddingLeft: 8, background: C.white }}>
+                            <span style={{ fontSize: 13, color: C.bodyGray }}>$</span>
+                            <input
+                              type="text" inputMode="numeric"
+                              value={override != null ? override : (price.asked ?? 0).toLocaleString()}
+                              onChange={(e) => onCostChange(issue, e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              style={{ border: "none", outline: "none", width: 92, padding: "7px 8px 7px 2px", fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.darkNavy, fontWeight: 600, background: "transparent" }}
+                            />
+                          </div>
+                          {override != null && String(override).trim() !== "" && (
+                            <button onClick={() => onCostChange(issue, null)} style={{ border: "none", background: "none", color: C.navy, fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textDecoration: "underline" }}>reset</button>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 6, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+                          {override != null && String(override).trim() !== ""
+                            ? "Your figure — cited as the owner's own estimate."
+                            : <>{price.scope}. Typical range ${price.low.toLocaleString()}–${price.high.toLocaleString()}. Source: {price.source}, {price.sourceYear}.{parcelState === 'unscaled' ? " Not yet adjusted for your home's size." : ""}</>}
+                        </div>
+                      </div>
+                    )}
+                    {selected && price && !price.curable && (
+                      <div style={{ border: `1.5px solid ${C.navy}`, borderTop: "none", borderRadius: "0 0 8px 8px", background: C.white, padding: "10px 14px 10px 44px", fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+                        No repair cost — this cannot be fixed by spending money. It is cited as support for the comparable-sales argument instead.
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -534,6 +613,25 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
           <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 4 }}>{count === 1 ? "issue selected" : "issues selected"}</div>
           {count >= 3 && <div style={{ fontSize: 11, color: C.green, marginTop: 8, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>✓ Strong case</div>}
         </div>
+        {cure.total > 0 && (
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px" }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.bodyGray, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>Total cost to repair</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.navy, lineHeight: 1 }}>${cure.total.toLocaleString()}</div>
+            <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 8, lineHeight: 1.5 }}>
+              across {curable} repairable {curable === 1 ? "issue" : "issues"}
+              {cure.narrative.length > 0 && <> · {cure.narrative.length} non-repairable {cure.narrative.length === 1 ? "condition" : "conditions"} cited separately</>}
+            </div>
+            {/* Said here, before payment, not for the first time on the letter. */}
+            {cure.disproportionate && (
+              <div style={{ fontSize: 11, color: "#7A5C10", background: C.amber, border: "1px solid #FFD97A", borderRadius: 6, padding: "9px 11px", marginTop: 12, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+                This is {Math.round(cure.shareOfValue * 100)}% of your assessed value. That is a large claim — your petition will state it plainly, and it is much stronger if you can produce contractor estimates for the biggest items.
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 12, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+              Your dispute asks the county to reduce the value by what these repairs cost. Every figure is editable and every source is named in the letter.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1021,7 +1119,7 @@ function StepDispute({ formData, onRestart }) {
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const ran = useRef(false);
-  const { account, property, issues } = formData;
+  const { account, property, issues, costOverrides } = formData;
   const addr = `${property.street}, ${property.city}, ${property.state} ${property.zip}`;
   const stateCode = property.state.trim().toUpperCase();
 
@@ -1094,6 +1192,11 @@ function StepDispute({ formData, onRestart }) {
         marketValue,
         issues,
         categoryOf: ISSUE_CATEGORY_INDEX,
+        // Cost to cure needs the property, not just the value: repairs scale with
+        // living area and with how the house is built. Florida gets both free
+        // from the roll; elsewhere sqft alone still scales the size component.
+        parcel: { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft },
+        costOverrides: costOverrides || {},
         corrections: {
           sqft: property.manualSqft || null,
           countySqft: sqft || null,
@@ -1117,10 +1220,33 @@ function StepDispute({ formData, onRestart }) {
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
-      const issuesBlock = issues && issues.length > 0 ? `PROPERTY DEFECTS & ISSUES (cite each one in the letter):\n${issues.map(i => `• ${i}`).join("\n")}` : "No specific property issues reported beyond general market value discrepancy.";
+      // The defects block now carries what each repair costs and where the figure
+      // came from. A cited cost is arguable; a bare list of complaints is not.
+      // Incurable conditions are listed separately and explicitly at no cost, so
+      // the letter cannot imply we priced something we did not.
+      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
+      const curedLines = cure.priced.map(c =>
+        `• ${c.issue}\n    Remedy: ${c.scope}\n    Cost to cure: $${c.asked.toLocaleString()}${c.ownerSupplied ? " (owner's own contractor estimate)" : ` (source: ${c.source}, ${c.sourceYear})`}`
+      ).join("\n");
+      const narrativeLines = cure.narrative.map(n => `• ${n.issue} \u2014 ${n.narrative}`).join("\n");
+      const issuesBlock = issues && issues.length > 0
+        ? [
+            cure.priced.length ? `PROPERTY DEFECTS, PRICED AT COST TO CURE (cite each, with its cost and its source):\n${curedLines}\n\nTOTAL COST TO CURE: $${cure.total.toLocaleString()}` : "",
+            cure.narrative.length ? `CONDITIONS THAT CANNOT BE CURED BY EXPENDITURE (cite as support for the value argument, and state explicitly that NO cost to cure is claimed for them):\n${narrativeLines}` : "",
+            cure.disproportionate ? `NOTE: the total cost to cure is ${Math.round(cure.shareOfValue * 100)}% of the assessed value. Address this directly rather than leaving it unexplained.` : "",
+          ].filter(Boolean).join("\n\n")
+        : "No specific property issues reported beyond general market value discrepancy.";
+
+      // WHICH GROUND THE DEMAND RESTS ON. When the priced evidence comes to less
+      // than the floor, the ask is supported by the mass-appraisal ground and the
+      // letter must say so. Crediting $900,000 to a $121,900 air conditioner is
+      // the sentence that loses the petition.
+      const askBasis = valuation.askRestsOn === 'evidence'
+        ? `The requested reduction of ${reductionPctDisplay}% is supported by the grounds itemised above. Attribute it to them.`
+        : `IMPORTANT: the requested reduction of ${reductionPctDisplay}% is NOT derived from the repair costs above, which total ${fmt(cure.total) || "$0"}. It rests on the ground that the assessment was produced by mass appraisal without examination of this specific property. State that as the basis for the requested figure. Present the repair costs as additional supporting evidence of over-valuation, and do NOT claim the requested figure was calculated from them.`;
       const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
       const arNote = stateCode === 'AR' ? '\n\nARKANSAS-SPECIFIC RULES:\n- Arkansas assesses property at 20% of market value. The appeal targets MARKET VALUE, not the 20% assessed figure.\n- Address to: Secretary, ' + county + ' County Board of Equalization\n- Cite Arkansas Code ss.26-27-317 (appeal rights) and ss.26-26-1901 (market value standard)\n- The Board meets in August - emphasize timely filing and postmark date\n- Do NOT mention ARB or appraisal districts - use "Board of Equalization" and "county assessor"' : '';
-      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis (cite these, do not invent others):\n${valuation.basisSummary}\n\n${issuesBlock}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each selected issue\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}, and state the grounds above as the reason. Do NOT claim the figure derives from comparable sales unless comparable sales are actually listed in section 7.\n11. Professional closing with owner name, address, and email address. Below the owner signature block, on its own line, include exactly this sentence: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@taxappealusa.com (Document Preparation Service)."\n\nOutput ONLY the complete formal letter.`;
+      const prompt = `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis (cite these, do not invent others):\n${valuation.basisSummary}\n\n${issuesBlock}\n\n${askBasis}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each defect with its stated cost to cure and name the source of that cost. List non-curable conditions separately and state that no cost to cure is claimed for them. Never state a cost that is not given above.\n7. Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ${property.zip}\n8. Section MARKET CONDITIONS: local market trends\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}, attributing it exactly as instructed in the paragraph above beginning "The requested reduction" or "IMPORTANT". Do NOT claim the figure derives from comparable sales unless comparable sales are actually listed in section 7.\n11. Professional closing with owner name, address, and email address. Below the owner signature block, on its own line, include exactly this sentence: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@taxappealusa.com (Document Preparation Service)."\n\nOutput ONLY the complete formal letter.`;
       // Florida: use generate-dr486 (official DR-486; the OWNER signs Part 3 and
     // Parts 4/5 are left N/A — TaxAppeal is never the representative)
       // All other states: use generate-letter (free-form protest letter)
@@ -1164,7 +1290,6 @@ function StepDispute({ formData, onRestart }) {
             ownerState: property.state,
             ownerZip: property.zip,
             comps: flComps,
-            willNotAttend: flSig.willNotAttend !== false,
             propertyAddress: addr,
             county,
             assessedValue,
@@ -1377,7 +1502,43 @@ function ApplyFunnel() {
   const [step, setStep] = useState("account");
   const [account, setAccount] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
+
+  /**
+   * Prefill the property from /check, so a Florida customer types their address
+   * once rather than twice.
+   *
+   * The value came from the county roll via /check, so it is guaranteed to
+   * resolve here — unlike free text, which may not. Read once and cleared, so a
+   * later visit does not silently inherit a previous property: someone appealing
+   * two houses would otherwise file the second petition against the first
+   * address, and the address is the one field on a sworn petition nobody
+   * re-reads.
+   *
+   * Every field stays editable. This is a prefill, never a lock.
+   */
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('ta_property');
+      if (!raw) return;
+      sessionStorage.removeItem('ta_property');
+      const p = JSON.parse(raw);
+      if (!p?.street) return;
+      setProperty((prev) => ({
+        ...prev,
+        street: p.street || prev.street,
+        city: p.city || prev.city,
+        state: p.state || prev.state,
+        zip: p.zip || prev.zip,
+      }));
+    } catch {
+      // A malformed or unreadable value must never block the funnel — the
+      // customer can still type the address, which is where we were before.
+    }
+  }, []);
   const [issues, setIssues] = useState([]);
+  // Owner-entered repair costs, keyed by issue label. A value here always beats
+  // the computed default — they have the quote, we have a regional average.
+  const [costOverrides, setCostOverrides] = useState({});
   const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
   const [closedWindow, setClosedWindow] = useState(null);
@@ -1462,11 +1623,18 @@ function ApplyFunnel() {
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
+  // null clears the override and restores the computed figure.
+  const setCost = (issue, value) => setCostOverrides(prev => {
+    const next = { ...prev };
+    if (value == null || String(value).trim() === '') delete next[issue];
+    else next[issue] = String(value).replace(/[^0-9]/g, '');
+    return next;
+  });
   const restart = () => {
     setStep("account");
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
+    setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
   };
 
   // Capture referral code and pre-fill state from URL params on mount.
@@ -1489,7 +1657,13 @@ function ApplyFunnel() {
 
   return (
     <div style={base}>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child.
+          React escapes text children, so the apostrophes in @import url('...')
+          became &#x27; in the server HTML and stayed literal on the client. The
+          two strings differ, React reports "Text content does not match
+          server-rendered HTML", and the dev overlay covers the whole page. The
+          CSS is a constant in this file, not user input. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT_IMPORT}
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
@@ -1530,7 +1704,7 @@ function ApplyFunnel() {
           .two-col { grid-template-columns: 1fr !important; }
           .three-col { grid-template-columns: 1fr !important; }
         }
-      `}</style>
+      ` }} />
       <AnnouncementBar />
       <NavBar step={step} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
@@ -1548,9 +1722,9 @@ function ApplyFunnel() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, flSignature }} onRestart={restart} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} />}
         </>
       )}
     </div>
