@@ -192,8 +192,28 @@ t('...and the two sale IDs differ', dup.rows[0].sale_id_cd !== dup.rows[1].sale_
 import { readFileSync } from 'node:fs';
 const dr486 = readFileSync(new URL('../pages/api/generate-dr486.js', import.meta.url), 'utf8');
 
-t('DR-486 accepts comps as an input', /propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear, comps,/.test(dr486));
-t('DR-486 only builds a comps block from supplied rows', dr486.includes('const compRows = Array.isArray(comps)'));
+// THE HANDLER, NOT buildDR486Html.
+//
+// The previous assertion matched
+//   /propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear, comps,/
+// which is the PARAMETER LIST of buildDR486Html — a function that always had
+// `comps` and never lost it. So it passed while the request handler, the place
+// that actually needs the field, did not destructure it at all. Every Florida
+// petition threw "ReferenceError: comps is not defined" at the final step and
+// this suite still reported 66 of 66 passing.
+//
+// Assert against the scope that matters.
+const handlerHead = dr486.slice(
+  dr486.indexOf('export default async function handler'),
+  dr486.indexOf('} = checked.clean;'),
+);
+t('DR-486 handler destructures comps from the request body', /\bcomps,/.test(handlerHead));
+
+// Behaviour, not an exact source string. The old form matched the literal text
+// `const compRows = Array.isArray(comps)`, so adding a bound to that same
+// expression failed the build without changing what it does.
+t('DR-486 only builds a comps block from supplied rows', /const compRows\s*=[\s\S]{0,200}Array\.isArray\(comps\)/.test(dr486));
+t('DR-486 bounds the comps it will interpolate into the prompt', /const compRows[\s\S]{0,300}\.slice\(0,\s*\d+\)/.test(dr486));
 t('DR-486 requires both an address and a sale price per comp', dr486.includes('c.salePrice && c.address'));
 t('DR-486 forbids sales outside the supplied set', dr486.includes('The ONLY comparable sales you may reference are those listed under VERIFIED COMPARABLE SALES'));
 t('DR-486 tells the model to cite nothing when none are supplied', dr486.includes('If it is absent, cite no sales at all'));
