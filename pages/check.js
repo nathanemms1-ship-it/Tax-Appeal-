@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -53,29 +53,64 @@ const C = {
   green: '#2E7D52', amber: '#B8860B', amberBg: '#FFF8E6',
 };
 
-// UI-side gate only. lib/salesGate.js holds the server-side one that actually
-// stops a charge — this just decides what the page promises.
-const SALES_ON = process.env.NEXT_PUBLIC_SALES_ENABLED === 'true';
-
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
 export default function CheckPage() {
   const [form, setForm] = useState({ street: '', zip: '' });
   const [state, setState] = useState({ status: 'idle', data: null, error: null });
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const suggestTimer = useRef(null);
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  async function runCheck(e) {
-    e.preventDefault();
-    if (!form.street.trim() || !form.zip.trim()) return;
+  /**
+   * Debounced at 220ms. Every suggestion is a parcel we hold, so picking one
+   * cannot lead to "we have no record of your property" — which is the failure
+   * that made typing the address by hand so unforgiving.
+   */
+  function onStreetChange(e) {
+    const v = e.target.value;
+    setForm((f) => ({ ...f, street: v }));
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (v.trim().length < 4) { setSuggestions([]); return; }
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const r = await fetch('/api/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: v, zip: form.zip || null }),
+        });
+        const d = await r.json();
+        setSuggestions(d.suggestions || []);
+        setShowSuggest(true);
+      } catch { /* autocomplete is never allowed to break the form */ }
+    }, 220);
+  }
+
+  // Picking a suggestion fills BOTH fields and runs the check immediately —
+  // there is nothing left for the customer to decide at that point.
+  function pick(sg) {
+    setForm({ street: sg.street, zip: sg.zip || '' });
+    setSuggestions([]);
+    setShowSuggest(false);
+    runCheck(null, { street: sg.street, zip: sg.zip });
+  }
+
+  async function runCheck(e, override = null) {
+    if (e) e.preventDefault();
+    const street = (override?.street ?? form.street).trim();
+    const zip = (override?.zip ?? form.zip).trim();
+    if (!street || !zip) return;
+    setShowSuggest(false);
     setState({ status: 'loading', data: null, error: null });
     try {
       const r = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ street: form.street.trim(), zip: form.zip.trim() }),
+        body: JSON.stringify({ street, zip }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Something went wrong.');
@@ -144,13 +179,44 @@ export default function CheckPage() {
           {/* ── Input ─────────────────────────────────────────────────────── */}
           <form onSubmit={runCheck} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <input
-                value={form.street}
-                onChange={set('street')}
-                placeholder="8023 Marbella Creek Ave"
-                aria-label="Street address"
-                style={{ flex: '3 1 260px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
-              />
+              <div style={{ flex: '3 1 260px', position: 'relative' }}>
+                <input
+                  value={form.street}
+                  onChange={onStreetChange}
+                  onFocus={() => suggestions.length && setShowSuggest(true)}
+                  onBlur={() => setTimeout(() => setShowSuggest(false), 160)}
+                  placeholder="Start typing your address…"
+                  aria-label="Street address"
+                  autoComplete="off"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                />
+                {showSuggest && suggestions.length > 0 && (
+                  <ul style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
+                    margin: '4px 0 0', padding: 0, listStyle: 'none', background: C.white,
+                    border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden',
+                    boxShadow: '0 8px 24px rgba(15,31,61,0.12)', maxHeight: 300, overflowY: 'auto',
+                  }}>
+                    {suggestions.map((sg) => (
+                      <li key={`${sg.coNo}-${sg.parcelId}`}>
+                        <button
+                          type="button"
+                          onMouseDown={(ev) => { ev.preventDefault(); pick(sg); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px',
+                            background: 'transparent', border: 'none', cursor: 'pointer',
+                            fontSize: 15, fontFamily: 'inherit', color: C.darkNavy,
+                            borderBottom: `1px solid ${C.bg}`,
+                          }}
+                        >
+                          <span style={{ fontWeight: 600 }}>{sg.street}</span>
+                          <span style={{ color: C.muted }}>{sg.city ? ` — ${sg.city} ${sg.zip || ''}` : ''}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <input
                 value={form.zip}
                 onChange={set('zip')}
@@ -265,62 +331,13 @@ export default function CheckPage() {
               {d.eligible ? (
                 <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
                   <h2 style={{ fontSize: 20, margin: '0 0 8px', color: C.white }}>Your property looks worth appealing</h2>
-                  {/* SALES-AWARE. Without this the page says "Flat $89 — Get
-                      started" and then hands the customer a waitlist, which is
-                      the same overselling the round-6 review removed elsewhere.
-                      Someone who has just been told they can save money is
-                      exactly the person who should not be surprised on the next
-                      click. */}
-                  {SALES_ON ? (
-                    <>
-                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                        Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
-                        You sign the petition — we prepare it and mail it certified.
-                      </p>
-                      <Link href="/apply" style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
-                        Get started →
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                        We&rsquo;re not filing yet — we&rsquo;re finishing verification with the county
-                        boards first, because a petition sent to the wrong office or after a deadline
-                        costs a homeowner their whole appeal year. When we open it&rsquo;s a flat $89
-                        plus your county&rsquo;s filing fee, and never a percentage of your savings.
-                      </p>
-                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                        Leave your email and we&rsquo;ll tell you the moment filing opens — with your
-                        deadline, and enough time to make it.
-                      </p>
-                      {emailState === 'done' ? (
-                        <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
-                          Got it. We&rsquo;ll email you when filing opens.
-                        </p>
-                      ) : (
-                        <form onSubmit={joinList} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
-                            aria-label="Email address"
-                            style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: 'none', borderRadius: 8, fontFamily: 'inherit' }}
-                          />
-                          <button
-                            type="submit"
-                            disabled={emailState === 'loading'}
-                            style={{ flex: '1 1 160px', padding: '13px 20px', fontSize: 16, fontWeight: 700, background: C.gold, color: C.darkNavy, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
-                          >
-                            {emailState === 'loading' ? 'Saving…' : 'Tell me when it opens'}
-                          </button>
-                        </form>
-                      )}
-                      {emailState === 'error' && (
-                        <p style={{ color: C.gold, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
-                      )}
-                    </>
-                  )}
+                  <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                    Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
+                    You sign the petition — we prepare it and mail it certified.
+                  </p>
+                  <Link href="/apply" style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
+                    Get started →
+                  </Link>
                 </div>
               ) : (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
