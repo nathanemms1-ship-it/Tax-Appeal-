@@ -37,3 +37,5 @@ yarn-error.log*
 
 # local helper, not for the repo
 setkey.sh
+
+_to_delete/

@@ -23,7 +23,53 @@ export default function Landing() {
   const router = useRouter();
   const [faqOpen, setFaqOpen] = useState(null);
 
+  const [zip, setZip] = useState('');
+  const [zipError, setZipError] = useState('');
+
+  /**
+   * Secondary CTAs, which have no ZIP box next to them. Unchanged behaviour.
+   */
   const go = () => router.push('/apply');
+
+  /**
+   * The hero CTA. Splits on coverage rather than sending everyone the same way.
+   *
+   * Florida is the only state where we hold the county roll, so it is the only
+   * state where we can answer "will an appeal actually save you anything?" before
+   * taking any money. Those visitors go to /check, which is the honest gate and
+   * the strongest thing on the site. Everyone else keeps the old path.
+   *
+   * The ZIP travels in sessionStorage rather than the URL. It is less identifying
+   * than a full address, but it is still the customer's location and it does not
+   * belong in browser history or a Referer header — and the same mechanism
+   * already carries the address from /check into /apply.
+   */
+  const start = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const z = String(zip || '').trim().slice(0, 5);
+
+    // No ZIP entered is not an error. It is someone who wants to get on with it,
+    // and the old path still works for them.
+    if (!z) return router.push('/apply');
+
+    if (!/^\d{5}$/.test(z)) {
+      setZipError('That does not look like a 5-digit ZIP code.');
+      return;
+    }
+    setZipError('');
+
+    // Both paths go to /check, and that is deliberate.
+    //
+    // Florida gets the real thing: a free eligibility answer from the county's
+    // own roll before any money changes hands.
+    //
+    // Everywhere else, /check returns the filing-window message and captures the
+    // email. Sending those visitors into /apply instead would walk them through
+    // four steps to a closed-window screen at the end — the same answer, arrived
+    // at after wasting their time.
+    try { sessionStorage.setItem('ta_zip', z); } catch { /* private mode — the field just starts empty */ }
+    return router.push('/check');
+  };
 
   const faqs = [
     ["Do I have to do anything after I pay?", "One thing: you sign the filing yourself, on the review screen, before you pay — it is filed in your name, and in Florida your signature is what makes the petition valid. After that we handle the rest: drafting, printing, paying any county filing fee, and mailing via certified mail to the correct authority. You'll receive the USPS tracking number by email."],
@@ -416,9 +462,25 @@ export default function Landing() {
         <h1>We fight your property tax bill. You keep the savings.</h1>
         <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. You sign it, we do the rest.</p>
         <div className="hero-cta-wrap">
-          <button className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={go}>
-            Start my dispute — $89 →
-          </button>
+          <form onSubmit={start} style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={5}
+              value={zip}
+              onChange={(e) => { setZip(e.target.value.replace(/[^0-9]/g, "")); setZipError(""); }}
+              placeholder="ZIP code"
+              aria-label="Your property's ZIP code"
+              style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, padding: "16px 18px", width: 150, borderRadius: 8, border: `1.5px solid ${C.border}`, textAlign: "center", letterSpacing: "1px" }}
+            />
+            <button type="submit" className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }}>
+              Start my dispute — $89 →
+            </button>
+          </form>
+          {zipError && <div className="hero-note" style={{ color: "#C0392B" }}>{zipError}</div>}
+          <div className="hero-note">
+            Florida homeowners get a free eligibility check first — we tell you whether an appeal can save you anything before you pay.
+          </div>
           <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
         </div>
         <div className="trust-row">

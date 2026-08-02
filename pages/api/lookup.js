@@ -273,7 +273,7 @@ export default async function handler(req, res) {
           console.log('DOR PARCEL:', p.parcelId, 'jv', p.justValue, 'av', cappedAssessedValue);
         } else {
           // Not an error. New construction and recently split parcels legitimately
-          // are not on the current roll, and only 13 counties are loaded so far.
+          // are not on the current roll. All 67 counties are loaded as of 2026-08-02.
           // Fall through to RentCast rather than refusing the customer.
           console.log('DOR PARCEL MISS:', dor.reason);
         }

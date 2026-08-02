@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -57,6 +57,20 @@ const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
 export default function CheckPage() {
   const [form, setForm] = useState({ street: '', zip: '' });
+
+  /**
+   * ZIP carried from the landing page, so a Florida visitor types it once.
+   * Read once and cleared — a stale ZIP on a later visit would quietly point the
+   * lookup at the wrong county.
+   */
+  useEffect(() => {
+    try {
+      const z = sessionStorage.getItem('ta_zip');
+      if (!z) return;
+      sessionStorage.removeItem('ta_zip');
+      setForm((f) => (f.zip ? f : { ...f, zip: z }));
+    } catch { /* private mode — the field just starts empty */ }
+  }, []);
   const [state, setState] = useState({ status: 'idle', data: null, error: null });
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');
@@ -178,14 +192,52 @@ export default function CheckPage() {
           )}
 
           {/* ── No record ─────────────────────────────────────────────────── */}
-          {d && !d.found && (
+          {/* OUTSIDE FLORIDA — a closed filing window, not a missing property.
+              These two were one branch, so a Texas homeowner was told
+              "We couldn't find that property" above a message explaining their
+              filing window. Two different facts, and the wrong one on top. */}
+          {d && !d.found && d.reason === 'outside_coverage' && (
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
+              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>Your filing window is closed right now</h2>
+              <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>{d.message}</p>
+              {emailState === 'done' ? (
+                <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
+                  Done. We&rsquo;ll email you when your window opens.
+                </p>
+              ) : (
+                <form onSubmit={joinList} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    aria-label="Email address"
+                    style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={emailState === 'loading'}
+                    style={{ flex: '1 1 150px', padding: '13px 20px', fontSize: 16, fontWeight: 600, background: C.navy, color: C.white, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {emailState === 'loading' ? 'Saving…' : 'Email me when it opens'}
+                  </button>
+                </form>
+              )}
+              {emailState === 'error' && (
+                <p style={{ color: C.amber, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
+              )}
+            </div>
+          )}
+
+          {/* A genuine miss inside Florida. */}
+          {d && !d.found && d.reason !== 'outside_coverage' && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t find that property</h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>
               <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
-                Check the street number and spelling. New construction and recently split parcels
-                sometimes aren&rsquo;t on the current roll yet, and we only cover the 13 counties
-                listed above so far.
+                Check the street number and spelling. We hold the current roll for all 67 Florida
+                counties, so a miss here usually means new construction or a recently split parcel
+                that isn&rsquo;t on this year&rsquo;s roll yet.
               </p>
             </div>
           )}

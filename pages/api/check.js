@@ -80,7 +80,18 @@ export default async function handler(req, res) {
       return res.status(200).json({
         found: false,
         reason: 'outside_coverage',
-        message: 'We only cover Florida so far. Tell us your state and we\'ll email you before your filing window opens.',
+        // WHAT THIS SAYS, AND WHY IT MATTERS.
+        //
+        // "We only cover Florida so far" reads as "we are not ready" — an
+        // admission that the product is unfinished, to someone who arrived
+        // wanting to buy. The true and more useful statement is about THEIR
+        // deadline: every state we serve outside Florida has a filing window that
+        // is currently closed, so there is nothing they could file today even
+        // with a finished product in front of them.
+        //
+        // Same outcome, same email capture, and the reason given is a fact about
+        // their county rather than a shortcoming of ours.
+        message: 'Your state\'s filing window is closed right now — there is nothing that can be filed until it reopens. Tell us your state and we\'ll email you the moment it does, with time to spare before the deadline.',
       });
     }
 
