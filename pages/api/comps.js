@@ -43,6 +43,8 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { checkSpend } from '../../lib/spendGuard';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { lookupProperty, findComps, RentcastError, DEFAULT_COMP_CRITERIA } from '../../lib/providers/rentcast';
+import { findParcel, ROLL_YEAR } from '../../lib/dor/parcels';
+import { findComps as findDorComps } from '../../lib/dor/comps';
 
 let redis = null;
 try {
@@ -130,6 +132,58 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ── FLORIDA: the county's own sale data file ──────────────────────────
+    //
+    // Free, and stronger evidence than any vendor: the SDF is the same record
+    // set the Property Appraiser used to value the subject, so a magistrate
+    // cannot dispute its provenance. Comps are drawn from the appraiser's own
+    // neighbourhood code rather than a radius, and banded by size — see
+    // lib/dor/comps.js for why the second of those matters more than it looks.
+    if (stateUpper === 'FL') {
+      try {
+        const subject = await findParcel({ street, zip, city });
+        if (subject && !subject.ambiguous) {
+          const r = await findDorComps(subject, { rollYear: ROLL_YEAR });
+          if (r.sufficient) {
+            return res.status(200).json({
+              subject: {
+                address: [subject.phy_addr1, subject.phy_city, 'FL', subject.phy_zipcd].filter(Boolean).join(', '),
+                parcelId: subject.parcel_id,
+                county: subject.co_no,
+                sqft: subject.tot_lvg_area,
+                yearBuilt: subject.act_yr_blt,
+                justValue: subject.jv,
+                assessedValue: subject.av_nsd,
+                // County roll figures need no confirmation — they ARE the TRIM
+                // notice source.
+                valueNeedsConfirmation: false,
+              },
+              comps: r.comps,
+              medianPricePerSqft: r.medianPricePerSqft,
+              indicatedValue: r.indicatedValue,
+              assessedPricePerSqft: subject.jv && subject.tot_lvg_area
+                ? Math.round(subject.jv / subject.tot_lvg_area) : null,
+              sufficient: true,
+              basis: {
+                source: 'county',
+                stratum: r.level,
+                sizeBandPct: r.sizeBandPct,
+                candidatesConsidered: r.candidateCount,
+              },
+              attribution: r.attribution,
+              retrievedAt: new Date().toISOString(),
+            });
+          }
+          // Not enough qualified, size-comparable sales. Fall through to
+          // RentCast rather than publishing a thin set — but never publish the
+          // thin set itself.
+          console.log('[comps] DOR insufficient:', r.reason, r.level || '');
+        }
+      } catch (e) {
+        console.error('[comps] DOR path failed:', e?.message);
+      }
+    }
+
     // Two billed calls worst case. Counted before either is made, so a tripped
     // ceiling costs nothing.
     const spend = await checkSpend('rentcast', 2);
