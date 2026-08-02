@@ -1015,6 +1015,9 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
 function StepDispute({ formData, onRestart }) {
   const [loading, setLoading] = useState(true);
   const [propData, setPropData] = useState(null);
+  // Non-null when the county's own figures show an appeal cannot reduce this
+  // owner's tax. See the block in run() for why this stops the sale outright.
+  const [noSavings, setNoSavings] = useState(null);
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const ran = useRef(false);
@@ -1034,6 +1037,33 @@ function StepDispute({ formData, onRestart }) {
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
       const bdJson = await res.json();
+
+      // ── THE SAVINGS GATE ────────────────────────────────────────────────
+      //
+      // Florida taxes flow from ASSESSED value, which Save OurHomes caps
+      // (Fla. Stat. s 193.155). Reducing JUST value — which is all a VAB
+      // petition can do — only reaches the tax bill once it drops below that
+      // cap. Above it, winning changes nothing.
+      //
+      // Roughly 42% of Florida residential parcels are in that position. The
+      // real Hillsborough parcel this was built against needs a 24.5% reduction
+      // before a single dollar moves, and even a strong 25% result would save
+      // about $57 against a $104 filing cost.
+      //
+      // So we stop here. Not a warning, not a disclosure — the sale does not
+      // proceed. Taking $89 for an outcome that cannot occur is the thing this
+      // whole data pipeline exists to prevent, and a blocked sale is recoverable
+      // where a charged customer with no saving is not.
+      //
+      // `eligible` is only ever false when we hold county roll data for the
+      // parcel. A missing lookup leaves savings null and the funnel continues as
+      // before — we never refuse on absence of evidence.
+      if (bdJson?.savings && bdJson.savings.eligible === false) {
+        setNoSavings(bdJson.savings);
+        setLoading(false);
+        return;
+      }
+
       const extracted = bdJson?.extractedData || {};
       const manualAV = property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null;
       const manualSqftNum = property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null;
@@ -1184,6 +1214,43 @@ function StepDispute({ formData, onRestart }) {
       setLoading(false);
     }
   };
+
+  // Refused BEFORE the letter is generated and before any charge. Deliberately
+  // not styled as an error — nothing went wrong, and the customer is being told
+  // something genuinely useful that nobody else in this market will tell them.
+  if (noSavings) {
+    const fmtUsd = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
+    return (
+      <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
+        <div style={cardStyle}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
+            An appeal wouldn&rsquo;t lower your tax bill
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.body, marginBottom: 18 }}>
+            {noSavings.message}
+          </p>
+          <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+              <span>Market (just) value</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.jv)}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+              <span>Your assessment is capped at</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.breakEven)}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+              <span>Capped below market by</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.differential)}</strong>
+            </div>
+          </div>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.muted, marginBottom: 20 }}>
+            You haven&rsquo;t been charged. Check these figures against your TRIM notice — they come
+            straight from your county&rsquo;s own records and should match exactly. This can change:
+            buying or selling resets the cap, and a falling market brings your market value back
+            toward the capped figure.
+          </p>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
+        </div>
+      </div>
+    );
+  }
 
   if (errMsg) {
     return (
