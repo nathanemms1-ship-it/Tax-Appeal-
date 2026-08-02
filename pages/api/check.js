@@ -140,6 +140,10 @@ export default async function handler(req, res) {
             conservative: savings.scenarios.conservative?.dollarsSaved ?? null,
             likely: savings.scenarios.likely?.dollarsSaved ?? null,
             optimistic: savings.scenarios.optimistic?.dollarsSaved ?? null,
+            // What reduction each figure assumes, so the screen can say "at a 15%
+            // reduction" instead of an adjective. A saving with no stated
+            // assumption behind it is a number the customer cannot check.
+            pcts: savings.scenarioPcts || null,
             millageIsEstimated: true,
             millageUsed: DEFAULT_MILLAGE,
           }

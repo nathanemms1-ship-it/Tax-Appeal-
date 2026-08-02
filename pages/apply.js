@@ -653,26 +653,43 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
              reduction only reaches your bill once it clears that gap.</>)}
       </div>
 
-      {/* Three scenarios rather than one number. A single figure reads as a
-          promise; the range is what we can actually stand behind. */}
+      {/* Scenarios labelled with the reduction each assumes, not adjectives.
+          "Typical: $3,121" invites the question the label cannot answer.
+          "At a 15% reduction: $3,121" states the assumption on its face, and the
+          percentages come from lib/dor/qualify.js so they cannot drift. */}
       {d.estimates && (d.estimates.conservative != null || d.estimates.likely != null) && (
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.bodyGray, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
-            If your appeal succeeds, a year
+          {/* THE HOOK. This is the number a homeowner came for, so it is set as a
+              headline rather than a field label — the old 11px uppercase caption
+              made the most persuasive line on the page look like fine print. */}
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 4, lineHeight: 1.3 }}>
+            If your appeal succeeds, estimated savings in the first year
           </div>
+          <p style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, lineHeight: 1.6 }}>
+            And every year after, until your county raises the value again.
+          </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {[['Modest', d.estimates.conservative], ['Typical', d.estimates.likely], ['Strong result', d.estimates.optimistic]]
-              .filter(([, v]) => v != null).map(([label, v]) => (
-              <div key={label} style={{ flex: '1 1 150px', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', background: C.white }}>
-                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.navy }}>{money(v)}</div>
-                <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
-              </div>
-            ))}
+            {[
+              ['conservative', d.estimates.conservative],
+              ['likely', d.estimates.likely],
+              ['optimistic', d.estimates.optimistic],
+            ].filter(([, v]) => v != null).map(([key, v]) => {
+              const pct = d.estimates.pcts?.[key];
+              return (
+                <div key={key} style={{ flex: '1 1 150px', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', background: C.white }}>
+                  <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, marginBottom: 4 }}>
+                    {pct ? `${Math.round(pct * 100)}% reduction` : 'Reduction'}
+                  </div>
+                  <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.navy, lineHeight: 1.1 }}>{money(v)}</div>
+                  <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 3 }}>a year</div>
+                </div>
+              );
+            })}
           </div>
           {d.estimates.millageIsEstimated && (
             <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginTop: 10 }}>
-              Estimates only. The reduction figures are ours; the millage rate used is a county
-              average, so your actual saving depends on your exact taxing districts and on what
+              Estimates only, shown at three possible outcomes. The millage rate used is a county
+              average, so your actual saving depends on your exact taxing districts — and on what
               your Value Adjustment Board decides.
             </p>
           )}
