@@ -570,6 +570,7 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
 
   // ── Cannot win. Say so, plainly, and keep the door open. ───────────────────
   if (!d.eligible) {
+    const px0 = d.parcel || {};
     return (
       <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
@@ -578,7 +579,37 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
           {d.message || 'Your assessed value is capped well below your just value, so reducing the just value would not reach your tax bill.'}
         </p>
-        {d.facts?.statement && (
+
+        {/* THE FIGURES THE PARAGRAPH IS TALKING ABOUT.
+            Without this the screen quotes a gap and a threshold and expects the
+            reader to infer the just value those were derived from. On the one
+            screen where we are telling somebody no, every number in the sentence
+            has to be visible and checkable against their TRIM notice. */}
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
+          {[
+            ['Just value — what the county says it is worth', money(d.facts?.justValue)],
+            ['Assessed value — what you are actually taxed on', money(d.facts?.cappedAt)],
+            ['Save Our Homes is holding this much off your bill', money(d.facts?.differential)],
+            ['A petition would have to cut just value by', d.facts?.requiredReductionPct != null ? `${d.facts.requiredReductionPct}%` : null],
+          ].filter(([, v]) => v).map(([label, value], i) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+              <span style={{ color: C.bodyGray }}>{label}</span>
+              <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {px0.address && (
+          <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginBottom: 18 }}>
+            {px0.address}{px0.rollYear ? ` · ${px0.rollYear} assessment roll` : ''}
+          </p>
+        )}
+        {/* Only when it is NOT already inside d.message. qualify.js builds the
+            refusal message by prepending breakEvenStatement to it, so rendering
+            both printed the same two sentences twice in a row — which reads as a
+            bug in the figures rather than a bug in the layout, on the one screen
+            where we are asking someone to believe a number they did not want. */}
+        {d.facts?.statement && !(d.message || '').includes(d.facts.statement) && (
           <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
             {d.facts.statement}
           </div>
