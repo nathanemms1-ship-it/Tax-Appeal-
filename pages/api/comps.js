@@ -180,6 +180,10 @@ export default async function handler(req, res) {
               assessedPricePerSqft: subject.jv && subject.tot_lvg_area
                 ? Math.round(subject.jv / subject.tot_lvg_area) : null,
               sufficient: true,
+              // The subject's own arms-length sale, when it has one. Below just
+              // value it is the strongest item in the petition and should lead;
+              // the comps become support rather than the argument.
+              subjectSale: r.subjectSale && r.subjectSale.found ? r.subjectSale : null,
               basis: {
                 source: 'county',
                 stratum: r.level,
@@ -196,6 +200,34 @@ export default async function handler(req, res) {
           // silent join failure can never masquerade as a quiet neighbourhood
           // again.
           console.log('[comps] DOR insufficient:', r.reason, r.level || '', `candidates=${r.candidateCount ?? 0}`);
+
+          // A SUBJECT THAT SOLD ABOVE OUR INDICATED VALUE IS A FINAL ANSWER.
+          //
+          // Everywhere else, "the county data declined" means fall through to a
+          // vendor and see if they have something. Not here. The property sold
+          // arms-length for more than the comps support, and no vendor's comp set
+          // changes that fact — falling through would buy a second opinion that
+          // is refuted by the same recorded deed, and put it on a petition signed
+          // under penalty of perjury.
+          if (r.reason === 'subject_sold_above_indicated_value') {
+            return res.status(200).json({
+              subject: {
+                address: [subject.phy_addr1, subject.phy_city, 'FL', subject.phy_zipcd].filter(Boolean).join(', '),
+                parcelId: subject.parcel_id,
+                county: subject.co_no,
+                justValue: subject.jv,
+              },
+              comps: [],
+              sufficient: false,
+              supportsReduction: false,
+              reason: 'subject_sold_above_indicated_value',
+              subjectSale: r.subjectSale,
+              indicatedValue: r.indicatedValue,
+              basis: { source: 'county', stratum: r.level, candidatesConsidered: r.candidateCount },
+              retrievedAt: new Date().toISOString(),
+            });
+          }
+
           countyDeclined = { reason: r.reason, level: r.level || null, candidatesConsidered: r.candidateCount ?? 0 };
         }
       } catch (e) {
