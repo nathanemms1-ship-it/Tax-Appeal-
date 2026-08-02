@@ -8,8 +8,15 @@
  *      no reported defects and no record errors still gets an ask at the floor of
  *      the band. "No comps, so no ask" would lose the customer, which is the
  *      opposite of the point.
- *   2. The ask is ALWAYS inside the commercial band (18-22%). The band is a
- *      business decision and is applied as a hard clamp.
+ *   2. The ask is NEVER BELOW the floor (18%). Reporting a defect must not
+ *      shrink someone's ask below what staying silent would have got them.
+ *      There is deliberately no ceiling any more: cost to cure replaced the
+ *      18-22% clamp, and clamping now would mean discarding sourced evidence.
+ *      What IS enforced is that anything above the floor is backed by evidence —
+ *      `askRestsOn` must say 'evidence' whenever the ask exceeds the floor, and
+ *      must say 'mass_appraisal_floor' when the ask IS the floor. That field
+ *      decides what the petition credits the number to, and crediting a large ask
+ *      to a small repair bill is what loses a hearing.
  *   3. There is ALWAYS at least one stated statutory ground. The owner signs the
  *      filing — in Florida under penalties of perjury — so the number must have a
  *      reason attached that is true.
@@ -59,9 +66,18 @@ for (const stateCode of states) {
     const r = deriveValuation({ stateCode, categoryOf, ...input });
     const problems = [];
 
-    // 2. always inside the band
-    if (!(r.reductionPct >= BAND.floor - 1e-9 && r.reductionPct <= BAND.ceiling + 1e-9)) {
-      problems.push(`reductionPct ${r.reductionPct} outside band ${BAND.floor}-${BAND.ceiling}`);
+    // 2. never below the floor, and correctly attributed above it
+    if (!(r.reductionPct >= BAND.floor - 1e-9)) {
+      problems.push(`reductionPct ${r.reductionPct} below the floor ${BAND.floor}`);
+    }
+    if (r.askRestsOn !== 'evidence' && r.askRestsOn !== 'mass_appraisal_floor') {
+      problems.push(`askRestsOn is "${r.askRestsOn}" — the letter would not know what to credit`);
+    }
+    if (r.askRestsOn === 'mass_appraisal_floor' && Math.abs(r.reductionPct - BAND.floor) > 1e-9) {
+      problems.push(`ask rests on the floor but is ${r.reductionPct}, not ${BAND.floor}`);
+    }
+    if (r.askRestsOn === 'evidence' && !(r.reductionPct > BAND.floor - 1e-9)) {
+      problems.push(`ask claims to rest on evidence but is only ${r.reductionPct}`);
     }
 
     // 3. always at least one stated ground, and every ground must cite a statute
@@ -115,4 +131,4 @@ if (failures) {
   console.error(`\nValuation contract failed: ${failures} of ${checks} checks.\n`);
   process.exit(1);
 }
-console.log(`\n✓ ${checks} checks passed — always an ask, always in band, always a stated ground, deterministic`);
+console.log(`\n✓ ${checks} checks passed — always an ask, never below the floor, correctly attributed, always a stated ground, deterministic`);
