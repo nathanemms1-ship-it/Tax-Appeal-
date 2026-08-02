@@ -53,6 +53,10 @@ const C = {
   green: '#2E7D52', amber: '#B8860B', amberBg: '#FFF8E6',
 };
 
+// UI-side gate only. lib/salesGate.js holds the server-side one that actually
+// stops a charge — this just decides what the page promises.
+const SALES_ON = process.env.NEXT_PUBLIC_SALES_ENABLED === 'true';
+
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
 export default function CheckPage() {
@@ -133,7 +137,7 @@ export default function CheckPage() {
           <p style={{ fontSize: 16, lineHeight: 1.6, color: C.body, margin: '0 0 32px' }}>
             Save Our Homes caps how fast your assessed value can rise. Once that cap opens a
             gap, winning a reduction in market value doesn&rsquo;t change what you pay. We check
-            your property against your county&rsquo;s own records and tell you either way.
+            your property against your county&rsquo;s own tax roll and tell you either way.
             Free, no account, no card.
           </p>
 
@@ -165,7 +169,7 @@ export default function CheckPage() {
                 cursor: state.status === 'loading' ? 'wait' : 'pointer', fontFamily: 'inherit',
               }}
             >
-              {state.status === 'loading' ? 'Checking county records…' : 'Check my property — free'}
+              {state.status === 'loading' ? 'Checking the county roll…' : 'Check my property — free'}
             </button>
             <p style={{ fontSize: 13, color: C.muted, margin: '12px 0 0' }}>
               Currently covering 13 Florida counties: Brevard, Broward, Duval, Hillsborough, Lee,
@@ -184,7 +188,7 @@ export default function CheckPage() {
               <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>
               <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
                 Check the street number and spelling. New construction and recently split parcels
-                sometimes aren&rsquo;t in the county&rsquo;s records yet, and we only cover the 13 counties
+                sometimes aren&rsquo;t on the current roll yet, and we only cover the 13 counties
                 listed above so far.
               </p>
             </div>
@@ -218,8 +222,8 @@ export default function CheckPage() {
               <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }}>
                 <h2 style={{ fontSize: 18, margin: '0 0 4px' }}>What the county says</h2>
                 <p style={{ fontSize: 13, color: C.muted, margin: '0 0 18px' }}>
-                  Your county&rsquo;s official {d.parcel.rollYear} figures, as filed with the Florida
-                  Department of Revenue. Check them against your TRIM notice — they should match exactly.
+                  Straight from the {d.parcel.rollYear} Florida Department of Revenue assessment roll.
+                  Check it against your TRIM notice — these should match exactly.
                 </p>
 
                 <Row label="Property" value={d.parcel.address} />
@@ -261,23 +265,71 @@ export default function CheckPage() {
               {d.eligible ? (
                 <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
                   <h2 style={{ fontSize: 20, margin: '0 0 8px', color: C.white }}>Your property looks worth appealing</h2>
-                  <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                    Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
-                    You sign the petition — we prepare it and mail it certified.
-                  </p>
-                  <Link href="/apply" style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
-                    Get started →
-                  </Link>
+                  {/* SALES-AWARE. Without this the page says "Flat $89 — Get
+                      started" and then hands the customer a waitlist, which is
+                      the same overselling the round-6 review removed elsewhere.
+                      Someone who has just been told they can save money is
+                      exactly the person who should not be surprised on the next
+                      click. */}
+                  {SALES_ON ? (
+                    <>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                        Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
+                        You sign the petition — we prepare it and mail it certified.
+                      </p>
+                      <Link href="/apply" style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
+                        Get started →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                        We&rsquo;re not filing yet — we&rsquo;re finishing verification with the county
+                        boards first, because a petition sent to the wrong office or after a deadline
+                        costs a homeowner their whole appeal year. When we open it&rsquo;s a flat $89
+                        plus your county&rsquo;s filing fee, and never a percentage of your savings.
+                      </p>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                        Leave your email and we&rsquo;ll tell you the moment filing opens — with your
+                        deadline, and enough time to make it.
+                      </p>
+                      {emailState === 'done' ? (
+                        <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
+                          Got it. We&rsquo;ll email you when filing opens.
+                        </p>
+                      ) : (
+                        <form onSubmit={joinList} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            aria-label="Email address"
+                            style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: 'none', borderRadius: 8, fontFamily: 'inherit' }}
+                          />
+                          <button
+                            type="submit"
+                            disabled={emailState === 'loading'}
+                            style={{ flex: '1 1 160px', padding: '13px 20px', fontSize: 16, fontWeight: 700, background: C.gold, color: C.darkNavy, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            {emailState === 'loading' ? 'Saving…' : 'Tell me when it opens'}
+                          </button>
+                        </form>
+                      )}
+                      {emailState === 'error' && (
+                        <p style={{ color: C.gold, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
+                      )}
+                    </>
+                  )}
                 </div>
               ) : (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
                   <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We&rsquo;ll tell you when that changes</h2>
                   <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>
                     This can change. Buying or selling resets the cap, and if market values fall
-                    far enough, your market value drops toward your assessed value and an appeal
-                    starts to be worth filing. Your county sets new values once a year — we check
-                    yours every time, and will email you the year it crosses that line.
-                    Nothing else, no marketing.
+                    far enough, your just value drops toward your assessed value and an appeal
+                    starts to be worth filing. We re-check every roll and will email you the year
+                    yours crosses that line. Nothing else — no marketing.
                   </p>
                   {emailState === 'done' ? (
                     <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
