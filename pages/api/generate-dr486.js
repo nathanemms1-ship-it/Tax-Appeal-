@@ -182,6 +182,27 @@ function buildDR486Html({
 </div></body></html>`;
 }
 
+/**
+ * REFUSE OUTPUT THAT CITES EVIDENCE WE DID NOT SUPPLY.
+ *
+ * Three times in one day the model referred to comparable sales that were not
+ * attached — each time complying with the letter of a prohibition while finding
+ * another phrasing. Prompt wording is a request; this is the check.
+ *
+ * Only runs when NO comps were supplied. With a real table these phrases are
+ * accurate and expected.
+ */
+export function citesAbsentComps(text) {
+  const t = String(text || '').toLowerCase();
+  return [
+    /comparable sales/,
+    /comparable properties/,
+    /similar (?:homes|properties|residences) (?:that )?(?:sold|have sold)/,
+    /sales comparison approach/,
+    /what buyers actually pay/,
+  ].some((re) => re.test(t));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -336,7 +357,8 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 Write exactly 4 sections:
 1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing the applicable Fla. Stat. § 193.011 criteria (1) through (7) ONLY and applying them to the property details given above. DO NOT cite or quote § 193.011(8). It is the net-proceeds/costs-of-sale criterion, the appraiser has already applied it, and arguing it is the prohibition stated above — the previous version of this instruction said "(1)-(8)" and the resulting petition opened by quoting subsection (8).
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
-3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, describe the approach the Board should apply and state plainly that the owner will submit comparable sales separately. Either way: do not invent comparables.
+3. COMPARABLE SALES AND VALUATION METHODOLOGY — INCLUDE THIS SECTION ONLY IF VERIFIED COMPARABLE SALES WERE SUPPLIED ABOVE. If they were, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1).
+IF NONE WERE SUPPLIED, OMIT SECTION 3 ENTIRELY and renumber the sections that follow. Do not describe a methodology, do not tell the Board what sales to look for, and above all do NOT state that the owner will submit comparable sales separately — the previous version of this instruction said exactly that, and produced a petition promising evidence the owner had no plan to file, over their signature under penalty of perjury. A petition resting on condition and on the absence of a physical inspection is complete without a comparable sales section; adding an empty one only advertises what is missing.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).
 
 Professional, factual, first person as the property owner. Output only the four sections.`;
@@ -364,6 +386,33 @@ Professional, factual, first person as the property owner. Output only the four 
     const claudeData = await claudeRes.json();
     if (claudeData.error) throw new Error(claudeData.error.message);
     evidenceText = claudeData.content?.[0]?.text || '';
+
+    // ONE RETRY, THEN STRIP. See citesAbsentComps above for why this exists.
+    if (compRows.length === 0 && citesAbsentComps(evidenceText)) {
+      console.warn('[dr486] output cited comparable sales with none supplied — retrying once');
+      const retry = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5', max_tokens: 2000,
+          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it with no mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later. Omit the comparable sales section entirely and renumber.` }],
+        }),
+      });
+      const retryData = await retry.json();
+      const retryText = retryData?.content?.[0]?.text || '';
+      if (retryText && !citesAbsentComps(retryText)) {
+        evidenceText = retryText;
+      } else {
+        // Still wrong. Drop the offending paragraphs rather than mailing a claim
+        // we cannot support — a shorter petition is recoverable, a false one is
+        // not, and the owner signs this.
+        console.error('[dr486] retry still cited absent comparables — removing those paragraphs');
+        evidenceText = evidenceText
+          .split(/\n\s*\n/)
+          .filter((para) => !citesAbsentComps(para))
+          .join('\n\n');
+      }
+    }
     }
 
     const filingDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
