@@ -209,6 +209,23 @@ export default async function handler(req, res) {
           // changes that fact — falling through would buy a second opinion that
           // is refuted by the same recorded deed, and put it on a petition signed
           // under penalty of perjury.
+          // A property whose value is mostly land cannot be valued from its
+          // living area, and RentCast prices the same way we do — falling
+          // through would buy the identical mistake from someone else.
+          if (r.reason === 'land_value_not_comparable') {
+            return res.status(200).json({
+              subject: {
+                address: [subject.phy_addr1, subject.phy_city, 'FL', subject.phy_zipcd].filter(Boolean).join(', '),
+                parcelId: subject.parcel_id, county: subject.co_no, justValue: subject.jv,
+              },
+              comps: [], sufficient: false, supportsReduction: null,
+              reason: 'land_value_not_comparable',
+              subjectLandShare: r.subjectLandShare,
+              basis: { source: 'county', stratum: r.level, candidatesConsidered: r.candidateCount },
+              retrievedAt: new Date().toISOString(),
+            });
+          }
+
           if (r.reason === 'subject_sold_above_indicated_value') {
             return res.status(200).json({
               subject: {
