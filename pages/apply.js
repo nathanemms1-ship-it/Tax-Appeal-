@@ -114,7 +114,28 @@ function Field({ label, id, type = "text", value, onChange, placeholder }) {
   );
 }
 
-function AddressAutocomplete({ value, onChange, onSelect }) {
+/**
+ * ADDRESS SUGGESTIONS COME FROM OUR OWN ROLL IN FLORIDA, NOT GOOGLE PLACES.
+ *
+ * Typing "7431 arthur st" against Google returned Gainesville VA, Oakland CA and
+ * a Virginia drive — while the actual property, 7431 ARTHUR ST in Hollywood FL,
+ * sat in our own parcels table with a 2026 just value on it. A national geocoder
+ * has no idea which addresses we can serve.
+ *
+ * Two consequences, and the second is the real one:
+ *   - every keystroke was a metered Google Places call, on 8.4 million Florida
+ *     addresses we already hold and can query for nothing
+ *   - a suggestion Google returns is not guaranteed to resolve to a parcel, so a
+ *     customer could pick a perfectly real address and then be told we have no
+ *     record of their property — which is exactly the failure the whole county
+ *     data pipeline exists to remove
+ *
+ * NO GOOGLE FALLBACK IN FLORIDA. If the roll does not have it, offering a
+ * suggestion we cannot resolve is worse than offering none — the customer types
+ * it manually and the lookup fails honestly rather than after a false promise.
+ * Other states keep Google, because we hold no data for them.
+ */
+function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
   const [suggestions, setSuggestions] = useState([]);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -136,10 +157,28 @@ function AddressAutocomplete({ value, onChange, onSelect }) {
     debounce.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
-        const data = await res.json();
-        setSuggestions(data.suggestions || []);
-        setShow((data.suggestions || []).length > 0);
+        const z = String(zip || '').trim().slice(0, 5);
+        const sc = String(stateCode || '').trim().toUpperCase();
+        const looksFlorida = sc === 'FL' || (/^\d{5}$/.test(z) && Number(z) >= 32000 && Number(z) <= 34999);
+
+        let list = [];
+        // Our own roll first whenever Florida is possible — including when the
+        // state box is still empty, which it usually is while the street is
+        // being typed.
+        if (looksFlorida || !sc) {
+          const r = await fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val, zip: z || null }) });
+          const j = await r.json();
+          list = (j.suggestions || []).map((x) => ({ ...x, state: 'FL' }));
+        }
+        // Google only for states we hold no roll for. Never as a Florida
+        // fallback — see the header.
+        if (!list.length && !looksFlorida) {
+          const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
+          const data = await res.json();
+          list = data.suggestions || [];
+        }
+        setSuggestions(list);
+        setShow(list.length > 0);
       } catch (_) {}
       setLoading(false);
     }, 300);
@@ -422,7 +461,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
           </div>
           {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>Property Address</div>
-          <AddressAutocomplete value={data.street} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
+          <AddressAutocomplete value={data.street} stateCode={data.state} zip={data.zip} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
           <div className="three-col">
             <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
             <div style={{ marginBottom: 14 }}>
@@ -1467,10 +1506,22 @@ function StepDispute({ formData, onRestart }) {
       // qualify.js already computed its scenarios at the county's actual rate, so
       // the effective rate is recovered from them rather than re-derived.
       let effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
-      const sc = savings?.scenarios?.likely;
-      const scPct = savings?.scenarioPcts?.likely;
-      if (sc?.dollarsSaved && scPct && assessedValue) {
-        const implied = sc.dollarsSaved / (Number(assessedValue) * scPct);
+      //
+      // READ FROM bdJson.savings, NOT `savings`.
+      //
+      // `savings` in this scope is a NUMBER, declared three lines below, so the
+      // first version of this both used the wrong value and referenced it inside
+      // its own temporal dead zone — "Cannot access 'savings' before
+      // initialization", which reached the customer as "Lookup failed".
+      // The qualify object carrying the scenarios is bdJson.savings.
+      const gate = bdJson?.savings;
+      const likely = gate?.scenarios?.likely;
+      const likelyPct = gate?.scenarioPcts?.likely;
+      if (likely?.dollarsSaved && likelyPct && assessedValue) {
+        const implied = likely.dollarsSaved / (Number(assessedValue) * likelyPct);
+        // Sanity-bounded: Florida millage runs roughly 11 to 24 mills, so
+        // anything outside 0.3%-5% means the arithmetic upstream changed shape
+        // and the placeholder is the safer answer.
         if (implied > 0.003 && implied < 0.05) effectiveRate = implied;
       }
       const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
