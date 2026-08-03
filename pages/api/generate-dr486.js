@@ -203,6 +203,24 @@ export function citesCaseLaw(text) {
       || /\((?:Fla\.[^)]*)\)/.test(t);                     // (Fla. 4th DCA 1984)
 }
 
+/**
+ * A CONSTRUCTION YEAR WE DID NOT SUPPLY.
+ *
+ * One petition said "built in 1968" under criterion (2) and "constructed in 1958"
+ * under criterion (5) — for the same house, four paragraphs apart. The roll says
+ * 1968. Details the model reaches for rather than reads are exactly what a
+ * magistrate uses to decide how carefully the rest was prepared.
+ */
+export function contradictsYearBuilt(text, yearBuilt) {
+  const y = String(yearBuilt || '').match(/\d{4}/)?.[0];
+  if (!y) return false;
+  const found = new Set();
+  const re = /\b(?:built|constructed|construction)\b[^.]{0,40}?\b(1[89]\d{2}|20[0-2]\d)\b/gi;
+  let m;
+  while ((m = re.exec(String(text || '')))) found.add(m[1]);
+  return [...found].some((f) => f !== y);
+}
+
 export function citesAbsentComps(text) {
   const t = String(text || '').toLowerCase();
   return [
@@ -370,6 +388,8 @@ sale in any form.`;
     // $657,930 - $28,400 is $629,530. The sentence was arithmetically false on a
     // document signed under penalty of perjury, because the ask actually rested
     // on a different ground entirely.
+    // The construction year we actually hold, for the consistency check above.
+    const yearBuiltForCheck = String(propertyDetails || '').match(/(?:built|year built)\D{0,12}(1[89]\d{2}|20[0-2]\d)/i)?.[1] || null;
     const cureTotal = Number(costToCureTotal) || 0;
     const impliedByCure = Number(assessedValue) - cureTotal;
     const askAttribution = (askRestsOn === 'evidence' || !cureTotal)
@@ -392,7 +412,7 @@ PARCEL/FOLIO: ${parcelId || 'not provided'}
 CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
 ${valuationBasis ? 'GROUNDS FOR THE REQUESTED VALUE (these were derived from the facts below — argue THESE, and do not substitute your own):\n' + valuationBasis : ''}
-${propertyDetails ? 'PROPERTY DETAILS:\n' + propertyDetails : ''}
+${propertyDetails ? 'PROPERTY DETAILS — THE ONLY FACTS ABOUT THIS PROPERTY YOU HAVE.\nRestate any of these exactly as given or not at all. Do not state a year built, square footage, bedroom or bathroom count, lot size or construction detail that is not written here — a petition that gives two different construction years for the same house tells the Board that nobody checked it.\n' + propertyDetails : ''}
 ${compsBlock}
 ${issuesBlock}
 OWNER NOTES: ${notes || 'None.'}
@@ -469,19 +489,20 @@ Professional, factual, first person as the property owner. Output only the four 
 
     // ONE RETRY, THEN STRIP. See citesAbsentComps above for why this exists.
     const badComps = () => compRows.length === 0 && citesAbsentComps(evidenceText);
-    if (badComps() || citesCaseLaw(evidenceText)) {
-      console.warn('[dr486] output cited unsupplied evidence — retrying once', { comps: badComps(), caseLaw: citesCaseLaw(evidenceText) });
+    const badYear = () => contradictsYearBuilt(evidenceText, yearBuiltForCheck);
+    if (badComps() || citesCaseLaw(evidenceText) || badYear()) {
+      console.warn('[dr486] output used unsupplied facts — retrying once', { comps: badComps(), caseLaw: citesCaseLaw(evidenceText), yearBuilt: badYear() });
       const retry = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5', max_tokens: 2000,
-          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it. Remove every mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later; omit that section entirely and renumber. Remove every case name, court decision and reporter citation. Argue only from the statutory text supplied and the facts of this property.` }],
+          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it. Remove every mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later; omit that section entirely and renumber. Remove every case name, court decision and reporter citation. Argue only from the statutory text supplied and the facts of this property. State no construction year, square footage or other property characteristic that was not given to you above.` }],
         }),
       });
       const retryData = await retry.json();
       const retryText = retryData?.content?.[0]?.text || '';
-      const retryClean = retryText && !citesCaseLaw(retryText) && !(compRows.length === 0 && citesAbsentComps(retryText));
+      const retryClean = retryText && !citesCaseLaw(retryText) && !contradictsYearBuilt(retryText, yearBuiltForCheck) && !(compRows.length === 0 && citesAbsentComps(retryText));
       if (retryClean) {
         evidenceText = retryText;
       } else {
