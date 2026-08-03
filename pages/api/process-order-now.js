@@ -36,6 +36,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Order is not queued (current status: ${order.dispute_status})` });
     }
 
+    // Same guard as the cron. This button bypasses the filing-window check, so
+    // without it a refunded order could be mailed with one click — and the
+    // person clicking would have no reason to suspect the payment came back.
+    const REVERSED = ['refunded', 'partially_refunded', 'disputed'];
+    if (REVERSED.includes(order.payment_status)) {
+      return res.status(400).json({
+        error: `Payment was reversed (payment_status: ${order.payment_status}). This order must not be mailed — a certified petition and a real county filing-fee check would go out for money that has been returned.`,
+      });
+    }
+
     const result = await dispatchQueuedOrder(order, { supabase, resend });
 
     if (!result.success) {

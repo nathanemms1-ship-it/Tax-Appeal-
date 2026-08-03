@@ -72,11 +72,31 @@ export default async function handler(req, res) {
   let totalErrored = 0;
 
   try {
-    const { data: queuedOrders, error } = await supabase
+    // A REFUNDED PRE-ORDER MUST NOT BE MAILED.
+    //
+    // This selected on dispute_status alone. Pre-orders are accepted up to 60
+    // days before a county's window opens, so weeks can pass between payment and
+    // mailing — and a refund inside that gap is an ordinary thing to happen.
+    //
+    // The Stripe webhook records a refund or chargeback by setting
+    // payment_status ('refunded', 'partially_refunded', 'disputed') and leaves
+    // dispute_status as 'queued', because the order really is still queued. So
+    // when the window opened, this cron would have mailed a certified petition
+    // AND cut a real county filing-fee check for someone whose money had already
+    // been returned. Unrecoverable in both directions: the check is cashed by a
+    // government office, and the customer has a filing they did not pay for.
+    const REVERSED = ['refunded', 'partially_refunded', 'disputed'];
+    const { data: allQueued, error } = await supabase
       .from('orders')
       .select('*')
       .eq('dispute_status', 'queued')
       .order('created_at', { ascending: true });
+
+    const queuedOrders = (allQueued || []).filter((o) => {
+      if (!REVERSED.includes(o.payment_status)) return true;
+      console.log(`[process-queued-orders] order ${o.id} skipped — payment_status=${o.payment_status}`);
+      return false;
+    });
 
     if (error) throw error;
     if (!queuedOrders?.length) {
