@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
     // Send reset email — await it before responding
     const emailResult = await resend.emails.send({
-      from: 'TaxAppeal USA <disputes@taxappealusa.com>',
+      from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
       reply_to: 'customerservice@taxappealusa.com',
       to: [email],
       subject: 'Reset your TaxAppeal USA portal password',

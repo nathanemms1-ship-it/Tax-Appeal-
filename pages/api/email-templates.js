@@ -157,7 +157,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <div style="font-size:12px;color:#999;">
                 TaxAppeal USA · taxappealusa.com<br/>
                 Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
-                Filing disputes handled exclusively at <a href="mailto:disputes@taxappealusa.com" style="color:#1B2A4A;">disputes@taxappealusa.com</a>
+                Filing disputes handled exclusively at <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
               </div>
               <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
             </td>

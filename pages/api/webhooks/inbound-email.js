@@ -10,7 +10,7 @@
  *      customer's order — the address match used ILIKE with the caller's own
  *      string interpolated into the pattern, so "%" matched the newest order in
  *      the table and let the caller pick a victim without knowing anything, and
- *   3. cause an email to be sent to that customer from disputes@taxappealusa.com,
+ *   3. cause an email to be sent to that customer from customerservice@taxappealusa.com,
  *      DKIM-signed by us, with attacker-controlled text in the body.
  *
  * Fixed here: shared-secret auth that fails CLOSED, LIKE-wildcard escaping, a
@@ -219,7 +219,7 @@ ${emailBody.substring(0, 4000)}`
 
   try {
     await resend.emails.send({
-      from: 'TaxAppeal USA <disputes@taxappealusa.com>',
+      from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
       to: order.customer_email,
       subject: isGoodNews
         ? `🎉 Your appeal was ${parsed.decision === 'approved' ? 'approved' : 'partially approved'}!`

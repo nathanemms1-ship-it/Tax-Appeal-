@@ -23,7 +23,7 @@ const TRUSTPILOT_BCC = 'taxappealusa.com+73f5a040d9@invite.trustpilot.com';
 
 export default async function handler(req, res) {
   // Anyone could POST {to, subject, html} and send verbatim mail from
-  // disputes@taxappealusa.com with full SPF/DKIM alignment — perfect phishing of
+  // customerservice@taxappealusa.com with full SPF/DKIM alignment — perfect phishing of
   // your own customer list, plus unlimited quota burn.
   if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     // default confirmation email was sent with empty fields.
     if (prebuiltHtml && prebuiltSubject) {
       const response = await resend.emails.send({
-        from: 'TaxAppeal USA <disputes@taxappealusa.com>',
+        from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
         reply_to: 'customerservice@taxappealusa.com',
         to: [to],
         subject: prebuiltSubject,
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     }
 
     const emailPayload = {
-      from: 'TaxAppeal USA <disputes@taxappealusa.com>',
+      from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
       reply_to: 'customerservice@taxappealusa.com',
       to: [to],
       subject,

@@ -51,21 +51,32 @@ const [agreedAuth, setAgreedAuth] = useState(false);
 const [countyConfirmed, setCountyConfirmed] = useState(false);
 const [agreedFee, setAgreedFee] = useState(false);
 /**
- * THE HEARING ELECTION.
+ * THE HEARING ELECTION IS NOT COLLECTED HERE. IT IS COLLECTED AT SIGNING.
  *
- * Defaults to NOT attending, because that is what almost every homeowner wants
- * and it is a normal, express option on the DR-486 — "I will not attend the
- * hearing but would like my evidence considered."
+ * It used to be a checkbox on this screen. That was worse than redundant — it
+ * was a control whose value went nowhere:
  *
- * But it is SHOWN, not assumed. generate-dr486.js already defaulted this to true
- * while its own header states the election "belongs to the OWNER and must be
- * disclosed and chosen, never defaulted silently." A silent default is exactly
- * the kind of thing that turns a document preparation service into someone
- * making decisions on a petitioner's behalf.
+ *   onAuthorize({ willNotAttend })  ->  apply.js setFlSignature(sig)
+ *   -> apply.js reads only sig.vabFee, sig.countyConfirmedAt, sig.countySource
+ *   -> never sent to /api/checkout, never sent to /api/generate-dr486
  *
- * Unchecking it is the only way to attend, so the owner keeps the choice.
+ * So an owner who unticked it (i.e. asked to attend) had that answer discarded,
+ * then read a preview petition rendered with "I will not attend" ticked — because
+ * generate-dr486 defaults `willNotAttend !== false` — and was then defaulted back
+ * to "No" again on the signing screen. Asking a binding question in a place that
+ * cannot record the answer is how you end up filing an election the owner did not
+ * make.
+ *
+ * The election now lives in exactly one place: components/SignatureStep.js, after
+ * payment, on the same screen as the DR-486 Part 3 signature. That is the right
+ * place for it, because Part 2 of the form is signed under penalty of perjury and
+ * §194.011(3) requires the owner to sign it themselves — the election has to be in
+ * front of them at the moment they sign, not two screens earlier.
+ *
+ * What stays here is the DISCLOSURE, as plain text: no hearing is required, and
+ * you choose. Telling someone a hearing is optional removes a real objection to
+ * buying. Asking them to decide it twice does not.
  */
-const [willNotAttend, setWillNotAttend] = useState(true);
 
 const vabFee = feeData?.vabFee || 5000;
 const payableTo = feeData?.payableTo || 'Board of County Commissioners';
@@ -91,9 +102,10 @@ county: feeData?.county,
 vabFee,
 payableTo,
 needsManualFiling: !!feeData?.needsManualFiling,
-// The owner's own election, recorded with the order. Checked on Part 2 of
-// the DR-486.
-willNotAttend,
+// NO hearing election here — see the note above. It is captured in
+// SignatureStep and written to orders.fl_will_not_attend by
+// /api/finalize-order, which is the only value processOrder reads when it
+// rebuilds Part 2 of the DR-486 immediately before mailing.
 // Recorded so there is evidence the customer affirmatively confirmed the
 // county, rather than us having inferred it. A tick nobody stores proves
 // nothing later.
@@ -246,20 +258,16 @@ hearing is scheduled, attending is my decision and my responsibility.
 <><strong style={{ color: C.darkNavy }}>I understand the {vabFeeDisplay} {countyDisplay} VAB filing fee is required by Florida law</strong> (§ 194.013) and is non-refundable once submitted. TaxAppeal USA will pay this fee to {payableTo} on my behalf with my petition.</>
 ))}
 
-{/* The hearing election. Pre-ticked, but visible and reversible — see the
-    state declaration for why a silent default was the wrong shape. Not part
-    of canProceed: either answer is valid, so it must not gate the button. */}
-{checkbox(willNotAttend, () => setWillNotAttend(!willNotAttend), (
-<><strong style={{ color: C.darkNavy }}>I do not want to attend a hearing.</strong> Ask the Board to decide on my written petition alone. Most owners choose this — it is an express option on the DR-486 and does not weaken the petition. <span style={{ color: C.mutedGray }}>Untick this if you would rather attend in person; the Board will then schedule you a time.</span></>
-))}
-
-{!willNotAttend && (
-<div style={{ fontSize: 12.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, background: '#FFF8E6', border: '1px solid #F0DFB0', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
-You&rsquo;ll be scheduled for a hearing and will need to attend or send someone. TaxAppeal USA
-prepares your documents and cannot appear or speak for you — we are not your representative
-before the Board.
+{/* Disclosure, not a control. The election itself is made once, at signing.
+    Kept here because "do I have to show up at a hearing?" is a live objection
+    at the moment someone is deciding to pay, and the answer is no. */}
+<div style={{ fontSize: 12.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, background: C.lightBlue, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+<strong style={{ color: C.darkNavy }}>You do not have to attend a hearing.</strong> The DR-486 lets you
+ask the Board to decide on your written petition alone, and most owners choose that — it does not
+weaken the petition. You will make that choice yourself on the petition right after checkout, and you
+can ask for a hearing instead if you would rather appear. TaxAppeal USA prepares your documents and
+cannot appear or speak for you.
 </div>
-)}
 
 {!canProceed && (
 <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: 'center', marginBottom: 10 }}>

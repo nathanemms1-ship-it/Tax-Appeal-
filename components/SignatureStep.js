@@ -117,11 +117,25 @@ export default function SignatureStep({
     <div style={{ maxWidth: 720, margin: "0 auto", fontFamily: "'DM Sans', sans-serif" }}>
       <h1 style={{ color: C.navy, fontSize: 26, margin: "0 0 6px" }}>Review and sign your protest</h1>
       <p style={{ color: C.bodyGray, fontSize: 15, lineHeight: 1.6, margin: "0 0 20px" }}>
-        This is the protest that will be filed in your name for{" "}
+        This is the {isFL ? 'petition' : 'protest'} that will be filed in your name for{" "}
         <strong style={{ color: C.navy }}>{propertyAddress}</strong>. Read it over and{" "}
         <strong style={{ color: C.navy }}>sign electronically below — there's nothing to print or mail.</strong>{" "}
-        The moment you sign, we print your protest and send it by USPS certified mail to your appraisal
-        district, and email you the tracking number.
+        {/*
+          FLORIDA IS FIRST CLASS, NOT CERTIFIED, AND THAT IS NOT A DOWNGRADE WE CHOSE.
+          A Florida filing goes out as a Lob CHECK (the county VAB filing fee) with the
+          petition as its attachment — see pages/api/send-letter.js. Lob only offers
+          usps_first_class on checks; certified is not an option on that product, which
+          is why the code already sets mail_type: 'usps_first_class' for FL.
+          Saying "certified" here would be a false statement made in the same breath as
+          asking someone to sign under penalty of perjury. It is still tracked, so say
+          that instead of overclaiming.
+        */}
+        {isFL
+          ? <>The moment you sign, we print your petition, attach the county filing-fee check, and send
+            it by tracked USPS First Class mail to the Value Adjustment Board — then email you the
+            tracking number.</>
+          : <>The moment you sign, we print your protest and send it by USPS certified mail to your
+            appraisal district, and email you the tracking number.</>}
       </p>
 
       {/* Full letter */}
@@ -176,7 +190,8 @@ export default function SignatureStep({
             <span style={{ fontSize: 13, lineHeight: 1.5 }}>
               I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release
               information about my property and this petition to TaxAppeal USA, so they can prepare and
-              file my petition and receive a copy of the Board&rsquo;s decision (&sect; 194.011(3), Fla. Stat.).
+              mail my petition and receive a copy of the Board&rsquo;s decision (&sect; 194.011(3), Fla. Stat.).
+              This releases records only &mdash; it does not make TaxAppeal USA my representative.
               Optional &mdash; if you leave this unchecked, the Board will send the decision only to you.
             </span>
           </div>
@@ -236,10 +251,11 @@ export default function SignatureStep({
           style={{ marginTop: 3, width: 18, height: 18, accentColor: C.navy, flexShrink: 0 }}
         />
         <span style={{ fontSize: 13, lineHeight: 1.6, color: C.bodyGray }}>
-          I am the owner of this property (or authorized to act for the owner). This is my protest,
-          filed in my name. I understand TaxAppeal USA is a document-preparation and certified-mail
-          service — not my property tax consultant, agent, or representative — does not provide tax
-          or legal advice, and will not represent me before the appraisal district or review board.
+          I am the owner of this property (or authorized to act for the owner). This is my{" "}
+          {isFL ? 'petition' : 'protest'}, filed in my name. I understand TaxAppeal USA is a
+          document-preparation and {isFL ? 'mailing' : 'certified-mail'} service — not my property tax
+          consultant, agent, or representative — does not provide tax or legal advice, and will not
+          represent me before the {isFL ? 'Value Adjustment Board or Property Appraiser' : 'appraisal district or review board'}.
         </span>
       </label>
 

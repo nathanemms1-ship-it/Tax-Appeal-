@@ -15,7 +15,24 @@ try {
 } catch (e) { console.log('Redis init failed:', e.message); }
 
 const REP_NAME = 'TaxAppeal USA';
-const REP_EMAIL = 'disputes@taxappealusa.com';
+
+/**
+ * TWO ADDRESSES, TWO JOBS. They are not interchangeable.
+ *
+ * CONTACT_EMAIL is a monitored inbox. It is the only address that may be printed
+ * for a human — a customer, a clerk, a Board — to write to.
+ *
+ * DECISIONS_EMAIL feeds pages/api/webhooks/inbound-email.js, which parses an
+ * incoming decision letter and pushes the outcome to the customer's portal. It is
+ * a machine intake, not an inbox. Printing it as a contact address hands someone
+ * an address no person reads.
+ *
+ * The old single REP_EMAIL was disputes@ and was used for both. Its name was also
+ * wrong in a way that matters here: "REP" is short for representative, which is
+ * the one thing this file spends its FILED BY block denying we are.
+ */
+const CONTACT_EMAIL = 'customerservice@taxappealusa.com';
+const DECISIONS_EMAIL = 'disputes@taxappealusa.com';
 
 /**
  * Escape for HTML. generate-dr486.js has had this since its own rewrite; this file
@@ -63,7 +80,10 @@ function buildPT311AHtml(p) {
     '<div class="field"><div class="fl" style="font-weight:bold;color:#c00;">Owner Opinion of Value</div><div class="fv" style="font-weight:bold;font-size:12pt;">' + av + '</div></div>' +
     '</div></div></div>' +
     '<div class="sec"><div class="sh">FILED BY</div><div class="sb">' +
-    '<div style="font-size:9pt;">This appeal was prepared and filed by TaxAppeal USA, a document-preparation and certified-mail filing service, on behalf of the property owner named above. This appeal is signed by the owner and filed in the owner\'s name; TaxAppeal USA does not represent the owner before the Board of Tax Assessors or Board of Equalization.</div>' +
+    /* Same correction as the DR-486 footer: "filed ... on behalf of" is agency
+       language sitting one clause away from "does not represent the owner". Filing
+       for someone is an act of an agent; mailing is a courier function. We mail. */
+    '<div style="font-size:9pt;">This appeal was prepared at the direction of the property owner named above by TaxAppeal USA, a document-preparation and certified-mail service, and mailed for the owner. <b>The owner signed this appeal personally and is the appellant of record.</b> TaxAppeal USA is not the owner\'s representative or agent, does not represent the owner before the Board of Tax Assessors or Board of Equalization, will not appear at any hearing, and has no authority to act for the owner.</div>' +
     '</div></div>' +
     '<div class="pb"></div>' +
     '<div class="sec"><div class="sh">EVIDENCE AND COMPARABLE SALES</div><div class="sb">' +
@@ -71,7 +91,9 @@ function buildPT311AHtml(p) {
     '<div class="ev">' + e(p.evidenceText || 'See attached analysis.') + '</div>' +
     '</div></div>' +
     '<div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">' +
-    'Filed by TaxAppeal USA | disputes@taxappealusa.com | Filing Date: ' + e(today) + '<br/>Please send the Board\'s Notice of Decision to both the property owner (address above) and to disputes@taxappealusa.com.' +
+    'Prepared and mailed by TaxAppeal USA | Prepared and mailed: ' + e(today) +
+    '<br/>Direct all correspondence about this appeal to the property owner at the address above. Questions about this mailing only: ' + CONTACT_EMAIL + '.' +
+    '<br/>Please send the Board\'s Notice of Decision to the property owner (address above), with a courtesy copy to ' + DECISIONS_EMAIL + ' as authorized by the owner. That authorization releases records only and appoints no representative.' +
     '</div></div></body></html>';
 }
 

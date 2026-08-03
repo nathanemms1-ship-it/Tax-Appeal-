@@ -351,7 +351,7 @@ export default function TexasCityPage({ city }) {
 
       {/* Footer */}
       <footer style={{ background: C.darkNavy, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · disputes@taxappealusa.com</p>
+        <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           {[["Texas", "/texas"], ["Georgia", "/georgia"], ["Florida", "/florida"], ["Houston", "/houston"], ["Dallas", "/dallas"], ["Fort Worth", "/fort-worth"], ["Austin", "/austin"], ["San Antonio", "/san-antonio"], ["Atlanta", "/atlanta"], ["Miami", "/miami"], ["Tampa", "/tampa"], ["Terms", "/terms"], ["Privacy", "/privacy"]].map(([label, href]) => (
             <a key={href} href={href} style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>{label}</a>

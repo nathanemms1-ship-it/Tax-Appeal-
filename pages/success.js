@@ -74,7 +74,7 @@ function buildConfirmationEmail({ customerName, address, county, districtName, a
         </td></tr>
         <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
           <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
-          <a href="mailto:disputes@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">disputes@taxappealusa.com</a>
+          <a href="mailto:customerservice@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">customerservice@taxappealusa.com</a>
           <div style="font-size:11px;color:#3A4E6A;margin-top:16px;">© 2026 TaxAppeal USA · taxappealusa.com</div>
         </td></tr>
       </table>
@@ -128,7 +128,7 @@ function buildReservedEmail({ customerName, address, county, scheduledFileDate, 
         </td></tr>
         <tr><td style='background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;'>
           <div style='font-size:13px;color:#8596AF;margin-bottom:8px;'>Questions? Reply to this email or contact us at</div>
-          <a href='mailto:disputes@taxappealusa.com' style='font-size:13px;color:#FFC940;text-decoration:none;'>disputes@taxappealusa.com</a>
+          <a href='mailto:customerservice@taxappealusa.com' style='font-size:13px;color:#FFC940;text-decoration:none;'>customerservice@taxappealusa.com</a>
           <div style='font-size:11px;color:#3A4E6A;margin-top:16px;'>© 2026 TaxAppeal USA · taxappealusa.com</div>
         </td></tr>
       </table>
@@ -265,15 +265,27 @@ export default function Success() {
         // below, exactly like TX/GA/AR/AL, so nothing is set here for any state.
       })
       .catch(() => {
-        setError('Could not verify payment. Please contact disputes@taxappealusa.com');
+        setError('Could not verify payment. Please contact customerservice@taxappealusa.com');
         setLoading(false);
       });
   }, [session_id]);
 
+  /**
+   * DECLARED HERE, NOT NEXT TO `steps`, AND THAT PLACEMENT IS LOad-BEARING.
+   *
+   * getMailStatusBadge() reads isFlorida and is CALLED a few lines below, which is above
+   * where the timeline strings live. Declaring `const isFlorida` down there put a read
+   * before the declaration in the same scope — a temporal dead zone crash on every
+   * Florida success page. That is the third time this exact class of bug has shipped
+   * in this codebase (savings, cure), which is why scripts/verify-tdz.mjs exists.
+   * Run it before pushing.
+   */
+  const isFlorida = session?.stateCode === 'FL';
+
   const getMailStatusBadge = () => {
     switch (mailStatus) {
       case 'sending': return { icon: '⏳', text: 'Filing your protest...', color: C.bodyGray, bg: C.bg };
-      case 'sent':    return { icon: '📬', text: 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
+      case 'sent':    return { icon: '📬', text: isFlorida ? 'Petition dispatched!' : 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
       case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'reserved': return { icon: '🎟️', text: session?.scheduledFileDate ? `Reserved — files ${new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} when your window opens` : 'Reserved — files as soon as your filing window opens', color: C.navy, bg: C.lightBlue };
@@ -285,18 +297,39 @@ export default function Success() {
 
   const scheduledDateLabel = session?.scheduledFileDate ? new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'your filing window opening';
 
+  /**
+   * FLORIDA IS FIRST CLASS, NOT CERTIFIED.
+   *
+   * A Florida filing leaves as a Lob CHECK — the county VAB filing fee — with the
+   * petition as its attachment (pages/api/send-letter.js). Lob's check product only
+   * offers usps_first_class; certified is not available on it, which is why the code
+   * already sends FL as mail_type: 'usps_first_class'. This timeline claimed
+   * "certified mail with return receipt" to every customer including Florida, four
+   * inches below the signature screen where we had just corrected exactly that claim.
+   *
+   * The vocabulary is wrong for Florida too, not only the mail class: a Florida
+   * filing is a PETITION to the VALUE ADJUSTMENT BOARD, not a protest to an
+   * APPRAISAL DISTRICT (that is the Texas term). Both are fixed together, because
+   * a customer who reads "appraisal district" on their receipt has been told their
+   * petition went somewhere that does not exist in their state.
+   */
+  const mailLine = isFlorida ? 'tracked USPS First Class mail' : 'USPS certified mail with return receipt';
+  const doc = isFlorida ? 'petition' : 'protest';
+  const recipient = isFlorida ? 'Value Adjustment Board' : 'appraisal district';
+  const Doc = doc.charAt(0).toUpperCase() + doc.slice(1);
+
   const steps = session?.isPreOrder ? [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
-    { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is prepared and held in your name.', done: true },
-    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. We will submit your protest via USPS certified mail with return receipt the moment it opens.`, done: false, active: true },
-    { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS certified mail tracking number will be emailed to you once it is dispatched.', done: false },
-    { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days after filing.', done: false },
+    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc} — it is prepared and held in your name.`, done: true },
+    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. We will submit your ${doc} via ${mailLine} the moment it opens.`, done: false, active: true },
+    { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS tracking number will be emailed to you once it is dispatched.', done: false },
+    { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days after filing.`, done: false },
   ] : [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
-    { icon: '✍️', title: 'Protest reviewed & signed', desc: 'You reviewed and signed your protest — it is filed in your name.', done: true },
-    { icon: '📬', title: 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed letter has been dispatched via USPS certified mail with return receipt.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : 'Your letter will be mailed via USPS certified mail with return receipt within 1 business day.', done: mailStatus === 'sent', active: mailStatus === 'sending' },
-    { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS certified mail tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
-    { icon: '⏳', title: 'Await district response', desc: 'The appraisal district responds directly to you, typically within 30–90 days.', done: false },
+    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc} — it is filed in your name.`, done: true },
+    { icon: '📬', title: isFlorida ? 'Petition dispatch' : 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed ${doc} has been dispatched via ${mailLine}.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : `Your ${doc} will be mailed via ${mailLine} within 1 business day.`, done: mailStatus === 'sent', active: mailStatus === 'sending' },
+    { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
+    { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days.`, done: false },
   ];
 
   // Florida is no longer excluded. It used to sign Part 3 before payment, on the
@@ -339,7 +372,7 @@ export default function Success() {
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </div>
-        <a href="mailto:disputes@taxappealusa.com" style={{ fontSize: 13, color: C.navy, textDecoration: "none" }}>disputes@taxappealusa.com</a>
+        <a href="mailto:customerservice@taxappealusa.com" style={{ fontSize: 13, color: C.navy, textDecoration: "none" }}>customerservice@taxappealusa.com</a>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>
@@ -353,7 +386,7 @@ export default function Success() {
             <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
             <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 8 }}>Payment issue</h2>
             <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 16 }}>{error}</p>
-            <a href="mailto:disputes@taxappealusa.com" style={{ color: C.navy, fontSize: 14 }}>Contact us at disputes@taxappealusa.com</a>
+            <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy, fontSize: 14 }}>Contact us at customerservice@taxappealusa.com</a>
           </div>
         ) : needsSignature ? (
           // TX/GA/AR/AL: review + sign. Nothing mails until this completes.
@@ -446,7 +479,7 @@ export default function Success() {
             </div>
 
             <div style={{ textAlign: "center", fontSize: 13, color: C.mutedGray, lineHeight: 1.8 }}>
-              Questions? Email <a href="mailto:disputes@taxappealusa.com" style={{ color: C.navy }}>disputes@taxappealusa.com</a>
+              Questions? Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>
               <br />
               <a href="/" style={{ color: C.navy }}>← Back to TaxAppeal</a>
             </div>

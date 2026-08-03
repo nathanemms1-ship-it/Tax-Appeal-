@@ -2,7 +2,10 @@
  * DR-486 PETITION GENERATOR — FLORIDA
  *
  * ============================================================================
- * FILING MODEL: DOCUMENT PREPARATION + FILING AGENT (owner is the signatory)
+ * FILING MODEL: DOCUMENT PREPARATION + MAILING (owner is the signatory)
+ *
+ * NOT "filing agent" — see the PREPARER block below. An agent is precisely what
+ * everything under this heading exists to establish we are not.
  * ============================================================================
  *
  * The property owner signs PART 3 of the petition. TaxAppeal USA does NOT sign
@@ -69,11 +72,56 @@ try {
   if (redisUrl && redisToken) redis = new Redis({ url: redisUrl, token: redisToken });
 } catch (e) { console.log('Redis init failed:', e.message); }
 
-// TaxAppeal appears ONLY as preparer/filing agent — never as representative.
+/**
+ * TaxAppeal appears ONLY as preparer — never as representative, and never as
+ * "filing agent" either.
+ *
+ * WHY THE WORD "FILED" WAS REMOVED FROM EVERY STRING BELOW.
+ *
+ * "Filing agent" is a contradiction we shipped: an agent is exactly what we
+ * spent this whole file establishing we are not. Filing a petition on another
+ * person's behalf is an act of agency; putting a document in the mail is a
+ * courier function. We do the second one.
+ *
+ * It also contradicted our own customer agreement. components/StepFloridaFee.js
+ * has the owner agree that we will "pay the county filing fee on my behalf, and
+ * mail the petition for me" — mail, not file. When the contract and the petition
+ * disagree, the Board reads the petition, so the petition is the one that has to
+ * be right.
+ *
+ * Everything here now uses prepare / mail, and nothing else.
+ *
+ * Note also what this footer is: an ADDENDUM. The DR-486 has an Agent field
+ * (which demands a professional licence number or FBN, and which we leave empty)
+ * and NO preparer field at all. So none of this is required by the form. It is
+ * here on purpose, because the mail piece is a Lob check drawn on TaxAppeal USA's
+ * account with the petition attached — the clerk already knows our name before
+ * they read a word of the form. A compensated company's cheque arriving with a
+ * petition that never explains who sent it is the fact pattern that looks like an
+ * undisclosed agent. Naming ourselves and disclaiming agency is the safer of the
+ * two options, not the riskier one.
+ */
 const PREPARER = {
   name: 'TaxAppeal USA',
-  email: 'disputes@taxappealusa.com',
-  role: 'Document preparation and filing service',
+  role: 'Document preparation and mailing service',
+
+  /**
+   * TWO ADDRESSES, TWO JOBS. Do not collapse them back into one.
+   *
+   * contactEmail is a monitored inbox, read by a person. It is the ONLY address
+   * that may be printed for a human — a clerk, a Board, a customer — to write to.
+   *
+   * decisionsEmail feeds pages/api/webhooks/inbound-email.js: mail arriving there
+   * is parsed and the outcome is pushed to the customer's portal. It is a machine
+   * intake, not an inbox. Nobody reads it.
+   *
+   * Both were disputes@ until now, which meant the petition handed a county clerk
+   * an address no human monitors — on the one piece of paper we cannot correct
+   * after it is in the mail. The determination request must stay on decisionsEmail,
+   * because that request is the entire reason the parser exists.
+   */
+  contactEmail: 'customerservice@taxappealusa.com',
+  decisionsEmail: 'disputes@taxappealusa.com',
 };
 
 function esc(s) {
@@ -150,7 +198,7 @@ function buildDR486Html({
     <div class="sig-block"><div class="sig-line">${preview ? '<span style="font-style:normal;font-size:10pt;color:#888;">— you will sign here after reviewing this petition —</span>' : esc(ownerSignatureName)}</div>
       <div class="sig-label">Signature of Taxpayer / Property Owner (electronically signed) &nbsp;&nbsp; Date: ${esc(ownerSignatureDate || today)}</div>
       <div class="attest"><strong>Under penalties of perjury</strong>, I declare that I am the owner of the property described in this petition, that I have read this petition, and that the facts stated in it are true.</div>
-      ${authorizeConfidential ? `<div class="attest" style="margin-top:6px;">I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release information regarding this petition to ${esc(PREPARER.name)}, ${esc(PREPARER.email)}, which prepared and filed this petition at my direction.</div>` : ''}
+      ${authorizeConfidential ? `<div class="attest" style="margin-top:6px;">I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release information regarding this petition to ${esc(PREPARER.name)}, ${esc(PREPARER.decisionsEmail)}, which prepared this petition at my direction and mailed it for me. This authorization releases records only. It does not appoint ${esc(PREPARER.name)} as my agent or representative.</div>` : ''}
     </div>
   </div></div>
 
@@ -172,64 +220,14 @@ function buildDR486Html({
   </div></div>
 
   <div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">
-    Prepared and filed at the property owner's direction by ${esc(PREPARER.name)} — ${esc(PREPARER.role)}.<br/>
-    ${esc(PREPARER.name)} is not the taxpayer's representative in these proceedings and will not appear before the Board.<br/>
-    Filing date: ${esc(today)} &nbsp;|&nbsp; Questions: ${esc(PREPARER.email)}<br/>
-    ${authorizeConfidential
-      ? `Please send the Value Adjustment Board's determination to the property owner at the address above, with a copy to ${esc(PREPARER.email)} as authorized by the owner in Part 3.`
-      : `Please send the Value Adjustment Board's determination to the property owner at the address above.`}
+    This petition was prepared at the property owner's direction by ${esc(PREPARER.name)} — ${esc(PREPARER.role)} — and mailed on the owner's behalf. Prepared and mailed: ${esc(today)}.<br/>
+    <strong>The property owner signed this petition personally and is the petitioner of record.</strong> ${esc(PREPARER.name)} is not the owner's representative or agent in this proceeding. It will not appear before the Board, will not present evidence or argument at any hearing, and has no authority to act for the owner. No agent authorization &mdash; DR-486A or DR-486POA &mdash; is filed with this petition, and none is intended.<br/>
+    <strong>Direct all correspondence and the Board's determination to the property owner at the address above.</strong> ${authorizeConfidential
+      ? `The owner has separately authorized in writing that a courtesy copy of the determination also be sent to ${esc(PREPARER.decisionsEmail)}; that authorization releases records only and appoints no representative.`
+      : ''}<br/>
+    Questions about the enclosed filing-fee payment or this mailing only: ${esc(PREPARER.contactEmail)}. Questions about the petition itself should go to the property owner.
   </div>
 </div></body></html>`;
-}
-
-/**
- * REFUSE OUTPUT THAT CITES EVIDENCE WE DID NOT SUPPLY.
- *
- * Three times in one day the model referred to comparable sales that were not
- * attached — each time complying with the letter of a prohibition while finding
- * another phrasing. Prompt wording is a request; this is the check.
- *
- * Only runs when NO comps were supplied. With a real table these phrases are
- * accurate and expected.
- */
-/**
- * ANY court citation at all. We supply no case law, so any that appears was
- * recalled rather than verified, and it is going onto a sworn filing.
- */
-export function citesCaseLaw(text) {
-  const t = String(text || '');
-  return /\b\d{2,4}\s+So\.\s?\d?d\s+\d+/.test(t)        // 452 So. 2d 564
-      || /\bv\.\s+[A-Z][A-Za-z.'-]+\s+(?:Cty|County|Corp|Inc|Co)\b/.test(t)
-      || /\((?:Fla\.[^)]*)\)/.test(t);                     // (Fla. 4th DCA 1984)
-}
-
-/**
- * A CONSTRUCTION YEAR WE DID NOT SUPPLY.
- *
- * One petition said "built in 1968" under criterion (2) and "constructed in 1958"
- * under criterion (5) — for the same house, four paragraphs apart. The roll says
- * 1968. Details the model reaches for rather than reads are exactly what a
- * magistrate uses to decide how carefully the rest was prepared.
- */
-export function contradictsYearBuilt(text, yearBuilt) {
-  const y = String(yearBuilt || '').match(/\d{4}/)?.[0];
-  if (!y) return false;
-  const found = new Set();
-  const re = /\b(?:built|constructed|construction)\b[^.]{0,40}?\b(1[89]\d{2}|20[0-2]\d)\b/gi;
-  let m;
-  while ((m = re.exec(String(text || '')))) found.add(m[1]);
-  return [...found].some((f) => f !== y);
-}
-
-export function citesAbsentComps(text) {
-  const t = String(text || '').toLowerCase();
-  return [
-    /comparable sales/,
-    /comparable properties/,
-    /similar (?:homes|properties|residences) (?:that )?(?:sold|have sold)/,
-    /sales comparison approach/,
-    /what buyers actually pay/,
-  ].some((re) => re.test(t));
 }
 
 export default async function handler(req, res) {
@@ -253,9 +251,6 @@ export default async function handler(req, res) {
     // below — the identifier existed only as a parameter of buildDR486Html, a
     // different function. Every Florida petition failed at the final step.
     comps,
-    // 'evidence' | 'mass_appraisal_floor' — which ground actually supports the
-    // requested figure. See askAttribution below.
-    askRestsOn, costToCureTotal,
     // Derived in lib/valuation.js with the statutory grounds supporting the ask.
     valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
@@ -346,64 +341,6 @@ Source: qualified arms-length sales from the Florida Department of Revenue sale
 data file for ${county} County, drawn from the same appraiser neighborhood as the
 subject property.\n`
       : '';
-
-/**
- * THE STATUTE, SUPPLIED VERBATIM.
- *
- * A generated petition listed subsection (2) as income, (3) as "the net proceeds
- * of the sale... after deduction of the usual and reasonable fees and costs of
- * sale", and (7) as condition. The real order is below. (3) is location; the
- * net-proceeds language is subsection (8), the one criterion this service must
- * never argue — so a misnumbering smuggled it back into a petition that had been
- * written specifically to exclude it.
- *
- * Same principle as the comparable sales: hand over the facts, forbid recall.
- * Subsection (8) is deliberately ABSENT from this list and must stay absent.
- */
-const FL_193_011 = `THE STATUTORY CRITERIA, VERBATIM. Use ONLY these. Do not paraphrase the
-numbering, do not add subsections, and do not recite any criterion not listed here.
-
-(1) The present cash value of the property, which is the amount a willing purchaser would
-    pay a willing seller, exclusive of reasonable fees and costs of purchase, in cash or the
-    immediate equivalent thereof in a transaction at arm's length.
-(2) The highest and best use to which the property can be expected to be put in the
-    immediate future and the present use of the property, taking into consideration any
-    applicable judicial limitation, local or state land use regulation, or historic
-    preservation ordinance.
-(3) The location of said property.
-(4) The quantity or size of said property.
-(5) The cost of said property and the present replacement value of any improvements thereon.
-(6) The condition of said property.
-(7) The income from said property.
-
-Subsection (8) exists and is DELIBERATELY OMITTED. Do not cite it, quote it, number any
-other criterion as (8), or refer to net proceeds of sale or to deduction of the costs of
-sale in any form.`;
-
-    // THE REQUESTED FIGURE MUST BE ATTRIBUTED TO WHAT ACTUALLY SUPPORTS IT.
-    //
-    // A generated petition described a requested value of $539,503 as "the
-    // current assessed value less the objectively documented cost to cure" on a
-    // property whose assessed value was $657,930 and whose cure cost was $28,400.
-    // $657,930 - $28,400 is $629,530. The sentence was arithmetically false on a
-    // document signed under penalty of perjury, because the ask actually rested
-    // on a different ground entirely.
-    // The construction year we actually hold, for the consistency check above.
-    const yearBuiltForCheck = String(propertyDetails || '').match(/(?:built|year built)\D{0,12}(1[89]\d{2}|20[0-2]\d)/i)?.[1] || null;
-    const cureTotal = Number(costToCureTotal) || 0;
-    const impliedByCure = Number(assessedValue) - cureTotal;
-    const askAttribution = (askRestsOn === 'evidence' || !cureTotal)
-      ? `ATTRIBUTION OF THE REQUESTED VALUE: the requested value is supported by the grounds itemised above. You may describe it as following from them.`
-      : `ATTRIBUTION OF THE REQUESTED VALUE — READ THIS TWICE.
-The requested value is ${fmt(requestedValue)}. The documented cost to cure totals ${fmt(cureTotal)}.
-Assessed value minus cost to cure would be ${fmt(impliedByCure)}, which is NOT the requested value.
-You must NOT write that the requested value equals, reflects, or represents the assessed value
-less the cost to cure. That sentence would be arithmetically false.
-State it correctly: the cost to cure is ${fmt(cureTotal)} of the reduction sought, and the remainder
-rests on the separate ground that the assessment was produced by mass appraisal without any
-physical inspection of this specific property, so it cannot reflect its actual condition.
-Both grounds are real. Present them as two grounds, not as one calculation.`;
-
     const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${county} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
@@ -412,7 +349,7 @@ PARCEL/FOLIO: ${parcelId || 'not provided'}
 CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
 ${valuationBasis ? 'GROUNDS FOR THE REQUESTED VALUE (these were derived from the facts below — argue THESE, and do not substitute your own):\n' + valuationBasis : ''}
-${propertyDetails ? 'PROPERTY DETAILS — THE ONLY FACTS ABOUT THIS PROPERTY YOU HAVE.\nRestate any of these exactly as given or not at all. Do not state a year built, square footage, bedroom or bathroom count, lot size or construction detail that is not written here — a petition that gives two different construction years for the same house tells the Board that nobody checked it.\n' + propertyDetails : ''}
+${propertyDetails ? 'PROPERTY DETAILS:\n' + propertyDetails : ''}
 ${compsBlock}
 ${issuesBlock}
 OWNER NOTES: ${notes || 'None.'}
@@ -423,25 +360,6 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, say what evidence the owner should submit instead.
-${FL_193_011}
-
-${askAttribution}
-
-- DO NOT cite, quote, or reference ANY court decision, case name, or reporter citation.
-  Not one. We cannot verify a citation before it is mailed, and a fabricated or
-  misapplied case on a document the owner signs under penalty of perjury is worse than
-  no legal argument at all. This project has already cited three Florida cases for
-  propositions none of them hold. Argue from the statute text supplied above and from the
-  facts of this property, and nothing else.
-- DO NOT refer to comparable sales, "comparable sales analysis", "what buyers actually pay
-  for similar properties", or any equivalent phrase UNLESS a VERIFIED COMPARABLE SALES table
-  was supplied to you above. When none was supplied there are none — not "to be submitted
-  separately", not "as demonstrated through comparable sales". A petition that credits its
-  requested value to evidence it does not attach is asking the Board to take an unsupported
-  figure on trust, over an owner's signature given under penalty of perjury.
-  If no table was supplied, attribute the requested value ONLY to the grounds actually stated
-  above: the priced cost to cure, and the fact that a mass appraisal produced this value
-  without examining this specific property.
 - DO NOT argue the "eighth criterion" (§ 193.011(8)) deduction of costs of sale, and do not
   assert the Property Appraiser failed to deduct costs of sale. Every Florida property
   appraiser files Form DR-493 ("Adjustments Made to Recorded Selling Prices or Fair Market
@@ -455,10 +373,9 @@ ${askAttribution}
   Court authority against the expansive theory.
 
 Write exactly 4 sections:
-1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing the applicable Fla. Stat. § 193.011 criteria (1) through (7) ONLY and applying them to the property details given above. DO NOT cite or quote § 193.011(8). It is the net-proceeds/costs-of-sale criterion, the appraiser has already applied it, and arguing it is the prohibition stated above — the previous version of this instruction said "(1)-(8)" and the resulting petition opened by quoting subsection (8).
+1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing Fla. Stat. § 193.011(1)-(8) criteria and applying them to the property details given above.
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
-3. COMPARABLE SALES AND VALUATION METHODOLOGY — INCLUDE THIS SECTION ONLY IF VERIFIED COMPARABLE SALES WERE SUPPLIED ABOVE. If they were, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1).
-IF NONE WERE SUPPLIED, OMIT SECTION 3 ENTIRELY and renumber the sections that follow. Do not describe a methodology, do not tell the Board what sales to look for, and above all do NOT state that the owner will submit comparable sales separately — the previous version of this instruction said exactly that, and produced a petition promising evidence the owner had no plan to file, over their signature under penalty of perjury. A petition resting on condition and on the absence of a physical inspection is complete without a comparable sales section; adding an empty one only advertises what is missing.
+3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, describe the approach the Board should apply and state plainly that the owner will submit comparable sales separately. Either way: do not invent comparables.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).
 
 Professional, factual, first person as the property owner. Output only the four sections.`;
@@ -486,36 +403,6 @@ Professional, factual, first person as the property owner. Output only the four 
     const claudeData = await claudeRes.json();
     if (claudeData.error) throw new Error(claudeData.error.message);
     evidenceText = claudeData.content?.[0]?.text || '';
-
-    // ONE RETRY, THEN STRIP. See citesAbsentComps above for why this exists.
-    const badComps = () => compRows.length === 0 && citesAbsentComps(evidenceText);
-    const badYear = () => contradictsYearBuilt(evidenceText, yearBuiltForCheck);
-    if (badComps() || citesCaseLaw(evidenceText) || badYear()) {
-      console.warn('[dr486] output used unsupplied facts — retrying once', { comps: badComps(), caseLaw: citesCaseLaw(evidenceText), yearBuilt: badYear() });
-      const retry = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5', max_tokens: 2000,
-          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it. Remove every mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later; omit that section entirely and renumber. Remove every case name, court decision and reporter citation. Argue only from the statutory text supplied and the facts of this property. State no construction year, square footage or other property characteristic that was not given to you above.` }],
-        }),
-      });
-      const retryData = await retry.json();
-      const retryText = retryData?.content?.[0]?.text || '';
-      const retryClean = retryText && !citesCaseLaw(retryText) && !contradictsYearBuilt(retryText, yearBuiltForCheck) && !(compRows.length === 0 && citesAbsentComps(retryText));
-      if (retryClean) {
-        evidenceText = retryText;
-      } else {
-        // Still wrong. Drop the offending paragraphs rather than mailing a claim
-        // we cannot support — a shorter petition is recoverable, a false one is
-        // not, and the owner signs this.
-        console.error('[dr486] retry still cited absent comparables — removing those paragraphs');
-        evidenceText = evidenceText
-          .split(/\n\s*\n/)
-          .filter((para) => !citesCaseLaw(para) && !(compRows.length === 0 && citesAbsentComps(para)))
-          .join('\n\n');
-      }
-    }
     }
 
     const filingDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
