@@ -312,6 +312,15 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, say what evidence the owner should submit instead.
+- DO NOT refer to comparable sales, "comparable sales analysis", "what buyers actually pay
+  for similar properties", or any equivalent phrase UNLESS a VERIFIED COMPARABLE SALES table
+  was supplied to you above. When none was supplied there are none — not "to be submitted
+  separately", not "as demonstrated through comparable sales". A petition that credits its
+  requested value to evidence it does not attach is asking the Board to take an unsupported
+  figure on trust, over an owner's signature given under penalty of perjury.
+  If no table was supplied, attribute the requested value ONLY to the grounds actually stated
+  above: the priced cost to cure, and the fact that a mass appraisal produced this value
+  without examining this specific property.
 - DO NOT argue the "eighth criterion" (§ 193.011(8)) deduction of costs of sale, and do not
   assert the Property Appraiser failed to deduct costs of sale. Every Florida property
   appraiser files Form DR-493 ("Adjustments Made to Recorded Selling Prices or Fair Market

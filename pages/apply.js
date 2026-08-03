@@ -1281,11 +1281,18 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, overflowX: "hidden" }}>{renderEvidence(visibleLines)}</div>
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
+            {/* The blur is the paywall: the customer reads the opening of their
+                petition, pays, then reads and signs the whole thing.
+                NEXT_PUBLIC_PREVIEW_UNBLURRED=true lifts it, for reviewing the
+                full document without paying. It is an env var rather than a
+                query parameter so it cannot be guessed, and it should be removed
+                from Vercel before there is meaningful traffic. */}
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true' ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
           </div>
           <div style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: "10px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            🔒 The rest is hidden until checkout. Right after you pay you will see the
-            <strong> complete document with nothing blurred</strong>, read it, and sign it yourself.
+            {process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'
+              ? <>🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.</>
+              : <>🔒 The rest is hidden until checkout. Right after you pay you will see the <strong>complete document with nothing blurred</strong>, read it, and sign it yourself.</>}
           </div>
         </div>
         <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
