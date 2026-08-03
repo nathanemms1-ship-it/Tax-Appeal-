@@ -1648,6 +1648,18 @@ function StepDispute({ formData, onRestart }) {
       // identifies the property being petitioned.
       //
       // compCount is set later, once the comps call has actually returned.
+      // COMPUTED BEFORE pd, WHICH READS IT.
+      //
+      // This was declared below, next to the prompt that first used it, and pd
+      // then referenced `cure.total` inside its own temporal dead zone —
+      // "Cannot access 'cure' before initialization", which reached the customer
+      // as "Lookup failed". Identical in shape to the `savings` bug on 2 August:
+      // a value added to pd whose declaration sits further down the function.
+      //
+      // Neither verify-routes nor verify-render catches this, because both stop
+      // at the boundary of run(). That gap is item 1 of the open work.
+      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
+
       const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, compsReason: null, askRestsOn: valuation.askRestsOn, cureTotal: cure.total, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
@@ -1656,7 +1668,7 @@ function StepDispute({ formData, onRestart }) {
       // came from. A cited cost is arguable; a bare list of complaints is not.
       // Incurable conditions are listed separately and explicitly at no cost, so
       // the letter cannot imply we priced something we did not.
-      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
+
       const curedLines = cure.priced.map(c =>
         `• ${c.issue}\n    Remedy: ${c.scope}\n    Cost to cure: $${c.asked.toLocaleString()}${c.ownerSupplied ? " (owner's own contractor estimate)" : ` (source: ${c.source}, ${c.sourceYear})`}`
       ).join("\n");
