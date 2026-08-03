@@ -568,21 +568,45 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * lost customers who were perfectly eligible.
  */
 function StepFloridaCheck({ property, onEligible, onBack }) {
-  const [state, setState] = useState({ status: 'loading', data: null });
+  const [state, setState] = useState({ status: 'loading', data: null, comps: null });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch('/api/check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ street: property.street, zip: property.zip, city: property.city }),
-        });
-        const j = await r.json();
+        // BOTH TESTS, HERE, BEFORE ANY MORE OF THE CUSTOMER'S TIME IS SPENT.
+        //
+        // /api/check is the Save Our Homes cap test — can a reduction reach the
+        // bill at all. /api/comps additionally knows whether this property sold
+        // arms-length for more than comparable sales support, which is the one
+        // fact the Property Appraiser can answer every comp with.
+        //
+        // Until now the sale check did not run until the letter step, so someone
+        // could be told "worth appealing" with three savings figures and then
+        // quietly refused two steps later. Same answer, arrived at after wasting
+        // their evening.
+        //
+        // Run together — the comps call is county data, so it costs nothing and
+        // adds no vendor spend.
+        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL' });
+        const [cRes, kRes] = await Promise.all([
+          fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+          fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null),
+        ]);
+        const j = await cRes.json();
         if (cancelled) return;
         if (!j || j.found === false || j.eligible === undefined) { onEligible(); return; }
-        setState({ status: 'done', data: j });
+
+        // A comps failure must never block anyone. Only one specific verdict
+        // stops the funnel: the subject itself sold above what the comps argue.
+        // Thin comps do NOT stop it — a property with a failed roof still has a
+        // real case on condition, and refusing those would turn a data gap into
+        // a lost customer who was perfectly entitled to file.
+        let comps = null;
+        try { comps = kRes ? await kRes.json() : null; } catch { comps = null; }
+        if (cancelled) return;
+
+        setState({ status: 'done', data: j, comps });
       } catch {
         if (!cancelled) onEligible();
       }
@@ -607,7 +631,47 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
   const d = state.data;
   const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
 
-  // ── Cannot win. Say so, plainly, and keep the door open. ───────────────────
+  // ── Refuted by the property's own sale. ───────────────────────────────────
+  //
+  // Shown before the cap test because it is the more specific answer: this is not
+  // "an appeal cannot help properties like yours", it is "the county will point
+  // at your own deed". The owner should hear the actual reason.
+  const sale = state.comps?.reason === 'subject_sold_above_indicated_value' ? state.comps : null;
+  if (sale) {
+    const px1 = d.parcel || {};
+    const when = sale.subjectSale?.saleDate
+      ? new Date(sale.subjectSale.saleDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'recently';
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
+          We don&rsquo;t think this appeal would succeed
+        </h2>
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
+          Your property sold on the open market in {when} for {money(sale.subjectSale?.salePrice)}. Recent sales of
+          comparable homes nearby support a value of about {money(sale.indicatedValue)} — below what your own property
+          actually sold for.
+        </p>
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
+          A recent arms-length sale is the strongest evidence a Property Appraiser has. If we filed, they would answer
+          every comparable sale we cited with your own closing figure, and the Board would agree with them.
+        </p>
+        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          {px1.address ? <><strong>{px1.address}</strong><br /></> : null}
+          Just value on the {px1.rollYear || ''} roll: {money(d.facts?.justValue)} · Sold {when} for {money(sale.subjectSale?.salePrice)}
+        </div>
+        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
+          We&rsquo;re not going to take $89 for a filing we expect to lose. This changes as the market moves and as your
+          purchase recedes from the assessment date — we re-read every roll and will email you if it becomes worth filing.
+        </p>
+        <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
+          ← Check a different property
+        </button>
+      </div>
+    );
+  }
+
+  // ── Cannot win on the cap. Say so, plainly, and keep the door open. ────────
   if (!d.eligible) {
     const px0 = d.parcel || {};
     return (
@@ -722,6 +786,19 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
           : (d.facts?.statement || <>Save Our Homes caps your assessed value below your just value, so a
              reduction only reaches your bill once it clears that gap.</>)}
       </div>
+
+      {/* When comparable sales already support a lower value, say so here rather
+          than making the customer take the cap arithmetic on trust. This is the
+          strongest thing we know about their property and it was previously not
+          surfaced until after payment. */}
+      {state.comps?.sufficient && state.comps?.indicatedValue && d.facts?.justValue
+        && state.comps.indicatedValue < d.facts.justValue && (
+        <div style={{ background: '#E8F5EE', border: '1px solid #B8DFC9', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          <strong>Comparable sales already support a lower value.</strong> {state.comps.comps?.length || 0} qualified
+          arms-length sales in your own appraiser neighbourhood indicate about {money(state.comps.indicatedValue)},
+          against the county&rsquo;s {money(d.facts.justValue)}. Those sales are cited in your petition.
+        </div>
+      )}
 
       {/* Scenarios labelled with the reduction each assumes, not adjectives.
           "Typical: $3,121" invites the question the label cannot answer.
