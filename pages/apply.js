@@ -1305,6 +1305,36 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               <div key={label}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.gold }}>{val}</div>
                 <div style={{ fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
+
+            {/* WHY THERE ARE NO COMPARABLE SALES.
+                A zero in gold next to the price reads as something that failed
+                unless we say otherwise. It is also material to what the customer
+                is about to buy: a petition citing six verified sales and one
+                citing none are different products, and they should know which
+                one they are getting while they can still walk away.
+                The reason is specific, because "your neighbourhood rarely
+                transacts" and "nearby sales argue against you" are different
+                facts and only one of them is about them. */}
+            {(pd.compCount ?? 0) === 0 && (
+              <div style={{ background: C.amber, border: "1px solid #FFD97A", borderRadius: 10, padding: "16px 18px", marginTop: 16, fontFamily: "'DM Sans', sans-serif" }}>
+                <div style={{ fontWeight: 700, color: "#7A5C10", fontSize: 14, marginBottom: 6 }}>
+                  This petition does not cite comparable sales
+                </div>
+                <p style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.7, margin: "0 0 10px" }}>
+                  {pd.compsReason === 'comps_do_not_support_reduction'
+                    ? <>Recent sales of similar homes near you support a value at or above your assessment. We are not citing them, because doing so would argue against your own case.</>
+                    : pd.compsReason === 'land_value_not_comparable'
+                    ? <>Most of your property&rsquo;s value is the land itself, and the nearby sales we hold are not comparable on that basis. Comparing a lot like yours to houses on ordinary lots would produce a figure we could not defend.</>
+                    : <>Too few homes of similar size and age near you sold in the assessment period for us to cite any. That is common for larger or older properties, and for neighbourhoods where houses change hands rarely.</>}
+                </p>
+                <p style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.7, margin: 0 }}>
+                  <strong>This does not mean your petition will fail.</strong>{' '}
+                  {pd.askRestsOn === 'evidence' && pd.cureTotal
+                    ? <>It rests on the condition of your property — {`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects, each priced from published construction cost data. Condition is a mandatory consideration under Fla. Stat. § 193.011(6), and it stands on its own without comparable sales.</>
+                    : <>It rests on two grounds: the condition of your property{pd.cureTotal ? `, with ${`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects priced from published cost data` : ''}, and the fact that your county set this value by mass appraisal without ever inspecting your property. Both are recognised grounds under Fla. Stat. § 193.011.</>}
+                </p>
+              </div>
+            )}
               </div>
             ))}
           </div>
@@ -1618,7 +1648,7 @@ function StepDispute({ formData, onRestart }) {
       // identifies the property being petitioned.
       //
       // compCount is set later, once the comps call has actually returned.
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, compsReason: null, askRestsOn: valuation.askRestsOn, cureTotal: cure.total, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
@@ -1679,6 +1709,9 @@ function StepDispute({ formData, onRestart }) {
             // including when the subject's own sale refuted the comps, which is
             // the case the hardcoded "4–5" used to paper over.
             pd.compCount = Array.isArray(flComps) ? flComps.length : 0;
+            // Why there are none, so the customer gets the actual reason rather
+            // than a bare zero next to the price.
+            pd.compsReason = pd.compCount === 0 ? (cJson?.reason || 'none') : null;
           }
         } catch (e) {
           console.log('comps unavailable, filing on methodology alone:', e?.message);
