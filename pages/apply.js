@@ -1619,6 +1619,11 @@ function StepDispute({ formData, onRestart }) {
             ownerState: property.state,
             ownerZip: property.zip,
             comps: flComps,
+            // Which ground supports the ask, and how much of it the priced
+            // defects actually account for. Without these the petition described
+            // an 18% floor-based figure as "assessed value less cost to cure".
+            askRestsOn: valuation.askRestsOn,
+            costToCureTotal: cure.total,
             propertyAddress: addr,
             county,
             assessedValue,

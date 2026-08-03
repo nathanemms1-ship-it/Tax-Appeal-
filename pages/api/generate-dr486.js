@@ -192,6 +192,17 @@ function buildDR486Html({
  * Only runs when NO comps were supplied. With a real table these phrases are
  * accurate and expected.
  */
+/**
+ * ANY court citation at all. We supply no case law, so any that appears was
+ * recalled rather than verified, and it is going onto a sworn filing.
+ */
+export function citesCaseLaw(text) {
+  const t = String(text || '');
+  return /\b\d{2,4}\s+So\.\s?\d?d\s+\d+/.test(t)        // 452 So. 2d 564
+      || /\bv\.\s+[A-Z][A-Za-z.'-]+\s+(?:Cty|County|Corp|Inc|Co)\b/.test(t)
+      || /\((?:Fla\.[^)]*)\)/.test(t);                     // (Fla. 4th DCA 1984)
+}
+
 export function citesAbsentComps(text) {
   const t = String(text || '').toLowerCase();
   return [
@@ -224,6 +235,9 @@ export default async function handler(req, res) {
     // below — the identifier existed only as a parameter of buildDR486Html, a
     // different function. Every Florida petition failed at the final step.
     comps,
+    // 'evidence' | 'mass_appraisal_floor' — which ground actually supports the
+    // requested figure. See askAttribution below.
+    askRestsOn, costToCureTotal,
     // Derived in lib/valuation.js with the statutory grounds supporting the ask.
     valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
@@ -314,6 +328,62 @@ Source: qualified arms-length sales from the Florida Department of Revenue sale
 data file for ${county} County, drawn from the same appraiser neighborhood as the
 subject property.\n`
       : '';
+
+/**
+ * THE STATUTE, SUPPLIED VERBATIM.
+ *
+ * A generated petition listed subsection (2) as income, (3) as "the net proceeds
+ * of the sale... after deduction of the usual and reasonable fees and costs of
+ * sale", and (7) as condition. The real order is below. (3) is location; the
+ * net-proceeds language is subsection (8), the one criterion this service must
+ * never argue — so a misnumbering smuggled it back into a petition that had been
+ * written specifically to exclude it.
+ *
+ * Same principle as the comparable sales: hand over the facts, forbid recall.
+ * Subsection (8) is deliberately ABSENT from this list and must stay absent.
+ */
+const FL_193_011 = `THE STATUTORY CRITERIA, VERBATIM. Use ONLY these. Do not paraphrase the
+numbering, do not add subsections, and do not recite any criterion not listed here.
+
+(1) The present cash value of the property, which is the amount a willing purchaser would
+    pay a willing seller, exclusive of reasonable fees and costs of purchase, in cash or the
+    immediate equivalent thereof in a transaction at arm's length.
+(2) The highest and best use to which the property can be expected to be put in the
+    immediate future and the present use of the property, taking into consideration any
+    applicable judicial limitation, local or state land use regulation, or historic
+    preservation ordinance.
+(3) The location of said property.
+(4) The quantity or size of said property.
+(5) The cost of said property and the present replacement value of any improvements thereon.
+(6) The condition of said property.
+(7) The income from said property.
+
+Subsection (8) exists and is DELIBERATELY OMITTED. Do not cite it, quote it, number any
+other criterion as (8), or refer to net proceeds of sale or to deduction of the costs of
+sale in any form.`;
+
+    // THE REQUESTED FIGURE MUST BE ATTRIBUTED TO WHAT ACTUALLY SUPPORTS IT.
+    //
+    // A generated petition described a requested value of $539,503 as "the
+    // current assessed value less the objectively documented cost to cure" on a
+    // property whose assessed value was $657,930 and whose cure cost was $28,400.
+    // $657,930 - $28,400 is $629,530. The sentence was arithmetically false on a
+    // document signed under penalty of perjury, because the ask actually rested
+    // on a different ground entirely.
+    const cureTotal = Number(costToCureTotal) || 0;
+    const impliedByCure = Number(assessedValue) - cureTotal;
+    const askAttribution = (askRestsOn === 'evidence' || !cureTotal)
+      ? `ATTRIBUTION OF THE REQUESTED VALUE: the requested value is supported by the grounds itemised above. You may describe it as following from them.`
+      : `ATTRIBUTION OF THE REQUESTED VALUE — READ THIS TWICE.
+The requested value is ${fmt(requestedValue)}. The documented cost to cure totals ${fmt(cureTotal)}.
+Assessed value minus cost to cure would be ${fmt(impliedByCure)}, which is NOT the requested value.
+You must NOT write that the requested value equals, reflects, or represents the assessed value
+less the cost to cure. That sentence would be arithmetically false.
+State it correctly: the cost to cure is ${fmt(cureTotal)} of the reduction sought, and the remainder
+rests on the separate ground that the assessment was produced by mass appraisal without any
+physical inspection of this specific property, so it cannot reflect its actual condition.
+Both grounds are real. Present them as two grounds, not as one calculation.`;
+
     const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${county} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
@@ -333,6 +403,16 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, say what evidence the owner should submit instead.
+${FL_193_011}
+
+${askAttribution}
+
+- DO NOT cite, quote, or reference ANY court decision, case name, or reporter citation.
+  Not one. We cannot verify a citation before it is mailed, and a fabricated or
+  misapplied case on a document the owner signs under penalty of perjury is worse than
+  no legal argument at all. This project has already cited three Florida cases for
+  propositions none of them hold. Argue from the statute text supplied above and from the
+  facts of this property, and nothing else.
 - DO NOT refer to comparable sales, "comparable sales analysis", "what buyers actually pay
   for similar properties", or any equivalent phrase UNLESS a VERIFIED COMPARABLE SALES table
   was supplied to you above. When none was supplied there are none — not "to be submitted
@@ -388,19 +468,21 @@ Professional, factual, first person as the property owner. Output only the four 
     evidenceText = claudeData.content?.[0]?.text || '';
 
     // ONE RETRY, THEN STRIP. See citesAbsentComps above for why this exists.
-    if (compRows.length === 0 && citesAbsentComps(evidenceText)) {
-      console.warn('[dr486] output cited comparable sales with none supplied — retrying once');
+    const badComps = () => compRows.length === 0 && citesAbsentComps(evidenceText);
+    if (badComps() || citesCaseLaw(evidenceText)) {
+      console.warn('[dr486] output cited unsupplied evidence — retrying once', { comps: badComps(), caseLaw: citesCaseLaw(evidenceText) });
       const retry = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5', max_tokens: 2000,
-          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it with no mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later. Omit the comparable sales section entirely and renumber.` }],
+          messages: [{ role: 'user', content: `${evidencePrompt}\n\nYOUR PREVIOUS ATTEMPT REFERRED TO COMPARABLE SALES. NONE WERE SUPPLIED WITH THIS PETITION. Rewrite it. Remove every mention of comparable sales, comparable properties, a sales comparison approach, or what buyers pay for similar homes — in any form, including a promise to submit them later; omit that section entirely and renumber. Remove every case name, court decision and reporter citation. Argue only from the statutory text supplied and the facts of this property.` }],
         }),
       });
       const retryData = await retry.json();
       const retryText = retryData?.content?.[0]?.text || '';
-      if (retryText && !citesAbsentComps(retryText)) {
+      const retryClean = retryText && !citesCaseLaw(retryText) && !(compRows.length === 0 && citesAbsentComps(retryText));
+      if (retryClean) {
         evidenceText = retryText;
       } else {
         // Still wrong. Drop the offending paragraphs rather than mailing a claim
@@ -409,7 +491,7 @@ Professional, factual, first person as the property owner. Output only the four 
         console.error('[dr486] retry still cited absent comparables — removing those paragraphs');
         evidenceText = evidenceText
           .split(/\n\s*\n/)
-          .filter((para) => !citesAbsentComps(para))
+          .filter((para) => !citesCaseLaw(para) && !(compRows.length === 0 && citesAbsentComps(para)))
           .join('\n\n');
       }
     }
