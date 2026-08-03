@@ -325,7 +325,7 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
   Court authority against the expansive theory.
 
 Write exactly 4 sections:
-1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing Fla. Stat. § 193.011(1)-(8) criteria and applying them to the property details given above.
+1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing the applicable Fla. Stat. § 193.011 criteria (1) through (7) ONLY and applying them to the property details given above. DO NOT cite or quote § 193.011(8). It is the net-proceeds/costs-of-sale criterion, the appraiser has already applied it, and arguing it is the prohibition stated above — the previous version of this instruction said "(1)-(8)" and the resulting petition opened by quoting subsection (8).
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
 3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, describe the approach the Board should apply and state plainly that the owner will submit comparable sales separately. Either way: do not invent comparables.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).

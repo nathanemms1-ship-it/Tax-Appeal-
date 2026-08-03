@@ -1177,7 +1177,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             {[
               [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
               [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—", "Potential annual savings"],
-              ["4–5", "Comparable sales cited"],
+              // WAS THE LITERAL STRING "4–5".
+              // It claimed four to five comparable sales on every petition,
+              // including ones where the comps engine supplied none — which is
+              // now the normal outcome whenever the subject's own sale refutes
+              // them. A count the customer reads before paying has to be the
+              // real count.
+              [String(pd.compCount ?? 0), (pd.compCount ?? 0) === 1 ? "Comparable sale cited" : "Comparable sales cited"],
               [issues.length.toString(), "Issues cited in letter"],
             ].map(([val, label]) => (
               <div key={label}>
@@ -1450,12 +1456,34 @@ function StepDispute({ formData, onRestart }) {
       const reductionPct = valuation.reductionPct;
       const reductionPctDisplay = valuation.reductionPctDisplay;
       const targetReduction = valuation.requestedValue;
-      const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
+      // THE REAL MILLAGE, NOT 1.1%.
+      //
+      // The placeholder produced $1,303 on a Broward property whose eligibility
+      // screen had said $1,960 for the same reduction two steps earlier —
+      // Broward levies 19.86 mills, not 11. Two different savings figures for one
+      // property in one session is the kind of thing a customer notices and a
+      // magistrate asks about.
+      //
+      // qualify.js already computed its scenarios at the county's actual rate, so
+      // the effective rate is recovered from them rather than re-derived.
+      let effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
+      const sc = savings?.scenarios?.likely;
+      const scPct = savings?.scenarioPcts?.likely;
+      if (sc?.dollarsSaved && scPct && assessedValue) {
+        const implied = sc.dollarsSaved / (Number(assessedValue) * scPct);
+        if (implied > 0.003 && implied < 0.05) effectiveRate = implied;
+      }
       const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
       const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
       const savings = savingsFromMarket || savingsFromReduction;
       const stateInfo = SUPPORTED_STATES[stateCode] || {};
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
+      // parcelId WAS ABSENT, so the preview printed "Not listed in county
+      // records" for a parcel we had already resolved and shown on the
+      // eligibility screen two steps earlier. The folio number is how the Board
+      // identifies the property being petitioned.
+      //
+      // compCount is set later, once the comps call has actually returned.
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
@@ -1512,6 +1540,10 @@ function StepDispute({ formData, onRestart }) {
             if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps)) {
               flComps = cJson.comps;
             }
+            // The count the summary card shows. Zero when the engine declined —
+            // including when the subject's own sale refuted the comps, which is
+            // the case the hardcoded "4–5" used to paper over.
+            pd.compCount = Array.isArray(flComps) ? flComps.length : 0;
           }
         } catch (e) {
           console.log('comps unavailable, filing on methodology alone:', e?.message);
