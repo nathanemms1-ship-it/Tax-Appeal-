@@ -263,7 +263,7 @@ ${emailBody.substring(0, 4000)}`
       </div>
       <div style="border-top:1px solid #e2e8f0;padding-top:24px;text-align:center;">
         <p style="font-size:14px;color:#94a3b8;margin:0;">
-          Questions? <a href="mailto:support@taxappealusa.com" style="color:#22c55e;text-decoration:none;">support@taxappealusa.com</a>
+          Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#22c55e;text-decoration:none;">customerservice@taxappealusa.com</a>
         </p>
       </div>
     </div>

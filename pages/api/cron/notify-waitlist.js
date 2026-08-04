@@ -119,7 +119,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
 
       <div style="border-top:1px solid #e2e8f0;padding-top:20px;margin-top:20px;text-align:center;">
         <p style="font-size:12px;color:#94a3b8;margin:0;">
-          Questions? <a href="mailto:support@taxappealusa.com" style="color:#1B3A6B;text-decoration:none;">support@taxappealusa.com</a>
+          Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;text-decoration:none;">customerservice@taxappealusa.com</a>
           <br><br>
           <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(entry.email)}&token=${unsubToken(entry.email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
         </p>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import WaitlistForm from '../components/WaitlistForm';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
+import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
@@ -55,10 +56,19 @@ function AnnouncementBar() {
   );
 }
 
-function NavBar({ step }) {
+function NavBar({ step, account, property }) {
   const isAccountStep = ["account", "property"].includes(step);
   const rightText = isAccountStep ? "Have an account? Sign in" : "Need help? Contact us";
-  const rightHref = isAccountStep ? "/portal" : "mailto:support@taxappealusa.com";
+  /**
+   * "Need help? Contact us" used to be mailto:support@taxappealusa.com. That was
+   * broken twice over: support@ does not exist in the GoDaddy account, and a
+   * mailto: link does nothing at all on a phone or any machine with no mail client
+   * configured. Someone stuck mid-funnel clicked it and got silence.
+   *
+   * It now opens a form that posts to /api/contact and emails customerservice@.
+   * The sign-in link on the early steps is a real page, so it stays an anchor.
+   */
+  const [contactOpen, setContactOpen] = useState(false);
   return (
     <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -68,18 +78,28 @@ function NavBar({ step }) {
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
         </div>
       </div>
-      <a href={rightHref} className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s" }}>{rightText}</a>
+      {isAccountStep ? (
+        <a href="/portal" className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s" }}>{rightText}</a>
+      ) : (
+        <button type="button" onClick={() => setContactOpen(true)} className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s", cursor: "pointer" }}>{rightText}</button>
+      )}
+      <ContactModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        context={{
+          step,
+          email: account?.email || '',
+          address: property ? [property.street, property.city, property.state, property.zip].filter(Boolean).join(', ') : '',
+          county: property?.county || '',
+          state: property?.state || '',
+        }}
+      />
     </div>
   );
 }
 
 function ProgressBar({ currentStep }) {
-  // The eligibility check and the Florida fee screen are not their own numbered
-  // steps — they sit between "Your Property" and "Property Issues". Without this
-  // STEPS.indexOf returns -1 on those screens and the whole bar renders as though
-  // the customer had not started, which reads as progress being lost.
-  const SUBSTEPS = { 'florida-check': 'property', 'florida-fee': 'issues' };
-  const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
+  const idx = STEPS.indexOf(currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
       {STEPS.map((step, i) => {
@@ -114,28 +134,7 @@ function Field({ label, id, type = "text", value, onChange, placeholder }) {
   );
 }
 
-/**
- * ADDRESS SUGGESTIONS COME FROM OUR OWN ROLL IN FLORIDA, NOT GOOGLE PLACES.
- *
- * Typing "7431 arthur st" against Google returned Gainesville VA, Oakland CA and
- * a Virginia drive — while the actual property, 7431 ARTHUR ST in Hollywood FL,
- * sat in our own parcels table with a 2026 just value on it. A national geocoder
- * has no idea which addresses we can serve.
- *
- * Two consequences, and the second is the real one:
- *   - every keystroke was a metered Google Places call, on 8.4 million Florida
- *     addresses we already hold and can query for nothing
- *   - a suggestion Google returns is not guaranteed to resolve to a parcel, so a
- *     customer could pick a perfectly real address and then be told we have no
- *     record of their property — which is exactly the failure the whole county
- *     data pipeline exists to remove
- *
- * NO GOOGLE FALLBACK IN FLORIDA. If the roll does not have it, offering a
- * suggestion we cannot resolve is worse than offering none — the customer types
- * it manually and the lookup fails honestly rather than after a false promise.
- * Other states keep Google, because we hold no data for them.
- */
-function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
+function AddressAutocomplete({ value, onChange, onSelect }) {
   const [suggestions, setSuggestions] = useState([]);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -157,28 +156,10 @@ function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
     debounce.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const z = String(zip || '').trim().slice(0, 5);
-        const sc = String(stateCode || '').trim().toUpperCase();
-        const looksFlorida = sc === 'FL' || (/^\d{5}$/.test(z) && Number(z) >= 32000 && Number(z) <= 34999);
-
-        let list = [];
-        // Our own roll first whenever Florida is possible — including when the
-        // state box is still empty, which it usually is while the street is
-        // being typed.
-        if (looksFlorida || !sc) {
-          const r = await fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val, zip: z || null }) });
-          const j = await r.json();
-          list = (j.suggestions || []).map((x) => ({ ...x, state: 'FL' }));
-        }
-        // Google only for states we hold no roll for. Never as a Florida
-        // fallback — see the header.
-        if (!list.length && !looksFlorida) {
-          const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
-          const data = await res.json();
-          list = data.suggestions || [];
-        }
-        setSuggestions(list);
-        setShow(list.length > 0);
+        const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+        setShow((data.suggestions || []).length > 0);
       } catch (_) {}
       setLoading(false);
     }, 300);
@@ -461,7 +442,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
           </div>
           {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>Property Address</div>
-          <AddressAutocomplete value={data.street} stateCode={data.state} zip={data.zip} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
+          <AddressAutocomplete value={data.street} onChange={val => onChange("street", val)} onSelect={s => { onChange("street", s.street); if (s.city) onChange("city", s.city); if (s.state) onChange("state", s.state); if (s.zip) onChange("zip", s.zip); }} />
           <div className="three-col">
             <Field label="City" id="city" value={data.city} onChange={e => onChange("city", e.target.value)} placeholder="Mansfield" />
             <div style={{ marginBottom: 14 }}>
@@ -547,317 +528,6 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * decorate a page. `/api/lookup` is cached, so the call the dispute step makes
  * later is served from cache and costs nothing extra.
  */
-/**
- * THE FLORIDA ELIGIBILITY CHECK, INSIDE THE FUNNEL.
- *
- * Roughly 6 in 10 Florida residential parcels cannot benefit from an appeal at
- * all — Save Our Homes caps assessed value, and a petition can only move JUST
- * value, so a reduction that does not clear the cap changes nothing on the bill.
- * Those people must be turned away, and this is where that happens: after the
- * property step, before a single question about defects, and long before payment.
- *
- * WHY HERE AND NOT ON A SEPARATE PAGE FIRST.
- * By this point we hold their email (step 1) and their address (step 2). Someone
- * we turn away is therefore someone we can email the year their situation
- * changes — a sale, a market fall, a homestead ending. Putting the check on the
- * doorstep instead would mean the people we cannot help leave without a trace,
- * and they are the majority.
- *
- * A failure to reach the check is NOT a refusal. If the lookup errors we
- * continue, because refusing on absence of evidence would turn an outage into
- * lost customers who were perfectly eligible.
- */
-function StepFloridaCheck({ property, onEligible, onBack }) {
-  const [state, setState] = useState({ status: 'loading', data: null, comps: null });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // BOTH TESTS, HERE, BEFORE ANY MORE OF THE CUSTOMER'S TIME IS SPENT.
-        //
-        // /api/check is the Save Our Homes cap test — can a reduction reach the
-        // bill at all. /api/comps additionally knows whether this property sold
-        // arms-length for more than comparable sales support, which is the one
-        // fact the Property Appraiser can answer every comp with.
-        //
-        // Until now the sale check did not run until the letter step, so someone
-        // could be told "worth appealing" with three savings figures and then
-        // quietly refused two steps later. Same answer, arrived at after wasting
-        // their evening.
-        //
-        // Run together — the comps call is county data, so it costs nothing and
-        // adds no vendor spend.
-        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL' });
-        const [cRes, kRes] = await Promise.all([
-          fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
-          fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null),
-        ]);
-        const j = await cRes.json();
-        if (cancelled) return;
-        if (!j || j.found === false || j.eligible === undefined) { onEligible(); return; }
-
-        // A comps failure must never block anyone. Only one specific verdict
-        // stops the funnel: the subject itself sold above what the comps argue.
-        // Thin comps do NOT stop it — a property with a failed roof still has a
-        // real case on condition, and refusing those would turn a data gap into
-        // a lost customer who was perfectly entitled to file.
-        let comps = null;
-        try { comps = kRes ? await kRes.json() : null; } catch { comps = null; }
-        if (cancelled) return;
-
-        setState({ status: 'done', data: j, comps });
-      } catch {
-        if (!cancelled) onEligible();
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  if (state.status === 'loading') {
-    return (
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '64px 24px', textAlign: 'center' }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10 }}>
-          Checking your county&rsquo;s roll
-        </div>
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          We&rsquo;re reading the {property.city || 'county'} assessment roll to see whether an appeal
-          can actually lower your bill. This takes a moment and costs you nothing.
-        </p>
-      </div>
-    );
-  }
-
-  const d = state.data;
-  const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
-
-  // ── Refuted by the property's own sale. ───────────────────────────────────
-  //
-  // Shown before the cap test because it is the more specific answer: this is not
-  // "an appeal cannot help properties like yours", it is "the county will point
-  // at your own deed". The owner should hear the actual reason.
-  const sale = state.comps?.reason === 'subject_sold_above_indicated_value' ? state.comps : null;
-  if (sale) {
-    const px1 = d.parcel || {};
-    const when = sale.subjectSale?.saleDate
-      ? new Date(sale.subjectSale.saleDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'recently';
-    return (
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-          We don&rsquo;t think this appeal would succeed
-        </h2>
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-          Your property sold on the open market in {when} for {money(sale.subjectSale?.salePrice)}. Recent sales of
-          comparable homes nearby support a value of about {money(sale.indicatedValue)} — below what your own property
-          actually sold for.
-        </p>
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-          A recent arms-length sale is the strongest evidence a Property Appraiser has. If we filed, they would answer
-          every comparable sale we cited with your own closing figure, and the Board would agree with them.
-        </p>
-        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          {px1.address ? <><strong>{px1.address}</strong><br /></> : null}
-          Just value on the {px1.rollYear || ''} roll: {money(d.facts?.justValue)} · Sold {when} for {money(sale.subjectSale?.salePrice)}
-        </div>
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
-          We&rsquo;re not going to take $89 for a filing we expect to lose. This changes as the market moves and as your
-          purchase recedes from the assessment date — we re-read every roll and will email you if it becomes worth filing.
-        </p>
-        <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
-          ← Check a different property
-        </button>
-      </div>
-    );
-  }
-
-  // ── Cannot win on the cap. Say so, plainly, and keep the door open. ────────
-  if (!d.eligible) {
-    const px0 = d.parcel || {};
-    return (
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-          An appeal wouldn&rsquo;t lower your bill this year
-        </h2>
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-          {d.message || 'Your assessed value is capped well below your just value, so reducing the just value would not reach your tax bill.'}
-        </p>
-
-        {/* THE FIGURES THE PARAGRAPH IS TALKING ABOUT.
-            Without this the screen quotes a gap and a threshold and expects the
-            reader to infer the just value those were derived from. On the one
-            screen where we are telling somebody no, every number in the sentence
-            has to be visible and checkable against their TRIM notice. */}
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
-          {[
-            ['Just value — what the county says it is worth', money(d.facts?.justValue)],
-            ['Assessed value — what you are actually taxed on', money(d.facts?.cappedAt)],
-            ['Save Our Homes is holding this much off your bill', money(d.facts?.differential)],
-            ['A petition would have to cut just value by', d.facts?.requiredReductionPct != null ? `${d.facts.requiredReductionPct}%` : null],
-          ].filter(([, v]) => v).map(([label, value], i) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-              <span style={{ color: C.bodyGray }}>{label}</span>
-              <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {px0.address && (
-          <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginBottom: 18 }}>
-            {px0.address}{px0.rollYear ? ` · ${px0.rollYear} assessment roll` : ''}
-          </p>
-        )}
-        {/* Only when it is NOT already inside d.message. qualify.js builds the
-            refusal message by prepending breakEvenStatement to it, so rendering
-            both printed the same two sentences twice in a row — which reads as a
-            bug in the figures rather than a bug in the layout, on the one screen
-            where we are asking someone to believe a number they did not want. */}
-        {d.facts?.statement && !(d.message || '').includes(d.facts.statement) && (
-          <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            {d.facts.statement}
-          </div>
-        )}
-        <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
-          We&rsquo;re not going to take $89 for a filing that cannot help you. We re-read every
-          roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.
-        </p>
-        <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
-          ← Check a different property
-        </button>
-      </div>
-    );
-  }
-
-  // ── Worth filing. Show the county's own arithmetic, then continue. ─────────
-  //
-  // UNCAPPED IS NOT "NO ROOM". A parcel where assessed value equals just value
-  // has no Save Our Homes differential to absorb a reduction, which is the
-  // strongest position a Florida homeowner can be in — every dollar off just
-  // value reaches the bill. Rendering that as "Room between them: $0" made the
-  // best case on the page read as a failure.
-  const uncapped = !d.facts?.differential || Number(d.facts.differential) <= 0;
-  const px = d.parcel || {};
-
-  return (
-    <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E8F5EE', color: C.green, borderRadius: 20, padding: '5px 12px', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 14, fontWeight: 600 }}>
-        ✓ Worth appealing
-      </div>
-      <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-        Your property is worth appealing
-      </h2>
-
-      {/* Identify the parcel we matched. A customer needs to see we found THEIR
-          house before any figure below it means anything. */}
-      {px.address && (
-        <div style={{ background: '#FBFCFE', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-          <div style={{ color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>{px.address}</div>
-          <div style={{ color: C.mutedGray, fontSize: 13 }}>
-            {[px.livingArea ? `${Number(px.livingArea).toLocaleString()} sq ft` : null,
-              px.yearBuilt ? `built ${px.yearBuilt}` : null,
-              px.parcelId ? `parcel ${px.parcelId}` : null].filter(Boolean).join(' · ')}
-          </div>
-        </div>
-      )}
-
-      <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 20 }}>
-        These are your county&rsquo;s own figures from the {px.rollYear || ''} assessment roll.
-        You can check every one of them against your TRIM notice.
-      </p>
-
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-        {[
-          ['Just value — the figure a petition disputes', money(d.facts?.justValue)],
-          uncapped ? null : ['Your assessed value is capped at', money(d.facts?.cappedAt)],
-          uncapped ? null : ['A reduction has to clear this much first', money(d.facts?.differential)],
-        ].filter(Boolean).filter(([, v]) => v).map(([label, value], i) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-            <span style={{ color: C.bodyGray }}>{label}</span>
-            <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ background: uncapped ? '#E8F5EE' : C.lightBlue, border: `1px solid ${uncapped ? '#B8DFC9' : '#C5D3E8'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-        {uncapped
-          ? <>Your assessed value is <strong>not capped</strong> — it equals your just value. That is the
-             best position to appeal from: every dollar taken off your just value comes straight off
-             the value you are taxed on, with nothing absorbing it first.</>
-          : (d.facts?.statement || <>Save Our Homes caps your assessed value below your just value, so a
-             reduction only reaches your bill once it clears that gap.</>)}
-      </div>
-
-      {/* When comparable sales already support a lower value, say so here rather
-          than making the customer take the cap arithmetic on trust. This is the
-          strongest thing we know about their property and it was previously not
-          surfaced until after payment. */}
-      {state.comps?.sufficient && state.comps?.indicatedValue && d.facts?.justValue
-        && state.comps.indicatedValue < d.facts.justValue && (
-        <div style={{ background: '#E8F5EE', border: '1px solid #B8DFC9', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          <strong>Comparable sales already support a lower value.</strong> {state.comps.comps?.length || 0} qualified
-          arms-length sales in your own appraiser neighbourhood indicate about {money(state.comps.indicatedValue)},
-          against the county&rsquo;s {money(d.facts.justValue)}. Those sales are cited in your petition.
-        </div>
-      )}
-
-      {/* Scenarios labelled with the reduction each assumes, not adjectives.
-          "Typical: $3,121" invites the question the label cannot answer.
-          "At a 15% reduction: $3,121" states the assumption on its face, and the
-          percentages come from lib/dor/qualify.js so they cannot drift. */}
-      {d.estimates && (d.estimates.conservative != null || d.estimates.likely != null) && (
-        <div style={{ marginBottom: 20 }}>
-          {/* THE HOOK. This is the number a homeowner came for, so it is set as a
-              headline rather than a field label — the old 11px uppercase caption
-              made the most persuasive line on the page look like fine print. */}
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 4, lineHeight: 1.3 }}>
-            If your appeal succeeds, estimated savings in the first year
-          </div>
-          <p style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 12, lineHeight: 1.6 }}>
-            And every year after, until your county raises the value again.
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {[
-              ['conservative', d.estimates.conservative],
-              ['likely', d.estimates.likely],
-              ['optimistic', d.estimates.optimistic],
-            ].filter(([, v]) => v != null).map(([key, v]) => {
-              const pct = d.estimates.pcts?.[key];
-              return (
-                <div key={key} style={{ flex: '1 1 150px', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', background: C.white }}>
-                  <div style={{ fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, marginBottom: 4 }}>
-                    {pct ? `${Math.round(pct * 100)}% reduction` : 'Reduction'}
-                  </div>
-                  <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.navy, lineHeight: 1.1 }}>{money(v)}</div>
-                  <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 3 }}>a year</div>
-                </div>
-              );
-            })}
-          </div>
-          {d.estimates.millageIsEstimated && (
-            <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, marginTop: 10 }}>
-              Estimates only, shown at three possible outcomes. The millage rate used is a county
-              average, so your actual saving depends on your exact taxing districts — and on what
-              your Value Adjustment Board decides.
-            </p>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-        <button style={{ ...secondaryBtn, width: 'auto', padding: '14px 24px' }} onClick={onBack}>← Back</button>
-        <button style={primaryBtn} onClick={onEligible}>Continue →</button>
-      </div>
-
-      <p style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-        {px.source ? `Source: ${px.source}. ` : ''}
-        We report the county&rsquo;s own figures and the arithmetic that follows from them. TaxAppeal
-        USA is a document preparation service — not appraisers, attorneys or tax advisers — and we do
-        not represent you before the Value Adjustment Board. You sign and file in your own name.
-      </p>
-    </div>
-  );
-}
-
 function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange, property, costOverrides, onCostChange }) {
   const count = selectedIssues.length;
   const [parcel, setParcel] = useState(null);
@@ -1293,13 +963,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             {[
               [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
               [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—", "Potential annual savings"],
-              // WAS THE LITERAL STRING "4–5".
-              // It claimed four to five comparable sales on every petition,
-              // including ones where the comps engine supplied none — which is
-              // now the normal outcome whenever the subject's own sale refutes
-              // them. A count the customer reads before paying has to be the
-              // real count.
-              [String(pd.compCount ?? 0), (pd.compCount ?? 0) === 1 ? "Comparable sale cited" : "Comparable sales cited"],
+              ["4–5", "Comparable sales cited"],
               [issues.length.toString(), "Issues cited in letter"],
             ].map(([val, label]) => (
               <div key={label}>
@@ -1308,35 +972,6 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               </div>
             ))}
           </div>
-            {/* WHY THERE ARE NO COMPARABLE SALES.
-                A zero in gold next to the price reads as something that failed
-                unless we say otherwise. It is also material to what the customer
-                is about to buy: a petition citing six verified sales and one
-                citing none are different products, and they should know which
-                one they are getting while they can still walk away.
-                The reason is specific, because "your neighbourhood rarely
-                transacts" and "nearby sales argue against you" are different
-                facts and only one of them is about them. */}
-            {(pd.compCount ?? 0) === 0 && (
-              <div style={{ background: "rgba(255,201,64,0.10)", border: "1px solid rgba(255,201,64,0.45)", borderRadius: 10, padding: "16px 18px", margin: "16px 0 4px", fontFamily: "'DM Sans', sans-serif" }}>
-                <div style={{ fontWeight: 700, color: C.gold, fontSize: 14, marginBottom: 6 }}>
-                  This petition does not cite comparable sales
-                </div>
-                <p style={{ fontSize: 13, color: "#C7D6EA", lineHeight: 1.7, margin: "0 0 10px" }}>
-                  {pd.compsReason === 'comps_do_not_support_reduction'
-                    ? <>Recent sales of similar homes near you support a value at or above your assessment. We are not citing them, because doing so would argue against your own case.</>
-                    : pd.compsReason === 'land_value_not_comparable'
-                    ? <>Most of your property&rsquo;s value is the land itself, and the nearby sales we hold are not comparable on that basis. Comparing a lot like yours to houses on ordinary lots would produce a figure we could not defend.</>
-                    : <>Too few homes of similar size and age near you sold in the assessment period for us to cite any. That is common for larger or older properties, and for neighbourhoods where houses change hands rarely.</>}
-                </p>
-                <p style={{ fontSize: 13, color: "#C7D6EA", lineHeight: 1.7, margin: 0 }}>
-                  <strong style={{ color: C.white }}>This does not mean your petition will fail.</strong>{' '}
-                  {pd.askRestsOn === 'evidence' && pd.cureTotal
-                    ? <>It rests on the condition of your property — {`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects, each priced from published construction cost data. Condition is a mandatory consideration under Fla. Stat. § 193.011(6), and it stands on its own without comparable sales.</>
-                    : <>It rests on two grounds: the condition of your property{pd.cureTotal ? `, with ${`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects priced from published cost data` : ''}, and the fact that your county set this value by mass appraisal without ever inspecting your property. Both are recognised grounds under Fla. Stat. § 193.011.</>}
-                </p>
-              </div>
-            )}
           <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 12, fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif" }}>
             ⚖️ Drafted under {stateInfo.statute || "applicable state statutes"} · {pd.appraisalDistrict?.districtName || pd.county}
           </div>
@@ -1387,18 +1022,11 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, overflowX: "hidden" }}>{renderEvidence(visibleLines)}</div>
           <div style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            {/* The blur is the paywall: the customer reads the opening of their
-                petition, pays, then reads and signs the whole thing.
-                NEXT_PUBLIC_PREVIEW_UNBLURRED=true lifts it, for reviewing the
-                full document without paying. It is an env var rather than a
-                query parameter so it cannot be guessed, and it should be removed
-                from Vercel before there is meaningful traffic. */}
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true' ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, filter: "blur(4px)", opacity: 0.6, userSelect: "none", whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
           </div>
           <div style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: "10px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            {process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'
-              ? <>🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.</>
-              : <>🔒 The rest is hidden until checkout. Right after you pay you will see the <strong>complete document with nothing blurred</strong>, read it, and sign it yourself.</>}
+            🔒 The rest is hidden until checkout. Right after you pay you will see the
+            <strong> complete document with nothing blurred</strong>, read it, and sign it yourself.
           </div>
         </div>
         <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
@@ -1608,58 +1236,12 @@ function StepDispute({ formData, onRestart }) {
       const reductionPct = valuation.reductionPct;
       const reductionPctDisplay = valuation.reductionPctDisplay;
       const targetReduction = valuation.requestedValue;
-      // THE REAL MILLAGE, NOT 1.1%.
-      //
-      // The placeholder produced $1,303 on a Broward property whose eligibility
-      // screen had said $1,960 for the same reduction two steps earlier —
-      // Broward levies 19.86 mills, not 11. Two different savings figures for one
-      // property in one session is the kind of thing a customer notices and a
-      // magistrate asks about.
-      //
-      // qualify.js already computed its scenarios at the county's actual rate, so
-      // the effective rate is recovered from them rather than re-derived.
-      let effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
-      //
-      // READ FROM bdJson.savings, NOT `savings`.
-      //
-      // `savings` in this scope is a NUMBER, declared three lines below, so the
-      // first version of this both used the wrong value and referenced it inside
-      // its own temporal dead zone — "Cannot access 'savings' before
-      // initialization", which reached the customer as "Lookup failed".
-      // The qualify object carrying the scenarios is bdJson.savings.
-      const gate = bdJson?.savings;
-      const likely = gate?.scenarios?.likely;
-      const likelyPct = gate?.scenarioPcts?.likely;
-      if (likely?.dollarsSaved && likelyPct && assessedValue) {
-        const implied = likely.dollarsSaved / (Number(assessedValue) * likelyPct);
-        // Sanity-bounded: Florida millage runs roughly 11 to 24 mills, so
-        // anything outside 0.3%-5% means the arithmetic upstream changed shape
-        // and the placeholder is the safer answer.
-        if (implied > 0.003 && implied < 0.05) effectiveRate = implied;
-      }
+      const effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
       const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
       const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
       const savings = savingsFromMarket || savingsFromReduction;
       const stateInfo = SUPPORTED_STATES[stateCode] || {};
-      // parcelId WAS ABSENT, so the preview printed "Not listed in county
-      // records" for a parcel we had already resolved and shown on the
-      // eligibility screen two steps earlier. The folio number is how the Board
-      // identifies the property being petitioned.
-      //
-      // compCount is set later, once the comps call has actually returned.
-      // COMPUTED BEFORE pd, WHICH READS IT.
-      //
-      // This was declared below, next to the prompt that first used it, and pd
-      // then referenced `cure.total` inside its own temporal dead zone —
-      // "Cannot access 'cure' before initialization", which reached the customer
-      // as "Lookup failed". Identical in shape to the `savings` bug on 2 August:
-      // a value added to pd whose declaration sits further down the function.
-      //
-      // Neither verify-routes nor verify-render catches this, because both stop
-      // at the boundary of run(). That gap is item 1 of the open work.
-      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
-
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, compsReason: null, askRestsOn: valuation.askRestsOn, cureTotal: cure.total, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
+      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
       setPropData(pd);
       const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
       const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
@@ -1667,7 +1249,7 @@ function StepDispute({ formData, onRestart }) {
       // came from. A cited cost is arguable; a bare list of complaints is not.
       // Incurable conditions are listed separately and explicitly at no cost, so
       // the letter cannot imply we priced something we did not.
-
+      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
       const curedLines = cure.priced.map(c =>
         `• ${c.issue}\n    Remedy: ${c.scope}\n    Cost to cure: $${c.asked.toLocaleString()}${c.ownerSupplied ? " (owner's own contractor estimate)" : ` (source: ${c.source}, ${c.sourceYear})`}`
       ).join("\n");
@@ -1716,13 +1298,6 @@ function StepDispute({ formData, onRestart }) {
             if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps)) {
               flComps = cJson.comps;
             }
-            // The count the summary card shows. Zero when the engine declined —
-            // including when the subject's own sale refuted the comps, which is
-            // the case the hardcoded "4–5" used to paper over.
-            pd.compCount = Array.isArray(flComps) ? flComps.length : 0;
-            // Why there are none, so the customer gets the actual reason rather
-            // than a bare zero next to the price.
-            pd.compsReason = pd.compCount === 0 ? (cJson?.reason || 'none') : null;
           }
         } catch (e) {
           console.log('comps unavailable, filing on methodology alone:', e?.message);
@@ -1740,11 +1315,6 @@ function StepDispute({ formData, onRestart }) {
             ownerState: property.state,
             ownerZip: property.zip,
             comps: flComps,
-            // Which ground supports the ask, and how much of it the priced
-            // defects actually account for. Without these the petition described
-            // an 18% floor-based figure as "assessed value less cost to cure".
-            askRestsOn: valuation.askRestsOn,
-            costToCureTotal: cure.total,
             propertyAddress: addr,
             county,
             assessedValue,
@@ -2161,7 +1731,7 @@ function ApplyFunnel() {
         }
       ` }} />
       <AnnouncementBar />
-      <NavBar step={step} />
+      <NavBar step={step} account={account} property={property} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
       {flCountyError ? (
         <FloridaCountyPicker
@@ -2176,8 +1746,7 @@ function ApplyFunnel() {
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { const sc = property.state.trim().toUpperCase(); setStep(sc === 'FL' ? 'florida-check' : 'issues'); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "florida-check" && <StepFloridaCheck property={property} onEligible={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} />}

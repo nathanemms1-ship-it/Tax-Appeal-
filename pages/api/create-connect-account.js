@@ -86,7 +86,7 @@ export default async function handler(req, res) {
         // have no record that the account exists.
         console.error('Failed to save stripe_account_id:', accountId, code, updateError);
         return res.status(500).json({
-          error: 'Could not link your payout account. Please contact support@taxappealusa.com.',
+          error: 'Could not link your payout account. Please contact customerservice@taxappealusa.com.',
         });
       }
       console.log('Saved stripe_account_id', accountId, 'for', code);
