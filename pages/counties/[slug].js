@@ -97,7 +97,7 @@ const faqs = (county) => {
     },
     {
       q: `What appraisal district handles ${county.name} County?`,
-      a: `${county.name} County property tax ${t.verb}s are handled by the ${county.district}. TaxAppeal USA directs your certified letter to the correct address automatically.`,
+      a: `${county.name} County property tax ${t.verb}s are handled by the ${county.district}. TaxAppeal USA directs your filing to the correct address automatically.`,
     },
     {
       q: `Is it worth protesting my ${county.name} County property taxes?`,
@@ -122,7 +122,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
   const t = termsFor(county);
   const action = county.code === "TX" ? "Protest" : "Appeal";
   const title = `${county.name} County Property Tax ${action} 2026 | TaxAppeal USA`;
-  const description = `${county.name} County, ${county.state} property tax ${t.verb} for 2026 — deadline ${county.deadline}. TaxAppeal USA mails your certified ${t.noun} to the ${county.district} for $89 flat.`;
+  const description = `${county.name} County, ${county.state} property tax ${t.verb} for 2026 — deadline ${county.deadline}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`;
   const canonicalUrl = `https://www.taxappealusa.com/counties/${county.slug}`;
 
   const faqList = faqs(county);
@@ -292,7 +292,7 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
               // (s. 194.011(3), Fla. Stat.), so a "how it works" that omits it
               // describes a process that cannot happen.
               { n: "3", title: "Read it and sign it", body: `You review the completed filing and sign it yourself — it is filed in your name, as ${county.state === "Florida" ? "s. 194.011(3), Florida Statutes requires" : "the property owner"}.` },
-              { n: "4", title: "We mail it certified", body: `Your signed filing goes out via trackable USPS mail to the ${county.district}${county.code === "FL" ? ", with the county filing fee paid" : ""} — with tracking and proof of delivery.` },
+              { n: "4", title: county.code === "FL" ? "We mail it for you" : "We mail it certified", body: `Your signed filing goes out to the ${county.district}${county.code === "FL" ? " by tracked USPS First Class mail, with the county filing fee paid" : " by USPS certified mail"} — and we email you when it is on its way.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{n}</div>

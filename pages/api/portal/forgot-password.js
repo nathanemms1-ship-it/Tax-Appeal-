@@ -42,16 +42,31 @@ export default async function handler(req, res) {
     const order = orders[0];
     console.log('Found order for:', order.customer_name);
 
-    // Generate secure token
+    /**
+     * The token is emailed in the clear and stored HASHED — changed 5 Aug 2026.
+     *
+     * Previously the raw token went into password_reset_tokens.token and
+     * reset-password.js matched on it exactly. Anyone who could read that table
+     * held, for one hour, a working password reset for every customer who had
+     * requested one — email and token side by side, no cracking required.
+     *
+     * Row-Level Security now covers this table, so this is defence in depth rather
+     * than a live exposure. But a reset token is a bearer credential and should be
+     * treated like a password: store the hash, compare hashes, and let a database
+     * read yield nothing usable. SHA-256 is right here (unlike for passwords) —
+     * the token is 256 bits of crypto.randomBytes, so there is nothing to brute
+     * force and no need for a slow KDF.
+     */
     const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    // Store token in Supabase
+    // Store the HASH. `token` below is the column name; the value is the digest.
     const { error: upsertError } = await supabase
       .from('password_reset_tokens')
       .upsert({
         email: email.toLowerCase().trim(),
-        token,
+        token: tokenHash,
         expires_at: expires,
         used: false,
         created_at: new Date().toISOString()

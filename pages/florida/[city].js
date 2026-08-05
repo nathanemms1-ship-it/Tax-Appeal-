@@ -34,7 +34,7 @@ export default function FloridaCityPage({ city }) {
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
-      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18. You must file before this date — TaxAppeal USA prepares your petition and mails it certified once you sign, with time to spare.`,
+      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18. You must file before this date — TaxAppeal USA prepares your petition and mails it once you sign — by tracked USPS First Class mail, with the county filing fee paid — with time to spare.`,
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,

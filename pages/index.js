@@ -39,7 +39,7 @@ export default function Landing() {
     ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
-    ["What is certified mail and why does it matter?", "Certified mail is a USPS service that provides legal proof your dispute was sent and received. Most counties require it — and it protects you if there's ever a question about whether you filed before the deadline."],
+    ["How do you mail my filing?", "It depends on your state. In Texas, Georgia, Arkansas and Alabama we use USPS certified mail, which creates a signed record that your protest was sent and received. Florida VAB petitions go out as a check to the county with the petition attached, which USPS carries as tracked First Class mail — certified is not offered on that product. Either way we mail it for you and tell you when it is on its way."],
     ["Can I file in multiple counties?", "Yes — each property requires a separate filing. You can run the process multiple times, once for each property address."],
   ];
 
@@ -47,21 +47,21 @@ export default function Landing() {
     <>
       <Head>
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via certified mail. Flat fee, no percentage of your savings. Available in TX, GA, FL, AR, and AL." />
+        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute with comparable sales data and mail it for you, with tracking. Flat fee, no percentage of your savings. Available in TX, GA, FL, AR, and AL." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
         <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. Certified mail filing. TX, GA, FL, AR, AL." />
+        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We mail it for you, with tracking. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. Certified mail filing. TX, GA, FL, AR, AL." />
+        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. We mail it for you, with tracking. TX, GA, FL, AR, AL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft and file your property tax protest via certified mail. TX, GA, FL, AR, AL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft your property tax protest and mail it for you, with tracking. TX, GA, FL, AR, AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -81,13 +81,13 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, certified mail filing.",
+          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, tracked USPS mailing.",
           "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"],
           "offers": {
             "@type": "Offer",
             "price": "89",
             "priceCurrency": "USD",
-            "description": "Property tax protest filing via certified mail"
+            "description": "Property tax protest preparation and tracked USPS mailing"
           }
         }) }} />
       </Head>
@@ -420,7 +420,7 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <div className="eyebrow">🛡️ You sign it — we mail it certified</div>
+        <div className="eyebrow">🛡️ You sign it — we mail it for you</div>
         <h1>We fight your property tax bill. You keep the savings.</h1>
         <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. You sign it, we do the rest.</p>
         <div className="hero-cta-wrap">
@@ -432,7 +432,7 @@ export default function Landing() {
         <div className="trust-row">
           <div className="trust-item">🔒 256-bit encrypted</div>
           <div className="trust-item">⏱️ Takes 4 minutes</div>
-          <div className="trust-item">📬 Certified mail included</div>
+          <div className="trust-item">📬 Mailing included</div>
           <div className="trust-item">✅ TX · GA · FL · AR · AL</div>
         </div>
         <div className="stats-row">
@@ -531,7 +531,7 @@ export default function Landing() {
             {[
               ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and recent comparable sales from public records — no manual data entry needed."],
               ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
-              ["3", "We file for you", "We send your dispute via USPS certified mail to the correct appraisal district. You receive the tracking number as official proof of submission."],
+              ["3", "We mail it for you", "We send your signed filing to the correct authority by tracked USPS mail — certified in Texas, Georgia, Arkansas and Alabama — and pay any county filing fee. We email you when it goes out."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
                 <div className="step-num">{num}</div>
@@ -583,8 +583,8 @@ export default function Landing() {
           <div className="section-title">Everything included for $89</div>
           <div className="checklist">
             {[
-              ["We file the appeal for you", "Your dispute is submitted via certified letter to the correct appraisal district — no action needed on your end after checkout."],
-              ["Certified mail receipt delivered to you", "Official USPS proof of submission emailed directly to you. Keep it as your legal record."],
+              ["We mail the appeal for you", "Your signed filing goes to the correct authority by tracked USPS mail — no action needed on your end after you sign."],
+              ["Proof of mailing sent to you", "We email you when your filing is dispatched, with the USPS tracking details we hold. Keep it as your record."],
               ["Real comparable sales evidence", "We search recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
               ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
               ["20% reduction requested in your filing", "Your filing requests a 20% reduction from your current assessed value — the strongest defensible position supported by market data. The request is made in your name; your county decides it."],
@@ -642,8 +642,8 @@ export default function Landing() {
                   ['Auto-renewal / subscription', '✅ Never. You decide each year.', '✅ No subscription', '❌ $99 auto-billed every year', '❌ Auto-enrolled -- % taken every year'],
                   ['Comparable sales analysis', '✅ Included', '✅ Included', '✅ Included', '✅ Included'],
                   ['Protest/dispute letter', '✅ Professionally drafted', '✅ Generated', '✅ Generated', '✅ Drafted by their team'],
-                  ['Filing -- we mail it for you', '✅ USPS Certified Mail', '❌ You print, buy postage & mail it', '✅ They handle mailing', '✅ They handle mailing'],
-                  ['Legal proof of timely filing', '✅ Return Receipt -- documented', '❌ You manage it yourself', '✅ Yes', '✅ Yes'],
+                  ['Filing -- we mail it for you', '✅ Tracked USPS mail', '❌ You print, buy postage & mail it', '✅ They handle mailing', '✅ They handle mailing'],
+                  ['Proof of mailing', '✅ Tracked, and we send it to you', '❌ You manage it yourself', '✅ Yes', '✅ Yes'],
                   ['Deadline risk', '✅ We handle it', '❌ All on you', '✅ They handle it', '✅ They handle it'],
                   ['States covered', '✅ TX, FL, GA, AR, AL (5 states)', '⚠️ 50 states (DIY only)', '❌ TX + FL only', '⚠️ Varies by firm'],
                   ['Cost on $2,000 savings', '✅ $89 once -- keep $1,911', '⚠️ $49 + your time + risk', '❌ $99/yr ongoing forever', '❌ $400-$1,000 taken per year'],

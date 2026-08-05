@@ -55,7 +55,7 @@ export default function Privacy() {
               <tbody>
                 {[
                   ['Stripe', 'Payment processing', 'Name, email, payment amount'],
-                  ['Lob.com', 'Certified mail dispatch', 'Name, property address, letter content'],
+                  ['Lob.com', 'Mail dispatch — certified (TX/GA/AR/AL) and First Class (FL)', 'Name, property address, letter content'],
                   ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
                   ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
                   ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],

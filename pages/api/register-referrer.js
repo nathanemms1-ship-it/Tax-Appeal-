@@ -83,7 +83,7 @@ html: `<!DOCTYPE html>
 <a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
 </div>
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare and mail your property tax protest for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
 <p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>
@@ -225,7 +225,7 @@ html: `<!DOCTYPE html>
 <a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
 </div>
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they file your property tax protest via certified mail for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare and mail your property tax protest for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
 <p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>

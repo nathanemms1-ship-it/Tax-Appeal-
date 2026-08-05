@@ -315,7 +315,7 @@ export default function CheckPage() {
                   <h2 style={{ fontSize: 20, margin: '0 0 8px', color: C.white }}>Your property looks worth appealing</h2>
                   <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
                     Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
-                    You sign the petition — we prepare it and mail it certified.
+                    You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
                   </p>
                   <Link
                     href="/apply"

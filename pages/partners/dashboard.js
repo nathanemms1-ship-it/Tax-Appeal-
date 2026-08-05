@@ -380,7 +380,7 @@ export default function PartnerDashboard() {
                   {[
                     {
                       label: '📧 Email template',
-                      text: `Subject: Save money on your property taxes\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They prepare a formal protest letter with comparable sales data and file it via certified mail for $89 flat — no percentage of your savings.\n\nTakes about 4 minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
+                      text: `Subject: Save money on your property taxes\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They prepare a formal protest letter with comparable sales data and prepare and mail it for $89 flat — no percentage of your savings.\n\nTakes about 4 minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
                     },
                     {
                       label: '💬 Text message',

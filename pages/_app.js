@@ -69,18 +69,18 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <title>TaxAppeal — Property Tax Dispute Service | $89 Flat Fee</title>
-        <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it certified. Takes 4 minutes. TX, GA, FL." />
+        <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it for you. Takes 4 minutes. TX, GA, FL, AR, AL." />
         {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="TaxAppeal USA" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it via USPS certified mail. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it for you, with tracking. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
         <meta property="og:url" content="https://www.taxappealusa.com" />
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
-        <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it certified. $89 flat — no percentage cuts." />
+        <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it for you. $89 flat — no percentage cuts." />
         {/* Canonical */}
         <link rel="canonical" href="https://www.taxappealusa.com" />
         {/* Favicon */}
@@ -92,7 +92,7 @@ export default function App({ Component, pageProps }) {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "customerservice@taxappealusa.com",
-          "description": "Property tax dispute filing service. We prepare property tax protest letters that the owner signs, and we mail them via USPS certified mail for a flat $89 fee.",
+          "description": "Property tax dispute filing service. We prepare property tax protest letters and petitions that the owner signs, and we mail them for a flat $89 fee — USPS certified mail in Texas, Georgia, Arkansas and Alabama, and tracked USPS First Class mail in Florida.",
           "areaServed": [
             { "@type": "State", "name": "Texas" },
             { "@type": "State", "name": "Georgia" },
@@ -112,14 +112,14 @@ export default function App({ Component, pageProps }) {
             "url": "https://www.taxappealusa.com"
           },
           "serviceType": "Document Preparation Service",
-          "description": "AI-powered property tax protest letter generation and certified mail filing. We analyze your property assessment, find comparable sales, and prepare a formal protest for you to sign.",
+          "description": "Property tax protest and petition preparation with tracked USPS mailing. We analyze your property assessment, find comparable sales, and prepare a formal filing for you to sign.",
           "offers": {
             "@type": "Offer",
             "price": "89.00",
             "priceCurrency": "USD",
-            "description": "Flat fee per property dispute filing — includes letter generation, USPS certified mail with return receipt"
+            "description": "Flat fee per property filing — includes document preparation and tracked USPS mailing"
           },
-          "areaServed": ["Texas", "Georgia", "Florida"]
+          "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"]
         })}} />
       </Head>
       <WaitlistBanner />

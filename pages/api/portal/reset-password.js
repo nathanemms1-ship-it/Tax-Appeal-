@@ -15,11 +15,16 @@ export default async function handler(req, res) {
   if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
   try {
+    // Tokens are stored as a SHA-256 digest — see pages/api/portal/forgot-password.js.
+    // Hash what the caller presented and match on that; the raw token is never
+    // written down anywhere except the customer's own email.
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+
     // Validate token exists and is not used/expired
     const { data: resetRecord, error: fetchError } = await supabase
       .from('password_reset_tokens')
       .select('*')
-      .eq('token', token)
+      .eq('token', tokenHash)
       .eq('email', email.toLowerCase().trim())
       .eq('used', false)
       .single();
@@ -48,11 +53,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to update password. Please try again.' });
     }
 
-    // Mark token as used
+    // Mark token as used — match on the hash, same as the lookup above. Matching on
+    // the raw token here would silently never match, leaving the token reusable
+    // until it expired.
     await supabase
       .from('password_reset_tokens')
       .update({ used: true })
-      .eq('token', token);
+      .eq('token', tokenHash);
 
     console.log('Password reset successful for:', email);
     return res.status(200).json({ success: true });

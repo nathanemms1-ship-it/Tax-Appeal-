@@ -74,7 +74,12 @@ export default async function handler(req, res) {
     const trackingNumber = lobObject?.tracking_number || null;
 
     // Get district name from the letter's to address
-    const districtName = lobObject?.to?.name || county + ' Appraisal District';
+    // metadata.state_code is set by send-letter.js on the FL cheque payload. The old
+    // fallback appended "Appraisal District" unconditionally, which is the one thing
+    // Florida does not have — petitions go to the Clerk of the Value Adjustment Board.
+    const isFLMail = String(metadata?.state_code || '').toUpperCase() === 'FL';
+    const districtName = lobObject?.to?.name
+      || county + (isFLMail ? ' County Value Adjustment Board' : ' Appraisal District');
 
     // Format delivery date
     let deliveredDate = null;

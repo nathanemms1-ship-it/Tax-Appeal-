@@ -25,6 +25,8 @@ import { Resend } from 'resend';
 import { requireWebhookSecret, escapeHtml, escapeLike } from '../../../lib/webhookAuth';
 import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../../lib/inputLimits';
 import { checkSpend } from '../../../lib/spendGuard';
+import { countyNoFromName } from '../../../lib/dor/coverage';
+import { millageForCounty, MILLAGE_YEAR } from '../../../lib/dor/millage';
 
 export const config = PROMPT_ROUTE_CONFIG;
 
@@ -49,7 +51,7 @@ function clients() {
 // Only the columns this route actually reads. select('*') shipped every column of
 // the orders row, including the password hash, into this function's memory and
 // into any log line that stringified it.
-const ORDER_FIELDS = 'id, customer_name, customer_email, property_address, account_number, dispute_status';
+const ORDER_FIELDS = 'id, customer_name, customer_email, property_address, account_number, dispute_status, county, state_code';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -94,12 +96,18 @@ Return ONLY a valid JSON object — no preamble, no markdown:
 
 {
   "decision": "approved" | "denied" | "partial",
-  "savings_amount": <number — estimated annual dollar savings, 0 if denied>,
+  "stated_savings_amount": <number — ONLY if the letter itself states an annual tax saving in dollars. If it does not, use null. Never estimate.>,
+  "assessed_reduction": <number — the reduction in assessed or just value the letter states, in dollars. null if not stated.>,
+  "new_assessed_value": <number — the new assessed or just value if the letter states one. null otherwise.>,
   "property_address": "<full street address if mentioned, or null>",
   "account_number": "<property account or parcel number if mentioned, or null>",
-  "summary": "<2–3 sentence plain English summary written directly to the homeowner>",
+  "summary": "<2–3 sentence plain English summary written directly to the homeowner. State only what the letter says. Do NOT state or estimate any dollar tax saving, and do NOT mention or assume a millage or tax rate — the savings figure is computed separately from official county millage.>",
   "confidence": "high" | "medium" | "low"
 }
+
+RULES:
+- Report only figures the letter actually contains. If a number is not in the letter, use null.
+- Never infer a tax saving from a value reduction. You do not have the county's millage rate and must not guess one.
 
 Email Subject: ${cap(Subject, 300)}
 Email From: ${cap(From, LIMITS.email)}
@@ -183,8 +191,44 @@ ${emailBody.substring(0, 4000)}`
     return res.status(200).json({ received: true, matched: true, error: 'bad_decision' });
   }
 
-  const savings = Number(parsed.savings_amount);
-  const safeSavings = Number.isFinite(savings) && savings > 0 ? Math.round(savings) : 0;
+  /**
+   * SAVINGS ARE COMPUTED HERE, NOT GUESSED BY THE MODEL — rewritten 5 Aug 2026.
+   *
+   * The prompt used to ask for "estimated annual dollar savings". Given a letter
+   * that said only "assessed value reduced by $42,000", the model returned 588 and
+   * a summary explaining it had used "a typical Broward County millage rate of
+   * around 14 mills". Broward is 19.8638 mills (lib/dor/millage.js:54), so the real
+   * figure is about $834 — the guess was 29% low, and it was written to a column
+   * named actual_savings and rendered to the customer at 42px in a green box.
+   *
+   * That is the exact bug lib/dor/millage.js was created to kill; its own header
+   * says a guessed flat rate was "never acceptable for showing a homeowner 'you
+   * would save $1,620'". The valuation path was fixed then. This route was missed.
+   *
+   * Order of preference now:
+   *   1. A dollar saving the LETTER ITSELF states  -> use it verbatim.
+   *   2. A value reduction the letter states, times the county's real millage.
+   *   3. Nothing. millageForCounty returns null rather than an average on purpose,
+   *      and so do we — the email simply omits the savings panel.
+   */
+  const statedSavings = Number(parsed.stated_savings_amount);
+  let safeSavings = 0;
+  let savingsBasis = 'none';
+
+  if (Number.isFinite(statedSavings) && statedSavings > 0) {
+    safeSavings = Math.round(statedSavings);
+    savingsBasis = 'stated_in_letter';
+  } else {
+    const reduction = Number(parsed.assessed_reduction);
+    const coNo = countyNoFromName(order.county);
+    const mill = coNo ? millageForCounty(coNo) : null;
+    if (Number.isFinite(reduction) && reduction > 0 && mill) {
+      safeSavings = Math.round(reduction * (mill.school + mill.nonSchool) / 1000);
+      savingsBasis = `computed_${mill.county}_${(mill.school + mill.nonSchool).toFixed(4)}_mills_${mill.year}`;
+    }
+  }
+  console.log(`[inbound-email] savings basis: ${savingsBasis} -> ${safeSavings}`);
+
   const summary = cap(parsed.summary, 1200);
 
   const { error: updateError } = await supabase
@@ -193,8 +237,11 @@ ${emailBody.substring(0, 4000)}`
       dispute_status: parsed.decision,
       decision_date: new Date().toISOString(),
       decision_detail: summary,
+      // actual_savings only when the COUNTY stated the dollar figure. A number we
+      // derived from millage is an estimate, however well sourced, and this column
+      // will end up in reporting and marketing claims.
       savings_amount: safeSavings,
-      actual_savings: safeSavings,
+      actual_savings: savingsBasis === 'stated_in_letter' ? safeSavings : null,
       raw_email_content: emailBody.substring(0, 10000)
     })
     .eq('id', order.id);
@@ -216,6 +263,14 @@ ${emailBody.substring(0, 4000)}`
   const savingsDisplay = safeSavings > 0
     ? `$${safeSavings.toLocaleString()}`
     : null;
+  // Label honestly. A figure the county stated is theirs; one we derived from the
+  // certified millage roll is ours, and the customer is entitled to know which.
+  const savingsLabel = savingsBasis === 'stated_in_letter'
+    ? 'Annual Savings — as stated by the county'
+    : 'Estimated Annual Savings';
+  const savingsNote = savingsBasis.startsWith('computed_')
+    ? `Estimated from the value reduction in your decision letter and your county&rsquo;s ${MILLAGE_YEAR} millage rate. Your actual bill depends on your exemptions and your taxing districts.`
+    : '';
 
   try {
     await resend.emails.send({
@@ -251,9 +306,10 @@ ${emailBody.substring(0, 4000)}`
       ${savingsDisplay ? `
       <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:24px;text-align:center;margin:0 0 28px;">
         <div style="font-size:12px;font-weight:700;color:#15803d;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">
-          Estimated Annual Savings
+          ${savingsLabel}
         </div>
         <div style="font-size:42px;font-weight:800;color:#16a34a;line-height:1;">${savingsDisplay}</div>
+        ${savingsNote ? `<div style="font-size:11.5px;color:#15803d;line-height:1.5;margin-top:10px;">${savingsNote}</div>` : ''}
       </div>` : ''}
       <div style="text-align:center;margin:0 0 32px;">
         <a href="https://taxappealusa.com/portal"

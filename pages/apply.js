@@ -363,7 +363,7 @@ function StepAccount({ data, onChange, onNext }) {
   return (
     <div className="page-grid">
       <div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it certified</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it for you</div>
         <h1 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>We fight your property tax bill. You keep the savings.</h1>
         <p style={{ fontSize: 20, fontWeight: 700, color: "#1B3A6B", marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. You sign it — we do the rest.</p>
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
@@ -401,7 +401,7 @@ function StepAccount({ data, onChange, onNext }) {
             <div style={{ fontSize: 12, color: C.bodyGray, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>Up to 50% of your savings — on a $2,000 win, that's $1,000 gone before it ever reaches you.</div>
           </div>
         </div>
-        {[["You sign it — we mail it certified", "Your dispute is submitted via certified letter — you review and sign, then we mail it in your name"], ["You get the certified mail receipt", "Official proof of submission sent directly to you"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we mail it certified"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
+        {[["You sign it — we mail it for you", "You review and sign your filing, then we mail it in your name"], ["We send you the proof", "We email you when it is dispatched, with the tracking details we hold"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we do the rest"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
           <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
             <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.navy, flexShrink: 0, marginTop: 2 }}>✓</div>
             <div>
@@ -1517,7 +1517,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", "We file via certified mail", "Your letter is mailed with tracking"], ["🧾", "You receive the receipt", "USPS certified mail proof sent to you"], ["⏳", "Await the decision", "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", isFLFlow ? "We mail your petition" : "We mail it certified", isFLFlow ? "Tracked USPS First Class mail to your county's Value Adjustment Board, with the filing fee paid" : "USPS certified mail to your appraisal district, with tracking"], ["🧾", "You receive the proof", isFLFlow ? "We email you the dispatch confirmation and tracking details we hold" : "USPS certified mail proof sent to you"], ["⏳", "Await the decision", isFLFlow ? "Boards respond in 30–90 days" : "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
               <div>

@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     if (type === 'delivery') {
       const { deliveryEmailTemplate } = await import('./email-templates');
       subject = '📬 Your Dispute Letter Has Been Delivered';
-      html = deliveryEmailTemplate({ firstName, trackingNumber, address, county });
+      html = deliveryEmailTemplate({ firstName, trackingNumber, address, county, stateCode });
     } else {
       subject = '✅ Your Property Tax Dispute Has Been Filed — TaxAppeal USA';
       html = confirmationEmailTemplate({

@@ -119,6 +119,30 @@ const PREPARER = {
    * an address no human monitors — on the one piece of paper we cannot correct
    * after it is in the mail. The determination request must stay on decisionsEmail,
    * because that request is the entire reason the parser exists.
+   *
+   * WHY decisionsEmail IS ON A SUBDOMAIN (mail.taxappealusa.com), 4 Aug 2026.
+   *
+   * A domain has exactly one set of MX records, and MX decides where all mail for
+   * that name goes. taxappealusa.com's MX points at GoDaddy's Proofpoint front end
+   * (mx1/mx2/mx3-usg2.ppe-hosted.com), which serves the human mailboxes.
+   * disputes@taxappealusa.com sat behind it and silently stopped delivering:
+   * accepted at the edge, never handed on, and no bounce to the sender — the
+   * failure mode that leaves nothing in any log. customerservice@ on the same
+   * domain kept working throughout, which proved DNS and the tenant were fine and
+   * the fault was recipient-specific, inside a layer we cannot inspect.
+   *
+   * A machine intake must not depend on a mailbox we cannot inspect. The subdomain
+   * mail.taxappealusa.com carries its OWN MX, pointed straight at Postmark, so this
+   * address bypasses GoDaddy, Proofpoint and Microsoft entirely while
+   * customerservice@ is left untouched. It also sidesteps Microsoft's default block
+   * on automatic external forwarding, which would have broken the old
+   * mailbox-forwards-to-Postmark design even after the mailbox was repaired.
+   *
+   * DO NOT "tidy" this back onto the root domain. The local part stays `disputes`
+   * precisely so the change looks small; the part that matters is after the @.
+   * A `vab.` subdomain was rejected — Value Adjustment Board is Florida-only
+   * vocabulary, and this same intake will carry TX appraisal district and GA/AR/AL
+   * Board of Equalization determinations.
    */
   contactEmail: 'customerservice@taxappealusa.com',
   decisionsEmail: 'disputes@mail.taxappealusa.com',

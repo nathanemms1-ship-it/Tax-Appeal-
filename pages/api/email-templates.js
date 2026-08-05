@@ -8,9 +8,25 @@ import { escapeHtml as h } from '../../lib/escape';
  */
 // pages/api/email-templates.js
 
-export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900 }) {
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode }) {
   const fullName = `${firstName} ${lastName}`;
   const year = new Date().getFullYear();
+
+  /**
+   * stateCode WAS BEING DROPPED HERE — fixed 5 Aug 2026.
+   *
+   * lib/fulfillOrder.js:101 passes stateCode and pages/api/send-email.js:79 forwards
+   * it, but this signature never destructured it, so the parameter arrived and fell
+   * on the floor. Every Florida buyer's receipt therefore said "your certified letter
+   * is on its way to the county appraisal district" — wrong twice over. Florida mails
+   * FIRST CLASS on a Lob cheque (usps_first_class, no extra_service — see
+   * pages/api/send-letter.js), and Florida has no appraisal district: a petition goes
+   * to the Clerk of the Value Adjustment Board.
+   */
+  const isFL = String(stateCode || '').toUpperCase() === 'FL';
+  const mailClass = isFL ? 'tracked USPS First Class mail' : 'USPS certified mail';
+  const authority = isFL ? `${county} County Value Adjustment Board` : `${county} Appraisal District`;
+  const docWord  = isFL ? 'petition' : 'letter';
 
   return `<!DOCTYPE html>
 <html>
@@ -37,7 +53,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
           <tr>
             <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
               <div style="font-size:18px;font-weight:700;color:#ffffff;">✅ Your Dispute Has Been Filed</div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;">Your certified letter is on its way to the county appraisal district</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;">Your ${h(docWord)} is on its way to the ${h(authority)}</div>
             </td>
           </tr>
 
@@ -46,7 +62,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
             <td style="padding:36px 40px;">
               <p style="margin:0 0 20px;font-size:16px;color:#1B2A4A;">Hi ${h(firstName)},</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
-                Your property tax dispute letter has been professionally prepared and dispatched via trackable USPS mail to the ${h(county)} Appraisal District. Here is a summary of your filing.
+                Your property tax ${h(docWord)} has been professionally prepared and dispatched via ${h(mailClass)} to the ${h(authority)}. Here is a summary of your filing.
               </p>
 
               <!-- Order Summary Box -->
@@ -93,7 +109,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                   <tr>
                     <td style="vertical-align:top;padding:0 0 14px 0;">
                       <span style="display:inline-block;width:24px;height:24px;background:#C9A84C;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#1B2A4A;margin-right:10px;">1</span>
-                      <span style="font-size:14px;color:#444;">Your certified letter arrives at the appraisal district (3–7 business days)</span>
+                      <span style="font-size:14px;color:#444;">Your ${h(docWord)} arrives at the ${h(authority)} (3–7 business days)</span>
                     </td>
                   </tr>
                   <tr>
@@ -171,8 +187,15 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
 </html>`;
 }
 
-export function deliveryEmailTemplate({ firstName, trackingNumber, address, county }) {
+export function deliveryEmailTemplate({ firstName, trackingNumber, address, county, stateCode }) {
   const year = new Date().getFullYear();
+  // Same Florida split as confirmationEmailTemplate — FL goes to the Value
+  // Adjustment Board by tracked First Class mail, not to an appraisal district by
+  // certified mail. Florida has no appraisal district to review anything.
+  const isFL = String(stateCode || '').toUpperCase() === 'FL';
+  const authority = isFL ? `${county} County Value Adjustment Board` : `${county} Appraisal District`;
+  const reviewer  = isFL ? 'Value Adjustment Board' : 'district';
+  const docWord   = isFL ? 'petition' : 'protest letter';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>Your Dispute Letter Has Been Delivered</title></head>
@@ -196,10 +219,10 @@ export function deliveryEmailTemplate({ firstName, trackingNumber, address, coun
             <td style="padding:36px 40px;">
               <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${h(firstName)},</p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                Your property tax protest letter for <strong>${h(address)}</strong> has been successfully delivered to the <strong>${h(county)}</strong> Appraisal District via trackable USPS mail.
+                Your property tax ${h(docWord)} for <strong>${h(address)}</strong> has been successfully delivered to the <strong>${h(authority)}</strong> via trackable USPS mail.
               </p>
               <p style="font-size:15px;color:#444;line-height:1.6;">
-                The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
+                The ${h(reviewer)} will review your ${h(docWord)} and send their decision — typically within 30–90 days. Watch your mail and email for a notice from them.
               </p>
               ${trackingNumber ? `<p style="font-size:13px;color:#888;">USPS Tracking: <strong>${h(trackingNumber)}</strong></p>` : ''}
               <p style="font-size:14px;color:#444;">

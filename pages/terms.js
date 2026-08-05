@@ -32,7 +32,7 @@ export default function Terms() {
             <p style={{ marginTop: 10 }}><strong>Florida — county filing fee.</strong> Florida counties charge a Value Adjustment Board petition filing fee, currently <strong>$15 to $50 per parcel</strong> depending on the county (Fla. Stat. § 194.013). That fee is set by your county, not by us. We collect it at checkout as a separate line item and pay it to your county's Clerk of the Value Adjustment Board on your behalf, so your total in Florida is <strong>$104 to $139</strong>. The exact amount for your county is shown before you pay.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. No Outcome Guarantee</h2>
-            <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the applicable county appraisal district. Our service guarantees only that your protest letter will be professionally prepared and dispatched via certified mail within the applicable filing window.</p>
+            <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the applicable county appraisal district. Our service guarantees only that your filing will be professionally prepared and dispatched by USPS within the applicable filing window — by certified mail in Texas, Georgia, Arkansas and Alabama, and by tracked First Class mail in Florida, where certified service is not available on the payment product used to pay your county filing fee.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Refund Policy</h2>
             <p>TaxAppeal USA is a document preparation and mailing service. Your protest or petition is prepared in our system within 24 hours of purchase, and that preparation is the substance of what you are paying for.</p>
@@ -42,7 +42,7 @@ export default function Terms() {
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Filing Deadlines</h2>
             <p>Property tax protest deadlines vary by state and county. We make reasonable efforts to file within active protest windows. It is your responsibility to verify that your jurisdiction's protest window is open before purchasing our service. We will notify you if we detect that your deadline has passed.</p>
-            <p>We accept orders up to 60 days prior to your county's filing window opening. Orders placed during this early period are prepared and held, then submitted via USPS Certified Mail as soon as your county's filing window opens — placing you at the front of the line, ahead of the opening-day rush. You will receive a confirmation email once your protest has been filed.</p>
+            <p>We accept orders up to 60 days prior to your county's filing window opening. Orders placed during this early period are prepared and held, then dispatched by USPS as soon as your county's filing window opens — placing you at the front of the line, ahead of the opening-day rush. You will receive a confirmation email once your protest has been filed.</p>
             <ul>
               <li><strong>Texas:</strong> Generally May 15 or 30 days after notice (whichever is later)</li>
               <li><strong>Georgia:</strong> 45 days from assessment notice date</li>

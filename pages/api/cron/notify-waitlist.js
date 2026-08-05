@@ -107,8 +107,8 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
         <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:12px;">Why file this year?</div>
         ${[
           ['💰', 'Flat $89 — we never take a percentage of your savings'],
-          ['✅', 'Certified mail with tracking, so you have proof you filed on time'],
-          ['📬', 'You sign it, we mail it certified'],
+          ['✅', 'Tracked USPS mail, so you have a record that you filed on time'],
+          ['📬', 'You sign it, we mail it for you'],
           ['🔒', '$89 flat fee, no percentage cuts'],
         ].map(([icon, text]) => `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;color:#475569;">
