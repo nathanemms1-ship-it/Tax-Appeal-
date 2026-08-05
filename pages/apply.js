@@ -480,7 +480,19 @@ function StepAccount({ data, onChange, onNext }) {
       </div>
       <div className="card-padding" style={{ ...cardStyle, position: "sticky", top: 20 }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Create your account</h2>
-        <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 12, fontFamily: "'DM Sans', sans-serif" }}>Currently available for residents of:</p>
+        {/* ALL FIVE STATES ARE SHOWN, DELIBERATELY.
+            Nathan's call, and it is the right one: this sidebar sits on step 1, and
+            the state gate is on step 2 — so a homeowner completes name, email and
+            password BEFORE they learn their state opens next season, and we capture
+            them either way. Flagging "2027" up here only buys a bounce.
+
+            What we do not do is call it "available". We cannot file in Arkansas or
+            Alabama this season, and "currently available for residents of" would be
+            a plain false claim — the thing scripts/verify-pages.mjs sweeps 1,079
+            pages for on every build. "We serve homeowners in" is true of all five
+            and costs nothing. The honest version of the fact lands on step 2, where
+            it reads as an offer rather than a rejection. */}
+        <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 12, fontFamily: "'DM Sans', sans-serif" }}>We serve homeowners in:</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
           {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
             <div key={code} style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 20, padding: "5px 12px", fontSize: 12, color: C.navy, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5 }}>📍 {s.name}</div>
