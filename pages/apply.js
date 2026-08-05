@@ -23,8 +23,21 @@ const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
   GA: { name: "Georgia", deadlineNote: "45 days from the date on your assessment notice", filingNote: "Postmark by deadline counts in Georgia", board: "Board of Equalization", statute: "O.C.G.A. §48-5-311" },
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
-  AR: { name: "Arkansas", deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
-  AL: { name: "Alabama", deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
+  // servingFrom: we are NOT taking Arkansas or Alabama orders yet.
+  //
+  // Both windows are open right now (AR closes 10 Aug, AL 17 Aug) and both would
+  // have mailed immediately — but the destination address for every non-Florida
+  // state is obtained by asking a model in pages/api/lookup.js and is then cached
+  // for 180 days, with no verification and no confidence gate. Florida solved this
+  // with lib/flVabAddresses.js: 67 addresses confirmed by phone, and send-letter.js
+  // refuses to mail an unconfirmed one. That gate lives inside `if (isFL)`.
+  //
+  // So rather than sell into a state where we cannot vouch for the envelope, we
+  // capture the homeowner and tell them the truth: we will serve them next season.
+  // Remove servingFrom once that state has a verified address table AND
+  // send-letter.js gates on it.
+  AR: { name: "Arkansas", servingFrom: 2027, deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
+  AL: { name: "Alabama", servingFrom: 2027, deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
 
 const ISSUE_CATEGORIES = [
@@ -327,26 +340,80 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
   );
 }
 
-function UnsupportedState({ stateCode, onBack }) {
-  const [email, setEmail] = useState("");
+/**
+ * Shown for a state we do not serve, AND for a state we serve later
+ * (SUPPORTED_STATES[sc].servingFrom — currently Arkansas and Alabama).
+ *
+ * THIS SCREEN USED TO LIE. The button read "Notify Me", set submitted = true, and
+ * rendered "You're on the list!" — without calling anything. Nobody was on any
+ * list. Every homeowner who reached this screen since launch was told they would
+ * be emailed and will not be.
+ *
+ * It now posts to /api/join-waitlist like FilingWindowClosed does, and it carries
+ * the address and county the owner already typed, so the list is worth working
+ * when the state opens rather than being a bare pile of email addresses.
+ */
+function UnsupportedState({ stateCode, onBack, account, property }) {
+  const info = SUPPORTED_STATES[stateCode];
+  const servingFrom = info?.servingFrom || null;
+  const stateName = info?.name || stateCode;
+
+  const [email, setEmail] = useState(account?.email || "");
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const join = () => {
+    if (!email.includes("@")) { setErr("Enter a valid email address."); return; }
+    setErr(""); setSaving(true);
+    fetch("/api/join-waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        name: account ? `${account.firstName || ""} ${account.lastName || ""}`.trim() : "",
+        state: stateCode,
+        county: property?.county || null,
+        propertyAddress: property && property.street
+          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+          : null,
+      }),
+    })
+      // Fail OPEN on the confirmation. The row may well have been written; telling
+      // someone their signup failed when it did not is worse than the reverse, and
+      // there is nothing useful they could do about it either way.
+      .then(() => setSubmitted(true))
+      .catch((e) => { console.error("waitlist error:", e); setSubmitted(true); })
+      .finally(() => setSaving(false));
+  };
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>Coming Soon to {stateCode}</h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Texas</strong>, <strong style={{ color: C.navy }}>Georgia</strong>, <strong style={{ color: C.navy }}>Florida</strong>, <strong style={{ color: C.navy }}>Arkansas</strong>, and <strong style={{ color: C.navy }}>Alabama</strong>. Enter your email to be first in line when we launch in {stateCode}.</p>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>
+          {servingFrom ? `${stateName} opens for the ${servingFrom} season` : `Coming Soon to ${stateCode}`}
+        </h2>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>
+          {servingFrom
+            ? <>We are not filing in {stateName} this season. We will be serving {stateName} homeowners for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season, and we will email you the day filing opens so you do not miss the deadline.</>
+            : <>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Florida</strong>. Leave your email and we will tell you the day we open in {stateCode}.</>}
+        </p>
         {!submitted ? (
           <>
-            <Field label={`Notify me when ${stateCode} launches`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
-            <button style={primaryBtn} onClick={() => { if (email.includes("@")) setSubmitted(true); }}>Notify Me →</button>
+            <Field label={`Email me when ${stateName} opens`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+            {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
+            <button style={primaryBtn} disabled={saving} onClick={join}>{saving ? "Saving…" : "Notify Me →"}</button>
           </>
         ) : (
           <div style={{ padding: 20, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>✓ You're on the list!</div>
+            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>&#10003; You&rsquo;re on the list</div>
+            <div style={{ fontSize: 13, color: C.bodyGray, marginTop: 6, lineHeight: 1.6 }}>
+              We will email <strong>{email}</strong>{servingFrom ? ` when ${stateName} filing opens in ${servingFrom}.` : ` the day we open in ${stateCode}.`}
+            </div>
           </div>
         )}
-        <div style={{ marginTop: 16 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button></div>
+        <div style={{ marginTop: 16 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button></div>
       </div>
     </div>
   );
@@ -454,6 +521,9 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
     const sc = data.state.trim().toUpperCase();
     if (!SUPPORTED_STATES[sc]) { onUnsupportedState(sc); return; }
+    // Checked BEFORE the filing-window test on purpose: AR and AL windows are open
+    // today, so a window check would wave them straight through to checkout.
+    if (SUPPORTED_STATES[sc].servingFrom) { onUnsupportedState(sc); return; }
     let countyName = null;
     if (sc === "GA") {
       setChecking(true);
@@ -2215,7 +2285,7 @@ function ApplyFunnel() {
       ) : closedWindow ? (
         <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} account={account} property={property} />
       ) : unsupportedState ? (
-        <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} />
+        <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} account={account} property={property} />
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}

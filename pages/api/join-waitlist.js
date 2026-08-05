@@ -30,6 +30,15 @@ export default async function handler(req, res) {
       if (stateUpper === 'GA' && today > gaClose) filingYear = currentYear + 1;
     }
 
+    // AR and AL are marked servingFrom: 2027 in pages/apply.js — we are deliberately
+    // not filing in either this season, whatever their window says. Without this they
+    // would be stamped with the CURRENT year, and cron/notify-waitlist.js would email
+    // them the moment their window looked open — which is precisely the promise we
+    // are not in a position to keep. Anyone signing up now is a 2027 filer.
+    if (stateUpper === 'AR' || stateUpper === 'AL') {
+      filingYear = currentYear + 1;
+    }
+
     // Check if already on waitlist for this state + year
     const { data: existing } = await supabase
       .from('waitlist')
