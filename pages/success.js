@@ -464,7 +464,7 @@ export default function Success() {
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@taxappealusa.com</strong> and we will help you understand it.</>}
+                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>}
               </div>
             </div>
 

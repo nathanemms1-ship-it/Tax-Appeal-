@@ -121,7 +121,7 @@ const PREPARER = {
    * because that request is the entire reason the parser exists.
    */
   contactEmail: 'customerservice@taxappealusa.com',
-  decisionsEmail: 'disputes@taxappealusa.com',
+  decisionsEmail: 'disputes@mail.taxappealusa.com',
 };
 
 function esc(s) {

@@ -69,7 +69,7 @@ LETTER REQUIREMENTS:
 8. MARKET CONDITIONS
 9. LEGAL BASIS: cite ${i.statute || "applicable state statutes"}
 10. Demand the reduction stated above
-11. Professional closing with owner name, address, and email. Below the signature block, on its own line, include exactly: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@taxappealusa.com (Document Preparation Service)."
+11. Professional closing with owner name, address, and email. Below the signature block, on its own line, include exactly: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@mail.taxappealusa.com (Document Preparation Service)."
 
 Output ONLY the complete formal letter.`;
 }

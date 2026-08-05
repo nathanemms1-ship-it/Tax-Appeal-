@@ -32,7 +32,7 @@ const REP_NAME = 'TaxAppeal USA';
  * the one thing this file spends its FILED BY block denying we are.
  */
 const CONTACT_EMAIL = 'customerservice@taxappealusa.com';
-const DECISIONS_EMAIL = 'disputes@taxappealusa.com';
+const DECISIONS_EMAIL = 'disputes@mail.taxappealusa.com';
 
 /**
  * Escape for HTML. generate-dr486.js has had this since its own rewrite; this file
