@@ -344,75 +344,64 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
  * Shown for a state we do not serve, AND for a state we serve later
  * (SUPPORTED_STATES[sc].servingFrom — currently Arkansas and Alabama).
  *
- * THIS SCREEN USED TO LIE. The button read "Notify Me", set submitted = true, and
- * rendered "You're on the list!" — without calling anything. Nobody was on any
- * list. Every homeowner who reached this screen since launch was told they would
- * be emailed and will not be.
+ * NO BUTTON. The details are already ours by the time anyone reaches this screen:
+ * name, email and password came from step 1, street/city/zip/county from step 2.
+ * Asking them to press "Notify Me" to hand over what they have already typed adds
+ * a step whose only possible outcome is losing the record — so we save on mount
+ * and tell them plainly, the same way FilingWindowClosed does.
  *
- * It now posts to /api/join-waitlist like FilingWindowClosed does, and it carries
- * the address and county the owner already typed, so the list is worth working
- * when the state opens rather than being a bare pile of email addresses.
+ * THIS SCREEN USED TO LIE. The old button set submitted = true and rendered
+ * "You're on the list!" without calling anything. Nobody was on any list. Every
+ * homeowner who reached it since launch was told they would be emailed and was not.
  */
 function UnsupportedState({ stateCode, onBack, account, property }) {
   const info = SUPPORTED_STATES[stateCode];
   const servingFrom = info?.servingFrom || null;
   const stateName = info?.name || stateCode;
+  const autoSaved = useRef(false);
 
-  const [email, setEmail] = useState(account?.email || "");
-  const [submitted, setSubmitted] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-
-  const join = () => {
-    if (!email.includes("@")) { setErr("Enter a valid email address."); return; }
-    setErr(""); setSaving(true);
+  useEffect(() => {
+    if (autoSaved.current) return;
+    if (!account?.email) return;
+    autoSaved.current = true;
     fetch("/api/join-waitlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email,
-        name: account ? `${account.firstName || ""} ${account.lastName || ""}`.trim() : "",
+        email: account.email,
+        name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
         state: stateCode,
         county: property?.county || null,
         propertyAddress: property && property.street
           ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
           : null,
       }),
-    })
-      // Fail OPEN on the confirmation. The row may well have been written; telling
-      // someone their signup failed when it did not is worse than the reverse, and
-      // there is nothing useful they could do about it either way.
-      .then(() => setSubmitted(true))
-      .catch((e) => { console.error("waitlist error:", e); setSubmitted(true); })
-      .finally(() => setSaving(false));
-  };
+      // Nothing to show them if this fails and nothing they could do about it. The
+      // message below is the same either way; a console line is for us.
+    }).catch((e) => console.error("waitlist save failed:", e));
+  }, [account, property, stateCode]);
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>
-          {servingFrom ? `${stateName} opens for the ${servingFrom} season` : `Coming Soon to ${stateCode}`}
+          We&rsquo;ll email you when {stateName} opens
         </h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 20, lineHeight: 1.6 }}>
           {servingFrom
-            ? <>We are not filing in {stateName} this season. We will be serving {stateName} homeowners for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season, and we will email you the day filing opens so you do not miss the deadline.</>
-            : <>TaxAppeal currently serves homeowners in <strong style={{ color: C.navy }}>Florida</strong>. Leave your email and we will tell you the day we open in {stateCode}.</>}
+            ? <>We are not filing in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season &mdash; your property details are saved, and we will email you the day filing opens so you have time to get it in.</>
+            : <>We are not filing in {stateName} yet. Your details are saved, and we will email you the day we open there.</>}
         </p>
-        {!submitted ? (
-          <>
-            <Field label={`Email me when ${stateName} opens`} id="wl" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
-            {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-            <button style={primaryBtn} disabled={saving} onClick={join}>{saving ? "Saving…" : "Notify Me →"}</button>
-          </>
-        ) : (
-          <div style={{ padding: 20, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>&#10003; You&rsquo;re on the list</div>
-            <div style={{ fontSize: 13, color: C.bodyGray, marginTop: 6, lineHeight: 1.6 }}>
-              We will email <strong>{email}</strong>{servingFrom ? ` when ${stateName} filing opens in ${servingFrom}.` : ` the day we open in ${stateCode}.`}
-            </div>
+        <div style={{ padding: 18, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8, textAlign: "left" }}>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Saved</div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
+            We&rsquo;ll write to <strong style={{ color: C.darkNavy }}>{account?.email || "you"}</strong>
+            {property?.street ? <> about <strong style={{ color: C.darkNavy }}>{property.street}</strong></> : null}
+            {servingFrom ? <> when {stateName} filing opens in {servingFrom}.</> : <> when we open in {stateName}.</>}
+            {" "}Nothing else &mdash; no marketing.
           </div>
-        )}
+        </div>
         <div style={{ marginTop: 16 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button></div>
       </div>
     </div>
