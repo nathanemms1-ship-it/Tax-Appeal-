@@ -39,3 +39,4 @@ yarn-error.log*
 setkey.sh
 
 _to_delete/
+.env*
