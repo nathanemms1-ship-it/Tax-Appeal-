@@ -34,7 +34,7 @@ function buildProtestPrompt(i) {
     ? `\n\nARKANSAS-SPECIFIC RULES:\n- Arkansas assesses property at 20% of market value. The appeal targets MARKET VALUE, not the 20% assessed figure.\n- Address to: Secretary, ${i.county} County Board of Equalization\n- Cite Arkansas Code ss.26-27-317 and ss.26-26-1901\n- Use "Board of Equalization" and "county assessor" — never ARB or appraisal district.`
     : '';
 
-  return `You are a property tax attorney writing a formal protest letter. Output ONLY the letter — no preamble, no markdown, no explanation.
+  return `You are preparing a property tax protest letter that the property owner will read, sign, and submit in their own name. Output ONLY the letter — no preamble, no markdown, no explanation.
 
 PROPERTY OWNER: ${i.ownerName || ''}
 OWNER EMAIL: ${i.ownerEmail || ''}

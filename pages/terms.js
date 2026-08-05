@@ -50,7 +50,7 @@ export default function Terms() {
             </ul>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>6. Supported States</h2>
-            <p>Our service currently supports properties in Texas, Georgia, and Florida. In Florida we file only in counties where we have verified the Value Adjustment Board's filing address and fee directly with the county; if we cannot file in your county we will tell you before taking payment. We reserve the right to expand or restrict supported states and counties at any time.</p>
+            <p>Our service currently supports properties in Texas, Georgia, Florida, Arkansas, and Alabama. In Florida we serve all 67 counties. Where we have not yet verified a county's Value Adjustment Board filing address and fee directly with that county, we tell you before taking payment, prepare your petition by hand rather than mailing it automatically, and refund you in full — including the county fee — if we cannot file it before your deadline. We reserve the right to expand or restrict supported states and counties at any time.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. User Responsibilities</h2>
             <p>You agree to provide accurate property and contact information. Inaccurate information that results in a failed or improper filing does not entitle you to a refund. You are responsible for monitoring your mail and email for any response from the appraisal district.</p>
@@ -80,7 +80,7 @@ export default function Terms() {
               <strong>You sign your own petition.</strong> Fla. Stat. &sect; 194.011(3) requires a petition to the
               Value Adjustment Board to be signed by the taxpayer, or else to be accompanied by the taxpayer&rsquo;s
               written authorization or power of attorney. We rely on the first of those: we prepare your Form DR-486,
-              show it to you to read, and you sign Part 3 yourself before you pay. We do not file Form DR-486A or Form
+              show it to you to read immediately after payment, and you sign Part 3 yourself. We do not file Form DR-486A or Form
               DR-486POA on your behalf and no such authorization is required, because you are the signatory.
               {' '}<strong>We are not your representative.</strong> TaxAppeal USA does not sign your petition as a
               representative, is not listed as your representative on it, does not appear before the Value Adjustment

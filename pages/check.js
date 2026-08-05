@@ -182,8 +182,8 @@ export default function CheckPage() {
               {state.status === 'loading' ? 'Checking the county roll…' : 'Check my property — free'}
             </button>
             <p style={{ fontSize: 13, color: C.muted, margin: '12px 0 0' }}>
-              Currently covering 13 Florida counties: Brevard, Broward, Duval, Hillsborough, Lee,
-              Miami-Dade, Orange, Palm Beach, Pasco, Pinellas, Polk, Seminole and Volusia.
+              Covering all 67 Florida counties — we hold the current Department of Revenue
+              roll for every one of them.
             </p>
           </form>
 

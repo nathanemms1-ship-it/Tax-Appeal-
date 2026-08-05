@@ -192,8 +192,9 @@ Not {feeData?.county}? Change it
 {feeData?.needsManualFiling && (
 <div style={{ background: 'rgba(255,201,64,0.12)', border: '1px solid rgba(255,201,64,0.35)', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 12.5, color: '#FFD97A', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
 <strong>{feeData?.county} County is filed by hand.</strong> We have not yet confirmed this
-county&rsquo;s Value Adjustment Board mailing address directly with the county, so your petition
-is prepared and reviewed by a person before it is mailed rather than going out automatically.
+county&rsquo;s Value Adjustment Board details &mdash; its mailing address and filing fee &mdash;
+directly with the county, so your petition is prepared and reviewed by a person before it is
+mailed rather than going out automatically.
 We will email you once it is confirmed filed. If we cannot file it before your deadline we
 refund you in full, including the county fee.
 </div>

@@ -34,7 +34,7 @@ export default function Landing() {
   const go = () => router.push('/apply');
 
   const faqs = [
-    ["Do I have to do anything after I pay?", "One thing: you sign the filing yourself, on the review screen, before you pay — it is filed in your name, and in Florida your signature is what makes the petition valid. After that we handle the rest: drafting, printing, paying any county filing fee, and mailing via certified mail to the correct authority. You'll receive the USPS tracking number by email."],
+    ["Do I have to do anything after I pay?", "One thing: right after you pay, we show you the complete filing and you sign it yourself — it goes in your name, and in Florida your signature is what makes the petition valid. After that we handle the rest: printing, paying any county filing fee, and mailing it to the correct authority. We email you as soon as it is on its way."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
     ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."],
     ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
@@ -67,7 +67,7 @@ export default function Landing() {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "You sign the filing yourself before you pay — it is filed in your name. After that we handle drafting, printing, paying any county filing fee, and mailing via certified mail to the correct authority." }},
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "Right after you pay, we show you the complete filing and you sign it yourself — it goes in your name. After that we handle printing, paying any county filing fee, and mailing it to the correct authority." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
             { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
             { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon." }},

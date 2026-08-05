@@ -7,7 +7,10 @@
  * Roughly 42% of Florida residential parcels cannot benefit from an appeal at
  * all. Their assessed value is capped so far below market by Save Our Homes
  * (Fla. Stat. § 193.155) that reducing the market value changes nothing — the
- * cap is already doing the work. Measured across the 13 largest counties:
+ * cap is already doing the work. Measured across the 13 largest counties, which
+ * is where this ratio was derived — the roll now covers all 67 counties and
+ * 8,410,126 residential parcels, so this split should be recomputed statewide
+ * before it is quoted as a Florida-wide figure again:
  *
  *   5,155,929 residential parcels
  *   3,013,018 where an appeal can produce real savings   (58.4%)

@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     var issuesBlock = issues && issues.length > 0
       ? 'DOCUMENTED ISSUES:\n' + issues.map(function(i) { return '- ' + i; }).join('\n')
       : 'No specific defects.';
-    var evidencePrompt = 'You are a Georgia property tax attorney preparing evidence for a Board of Equalization appeal.\n\n' +
+    var evidencePrompt = 'You are preparing evidence for a Georgia Board of Equalization appeal that the property owner will read, sign, and submit in their own name.\n\n' +
       'Write the COMPARABLE SALES AND EVIDENCE section for a PT-311A appeal in ' + county + ' County, Georgia, digest year ' + yr + '.\n\n' +
       'PROPERTY: ' + propertyAddress + '\n' +
       'CURRENT ASSESSED VALUE: ' + fmt(assessedValue) + '\n' +
