@@ -1250,6 +1250,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           password: account.password,
           address: pd.rawAddress,
           county: pd.county,
+          // Carried all the way to the cheque memo and to orders.account_number.
+          // Without it the Lob cheque reaches the county with nothing on it but the
+          // county's own name, and a clerk who separates the cheque from the petition
+          // (which is what mailrooms do) cannot tell which petition it paid for. It is
+          // also the fallback key the inbound decision parser matches on — see
+          // pages/api/webhooks/inbound-email.js.
+          parcelId: pd.parcelId || pd.apn || '',
           assessedValue: pd.assessedValue,
           targetReduction: pd.targetReduction,
           savings: pd.savings,

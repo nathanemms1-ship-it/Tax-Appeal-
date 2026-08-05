@@ -19,7 +19,7 @@ if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allo
 
 const {
 email, firstName, lastName, password,
-address, county, assessedValue, targetReduction, savings,
+address, county, parcelId, assessedValue, targetReduction, savings,
 letter, letterKey,
 districtName, districtAddress, districtCity, districtState, districtZip,
 ownerStreet, ownerCity, ownerState, ownerZip,
@@ -84,6 +84,10 @@ email,
 passwordHash,
 address,
 county,
+// Carried through to the Lob cheque memo and to orders.account_number. 60 chars
+// matches LIMITS.parcelId. Stripe allows 50 metadata keys and 500 chars per
+// value; this is key 27, so there is room.
+parcelId: String(parcelId || '').trim().slice(0, 60),
 assessedValue: assessedValue ? String(assessedValue) : '',
 targetReduction: targetReduction ? String(targetReduction) : '',
 savings: savings ? String(savings) : '',
