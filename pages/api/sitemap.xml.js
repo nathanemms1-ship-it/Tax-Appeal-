@@ -19,16 +19,17 @@ import { buildSitemapUrls } from '../../lib/sitemapUrls';
 
 export default function handler(req, res) {
   const base = 'https://www.taxappealusa.com';
-  const today = new Date().toISOString().split('T')[0];
   const pages = buildSitemapUrls();
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages
   .map(
+    // lastmod is emitted ONLY where lib/sitemapUrls.js supplied a real one. It used
+    // to be `new Date()` for every url on every request — see the comment there.
     (page) => `  <url>
-    <loc>${base}${page.url}</loc>
-    <lastmod>${today}</lastmod>
+    <loc>${base}${page.url}</loc>${page.lastmod ? `
+    <lastmod>${page.lastmod}</lastmod>` : ''}
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>`
