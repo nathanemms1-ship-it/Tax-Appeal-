@@ -153,7 +153,56 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildDR486Html({
+/**
+ * "Broward County" + " County" = "Broward County County".
+ *
+ * The county arrives from orders.county WITH the suffix, and both the Assessment
+ * Summary and the evidence prompt appended another. It read "Broward County County,
+ * Florida" on a sworn filing sent to that county's own Clerk.
+ */
+export function bareCounty(county) {
+  return String(county || '').replace(/\s+County\s*$/i, '').trim();
+}
+
+/**
+ * Dates on this document are legal facts, so they are rendered in the PROPERTY's
+ * timezone, not the server's.
+ *
+ * The 5 Aug test petition was signed at 22:09 US Central and the DR-486 recorded it
+ * as "August 6, 2026" — Vercel runs UTC, and toLocaleDateString with no timeZone
+ * follows the server. A sworn attestation dated a day after it was made is a defect
+ * on its face, and for a Florida filing the relevant clock is Eastern.
+ */
+export function flDate(value) {
+  const d = value ? new Date(value) : new Date();
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', {
+    timeZone: 'America/New_York', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+/**
+ * The model is instructed to emit plain prose, but instruction is not enforcement.
+ * evidenceText is rendered inside a white-space:pre-wrap block, so any markdown that
+ * does slip through appears LITERALLY on the petition: the 5 Aug test document went
+ * out reading "# EVIDENCE AND ARGUMENT" and "**Florida Statutes § 193.011**" on a
+ * filing to a government board over a homeowner's signature.
+ *
+ * Strips only the syntax, never the words. Applied at render, so it also cleans any
+ * evidence generated before the prompt was tightened.
+ */
+export function stripMarkdown(text) {
+  return String(text || '')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')      // headings
+    .replace(/\*\*(.+?)\*\*/gs, '$1')        // bold
+    .replace(/(^|\s)\*(?!\s)(.+?)(?<!\s)\*(?=\s|$|[.,;:)])/gs, '$1$2')  // italics
+    .replace(/^\s{0,3}[-*+]\s+/gm, '\u2022 ')  // bullets -> real bullet
+    .replace(/`([^`]+)`/g, '$1')              // inline code
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+export function buildDR486Html({
   ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
   ownerStreet, ownerCity, ownerState, ownerZip,
   propertyAddress, county, parcelId, assessedValue, requestedValue, taxYear, comps,
@@ -206,21 +255,21 @@ function buildDR486Html({
   <div class="part"><div class="part-header">PART 1 — TAXPAYER / PROPERTY OWNER INFORMATION</div><div class="part-body">
     <div class="row"><div class="field"><div class="field-label">Owner Name</div><div class="field-value">${esc(ownerFirstName)} ${esc(ownerLastName)}</div></div><div class="field"><div class="field-label">Email</div><div class="field-value">${esc(ownerEmail)}</div></div><div class="field"><div class="field-label">Phone</div><div class="field-value">${esc(ownerPhone) || '&nbsp;'}</div></div></div>
     <div class="row"><div class="field" style="flex:2"><div class="field-label">Mailing Address</div><div class="field-value">${esc(ownerStreet)}</div></div><div class="field"><div class="field-label">City</div><div class="field-value">${esc(ownerCity)}</div></div><div class="field" style="flex:0.4"><div class="field-label">State</div><div class="field-value">${esc(ownerState)}</div></div><div class="field" style="flex:0.7"><div class="field-label">ZIP</div><div class="field-value">${esc(ownerZip)}</div></div></div>
-    <div class="row"><div class="field" style="flex:2"><div class="field-label">Property Address</div><div class="field-value">${esc(propertyAddress)}</div></div><div class="field"><div class="field-label">County</div><div class="field-value">${esc(county)}</div></div><div class="field"><div class="field-label">Parcel / Folio ID</div><div class="field-value">${esc(parcelId)}</div></div></div>
+    <div class="row"><div class="field" style="flex:2"><div class="field-label">Property Address</div><div class="field-value">${esc(propertyAddress)}</div></div><div class="field"><div class="field-label">County</div><div class="field-value">${esc(bareCounty(county))} County</div></div><div class="field"><div class="field-label">Parcel / Folio ID</div><div class="field-value">${esc(parcelId)}</div></div></div>
     <div class="row"><div class="field" style="flex:0.7"><div class="field-label">Tax Year</div><div class="field-value">${esc(yr)}</div></div><div class="field"><div class="field-label">Property Type</div><div class="field-value">Residential 1-4 Units</div></div><div class="field"><div class="field-label">Preferred Contact</div><div class="field-value">Email: ${esc(ownerEmail)}</div></div></div>
   </div></div>
 
   <div class="part"><div class="part-header">PART 2 — REASON FOR PETITION</div><div class="part-body">
     <div class="checkbox-row">${box(true)}<span><strong>Real property value</strong> — assessed value exceeds fair market value as of January 1, ${esc(yr)}.</span></div>
     <div style="margin-top:8px;"><div class="field-label">Estimated time needed:</div><div class="field-value" style="width:120px;">15 minutes</div></div>
-    <div style="margin-top:8px;" class="checkbox-row">${box(!!willNotAttend)}<span>I will not attend the hearing but would like my evidence considered. Duplicate copies submitted.</span></div>
+    <div style="margin-top:8px;" class="checkbox-row">${box(!!willNotAttend)}<span>I will not attend the hearing but would like my evidence considered. My evidence is enclosed with this petition.</span></div>
     <div style="margin-top:4px;" class="checkbox-row">${box(!willNotAttend)}<span>I intend to attend the hearing.</span></div>
   </div></div>
 
   <div class="part"><div class="part-header">PART 3 — TAXPAYER SIGNATURE</div><div class="part-body">
     <p style="font-size:9pt;margin-bottom:8px;">This petition is signed by the property owner pursuant to section 194.011(3), Florida Statutes.</p>
     <div class="sig-block"><div class="sig-line">${preview ? '<span style="font-style:normal;font-size:10pt;color:#888;">— you will sign here after reviewing this petition —</span>' : esc(ownerSignatureName)}</div>
-      <div class="sig-label">Signature of Taxpayer / Property Owner (electronically signed) &nbsp;&nbsp; Date: ${esc(ownerSignatureDate || today)}</div>
+      <div class="sig-label">Signature of Taxpayer / Property Owner (electronically signed) &nbsp;&nbsp; Date: ${esc(flDate(ownerSignatureDate) || today)}</div>
       <div class="attest"><strong>Under penalties of perjury</strong>, I declare that I am the owner of the property described in this petition, that I have read this petition, and that the facts stated in it are true.</div>
       ${authorizeConfidential ? `<div class="attest" style="margin-top:6px;">I authorize the Property Appraiser and the Clerk of the Value Adjustment Board to release information regarding this petition to ${esc(PREPARER.name)}, ${esc(PREPARER.decisionsEmail)}, which prepared this petition at my direction and mailed it for me. This authorization releases records only. It does not appoint ${esc(PREPARER.name)} as my agent or representative.</div>` : ''}
     </div>
@@ -235,16 +284,16 @@ function buildDR486Html({
   </div></div>
 
   <div class="part"><div class="part-header">ASSESSMENT SUMMARY</div><div class="part-body">
-    <table class="summary"><tr><td>Property Address</td><td>${esc(propertyAddress)}</td></tr><tr><td>County</td><td>${esc(county)} County, Florida</td></tr><tr><td>Parcel / Folio ID</td><td>${esc(parcelId)}</td></tr><tr><td>Tax Year</td><td>${esc(yr)}</td></tr><tr><td>Current Assessed Value</td><td>${fmt(assessedValue)}</td></tr><tr><td>Requested Value</td><td>${fmt(requestedValue)}</td></tr><tr><td>Legal Basis</td><td>Florida Statute § 193.011 — just value criteria</td></tr></table>
+    <table class="summary"><tr><td>Property Address</td><td>${esc(propertyAddress)}</td></tr><tr><td>County</td><td>${esc(bareCounty(county))} County, Florida</td></tr><tr><td>Parcel / Folio ID</td><td>${esc(parcelId)}</td></tr><tr><td>Tax Year</td><td>${esc(yr)}</td></tr><tr><td>Current Assessed Value</td><td>${fmt(assessedValue)}</td></tr><tr><td>Requested Value</td><td>${fmt(requestedValue)}</td></tr><tr><td>Legal Basis</td><td>Florida Statute § 193.011 — just value criteria</td></tr></table>
   </div></div>
 
   <div class="page-break"></div>
   <div class="part"><div class="part-header">EVIDENCE AND ARGUMENT IN SUPPORT OF PETITION</div><div class="part-body">
-    <div class="evidence-block">${esc(evidenceText)}</div>
+    <div class="evidence-block">${esc(stripMarkdown(evidenceText))}</div>
   </div></div>
 
   <div style="margin-top:16px;font-size:8.5pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:10px;">
-    This petition was prepared at the property owner's direction by ${esc(PREPARER.name)} — ${esc(PREPARER.role)} — and mailed on the owner's behalf. Prepared and mailed: ${esc(today)}.<br/>
+    This petition was prepared at the property owner's direction by ${esc(PREPARER.name)} — ${esc(PREPARER.role)} — and mailed on the owner's behalf. Prepared: ${esc(today)}.<br/>
     <strong>The property owner signed this petition personally and is the petitioner of record.</strong> ${esc(PREPARER.name)} is not the owner's representative or agent in this proceeding. It will not appear before the Board, will not present evidence or argument at any hearing, and has no authority to act for the owner. No agent authorization &mdash; DR-486A or DR-486POA &mdash; is filed with this petition, and none is intended.<br/>
     <strong>Direct all correspondence and the Board's determination to the property owner at the address above.</strong> ${authorizeConfidential
       ? `The owner has separately authorized in writing that a courtesy copy of the determination also be sent to ${esc(PREPARER.decisionsEmail)}; that authorization releases records only and appoints no representative.`
@@ -362,13 +411,13 @@ ${compRows.map((c, i) =>
 ).join('\n')}
 
 Source: qualified arms-length sales from the Florida Department of Revenue sale
-data file for ${county} County, drawn from the same appraiser neighborhood as the
+data file for ${bareCounty(county)} County, drawn from the same appraiser neighborhood as the
 subject property.\n`
       : '';
-    const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${county} County VAB, tax year ${taxYear || new Date().getFullYear()}.
+    const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${bareCounty(county)} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
-COUNTY: ${county} County, Florida
+COUNTY: ${bareCounty(county)} County, Florida
 PARCEL/FOLIO: ${parcelId || 'not provided'}
 CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
@@ -383,7 +432,19 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 - The ONLY comparable sales you may reference are those listed under VERIFIED COMPARABLE SALES, if that section is present. Restate them exactly. If it is absent, cite no sales at all.
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
-- If a section would require data you do not have, say what evidence the owner should submit instead.
+- If a section would require data you do not have, state the standard the Board must apply and rest on the facts given. Do NOT say what evidence the owner should submit.
+- NEVER PROMISE FUTURE EVIDENCE. This petition is the owner's complete submission and the
+  owner has elected not to attend the hearing, so nothing further will follow it. Do not
+  write "I will submit", "I will provide", "I will present", "evidence to follow", or any
+  variation. A board told that evidence is coming will wait for a package that never
+  arrives and rule on an apparently abandoned filing. Write only in the present tense
+  about what this document contains.
+- OUTPUT PLAIN PROSE ONLY. No markdown of any kind: no #, no ##, no **bold**, no *italics*,
+  no backticks, no bullet characters. Section headings are plain capitalised lines. The
+  text is printed verbatim onto a legal form mailed to a government board; markdown syntax
+  appears literally on the page.
+- Do not claim any analysis was performed that is not evidenced above. If no comparable
+  sales were supplied, do not write that comparable sales were analysed.
 - DO NOT argue the "eighth criterion" (§ 193.011(8)) deduction of costs of sale, and do not
   assert the Property Appraiser failed to deduct costs of sale. Every Florida property
   appraiser files Form DR-493 ("Adjustments Made to Recorded Selling Prices or Fair Market
@@ -399,7 +460,7 @@ CRITICAL RULES — this document is signed by the property owner UNDER PENALTY O
 Write exactly 4 sections:
 1. BASIS OF PETITION — why the assessed value exceeds just value as of January 1, citing Fla. Stat. § 193.011(1)-(8) criteria and applying them to the property details given above.
 2. PROPERTY CONDITION — the specific condition factors reported by the owner above and how each bears on just value. If none were reported, say so plainly.
-3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, describe the approach the Board should apply and state plainly that the owner will submit comparable sales separately. Either way: do not invent comparables.
+3. COMPARABLE SALES AND VALUATION METHODOLOGY — if VERIFIED COMPARABLE SALES were supplied, present them in a table (address, sale date, sale price, square feet, price per square foot), state the source line given, and explain what they indicate about just value as of January 1 under § 193.011(1). If none were supplied, set out the comparable-sales standard the Board must apply under § 193.011(1) and rest the petition on the criteria and on the property facts stated above. Either way: do not invent comparables.
 4. LEGAL BASIS — Fla. Stat. § 193.011 (just valuation criteria) and § 194.301 (burden of proof; presumption of correctness and when it is lost).
 
 Professional, factual, first person as the property owner. Output only the four sections.`;
@@ -429,7 +490,7 @@ Professional, factual, first person as the property owner. Output only the four 
     evidenceText = claudeData.content?.[0]?.text || '';
     }
 
-    const filingDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const filingDate = flDate();
     const dr486Html = buildDR486Html({
       ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
       ownerStreet, ownerCity, ownerState, ownerZip,
