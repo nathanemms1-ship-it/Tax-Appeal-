@@ -21,6 +21,11 @@
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from './supabase';
 import { fulfillCheckoutSession, fulfillAfterSignature } from '../../lib/fulfillOrder';
+import { alertOps as pageOps } from '../../lib/alertOps';
+
+// Same constant the rest of the fulfillment path uses. NOT a hardcoded production
+// host: on a preview deployment that would POST to production.
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -93,6 +98,108 @@ export default async function handler(req, res) {
     if (sigErr) {
       console.error('finalize-order: signature save failed', sigErr);
       return res.status(500).json({ error: 'Could not record signature' });
+    }
+
+    // ========================================================================
+    // BUILD THE SWORN DOCUMENT, ONCE, HERE.
+    // ========================================================================
+    // orders.letter_text up to this point is the UNSIGNED preview — the petition as
+    // the owner read it before attesting to it (see pages/apply.js, "propData
+    // .letterKey holds the unsigned preview"). Part 3 is blank in it.
+    //
+    // The signature used to be applied nowhere. lib/processOrder.js regenerated the
+    // entire petition at MAIL time and passed ownerSignatureName into that rebuild,
+    // which is the only reason a signature ever appeared on a mailed DR-486. That
+    // rebuild also dropped `comps`, `issues`, `notes` and the valuation basis, so the
+    // filed petition lost the owner's reported defects and every verified comparable
+    // sale — and, more seriously, was not the document the owner read and swore to.
+    //
+    // So the petition is now finalised at the moment of signature and frozen:
+    //   - the evidence is REUSED verbatim from orders.evidence_text, so the argument,
+    //     the defects and the comps are exactly what the owner read. No model call.
+    //   - Part 3 is rendered with the signature actually captured above.
+    //   - lib/processOrder.js mails this byte-for-byte and never rebuilds it.
+    //
+    // Failure here is non-fatal on purpose. The signature is already saved and the
+    // payment is captured; refusing the whole request would leave a paid, signed
+    // order the customer cannot re-submit. Dispatch still holds the unsigned document,
+    // and dispatchQueuedOrder refuses to mail a Florida order without a Part 3
+    // signature, so the failure mode is a held order and a page — not an unsigned
+    // petition reaching a county.
+    try {
+      const { data: order } = await supabase
+        .from('orders')
+        .select('id, customer_name, customer_email, county, state_code, property_address, account_number, assessed_value, target_reduction, owner_street, owner_city, owner_state, owner_zip, evidence_text, fl_signature_name, fl_will_not_attend, fl_authorize_confidential')
+        .eq('stripe_session_id', sessionId)
+        .maybeSingle();
+
+      if (order && String(order.state_code || '').toUpperCase() === 'FL') {
+        if (!order.evidence_text) {
+          // Rebuilding without it would generate DIFFERENT evidence from what the
+          // owner read — the exact defect this block exists to remove. Better to
+          // leave the stored document alone and page.
+          await pageOps(
+            'Cannot finalise a signed petition — evidence_text missing',
+            `order=${order.id} session=${sessionId}\n\n` +
+            `The signed DR-486 cannot be rebuilt without the evidence the owner read, ` +
+            `and regenerating it would produce a different document from the one they ` +
+            `swore to. This order must not mail until it is resolved.`,
+            { force: true }
+          );
+        } else {
+          const name = String(order.customer_name || '').trim();
+          const dr486Res = await fetch(`${BASE_URL}/api/generate-dr486`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ownerFirstName: name.split(' ')[0] || '',
+              ownerLastName: name.split(' ').slice(1).join(' ') || '',
+              ownerEmail: order.customer_email,
+              ownerStreet: order.owner_street,
+              ownerCity: order.owner_city,
+              ownerState: order.owner_state,
+              ownerZip: order.owner_zip,
+              zip: order.owner_zip,
+              propertyAddress: order.property_address,
+              county: order.county,
+              parcelId: order.account_number || '',
+              assessedValue: order.assessed_value,
+              requestedValue: order.target_reduction,
+              taxYear: String(new Date().getFullYear()),
+              // The signing pass: reuse, never regenerate. See generate-dr486.js.
+              evidenceText: order.evidence_text,
+              ownerSignatureName: flSignatureName || order.fl_signature_name || typedName || name,
+              ownerSignatureDate: new Date().toISOString(),
+              willNotAttend: order.fl_will_not_attend !== false,
+              authorizeConfidential: !!order.fl_authorize_confidential,
+              preview: false,
+            }),
+          });
+
+          if (dr486Res.ok) {
+            const dr486 = await dr486Res.json();
+            if (dr486?.dr486Html) {
+              const { error: docErr } = await supabase
+                .from('orders')
+                .update({ letter_text: dr486.dr486Html })
+                .eq('id', order.id);
+              if (docErr) throw new Error(`storing signed petition failed: ${docErr.message}`);
+              console.log(`finalize-order: stored signed DR-486 for order ${order.id}`);
+            }
+          } else {
+            throw new Error(`generate-dr486 ${dr486Res.status}`);
+          }
+        }
+      }
+    } catch (e) {
+      await pageOps(
+        'Signed petition not finalised',
+        `session=${sessionId}\n${e.message}\n\n` +
+        `The signature is saved and the payment is captured, but orders.letter_text ` +
+        `still holds the UNSIGNED preview. Dispatch will refuse to mail it. Resolve ` +
+        `before this order's filing window opens.`,
+        { force: true }
+      );
     }
 
     // Now that the signature exists, mail it.

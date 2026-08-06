@@ -450,6 +450,18 @@ Professional, factual, first person as the property owner. Output only the four 
         // silently skipped creating an order row at all.
         letterKey = `dr486:FL:${zip || county}:${Date.now()}`;
         await redis.set(letterKey, dr486Html, { ex: 604800 });
+        // The EVIDENCE section is cached beside the document under a derived key.
+        //
+        // It is the only part of the petition that costs a model call and the only
+        // part that carries the owner's reported defects and the verified comparable
+        // sales. lib/fulfillOrder.js reads it back and stores it on the order, so the
+        // signing pass can rebuild this exact petition WITH the signature instead of
+        // generating a different one — see the header of lib/processOrder.js.
+        //
+        // Before this existed, the evidence was recoverable only from inside the
+        // rendered HTML, which the mail-time regeneration then overwrote. That is how
+        // comps and defects were being lost between purchase and filing.
+        await redis.set(`${letterKey}:evidence`, evidenceText, { ex: 604800 });
       } catch (e) { console.log('Redis cache failed:', e.message); }
     }
 

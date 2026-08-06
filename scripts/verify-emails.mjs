@@ -164,6 +164,53 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   t('a failure to queue a paid, signed order pages someone', /pageOps\(/.test(branch));
 }
 
+// ── The petition that mails must be the petition that was signed ─────────────
+// Found 6 Aug 2026: lib/processOrder.js regenerated the whole DR-486 immediately
+// before mailing and passed only the owner, address, figures and signature — not
+// comps, issues, notes, askRestsOn, costToCureTotal or the valuation basis. Two
+// consequences: every filed petition silently lost the owner's reported defects and
+// all verified comparable sales, and the document sent to the county was not the one
+// the owner read and swore to under penalty of perjury (DR-486 Part 3).
+{
+  const proc = read('lib/processOrder.js');
+  const dispatchFn = proc.slice(proc.indexOf('export async function dispatchQueuedOrder'));
+
+  // Look for an actual CALL, not a mention — the file explains the old behaviour in
+  // a comment, and a naive substring match flags that.
+  t('dispatch never rebuilds the petition',
+    !/fetch\([^)]*\/api\/generate-dr486/.test(proc));
+  t('dispatch no longer overwrites the signed document',
+    !/letter_text:\s*dr486/.test(proc));
+  t('dispatch still mails the stored, signed document',
+    /letterContent:\s*order\.letter_text/.test(dispatchFn));
+
+  // The pre-flight may only HALT. Silently amending a sworn petition is the thing
+  // this whole change exists to prevent.
+  t('a changed county halts rather than mails', /County changed since order/.test(proc));
+  t('a changed assessed value halts rather than mails',
+    /Assessed value changed since the owner signed/.test(proc));
+  t('a drift tolerance is defined', /ASSESSED_DRIFT_TOLERANCE/.test(proc));
+  t('preflight failure still mails the signed petition rather than missing the deadline',
+    /rather than missing the deadline/.test(proc));
+
+  // The signature has to be applied SOMEWHERE, or freezing the stored document
+  // would mail an unsigned DR-486 — worse than the bug being fixed.
+  const fin = read('pages/api/finalize-order.js');
+  t('the signed petition is built at signing time', fin.includes('/api/generate-dr486'));
+  t('signing reuses the evidence the owner read, never regenerates it',
+    /evidenceText:\s*order\.evidence_text/.test(fin));
+  t('signing stores the result as letter_text', /letter_text:\s*dr486\.dr486Html/.test(fin));
+  t('signing renders Part 3 with a real signature', /ownerSignatureName:/.test(fin));
+  t('a missing evidence_text pages rather than silently regenerating',
+    /evidence_text missing/.test(fin));
+
+  // ...and the evidence must actually be persisted, or none of the above can work.
+  const ful = read('lib/fulfillOrder.js');
+  t('evidence_text is stored on the order at purchase', /evidence_text:\s*evidenceText/.test(ful));
+  const gen = read('pages/api/generate-dr486.js');
+  t('generate-dr486 caches the evidence beside the document', /:evidence`/.test(gen));
+}
+
 if (failures.length) {
   console.error(`verify-emails: ${failures.length} FAILED, ${pass} passed`);
   failures.forEach((f) => console.error(`  ✗ ${f}`));
