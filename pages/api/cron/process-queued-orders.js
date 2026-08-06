@@ -11,6 +11,9 @@ import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { dispatchQueuedOrder } from '../../../lib/processOrder';
 import { requireCronSecret } from '../../../lib/webhookAuth';
 import { salesEnabled } from '../../../lib/salesGate';
+// Records that this job COMPLETED. Read back by checkCronHeartbeat — see
+// lib/heartbeat.js for why a green 200 from this route is not evidence it ran.
+import { stampHeartbeat } from '../../../lib/heartbeat';
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
 //
@@ -56,6 +59,10 @@ export default async function handler(req, res) {
   // a deliberate pause as a failing cron and start alerting on it daily.
   if (!salesEnabled()) {
     console.log('[cron] SALES_ENABLED is not true — dispatching nothing.');
+    // Still a completed run. The pause itself is reported separately by
+    // checkSalesGate; conflating "paused" with "not running" would hide one behind
+    // the other, and it is the pause that is the emergency, not the quiet cron.
+    await stampHeartbeat('process-queued-orders', { filed: 0, skipped: 'sales_paused' });
     return res.status(200).json({ ok: true, skipped: 'sales_paused' });
   }
 
@@ -100,6 +107,7 @@ export default async function handler(req, res) {
 
     if (error) throw error;
     if (!queuedOrders?.length) {
+      await stampHeartbeat('process-queued-orders', { filed: 0 });
       return res.status(200).json({ message: 'No queued orders', filed: 0 });
     }
 
@@ -141,6 +149,14 @@ export default async function handler(req, res) {
     }
 
     console.log(`[process-queued-orders] Done. Filed: ${totalFiled}, Skipped (window not open): ${totalSkippedWindowClosed}, Errored: ${totalErrored}`);
+
+    // Deliberately NOT stamped in the catch below: a run that threw did not do its
+    // job, and letting the heartbeat go stale is the correct signal.
+    await stampHeartbeat('process-queued-orders', {
+      filed: totalFiled,
+      skippedWindowClosed: totalSkippedWindowClosed,
+      errored: totalErrored,
+    });
 
     return res.status(200).json({
       success: true,

@@ -26,6 +26,7 @@
 import { requireCronSecret } from '../../../lib/webhookAuth';
 import { runAllChecks, SEVERITY } from '../../../lib/healthChecks';
 import { alertOps } from '../../../lib/alertOps';
+import { stampHeartbeat } from '../../../lib/heartbeat';
 
 export const config = { maxDuration: 60 };
 
@@ -61,6 +62,55 @@ async function redisCmd(cmd) {
   } catch (e) {
     return { ok: false, value: null };
   }
+}
+
+/**
+ * Hour (UTC) to send the daily all-clear. 13:00 UTC is 08:00 US Central, so it lands
+ * before the working day rather than overnight. Override with HEALTH_DIGEST_HOUR_UTC.
+ */
+const DIGEST_HOUR_UTC = Number.isFinite(Number(process.env.HEALTH_DIGEST_HOUR_UTC))
+  ? Number(process.env.HEALTH_DIGEST_HOUR_UTC)
+  : 13;
+
+/**
+ * Send one summary per calendar day, at or after DIGEST_HOUR_UTC.
+ *
+ * SET NX on a date-stamped key is the whole de-duplication: the first run of the day
+ * past the hour wins the key and sends; the other 143 runs find it taken and do
+ * nothing. A run that is missed entirely (deploy, outage) simply sends late the same
+ * day, which is the behaviour we want from a heartbeat.
+ */
+async function maybeSendDailyDigest(report, stateAvailable) {
+  if (!stateAvailable) return null;  // no Redis, no de-dup — see the call site
+  const now = new Date();
+  if (now.getUTCHours() < DIGEST_HOUR_UTC) return null;
+
+  const day = now.toISOString().slice(0, 10);
+  const claim = await redisCmd(['SET', `health:digest:${day}`, '1', 'NX', 'EX', String(36 * 60 * 60)]);
+  if (!claim.ok || !claim.value) return null;  // another run already sent today's
+
+  const headline =
+    report.overall === 'ok' ? 'All clear'
+      : report.overall === 'critical' ? 'CRITICAL items outstanding'
+        : 'Warnings outstanding';
+
+  const notOk = report.checks.filter((c) => c.status !== 'ok');
+  const body = [
+    `Daily service health for ${day}.`,
+    '',
+    report.checks.map((c) => `  ${statusMark(c.status)} ${c.name}`).join('\n'),
+    ...(notOk.length ? ['', '─'.repeat(60), notOk.map((c) => `[${c.status.toUpperCase()}] ${c.name}\n${indent(c.detail)}`).join('\n\n')] : []),
+    '',
+    '─'.repeat(60),
+    'This message is sent once a day whether or not anything is wrong, so that',
+    'silence is meaningful: if this does not arrive, the monitor itself is down.',
+    '',
+    `Dashboard: ${base()}/admin/health`,
+    `Checked: ${report.checkedAt}`,
+  ].join('\n');
+
+  const r = await alertOps(`[TaxAppeal] Daily health — ${headline}`, body, { force: true });
+  return { type: 'digest', subject: `Daily health — ${headline}`, ...r };
 }
 
 export default async function handler(req, res) {
@@ -158,6 +208,28 @@ export default async function handler(req, res) {
     });
     if (r.sent) sent.push({ type: 'reminder', check: c.name, ...r });
   }
+
+  // ── Daily all-clear ──────────────────────────────────────────────────────────
+  //
+  // Everything above this point only emails when something CHANGES. That is right
+  // for noise and wrong for trust: it means a healthy day and a dead monitor produce
+  // identical inboxes. After a week of silence you cannot tell whether nothing broke
+  // or nothing is watching, and the only way to find out is to go and check by hand —
+  // which is the habit this monitor exists to remove.
+  //
+  // So once a day, at a fixed hour, send the state of everything regardless. Silence
+  // then means something: no digest by mid-morning is itself the alarm.
+  //
+  // Guarded by a date-stamped Redis key rather than a time window, so the ten-minute
+  // schedule cannot send it twice and a missed run still sends late the same day.
+  // If Redis is down we skip it — an un-deduplicated digest every ten minutes is
+  // worse than no digest.
+  const digest = await maybeSendDailyDigest(report, stateAvailable);
+  if (digest) sent.push(digest);
+
+  // Stamped last, so it reflects a run that got all the way through. checkCronHeartbeat
+  // reads this back; see lib/heartbeat.js for why a green 200 is not enough on its own.
+  await stampHeartbeat('health-monitor', { overall: report.overall });
 
   console.log(`[health-monitor] overall=${report.overall} broke=${broke.length} recovered=${recovered.length} emails=${sent.filter((s) => s.sent).length}`);
 

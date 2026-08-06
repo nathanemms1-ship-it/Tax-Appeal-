@@ -57,6 +57,9 @@ const OVERALL_COPY = {
  */
 const WHY = {
   'Configuration':   "Env vars whose absence fails CLOSED and silently.",
+  'Sales gate':      "SALES_ENABLED (server) and NEXT_PUBLIC_SALES_ENABLED (pages). Losing the server one stops dispatch silently.",
+  'Cron heartbeats': "Did the scheduled jobs actually run? Without this, a stalled scheduler looks identical to a quiet one.",
+  'Filing deadlines':"Queued orders against their county deadline. Past the receipt buffer the cron stops retrying, permanently.",
   'Spend ceilings':  "Daily caps in lib/spendGuard.js. At the ceiling, dispatch pauses.",
   'Anthropic':       "Powers lookup, the petition and the decision parser. Down = 'Lookup failed' at checkout.",
   'Stripe':          "Checkout. A test key here means no real money is taken.",
