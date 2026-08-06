@@ -90,6 +90,22 @@ function mockRes() {
   return r;
 }
 
+/**
+ * A REALISTICALLY SIZED PETITION.
+ *
+ * The previous fixture was one line of HTML, and that is precisely why this suite
+ * passed on 5 Aug while Lob rejected every real Florida cheque. It asserted the
+ * payload was CORRECT and never that it was ACCEPTABLE. A measured DR-486 is 14,625
+ * characters; Lob's inline-HTML ceiling is 10,000.
+ *
+ * Lesson worth keeping: a fixture must be the SIZE of real data, not merely the
+ * SHAPE of it.
+ */
+const REAL_SIZE_PETITION =
+  '<html><body><h1>DR-486 PETITION BODY</h1>' +
+  '<p>Part 3 attestation and evidence paragraph, repeated to real length.</p>'.repeat(200) +
+  '</body></html>';
+
 /** A body shaped like what lib/processOrder.js actually posts for a FL order. */
 function flBody(over = {}) {
   return {
@@ -104,7 +120,7 @@ function flBody(over = {}) {
     ownerZip: '33326',
     ownerEmail: 'owner@example.com',
     propertyAddress: '1130 Glenwood Ct, Weston, FL 33326',
-    letterContent: '<html><body>DR-486 PETITION BODY</body></html>',
+    letterContent: REAL_SIZE_PETITION,
     ownerSignatureName: 'Maria Delgado',
     ownerSignatureDate: '2026-08-24',
     signedAt: '2026-08-24T14:02:00.000Z',
@@ -176,8 +192,23 @@ async function call(body, { authed = true } = {}) {
     t('mail_type is usps_first_class', sent.body.mail_type === 'usps_first_class', sent.body.mail_type);
     t('no extra_service on a cheque (certified is not offered)', sent.body.extra_service === undefined);
 
-    // The petition itself must ride along.
-    t('the DR-486 is attached', typeof sent.body.attachment === 'string' && sent.body.attachment.includes('DR-486 PETITION BODY'));
+    // ---- The inline-HTML ceiling. This is the assertion that was missing. ----
+    // Lob: "HTML must be less than 10000 characters (to use longer HTML, pass a
+    // remote URL)". The petition therefore cannot travel in `attachment`; it goes in
+    // merge_variables, with a small placeholder wrapper in its place.
+    t('the fixture petition is actually over the inline limit (or this test proves nothing)',
+      REAL_SIZE_PETITION.length > 10000, REAL_SIZE_PETITION.length);
+    t('attachment is under Lob\'s 10,000-character inline HTML limit',
+      String(sent.body.attachment || '').length < 10000, String(sent.body.attachment || '').length);
+    t('attachment carries the merge placeholder',
+      String(sent.body.attachment || '').includes('{{letter_content}}'));
+    t('the DR-486 rides in merge_variables',
+      String(sent.body.merge_variables?.letter_content || '').includes('DR-486 PETITION BODY'));
+    t('merge_variables carries the WHOLE petition, not a truncation',
+      sent.body.merge_variables?.letter_content === REAL_SIZE_PETITION,
+      String(sent.body.merge_variables?.letter_content || '').length);
+    t('the full petition is NOT duplicated into attachment',
+      !String(sent.body.attachment || '').includes('Part 3 attestation'));
 
     // Drawn on the right account. Undefined here is a silent Lob rejection.
     t('bank_account is set', !!sent.body.bank_account, sent.body.bank_account);
