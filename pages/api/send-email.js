@@ -16,7 +16,7 @@ function authorized(req) {
 
 // pages/api/send-email.js
 import { Resend } from 'resend';
-import { confirmationEmailTemplate } from './email-templates';
+import { confirmationEmailTemplate, confirmationSubject } from './email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const TRUSTPILOT_BCC = 'taxappealusa.com+73f5a040d9@invite.trustpilot.com';
@@ -41,6 +41,11 @@ export default async function handler(req, res) {
     amountPaid,
     customerName,
     stateCode,
+    // Dropped until 6 Aug 2026: without it the template cannot tell a queued
+    // pre-order from a filed one and claimed "Has Been Filed" for both.
+    orderStatus,
+    vabFee,
+    scheduledFileDate,
     type = 'confirmation',
     subject: prebuiltSubject,
     html: prebuiltHtml,
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
       subject = '📬 Your Dispute Letter Has Been Delivered';
       html = deliveryEmailTemplate({ firstName, trackingNumber, address, county, stateCode });
     } else {
-      subject = '✅ Your Property Tax Dispute Has Been Filed — TaxAppeal USA';
+      subject = confirmationSubject({ stateCode, orderStatus });
       html = confirmationEmailTemplate({
         firstName: firstName || (customerName || '').split(' ')[0] || 'there',
         stateCode,
@@ -83,7 +88,8 @@ export default async function handler(req, res) {
         trackingNumber,
         lobId,
         sessionId,
-        letter, amountPaid });
+        letter, amountPaid,
+        orderStatus, vabFee, scheduledFileDate });
     }
 
     const emailPayload = {
