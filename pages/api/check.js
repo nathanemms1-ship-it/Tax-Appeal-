@@ -98,7 +98,14 @@ export default async function handler(req, res) {
       });
     }
 
-    const result = await lookupAndQualify({ street, zip, city });
+    // Defect LABELS, not dollars. lib/dor/parcels.js prices them server-side
+    // against this parcel and hands the total to qualify() as cureDollars. Empty
+    // on the first visit — the owner has not been asked yet — so the first answer
+    // is comps-only, exactly as before.
+    const result = await lookupAndQualify(
+      { street, zip, city },
+      { issues: Array.isArray(b.issues) ? b.issues : [], costOverrides: b.costOverrides || {} }
+    );
 
     if (!result.found) {
       return res.status(200).json({
@@ -121,6 +128,11 @@ export default async function handler(req, res) {
       parcel,
 
       eligible: savings.eligible,
+      // NOT eligible, but NOT a refusal either: comparable sales alone fall short
+      // while a documented cost to cure would clear the cap. 688,497 Florida homes
+      // sit in this band. The UI must route these to the condition step rather
+      // than dead-ending them. See lib/dor/qualify.js, 7 Aug 2026.
+      rescuable: savings.rescuable === true,
       confidence: savings.confidence || null,
       reason: savings.reason,
 

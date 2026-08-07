@@ -663,7 +663,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * continue, because refusing on absence of evidence would turn an outage into
  * lost customers who were perfectly eligible.
  */
-function StepFloridaCheck({ property, onEligible, onBack }) {
+function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked }) {
   const [state, setState] = useState({ status: 'loading', data: null, comps: null });
 
   useEffect(() => {
@@ -684,7 +684,10 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
         //
         // Run together — the comps call is county data, so it costs nothing and
         // adds no vendor spend.
-        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL' });
+        // Issues ride along so the SECOND visit to this screen — after the owner
+        // has been asked about condition — re-runs the cap test with cost to cure
+        // included. First visit sends an empty list and behaves exactly as before.
+        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL', issues: issues || [], costOverrides: costOverrides || {} });
         const [cRes, kRes] = await Promise.all([
           fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
           fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null),
@@ -708,7 +711,7 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [(issues || []).join('|')]);
 
   if (state.status === 'loading') {
     return (
@@ -773,7 +776,9 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
     return (
       <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-          An appeal wouldn&rsquo;t lower your bill this year
+          {d.rescuable && onAddIssues && !alreadyAsked
+            ? <>On comparable sales alone, an appeal wouldn&rsquo;t be worth filing</>
+            : <>An appeal wouldn&rsquo;t lower your bill this year</>}
         </h2>
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
           {d.message || 'Your assessed value is capped well below your just value, so reducing the just value would not reach your tax bill.'}
@@ -813,9 +818,32 @@ function StepFloridaCheck({ property, onEligible, onBack }) {
             {d.facts.statement}
           </div>
         )}
+        {/* RESCUABLE — the required cut is within reach of a documented condition
+            case, so this is a QUESTION, not a refusal. Measured on the 2026 roll,
+            688,497 Florida homes sit in this band and every one of them used to be
+            told flatly that an appeal could not help.
+
+            `alreadyAsked` suppresses the invitation on the SECOND pass. Without it
+            an owner who clicks through, ticks nothing and returns is invited again,
+            forever. Asked once, answered — after that it is an honest no. */}
+        {d.rescuable && onAddIssues && !alreadyAsked && (
+          <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
+            <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 14, fontSize: 14 }}>
+              <strong>This answer assumes your home is in average condition.</strong> What it would cost to put
+              right a failed roof, a dead air conditioner, an original kitchen or active damage reduces what your
+              property is worth <em>on top of</em> what comparable sales show. On a property like this that can be
+              the difference between an appeal being pointless and being worth filing.
+            </p>
+            <button style={{ ...primaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onAddIssues}>
+              Tell us what&rsquo;s wrong with the property →
+            </button>
+          </div>
+        )}
+
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
-          We&rsquo;re not going to take $89 for a filing that cannot help you. We re-read every
-          roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.
+          {d.rescuable && onAddIssues && !alreadyAsked
+            ? <>You haven&rsquo;t been charged, and you won&rsquo;t be unless the numbers work. We re-read every roll — if this changes, we&rsquo;ll email you at the address you gave us.</>
+            : <>We&rsquo;re not going to take $89 for a filing that cannot help you. We re-read every roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.</>}
         </p>
         <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
           ← Check a different property
@@ -2160,6 +2188,16 @@ function ApplyFunnel() {
   const [closedWindow, setClosedWindow] = useState(null);
   const [flFeeData, setFlFeeData] = useState(null);
   const [flSignature, setFlSignature] = useState(null);
+  /**
+   * Set when the Florida cap check sent the owner to the condition step rather
+   * than refusing them. Two jobs:
+   *   1. The issues step must return them to the CHECK, not run on to the fee
+   *      step — otherwise a property that still cannot benefit walks straight
+   *      past the gate that just stopped it.
+   *   2. The invitation is suppressed on the way back, so an owner who ticks
+   *      nothing gets an honest no instead of the same question again.
+   */
+  const [flRescueReturn, setFlRescueReturn] = useState(false);
   const [resolvingCounty, setResolvingCounty] = useState(false);
   const [flCountyError, setFlCountyError] = useState(null);
 
@@ -2349,8 +2387,8 @@ function ApplyFunnel() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { const sc = property.state.trim().toUpperCase(); setStep(sc === 'FL' ? 'florida-check' : 'issues'); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "florida-check" && <StepFloridaCheck property={property} onEligible={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>
