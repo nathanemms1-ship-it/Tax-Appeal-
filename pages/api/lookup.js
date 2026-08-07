@@ -254,7 +254,15 @@ export default async function handler(req, res) {
     // dispute where it came from.
     if (stateUpper === 'FL') {
       try {
-        const dor = await lookupAndQualify({ street, zip, city });
+        // `issues` are the owner's selected defect LABELS. lib/dor/parcels.js prices
+        // them against this parcel and passes the total to qualify() as cureDollars,
+        // so the savings gate sees condition as well as comparable sales. Absent or
+        // empty (the first pass, before the owner has been asked) the cure is zero
+        // and behaviour is exactly as it was.
+        const dor = await lookupAndQualify(
+          { street, zip, city },
+          { issues: Array.isArray(b.issues) ? b.issues : [], costOverrides: b.costOverrides || {} }
+        );
         if (dor.found) {
           const p = dor.parcel;
           if (assessedValue === null) assessedValue = p.justValue;

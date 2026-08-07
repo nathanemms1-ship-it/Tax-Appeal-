@@ -37,19 +37,57 @@ const MARBELLA = {
 
 const m = qualify(MARBELLA, { millage: { school: 6.3, nonSchool: 11.5 } });
 
-t('capped homestead is REFUSED', m.eligible === false);
-// Refused because the cheque is too small, not because the percentage looked
-// scary. Even a strong 25% win nets ~$57 against a $104 cost.
-t('refused because it cannot pay for itself', m.reason === 'saving_below_cost');
-t('best case is under the service fee', m.bestCaseSaving < 104);
-t('refusal message quotes the actual best-case dollars', m.message.includes('$57'));
+t('capped homestead does NOT proceed on comparable sales alone', m.eligible === false);
+// CHANGED 7 Aug 2026. This used to assert reason === 'saving_below_cost' — a flat
+// refusal. On comps alone that is still the arithmetic (a strong 25% win nets ~$57
+// against a $104 cost), but the required cut is 24.5%, well inside what a
+// documented cost to cure can reach. So the gate now ASKS about condition instead
+// of declaring "an appeal would not lower your tax bill this year" to the owner of
+// a house that might have a dead A/C and a failed roof.
+//
+// Marbella Creek is the parcel this module's own header uses to explain cost to
+// cure. It was being refused by the one function that never considered it.
+t('...it is RESCUABLE, not refused', m.rescuable === true);
+t('...and says so by name', m.reason === 'needs_condition_case');
+t('best case ON COMPS ALONE is under the service fee', m.bestCaseSaving < 104);
+t('the invitation quotes the actual comps-only best case', m.message.includes('$57'));
+t('the invitation asks about condition rather than closing the door', /tell us what is wrong with it/i.test(m.message));
+t('the invitation promises a re-check before payment', /before you pay anything/i.test(m.message));
 t('break-even equals the assessed value', m.breakEven === 459927);
 t('differential is 149,071', m.differential === 149071);
 t('required cut is 24.5%', Math.abs(m.requiredCutPct - 0.2448) < 0.0005);
 // The exact failure this module exists to prevent: a 15% win changing nothing.
 t('a plausible 15% reduction moves NOTHING', m.atPlausibleReduction.noEffect === true);
 t('a plausible 15% reduction saves $0', m.atPlausibleReduction.dollarsSaved === 0);
-t('the refusal message states the dollar differential', m.message.includes('149,071'));
+t('the message states the dollar differential', m.message.includes('149,071'));
+
+// ── PASS 2: the same parcel, with a documented cure ──────────────────────────
+// $80,000 of sourced cost to cure — roof, HVAC, kitchen on a 2,399 sqft home — is
+// subtracted from the requested just value ON TOP of the comps reduction. That
+// clears the $459,927 cap comfortably and the sale becomes legitimate.
+const mCured = qualify(MARBELLA, { millage: { school: 6.3, nonSchool: 11.5 }, cureDollars: 80000 });
+t('PASS 2: a documented cure makes the same parcel ELIGIBLE', mCured.eligible === true);
+t('PASS 2: ...and the best case now clears the service fee', mCured.bestCaseSaving > 104);
+t('PASS 2: ...and it is no longer flagged rescuable', !mCured.rescuable);
+
+// A cure too small to close the gap must NOT rescue the sale. This is the
+// assertion that stops the change from becoming "sell to everyone who ticks a box".
+//
+// $2,000, not a rounder number, because the threshold is closer than it looks:
+// once the requested value is already below break-even, every further dollar of
+// cure cuts taxable value on BOTH levies, so at ~17.8 mills each $1,000 of cure is
+// worth ~$18/yr. On this parcel $2,500 of cure still fails at $101 and $3,000
+// passes at $110. A cure of $5,000 already clears the fee comfortably — which is
+// the point of the change, and the reason the "too thin" fixture has to be small.
+const mThin = qualify(MARBELLA, { millage: { school: 6.3, nonSchool: 11.5 }, cureDollars: 2000 });
+t('PASS 2: a trivial cure does NOT make it eligible', mThin.eligible === false);
+t('PASS 2: ...and having asked once, it does not ask again', !mThin.rescuable);
+t('PASS 2: ...it is now a real refusal', mThin.reason === 'saving_below_cost');
+
+// The cure must be ADDITIVE to comps, not an alternative to them. If these two
+// were ever the same number, the cure would be getting swallowed.
+t('cure lowers the requested value on top of the comps reduction',
+  mCured.scenarios.optimistic.requestedJv === m.scenarios.optimistic.requestedJv - 80000);
 
 // Derived exemptions must match the county's published figures exactly.
 const eff = taxEffect(MARBELLA, 400000, { school: 6.3, nonSchool: 11.5 });

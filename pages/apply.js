@@ -1630,7 +1630,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   );
 }
 
-function StepDispute({ formData, onRestart }) {
+function StepDispute({ formData, onRestart, onAddIssues }) {
   const [loading, setLoading] = useState(true);
   const [propData, setPropData] = useState(null);
   // Non-null when the county's own figures show an appeal cannot reduce this
@@ -1651,7 +1651,13 @@ function StepDispute({ formData, onRestart }) {
       const res = await fetch("/api/lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ street: property.street, city: property.city, state: property.state, zip: property.zip, manualAssessedValue: property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null, manualSqft: property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null, manualYearBuilt: property.manualYearBuilt || null, manualBeds: property.manualBeds || null, manualBaths: property.manualBaths || null }),
+        body: JSON.stringify({ street: property.street, city: property.city, state: property.state, zip: property.zip, manualAssessedValue: property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null, manualSqft: property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null, manualYearBuilt: property.manualYearBuilt || null, manualBeds: property.manualBeds || null, manualBaths: property.manualBaths || null,
+          // The owner's selected defects, sent as LABELS not dollars. lib/dor/parcels.js
+          // prices them server-side against this parcel's improvement value per square
+          // foot, then hands the total to qualify() as cureDollars. Sending labels rather
+          // than an amount is deliberate: a client cannot assert its own cure figure to
+          // buy its way past the savings gate.
+          issues: issues || [], costOverrides: costOverrides || {} }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
       const bdJson = await res.json();
@@ -1663,10 +1669,16 @@ function StepDispute({ formData, onRestart }) {
       // petition can do — only reaches the tax bill once it drops below that
       // cap. Above it, winning changes nothing.
       //
-      // Roughly 42% of Florida residential parcels are in that position. The
-      // real Hillsborough parcel this was built against needs a 24.5% reduction
-      // before a single dollar moves, and even a strong 25% result would save
-      // about $57 against a $104 filing cost.
+      // Measured against the full 2026 roll: 29.99% of Florida residential
+      // parcels (2,522,194) need a cut of more than 35% before a single dollar
+      // moves, which nothing realistic delivers. The real Hillsborough parcel
+      // this was built against needs 24.5%, and a strong 25% comps result would
+      // save about $57 against a $104 filing cost.
+      //
+      // BUT SEE `rescuable` BELOW (7 Aug 2026). A further 688,497 parcels sit in
+      // the 25-35% band, where comparable sales alone fall short but a documented
+      // cost to cure does not. Those must be ASKED about condition, not refused —
+      // on this same parcel $63,900 of sourced cure turns $57 a year into $1,194.
       //
       // So we stop here. Not a warning, not a disclosure — the sale does not
       // proceed. Taking $89 for an outcome that cannot occur is the thing this
@@ -1954,7 +1966,9 @@ function StepDispute({ formData, onRestart }) {
       <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
         <div style={cardStyle}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-            An appeal wouldn&rsquo;t lower your tax bill
+            {noSavings.rescuable
+              ? 'On comparable sales alone, an appeal wouldn’t be worth filing'
+              : 'An appeal wouldn’t lower your tax bill'}
           </h2>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.body, marginBottom: 18 }}>
             {noSavings.message}
@@ -1976,6 +1990,30 @@ function StepDispute({ formData, onRestart }) {
             buying or selling resets the cap, and a falling market brings your market value back
             toward the capped figure.
           </p>
+
+          {/* RESCUABLE — the required reduction is within reach of a documented
+              condition case, so this is a QUESTION, not a refusal. Measured against
+              the 2026 roll, 688,497 Florida homes sit in this band and every one of
+              them used to be told flatly that an appeal could not help. The primary
+              action has to be "tell us about the condition", not "go away". */}
+          {noSavings.rescuable && onAddIssues && (
+            <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.body, marginBottom: 12 }}>
+                <strong>This answer assumes your home is in average condition.</strong> Cost to cure —
+                what it would take to put right a failed roof, a dead air conditioner, an original
+                kitchen, active damage — reduces what your property is worth <em>on top of</em> what
+                comparable sales show. On this property that can be the difference between an appeal
+                being pointless and being worth filing.
+              </p>
+              <button
+                style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }}
+                onClick={onAddIssues}
+              >
+                Tell us what&rsquo;s wrong with the property →
+              </button>
+            </div>
+          )}
+
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
         </div>
       </div>
@@ -2314,7 +2352,7 @@ function ApplyFunnel() {
           {step === "florida-check" && <StepFloridaCheck property={property} onEligible={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { goToFloridaFeeStep(); } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>
       )}
     </div>
