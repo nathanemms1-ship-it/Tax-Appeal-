@@ -160,6 +160,15 @@ function esc(s) {
  * Summary and the evidence prompt appended another. It read "Broward County County,
  * Florida" on a sworn filing sent to that county's own Clerk.
  */
+/**
+ * Output budget for the evidence section. 2000 was the original and it truncated a
+ * real petition mid-word once six comparable sales started being included — see the
+ * note at the call site. 6000 leaves room for a full comp table, several priced
+ * defects, and all four sections, without inviting bloat: every extra page is
+ * another page Lob prints and posts.
+ */
+const EVIDENCE_MAX_TOKENS = 6000;
+
 export function bareCounty(county) {
   return String(county || '').replace(/\s+County\s*$/i, '').trim();
 }
@@ -253,7 +262,7 @@ export function buildDR486Html({
   <div class="subtitle">Florida Department of Revenue | ${esc(vabName || county + ' County Value Adjustment Board')}</div>
 
   <div class="part"><div class="part-header">PART 1 — TAXPAYER / PROPERTY OWNER INFORMATION</div><div class="part-body">
-    <div class="row"><div class="field"><div class="field-label">Owner Name</div><div class="field-value">${esc(ownerFirstName)} ${esc(ownerLastName)}</div></div><div class="field"><div class="field-label">Email</div><div class="field-value">${esc(ownerEmail)}</div></div><div class="field"><div class="field-label">Phone</div><div class="field-value">${esc(ownerPhone) || '&nbsp;'}</div></div></div>
+    <div class="row"><div class="field"><div class="field-label">Owner Name</div><div class="field-value">${esc(ownerFirstName)} ${esc(ownerLastName)}</div></div><div class="field"><div class="field-label">Email</div><div class="field-value">${esc(ownerEmail)}</div></div>${ownerPhone ? `<div class="field"><div class="field-label">Phone</div><div class="field-value">${esc(ownerPhone)}</div></div>` : ''}</div>
     <div class="row"><div class="field" style="flex:2"><div class="field-label">Mailing Address</div><div class="field-value">${esc(ownerStreet)}</div></div><div class="field"><div class="field-label">City</div><div class="field-value">${esc(ownerCity)}</div></div><div class="field" style="flex:0.4"><div class="field-label">State</div><div class="field-value">${esc(ownerState)}</div></div><div class="field" style="flex:0.7"><div class="field-label">ZIP</div><div class="field-value">${esc(ownerZip)}</div></div></div>
     <div class="row"><div class="field" style="flex:2"><div class="field-label">Property Address</div><div class="field-value">${esc(propertyAddress)}</div></div><div class="field"><div class="field-label">County</div><div class="field-value">${esc(bareCounty(county))} County</div></div><div class="field"><div class="field-label">Parcel / Folio ID</div><div class="field-value">${esc(parcelId)}</div></div></div>
     <div class="row"><div class="field" style="flex:0.7"><div class="field-label">Tax Year</div><div class="field-value">${esc(yr)}</div></div><div class="field"><div class="field-label">Property Type</div><div class="field-value">Residential 1-4 Units</div></div><div class="field"><div class="field-label">Preferred Contact</div><div class="field-value">Email: ${esc(ownerEmail)}</div></div></div>
@@ -479,15 +488,48 @@ Professional, factual, first person as the property owner. Output only the four 
         code: 'CAPACITY',
       });
     }
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 2000, messages: [{ role: 'user', content: evidencePrompt }] }),
-    });
+    /**
+     * A TRUNCATED PETITION MUST NEVER REACH A SIGNATURE.
+     *
+     * max_tokens was 2000 — roughly 8,000 characters — and nothing checked whether
+     * the model had actually finished. The 6 Aug 2026 test proof ended mid-word:
+     *
+     *   "Subsection (1) defines just value as the amount a willing purch"
+     *
+     * The entire LEGAL BASIS section, including the s. 194.301 burden-of-proof
+     * argument, was missing from a document filed with a government board and sworn
+     * to under penalty of perjury.
+     *
+     * The ceiling was survivable while petitions argued methodology alone. It stopped
+     * being survivable the moment real comparable sales started reaching the evidence
+     * — six sales, each with address, parcel, date, price, size and price per square
+     * foot, plus the analysis of them, is most of the old budget on its own.
+     *
+     * So: a generous ceiling, and a check on stop_reason rather than a hope. One
+     * retry with double the budget covers an unusually long set (more comps, more
+     * defects); a second truncation is an error, because mailing a petition that
+     * stops mid-sentence is worse than not mailing one.
+     */
+    const askClaude = async (maxTokens) => {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages: [{ role: 'user', content: evidencePrompt }] }),
+      });
+      const data = await r.json();
+      if (data.error) throw new Error(data.error.message);
+      return { text: data.content?.[0]?.text || '', truncated: data.stop_reason === 'max_tokens' };
+    };
 
-    const claudeData = await claudeRes.json();
-    if (claudeData.error) throw new Error(claudeData.error.message);
-    evidenceText = claudeData.content?.[0]?.text || '';
+    let attempt = await askClaude(EVIDENCE_MAX_TOKENS);
+    if (attempt.truncated) {
+      console.warn(`[dr486] evidence truncated at ${EVIDENCE_MAX_TOKENS} tokens — retrying at ${EVIDENCE_MAX_TOKENS * 2}`);
+      attempt = await askClaude(EVIDENCE_MAX_TOKENS * 2);
+    }
+    if (attempt.truncated) {
+      throw new Error('Evidence generation was truncated twice; refusing to build a petition that ends mid-sentence.');
+    }
+    evidenceText = attempt.text;
     }
 
     const filingDate = flDate();

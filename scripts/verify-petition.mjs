@@ -131,6 +131,32 @@ t('Part 3 cites the signing statute', /194\.011\(3\)/.test(HTML));
 t('Parts 4 and 5 remain not applicable', (HTML.match(/Not applicable/gi) || []).length >= 2);
 t('the preparer is disclaimed as non-representative', /not the owner's representative/i.test(HTML));
 
+// ── No empty labelled boxes on a sworn form ──────────────────────────────────
+// The funnel does not collect a phone number, so Part 1 rendered an empty "Phone"
+// field. On a document a VAB clerk reads, a blank labelled box looks like an
+// oversight and invites a request for more information — friction nobody wants on a
+// filing whose deadline is satisfied by physical receipt. The petition already
+// states "Preferred Contact: Email" and the owner has elected not to attend, so the
+// number adds nothing. Rendered only when we actually have one.
+{
+  t('no empty Phone box when no phone is held', !/Phone<\/div><div class="field-value"><\/div>/.test(HTML));
+  t('no &nbsp; placeholder standing in for a phone', !/Phone<\/div><div class="field-value">&nbsp;/.test(HTML));
+  t('the Phone label is absent entirely when unset', !/>Phone</.test(HTML));
+
+  const withPhone = buildDR486Html({
+    ownerFirstName: 'Nathan', ownerLastName: 'Emms', ownerEmail: 'owner@example.com',
+    ownerPhone: '954-555-0142',
+    ownerStreet: '1130 GLENWOOD CT', ownerCity: 'WESTON', ownerState: 'FL', ownerZip: '33326',
+    propertyAddress: '1130 GLENWOOD CT, WESTON, FL 33326', county: 'Broward County',
+    parcelId: '504007071100', assessedValue: 1047630, requestedValue: 859057, taxYear: '2026',
+    evidenceText: 'Plain evidence.', vabName: 'Broward County Value Adjustment Board',
+    ownerSignatureName: 'Nathan Emms', ownerSignatureDate: '2026-08-06T03:09:59.829+00:00',
+    filingDate: 'August 5, 2026', preview: false, willNotAttend: true, authorizeConfidential: true,
+  });
+  t('a phone IS shown when one is held', /954-555-0142/.test(withPhone));
+  t('the Phone label returns with it', />Phone</.test(withPhone));
+}
+
 // ── The prompt, since it is what generated the promises ──────────────────────
 {
   const src = read('pages/api/generate-dr486.js');
@@ -150,6 +176,31 @@ t('the preparer is disclaimed as non-representative', /not the owner's represent
   // Belt and braces: the render strips markdown even if the model ignores the rule.
   t('the renderer strips markdown regardless of the prompt',
     /stripMarkdown\(evidenceText\)/.test(src));
+}
+
+// ── A truncated petition must never reach a signature ────────────────────────
+// The 6 Aug proof ended mid-word: "the amount a willing purch". max_tokens was 2000
+// and nothing checked stop_reason, so the LEGAL BASIS section — including the
+// s. 194.301 burden-of-proof argument — was simply absent from a document sworn to
+// under penalty of perjury. The ceiling was survivable until real comparable sales
+// started reaching the evidence; six sales with full detail is most of that budget.
+{
+  const src = read('pages/api/generate-dr486.js');
+
+  t('the evidence token budget is a named constant', /EVIDENCE_MAX_TOKENS\s*=\s*(\d+)/.test(src));
+  const budget = Number(/EVIDENCE_MAX_TOKENS\s*=\s*(\d+)/.exec(src)?.[1] || 0);
+  t('the budget is well clear of the 2000 that truncated a real petition', budget >= 4000, budget);
+  t('the hardcoded 2000 is gone', !/max_tokens:\s*2000/.test(src));
+
+  t('truncation is detected via stop_reason, not hoped away', /stop_reason === 'max_tokens'/.test(src));
+  t('a truncated response is retried with a larger budget', /EVIDENCE_MAX_TOKENS \* 2/.test(src));
+  t('a twice-truncated petition throws rather than being built',
+    /truncated twice/.test(src));
+
+  // The whole point: no caller may receive a half-finished sworn document.
+  const genBlock = src.slice(src.indexOf('const askClaude'), src.indexOf('const filingDate'));
+  t('evidenceText is only assigned after the truncation check',
+    genBlock.indexOf('throw new Error') < genBlock.indexOf('evidenceText = attempt.text'));
 }
 
 if (failures.length) {

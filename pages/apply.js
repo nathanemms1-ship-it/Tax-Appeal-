@@ -1498,10 +1498,30 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 from Vercel before there is meaningful traffic. */}
             <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true' ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
           </div>
-          <div style={{ background: C.bg, borderTop: `1px solid ${C.border}`, padding: "10px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          {/* WHY THIS NOTICE IS PROMINENT.
+              The blur is the paywall, and a customer who does not understand it
+              reads it as a broken page rather than a deliberate boundary — they
+              wonder why the document is cut off, and abandon. It sat in 12px muted
+              grey under a blurred block, which is exactly where the eye does not
+              go. It now reads as a deliberate statement: gold left rule, its own
+              background, a heading line, and body text at the same size as the
+              petition itself. */}
+          <div style={{ background: C.amber, borderTop: `1px solid ${C.border}`, borderLeft: `4px solid ${C.gold}`, padding: "16px 20px", fontFamily: "'DM Sans', sans-serif" }}>
             {process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'
-              ? <>🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.</>
-              : <>🔒 The rest is hidden until checkout. Right after you pay you will see the <strong>complete document with nothing blurred</strong>, read it, and sign it yourself.</>}
+              ? <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6 }}>
+                  🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.
+                </div>
+              : <>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.darkNavy, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 17 }}>🔒</span>
+                    <span>This is a preview — the rest unlocks at checkout</span>
+                  </div>
+                  <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
+                    Nothing is missing from your petition. Right after you pay, you will see the{' '}
+                    <strong style={{ color: C.darkNavy }}>complete document with nothing blurred</strong> — you read all of
+                    it, and you sign it yourself before anything is filed.
+                  </div>
+                </>}
           </div>
         </div>
         <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>

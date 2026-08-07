@@ -184,7 +184,10 @@ export default function Success() {
       const out = await res.json();
       if (!res.ok || !out.success) {
         setMailStatus('error');
-        return;
+        // Signature may not have been recorded — stay on the signing screen so the
+        // owner can retry rather than being shown a confirmation for something that
+        // did not happen.
+        return false;
       }
       const status = out.result && out.result.status;
       if (status === 'filed') {
@@ -195,15 +198,28 @@ export default function Success() {
       } else {
         setMailStatus('manual');
       }
+      return true;
     } catch (e) {
       console.error('finalize-order failed:', e);
       setMailStatus('error');
+      return false;
     }
   }
 
-  // Fired by SignatureStep (TX/GA/AR/AL) once the owner signs.
+  // Fired by SignatureStep once the owner signs.
+  //
+  // setSigned(true) IS THE FIX. `signed` was declared at the top of this component
+  // and never set anywhere in the file, so needsSignature stayed true forever and
+  // SignatureStep re-rendered permanently. The owner paid, signed, watched the button
+  // do nothing, and had no confirmation their petition existed — while server-side
+  // everything had in fact succeeded. Reproduced twice, 5 and 6 Aug 2026.
+  //
+  // Advance only on success: a failed finalize-order may mean the signature was not
+  // recorded, and showing a confirmation screen for that would be worse than the bug.
   async function handleSigned(sig) {
-    if (session) await runMail(session, sig);
+    if (!session) return;
+    const ok = await runMail(session, sig);
+    if (ok) setSigned(true);
   }
 
   useEffect(() => {
@@ -288,6 +304,10 @@ export default function Success() {
       case 'sent':    return { icon: '📬', text: isFlorida ? 'Petition dispatched!' : 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
       case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
+      // runMail sets 'queued' (it mirrors ORDER_STATUS.QUEUED). This case read only
+      // 'reserved', so the badge came back null and a pre-order customer saw no
+      // confirmation at all. Both accepted; 'queued' is the one actually emitted.
+      case 'queued':
       case 'reserved': return { icon: '🎟️', text: session?.scheduledFileDate ? `Reserved — files ${new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} when your window opens` : 'Reserved — files as soon as your filing window opens', color: C.navy, bg: C.lightBlue };
       default: return null;
     }

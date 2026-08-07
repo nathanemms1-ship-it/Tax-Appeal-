@@ -211,6 +211,35 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   t('generate-dr486 caches the evidence beside the document', /:evidence`/.test(gen));
 }
 
+// ── The success page must actually leave the signature screen ────────────────
+// Found by two consecutive live tests (5 and 6 Aug 2026): the owner paid, signed,
+// and the button appeared to do nothing. Server-side everything had succeeded — the
+// signature saved, the order reached `queued`, the petition was built — but
+// pages/success.js declared `const [signed, setSigned] = useState(false)` and never
+// called setSigned anywhere in the file. needsSignature therefore stayed true and
+// SignatureStep re-rendered forever, in every state, for every customer.
+//
+// A customer with no confirmation signs again, or emails support, or assumes the
+// payment failed. It is the last screen in the funnel and it was a dead end.
+{
+  const succ = read('pages/success.js');
+
+  t('success.js actually calls setSigned', /setSigned\(true\)/.test(succ));
+  t('it advances only after a successful finalize', /if \(ok\) setSigned\(true\)/.test(succ));
+  t('runMail reports failure to its caller', /return false;/.test(succ));
+  t('runMail reports success to its caller', /return true;/.test(succ));
+
+  // The badge switch must know the status runMail actually emits. It handled
+  // 'reserved' but runMail sets 'queued', so a pre-order customer saw no badge.
+  const emitted = [...succ.matchAll(/setMailStatus\('([a-z_]+)'\)/g)].map((m) => m[1]);
+  const switchBlock = succ.slice(succ.indexOf('const getMailStatusBadge'), succ.indexOf('const badge ='));
+  for (const status of [...new Set(emitted)]) {
+    if (status === 'sending') continue;  // transient, handled separately
+    t(`the badge switch handles the '${status}' status that runMail emits`,
+      switchBlock.includes(`case '${status}'`), status);
+  }
+}
+
 if (failures.length) {
   console.error(`verify-emails: ${failures.length} FAILED, ${pass} passed`);
   failures.forEach((f) => console.error(`  ✗ ${f}`));
