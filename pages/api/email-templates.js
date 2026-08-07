@@ -283,13 +283,17 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                 </tr>
               </table>` : ''}
 
-              ${letter ? `
-              <!-- Full Letter -->
-              <div style="margin-bottom:28px;">
-                <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:14px;">Your Dispute Letter — For Your Records</div>
-                <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:28px 32px;font-family:Georgia,serif;font-size:13px;color:#222;line-height:1.8;white-space:pre-wrap;">${h(letter)}</div>
-                <div style="margin-top:10px;font-size:11px;color:#999;text-align:center;">Keep this email as your official record of the protest you filed.</div>
-              </div>` : ''}
+              <!-- The full petition used to be reproduced here, gated on the letter
+                   parameter. Removed 6 Aug 2026 at Nathan's request: the owner has already
+                   read the complete unblurred document and signed it on /success, so the
+                   email was re-sending something they had just attested to. It also made
+                   the message enormous - the measured petition is 17,005 characters of
+                   HTML - and put a sworn filing carrying the owner's name, home address,
+                   parcel number and signature into a message that gets forwarded and sits
+                   in inboxes indefinitely.
+                   NOTE: a backtick in a comment inside a template literal terminates the
+                   string. This comment originally quoted the parameter name in backticks
+                   and broke the build. -->
 
               <!-- Questions -->
               <div style="background:#fff8e7;border:1px solid #f0d98a;border-radius:6px;padding:16px 20px;margin-bottom:8px;">

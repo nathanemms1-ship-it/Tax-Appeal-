@@ -22,121 +22,18 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Se
 // DEAD CODE as of the webhook migration — receipts are now composed and sent
 // server-side by lib/fulfillOrder.js -> /api/send-email. Kept only so a diff
 // reviewer can see what moved; safe to delete.
-function buildConfirmationEmail({ customerName, address, county, districtName, assessedValue, targetReduction, savings, trackingNumber, letter, amountPaid = 8900 }) {
-  const firstName = customerName ? customerName.split(' ')[0] : 'there';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#F4F7FC;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-        <tr><td style="background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;">
-          <div style="font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;">🏠 TaxAppeal</div>
-          <div style="font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;">Property Tax Dispute</div>
-        </td></tr>
-        <tr><td style="background:#2E7D52;padding:16px 36px;text-align:center;">
-          <div style="font-size:15px;font-weight:600;color:#FFFFFF;">✓ Your protest has been filed!</div>
-        </td></tr>
-        <tr><td style="background:#FFFFFF;padding:36px;">
-          <p style="font-size:16px;color:#0F1F3D;margin:0 0 16px;">Hi ${firstName},</p>
-          <p style="font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;">
-            Your property tax protest has been filed and your certified letter ${trackingNumber ? 'has been dispatched' : 'is being sent'} via <strong>USPS certified mail with return receipt</strong> to the ${districtName || county + ' Appraisal District'}.
-          </p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;">
-            <tr><td>
-              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:14px;">DISPUTE SUMMARY</div>
-              <table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Property</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">${address}</td></tr></table>
-              <table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Filed with</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">${districtName || county + ' Appraisal District'}</td></tr></table>
-              ${assessedValue ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Current assessed value</td><td style="font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;">$${Number(assessedValue).toLocaleString()}</td></tr></table>` : ''}
-              ${targetReduction ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Reduction requested</td><td style="font-size:13px;color:#2E7D52;font-weight:500;text-align:right;">Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
-              ${savings ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">Potential annual savings</td><td style="font-size:13px;color:#2E7D52;font-weight:700;text-align:right;">$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
-              ${trackingNumber ? `<table width="100%"><tr><td style="font-size:13px;color:#8596AF;">USPS Tracking</td><td style="font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;">${trackingNumber}</td></tr></table>` : ''}
-              <table width="100%" style="border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;"><tr><td style="font-size:14px;color:#0F1F3D;font-weight:600;">Amount paid</td><td style="font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;">${(amountPaid/100).toFixed(2)}</td></tr></table>
-            </td></tr>
-          </table>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;">
-            <tr><td>
-              <div style="font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;">⚖️ What happens next</div>
-              <div style="font-size:13px;color:#7A5C10;line-height:1.6;">The appraisal district will review your protest and respond directly to you within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative.</div>
-            </td></tr>
-          </table>
-          ${letter ? `
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8EDF4;border-radius:8px;overflow:hidden;margin-bottom:8px;">
-            <tr><td style="background:#F4F7FC;padding:12px 20px;border-bottom:1px solid #E8EDF4;">
-              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;">YOUR DISPUTE LETTER — FOR YOUR RECORDS</div>
-            </td></tr>
-            <tr><td style="background:#FFFFFF;padding:28px 32px;font-family:Georgia,serif;font-size:12px;line-height:1.85;color:#111;white-space:pre-wrap;">${letter}</td></tr>
-          </table>
-          <div style="font-size:11px;color:#8596AF;text-align:center;margin-bottom:8px;">Keep this email as your official record of the protest you filed.</div>
-          ` : ''}
-        </td></tr>
-        <tr><td style="background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;">
-          <div style="font-size:13px;color:#8596AF;margin-bottom:8px;">Questions? Reply to this email or contact us at</div>
-          <a href="mailto:customerservice@taxappealusa.com" style="font-size:13px;color:#FFC940;text-decoration:none;">customerservice@taxappealusa.com</a>
-          <div style="font-size:11px;color:#3A4E6A;margin-top:16px;">© 2026 TaxAppeal USA · taxappealusa.com</div>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function buildReservedEmail({ customerName, address, county, scheduledFileDate, assessedValue, targetReduction, savings, amountPaid = 8900 }) {
-  const firstName = customerName ? customerName.split(' ')[0] : 'there';
-  const fileDateStr = scheduledFileDate ? new Date(scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'the opening day of your filing window';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>
-<body style='margin:0;padding:0;background:#F4F7FC;font-family:"Helvetica Neue",Arial,sans-serif;'>
-  <table width='100%' cellpadding='0' cellspacing='0' style='background:#F4F7FC;padding:32px 16px;'>
-    <tr><td align='center'>
-      <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>
-        <tr><td style='background:#1B3A6B;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center;'>
-          <div style='font-family:Georgia,serif;font-size:24px;color:#FFFFFF;margin-bottom:4px;'>🏠 TaxAppeal</div>
-          <div style='font-size:11px;color:#8596AF;letter-spacing:2px;text-transform:uppercase;'>Property Tax Dispute</div>
-        </td></tr>
-        <tr><td style='background:#1B3A6B;padding:16px 36px;text-align:center;'>
-          <div style='font-size:15px;font-weight:600;color:#FFFFFF;'>🎟️ You are reserved — first in line!</div>
-        </td></tr>
-        <tr><td style='background:#FFFFFF;padding:36px;'>
-          <p style='font-size:16px;color:#0F1F3D;margin:0 0 16px;'>Hi ${firstName},</p>
-          <p style='font-size:14px;color:#5A6B82;line-height:1.7;margin:0 0 24px;'>
-            Your property tax protest for <strong>${address}</strong> is prepared and reserved. We will submit it via <strong>USPS certified mail with return receipt</strong> to the ${county} Appraisal District as soon as your filing window opens on <strong>${fileDateStr}</strong> — placing you ahead of the opening-day rush.
-          </p>
-          <table width='100%' cellpadding='0' cellspacing='0' style='background:#F4F7FC;border-radius:8px;padding:20px;margin-bottom:24px;'>
-            <tr><td>
-              <div style='font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8596AF;font-weight:600;margin-bottom:14px;'>RESERVATION SUMMARY</div>
-              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Property</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>${address}</td></tr></table>
-              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Filing with</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>${county} Appraisal District</td></tr></table>
-              <table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Filing date</td><td style='font-size:13px;color:#1B3A6B;font-weight:700;text-align:right;'>${fileDateStr}</td></tr></table>
-              ${assessedValue ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Current assessed value</td><td style='font-size:13px;color:#0F1F3D;font-weight:500;text-align:right;'>$${Number(assessedValue).toLocaleString()}</td></tr></table>` : ''}
-              ${targetReduction ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Reduction requested</td><td style='font-size:13px;color:#2E7D52;font-weight:500;text-align:right;'>Down to $${Number(targetReduction).toLocaleString()}</td></tr></table>` : ''}
-              ${savings ? `<table width='100%'><tr><td style='font-size:13px;color:#8596AF;'>Potential annual savings</td><td style='font-size:13px;color:#2E7D52;font-weight:700;text-align:right;'>$${Number(savings).toLocaleString()}</td></tr></table>` : ''}
-              <table width='100%' style='border-top:1px solid #E8EDF4;padding-top:12px;margin-top:8px;'><tr><td style='font-size:14px;color:#0F1F3D;font-weight:600;'>Amount paid</td><td style='font-size:14px;color:#0F1F3D;font-weight:700;text-align:right;'>${(amountPaid/100).toFixed(2)}</td></tr></table>
-            </td></tr>
-          </table>
-          <table width='100%' cellpadding='0' cellspacing='0' style='background:#FFF8E6;border:1px solid #FFD97A;border-radius:8px;padding:16px;margin-bottom:24px;'>
-            <tr><td>
-              <div style='font-size:13px;font-weight:700;color:#7A5C10;margin-bottom:6px;'>⚖️ What happens next</div>
-              <div style='font-size:13px;color:#7A5C10;line-height:1.6;'>We will mail your protest the moment your filing window opens on ${fileDateStr}. You will get a follow-up email with your USPS certified mail tracking number once it is dispatched — no action needed from you in the meantime.</div>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style='background:#0F1F3D;border-radius:0 0 12px 12px;padding:24px 36px;text-align:center;'>
-          <div style='font-size:13px;color:#8596AF;margin-bottom:8px;'>Questions? Reply to this email or contact us at</div>
-          <a href='mailto:customerservice@taxappealusa.com' style='font-size:13px;color:#FFC940;text-decoration:none;'>customerservice@taxappealusa.com</a>
-          <div style='font-size:11px;color:#3A4E6A;margin-top:16px;'>© 2026 TaxAppeal USA · taxappealusa.com</div>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
+/*
+ * buildConfirmationEmail / buildReservedEmail lived here and were deleted 6 Aug 2026.
+ *
+ * Nothing called them. They were left behind when fulfillment moved server-side to
+ * lib/fulfillOrder.js -> /api/send-email, and they had been quietly rotting since:
+ * both still described CERTIFIED mail to an APPRAISAL DISTRICT, which is wrong for
+ * Florida twice over, and both carried the hearing sentence corrected below. Dead
+ * code that is also wrong is worse than dead code — it gets copied.
+ *
+ * The live templates are in pages/api/email-templates.js, covered by
+ * scripts/verify-emails.mjs.
+ */
 
 export default function Success() {
   const router = useRouter();
@@ -297,6 +194,8 @@ export default function Success() {
    * Run it before pushing.
    */
   const isFlorida = session?.stateCode === 'FL';
+  // County without a doubled suffix — orders.county is stored as "Broward County".
+  const sessionCounty = String(session?.county || '').replace(/\s+County\s*$/i, '').trim() || 'your county';
 
   const getMailStatusBadge = () => {
     switch (mailStatus) {
@@ -484,7 +383,22 @@ export default function Success() {
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>Your appraisal district will contact you directly with their decision — typically within 30–90 days. If they schedule a hearing, you can attend yourself or hire a licensed representative. Forward any decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>}
+                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>{isFlorida
+                      /* FLORIDA GETS A HEARING WHETHER OR NOT THE OWNER ATTENDS.
+                         The old copy said "if they schedule a hearing, you can attend
+                         yourself or hire a licensed representative" — which reads as
+                         though a hearing were a contingency. It is not. Under Fla.
+                         Admin. Code R. 12D-9.001 the petitioner has a right to prior
+                         notice of the hearing date, so the Board schedules one and
+                         posts a notice for every petition. Ticking "I will not attend
+                         but would like my evidence considered" on the DR-486 does not
+                         prevent that; it means the Board weighs the enclosed evidence
+                         without the owner present.
+                         Saying nothing would be worse than the old wording: an
+                         official hearing notice would arrive in the post and the owner
+                         would think something had gone wrong. */
+                      ? <>The {sessionCounty} Value Adjustment Board will schedule a hearing and mail you a notice of the date — that happens for every petition and is not a sign of a problem. Because you elected not to attend, the Board considers your enclosed evidence without you, and there is nothing you need to do. You may attend if you change your mind. TaxAppeal does not attend or represent you. Forward the Board&rsquo;s decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>
+                      : <>Your appraisal district will contact you directly with their decision — typically within 30&ndash;90 days. TaxAppeal does not attend or represent you at any hearing. Forward any decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>}</>}
               </div>
             </div>
 

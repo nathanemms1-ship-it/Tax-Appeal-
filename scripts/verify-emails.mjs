@@ -139,6 +139,27 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   t('the filed receipt quotes a range consistent with Lob', /7-14 days/.test(render('filed')));
 }
 
+// ── The petition is not re-sent in the receipt ───────────────────────────────
+// Removed 6 Aug 2026. The owner reads the complete unblurred document and signs it
+// on /success, so the email was returning something they had just attested to — at
+// 17,005 characters of HTML, carrying their name, home address, parcel number and
+// signature, into a message that gets forwarded and kept.
+{
+  const withLetter = confirmationEmailTemplate({
+    ...ORDER,
+    orderStatus: 'filed',
+    letter: 'PETITION BODY THAT MUST NOT BE REPRODUCED IN THE EMAIL',
+  });
+  t('the petition body is not reproduced even when passed',
+    !withLetter.includes('PETITION BODY THAT MUST NOT BE REPRODUCED'));
+  t('the "For Your Records" block is gone', !/For Your Records/i.test(withLetter));
+  t('the receipt no longer calls itself the official record',
+    !/official record of the protest/i.test(withLetter));
+  // The summary still has to be there — we removed the document, not the receipt.
+  t('the filing summary survives', /FILING SUMMARY/i.test(withLetter));
+  t('the total paid survives', withLetter.includes('$114.00'));
+}
+
 // ── Non-Florida wording is untouched ──────────────────────────────────────────
 {
   const tx = confirmationEmailTemplate({ ...ORDER, stateCode: 'TX', county: 'Tarrant County', orderStatus: 'filed' });
