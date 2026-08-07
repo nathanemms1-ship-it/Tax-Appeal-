@@ -65,6 +65,7 @@ const WHY = {
   'Stripe':          "Checkout. A test key here means no real money is taken.",
   'Lob':             "Mail and VAB fee cheques. A test key means nothing physically ships.",
   'Database':        "Supabase. Orders cannot be written or read.",
+  'Schema':          "Do the 51 columns the code writes actually exist? A missing one takes money and stores nothing.",
   'Redis':           "Rate limits and send-letter idempotency. Degrades, does not stop sales.",
   'Stuck orders':    "Paid but not mailed. The worst outcome this system can produce.",
 };
