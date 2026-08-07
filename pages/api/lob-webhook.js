@@ -132,6 +132,19 @@ export default async function handler(req, res) {
         // mailstream, so take it whenever it appears rather than only at dispatch.
         if (trackingNumber) patch.lob_tracking_number = trackingNumber;
         if (newStatus === 'mailed') patch.mailed_at = event?.date_created || new Date().toISOString();
+        // DELIVERED TIMESTAMP — added 6 Aug 2026 so transit time is measurable.
+        //
+        // Lob's own Expected Delivery Date Range for a live first-class cheque is
+        // SEVEN TO FOURTEEN DAYS. lib/filingWindows.js currently bets a 12-day buffer
+        // against that, which leaves Lob's worst case two days past a deadline Florida
+        // satisfies by physical RECEIPT. The bet is deliberate and it is Nathan's, but
+        // it has to be reviewable against reality in the first week of the window.
+        //
+        // Without this column there is nothing to review: the row records that a piece
+        // was mailed and that it is now delivered, but not WHEN, so mailed_at ->
+        // delivered cannot be computed. One line here turns the buffer from a
+        // judgement into a measurement.
+        if (newStatus === 'delivered') patch.delivered_at = event?.date_created || new Date().toISOString();
 
         const { error } = await supabase
           .from('orders')

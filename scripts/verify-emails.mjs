@@ -125,6 +125,20 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   t('total still correct without a breakdown', noFee.includes('$89.00'));
 }
 
+// ── We must not promise delivery faster than Lob promises us ─────────────────
+// A live Lob cheque on 6 Aug 2026 gave its own Expected Delivery Date Range as 7-14
+// days from creation. The receipt said "3-7 business days" — roughly 5-10 calendar
+// days — which is faster than the vendor will commit to, on a filing whose deadline
+// is satisfied by physical receipt.
+{
+  for (const status of ['queued', 'filed']) {
+    const html = render(status);
+    t(`the ${status} receipt does not claim 3-7 business days`, !/3-7 business days/.test(html));
+  }
+  t('the queued receipt quotes a range consistent with Lob', /7 to 14 days/.test(render('queued')));
+  t('the filed receipt quotes a range consistent with Lob', /7-14 days/.test(render('filed')));
+}
+
 // ── Non-Florida wording is untouched ──────────────────────────────────────────
 {
   const tx = confirmationEmailTemplate({ ...ORDER, stateCode: 'TX', county: 'Tarrant County', orderStatus: 'filed' });

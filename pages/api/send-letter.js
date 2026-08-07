@@ -16,6 +16,8 @@ import { Redis } from '@upstash/redis';
 import { getFlVabFee } from '../../lib/flCountyFees';
 import { getFlVabAddress } from '../../lib/flVabAddresses';
 import { checkSpend } from '../../lib/spendGuard';
+import { getFilingWindowStatus } from '../../lib/filingWindows';
+import { alertOps } from '../../lib/alertOps';
 
 let redis = null;
 try {
@@ -290,6 +292,45 @@ export default async function handler(req, res) {
       if (!lobRes.ok) {
         console.error('Lob check error:', lobData);
         return res.status(500).json({ error: lobData?.error?.message || 'Failed to send FL check via Lob', details: lobData });
+      }
+
+      /**
+       * DOES LOB THINK THIS WILL ARRIVE IN TIME?
+       *
+       * Florida is satisfied by physical RECEIPT, not postmark. lib/filingWindows.js
+       * protects that with minDays — a static buffer, set by judgement, applied to
+       * every county and every piece identically.
+       *
+       * On 6 Aug 2026 a live Lob cheque reported its own Expected Delivery Date Range
+       * as 7-14 DAYS from creation. A buffer of 12 leaves Lob's worst case two days
+       * past the deadline. Rather than pick a number and hope, check the number Lob
+       * actually gives us for THIS piece.
+       *
+       * This does not block the mailing — by the time we know, the cheque exists and
+       * cancelling it would leave the customer with nothing at all. It pages, so a
+       * human has the days that remain to act: call the Clerk, confirm receipt, or
+       * refund. Silence here would mean finding out in October from a dismissal notice.
+       */
+      const expected = lobData.expected_delivery_date;
+      if (expected) {
+        try {
+          const ws = getFilingWindowStatus('FL', county);
+          const expectedDate = new Date(`${expected}T00:00:00`);
+          if (ws?.hardDeadline && !Number.isNaN(expectedDate.getTime()) && expectedDate > ws.hardDeadline) {
+            await alertOps(
+              'Petition may arrive AFTER the filing deadline',
+              `county=${county} lob=${lobData.id} session=${sessionId || 'n/a'}\n\n` +
+              `Lob expects delivery ${expected}. The ${county} County VAB deadline is ` +
+              `${ws.hardDeadline.toISOString().slice(0, 10)}, and Florida requires physical ` +
+              `RECEIPT by that date — a postmark is not sufficient.\n\n` +
+              `The cheque and petition are already in Lob's hands. Act now: confirm receipt ` +
+              `with the Clerk, or refund the customer before the window closes.`,
+              { force: true }
+            );
+          }
+        } catch (e) {
+          console.error('[send-letter] delivery-date check failed:', e.message);
+        }
       }
 
       return res.status(200).json(await remember({

@@ -154,12 +154,12 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
           filedOn
             ? `We mail your ${docWord} on ${filedOn}, the first day it can be filed`
             : `We mail your ${docWord} on the first day it can be filed`,
-          `It reaches the ${authority} within 3-7 business days of mailing, and we email you when it goes out`,
+          `It usually reaches the ${authority} within 7 to 14 days of mailing, and we email you when it goes out`,
           `${reviewer} reviews your ${docWord} (typically 30-90 days)`,
           'Log in to your portal anytime to update your dispute outcome',
         ]
       : [
-          `Your ${docWord} arrives at the ${authority} (3-7 business days)`,
+          `Your ${docWord} arrives at the ${authority} (usually 7-14 days)`,
           `${reviewer} reviews your ${docWord} (typically 30-90 days)`,
           'You may receive a written decision by mail or email — watch for it',
           'Log in to your portal anytime to update your dispute outcome',

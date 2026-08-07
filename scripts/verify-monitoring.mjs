@@ -142,6 +142,34 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   t(`runAllChecks includes ${fn}`, runAll.includes(fn));
 }
 
+// ── The receipt deadline buffer vs what Lob actually promises ────────────────
+// A live Lob cheque on 6 Aug 2026 reported its own Expected Delivery Date Range as
+// 7-14 DAYS from creation. Florida is satisfied by physical RECEIPT, so minDays is
+// the only thing standing between the last dispatch and a dismissal for untimeliness
+// — with no recourse and no refund path.
+{
+  const fw = read('lib/filingWindows.js');
+  const flLine = /FL: \{[^}]*\}/.exec(fw)?.[0] || '';
+
+  t('Florida still requires receipt, not postmark', /receiptRequired: true/.test(flLine));
+  const minDays = Number(/minDays:\s*(\d+)/.exec(flLine)?.[1] || 0);
+  t('the Florida buffer is at least 12 days', minDays >= 12, minDays);
+  t('the Florida buffer is the largest of any state',
+    minDays >= Math.max(...[...fw.matchAll(/minDays:\s*(\d+)/g)].map((m) => Number(m[1]))), minDays);
+
+  // A static buffer is a judgement call. Lob gives a real estimate per piece, so the
+  // mailing path must compare against the actual deadline rather than trust the guess.
+  t('getFilingWindowStatus exposes the hard deadline', /hardDeadline,/.test(fw));
+  const sl = read('pages/api/send-letter.js');
+  t('send-letter reads Lob per-piece expected delivery', /expected_delivery_date/.test(sl));
+  t('it compares that against the hard deadline', /expectedDate > ws\.hardDeadline/.test(sl));
+  t('a late-arriving petition pages a human', /may arrive AFTER the filing deadline/.test(sl));
+
+  // The customer-facing delivery claim is asserted in verify-emails.mjs, which
+  // RENDERS the template — grepping this source matches the explanatory comments
+  // as well as the strings, which is how the first version of this check failed.
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`verify-monitoring: ${failures.length} FAILED, ${pass} passed`);
