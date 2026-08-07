@@ -243,12 +243,29 @@ async function call(body, { authed = true } = {}) {
   t('Nassau reaches no cheque', sent === null);
 }
 {
-  // Address unconfirmed. getFlVabAddress returns null for these, which is the
-  // check send-letter actually performs.
-  const { res, sent } = await call(flBody({ county: 'Sarasota', parcelId: '99887766' }));
-  t('Sarasota (address unconfirmed) is refused', res.statusCode === 400, res.statusCode);
-  t('Sarasota refusal names the county gate', res.payload?.code === 'FL_COUNTY_UNSUPPORTED', res.payload?.code);
-  t('Sarasota reaches no cheque', sent === null);
+  // Address unconfirmed. getFlVabAddress returns null for these, which is the check
+  // send-letter actually performs.
+  //
+  // The county is CHOSEN AT RUNTIME rather than hardcoded. This assertion originally
+  // named Sarasota, and broke the moment Sarasota was confirmed by phone on 6 Aug —
+  // a passing test failing because the business got better at its job. As the call
+  // list is worked through, any hardcoded example here will rot the same way.
+  const { getFlVabAddressRaw, FL_COUNTY_NAMES } = await import('../lib/flVabAddresses.js');
+  const unconfirmed = FL_COUNTY_NAMES.find((c) => {
+    const raw = getFlVabAddressRaw(c);
+    return raw && raw.confidence !== 'confirmed';
+  });
+
+  if (!unconfirmed) {
+    // All 67 confirmed — the goal. The gate still has to exist, so prove it with a
+    // county that cannot be in the table at all.
+    t('every county is confirmed; gate proven via an unknown county instead', true);
+  } else {
+    const { res, sent } = await call(flBody({ county: unconfirmed, parcelId: '99887766' }));
+    t(`${unconfirmed} (address unconfirmed) is refused`, res.statusCode === 400, res.statusCode);
+    t(`${unconfirmed} refusal names the county gate`, res.payload?.code === 'FL_COUNTY_UNSUPPORTED', res.payload?.code);
+    t(`${unconfirmed} reaches no cheque`, sent === null);
+  }
 }
 {
   const { res, sent } = await call(flBody({ county: 'Notarealcounty' }));
@@ -289,6 +306,7 @@ async function call(body, { authed = true } = {}) {
   // confidence flag, and that should be a deliberate act with a phone call behind it.
   console.log(`  ${sellable} of 67 counties currently sellable (confirmed fee AND confirmed address)`);
   t('at least 50 counties are sellable', sellable >= 50, sellable);
+  t('the sellable count has not gone BACKWARDS since 6 Aug', sellable >= 56, sellable);
 }
 
 global.fetch = realFetch;
