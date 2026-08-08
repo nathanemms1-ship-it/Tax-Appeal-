@@ -8,7 +8,7 @@ const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Dis
 const faqs = [
   ["How do I protest my San Antonio property taxes?","You file a formal protest with the Bexar Appraisal District (BCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail — creating legal proof of timely filing."],
   ["What is BCAD and how does it affect my taxes?","BCAD (Bexar Appraisal District) is the government agency that appraises all properties in Bexar County. Your BCAD assessed value directly determines your property tax bill. If BCAD overestimates your value, you overpay — and you have the legal right to protest every year."],
-  ["How much can San Antonio homeowners save by protesting?","San Antonio homeowners who protest successfully save an average of $1,400 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
+  ["How much can San Antonio homeowners save by protesting?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
   ["Do I need to attend a BCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing is required. TaxAppeal's certified mail filing creates an official record of your protest with BCAD."],
   ["What is the San Antonio property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by BCAD, whichever is later. Missing this deadline means waiting a full year to challenge your assessment."],
 ];
@@ -22,10 +22,10 @@ export default function SanAntonio() {
     <>
       <Head>
         <title>San Antonio Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your San Antonio property taxes for $89 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
+        <meta name="description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/san-antonio" />
         <meta property="og:title" content="San Antonio Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. Bexar County homeowners save an average of $1,400/year. We file with BCAD via certified mail. No percentage cuts." />
+        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/san-antonio" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

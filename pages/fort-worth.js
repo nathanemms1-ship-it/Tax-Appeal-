@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const faqs = [["How do I protest my Fort Worth property taxes?","File a formal protest with the Tarrant Appraisal District (TAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your letter and files via USPS certified mail."],["What is TAD?","TAD (Tarrant Appraisal District) appraises all properties in Tarrant County including Fort Worth, Arlington, Mansfield, and surrounding cities. Your TAD assessed value directly determines your tax bill."],["How much can Fort Worth homeowners save?","Fort Worth homeowners who protest successfully save an average of $1,760 per year. TaxAppeal charges $89 flat — no percentage of your savings."],["Does TaxAppeal serve all Tarrant County cities?","Yes. We serve all cities in Tarrant County including Fort Worth, Arlington, Mansfield, Bedford, Euless, Hurst, Keller, Southlake, Grapevine, and every other city in the county."],["What is the Fort Worth property tax protest deadline?","May 15 or 30 days after TAD mails your Notice of Appraised Value, whichever is later."]];
+const faqs = [["How do I protest my Fort Worth property taxes?","File a formal protest with the Tarrant Appraisal District (TAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your letter and files via USPS certified mail."],["What is TAD?","TAD (Tarrant Appraisal District) appraises all properties in Tarrant County including Fort Worth, Arlington, Mansfield, and surrounding cities. Your TAD assessed value directly determines your tax bill."],["How much can Fort Worth homeowners save?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. TaxAppeal charges $89 flat — no percentage of your savings."],["Does TaxAppeal serve all Tarrant County cities?","Yes. We serve all cities in Tarrant County including Fort Worth, Arlington, Mansfield, Bedford, Euless, Hurst, Keller, Southlake, Grapevine, and every other city in the county."],["What is the Fort Worth property tax protest deadline?","May 15 or 30 days after TAD mails your Notice of Appraised Value, whichever is later."]];
 
 export default function FortWorth() {
   const router = useRouter();
@@ -15,10 +15,10 @@ export default function FortWorth() {
     <>
       <Head>
         <title>Fort Worth Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We mail your protest to TAD via certified mail. No percentage cuts." />
+        <meta name="description" content="Protest your Fort Worth property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We mail your protest to TAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/fort-worth" />
         <meta property="og:title" content="Fort Worth Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your Fort Worth property taxes for $89 flat. Tarrant County homeowners save an average of $1,760/year. We mail your protest to TAD via certified mail. No percentage cuts." />
+        <meta property="og:description" content="Protest your Fort Worth property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We mail your protest to TAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/fort-worth" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

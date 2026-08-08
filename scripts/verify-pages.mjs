@@ -53,6 +53,38 @@ const BANNED = [
   { re: /Not with TaxAppeal USA/i, why: 'implied we attend hearings' },
   { re: /60[–-]80%/, why: 'uncited vendor figure' },
   { re: /\$\{totalChargeLabel\}/, why: 'un-interpolated template literal shipped to customers' },
+
+  // ==========================================================================
+  // ADDED 8 Aug 2026 — THE 82% RULE, GENERALISED
+  // ==========================================================================
+  // The entries above name specific lies we already found. That is why they did
+  // not catch these, which sat live in the Florida blog for months:
+  //
+  //   "TaxAppeal USA's filing success rate runs consistently above 80%"
+  //   "often 75-85% for residential properties with comparable sales support"
+  //   "homeowners ... save an average of $1,100 per year"   (and $1,000, $1,320,
+  //    $1,400, $1,450, $1,610, $1,660, $2,500 — eleven in total)
+  //
+  // TaxAppeal USA has never filed a petition, so every performance figure above
+  // was invented. Same exposure as the original 82%: FTC Act s 5, 16 C.F.R. Part
+  // 465, and Fla. Stat. s 501.2075 at up to $10,000 per violation counted per
+  // dissemination — across 1,080 built pages.
+  //
+  // So the guard now bans the SHAPE of the claim, not the specific wording. A
+  // number that survives these patterns has to come from lib/stats.js with a
+  // source and a url, which is the rule that was supposed to apply all along.
+  { re: /save[sd]?\s+an\s+average\s+of\s+\$/i, why: 'invented average-savings figure — no source publishes a per-customer average for us' },
+  { re: /average\s+of\s+\$[\d,]+\s*(\/|per\s+)ye?a?r/i, why: 'invented average-savings figure' },
+  { re: /\bour\s+(filing\s+)?success\s+rate\b/i, why: 'a first-person success rate — we have never filed a petition' },
+  { re: /TaxAppeal\s+USA'?s?\s+(filing\s+)?success\s+rate/i, why: 'a first-person success rate — we have never filed a petition' },
+  { re: /success\s+rate[^.]{0,40}(above|over|exceeds?)\s+\d{2}\s*%/i, why: 'unsourced success-rate claim' },
+  { re: /\b\d{2}\s*-\s*\d{2}%\s+(of\s+)?(residential|petitions|appeals|protests|homeowners)/i, why: 'unsourced win-rate range — cite a DR-529 or nothing' },
+  { re: /win\s+(partial\s+or\s+full\s+)?reductions?\s+in\s+the\s+majority/i, why: 'false — Florida ran 49% of petitions DECIDED, 22% of petitions filed, in TY2024' },
+  // Negation-aware ON PURPOSE. The first version of this caught "TaxAppeal CANNOT
+  // guarantee a reduction" on /texas — the disclaimer, not the claim. A guard that
+  // flags its own safety language teaches people to delete safety language.
+  { re: /(?<!cannot )(?<!can not )(?<!can't )(?<!do not )(?<!does not )(?<!don't )(?<!never )(?<!no )(?<!without a )\bguarantee[sd]?\s+(a\s+)?(reduction|savings?\b|win\b)/i,
+    why: 'no outcome may be guaranteed — we are a preparer, not a representative' },
 ];
 
 function findHtml(name) {

@@ -9,7 +9,7 @@ const faqs = [
 ["How do I appeal my Miami property taxes?","File a VAB petition with the Miami-Dade Value Adjustment Board within 25 days of your TRIM notice. Florida requires RECEIPT by the deadline. TaxAppeal mails your petition at least 7 days early to ensure timely receipt."],
 ["What is the county filing fee?","Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. Miami-Dade's rate is $15, paid to the Miami-Dade Value Adjustment Board. TaxAppeal pays this fee on your behalf — it's included in your $104 total. You don't need to make a separate payment."],
 ["What is the Miami-Dade Property Appraiser?","The Miami-Dade County Property Appraiser determines the assessed value of all properties in Miami-Dade County. If your property is over-assessed, you can file a petition with the Value Adjustment Board to challenge it."],
-["How much can Miami homeowners save?","Miami homeowners save an average of $2,800 per year when they successfully appeal — among the highest in Florida due to high home values. At $104 all-in, a successful appeal pays for itself within the first two weeks of savings."],
+["How much can Miami homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. At $104 all-in, a successful appeal pays for itself within the first two weeks of savings."],
 ["What is the Miami property tax appeal deadline?","25 days after your TRIM notice is mailed, typically mid-September. Florida requires your petition to be RECEIVED by this date — postmark is not enough. TaxAppeal files 7+ days early."],
 ["What is the Save Our Homes cap in Miami?","The Save Our Homes cap limits assessment increases on homestead properties to 3% per year. However if you recently purchased your home or your assessed value exceeds market value, you can still benefit from filing a VAB petition."]
 ];
@@ -23,10 +23,10 @@ return (
 <>
 <Head>
 <title>Miami Property Tax Appeal Service | $104 All-In | TaxAppeal USA</title>
-<meta name="description" content="Appeal your Miami property taxes for $104 all-in ($89 service + $15 Miami-Dade VAB fee). Miami-Dade homeowners save an average of $2,800/year. We file your VAB petition and pay the county fee. No percentage cuts." />
+<meta name="description" content="Appeal your Miami property taxes for $104 all-in ($89 service + $15 Miami-Dade VAB fee).Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the county fee. No percentage cuts." />
 <link rel="canonical" href="https://www.taxappealusa.com/miami" />
 <meta property="og:title" content="Miami Property Tax Appeal — $104 All-In | TaxAppeal USA" />
-<meta property="og:description" content="Appeal your Miami property taxes for $104 all-in. Miami-Dade homeowners save an average of $2,800/year. We file your VAB petition and pay the mandatory county fee on your behalf." />
+<meta property="og:description" content="Appeal your Miami property taxes for $104 all-in.Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." />
 <meta property="og:url" content="https://www.taxappealusa.com/miami" />
 <meta property="og:type" content="website" />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

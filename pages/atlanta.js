@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Atlanta homeowners who successfully appeal save an average of $1,840 per year. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
+const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
 
 export default function Atlanta() {
   const router = useRouter();
@@ -15,10 +15,10 @@ export default function Atlanta() {
     <>
       <Head>
         <title>Atlanta Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Atlanta property taxes for $89 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
+        <meta name="description" content="Appeal your Atlanta property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Assessors via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/atlanta" />
         <meta property="og:title" content="Atlanta Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Appeal your Atlanta property taxes for $89 flat. Fulton County homeowners save an average of $1,840/year. We file with the Board of Assessors via certified mail. No percentage cuts." />
+        <meta property="og:description" content="Appeal your Atlanta property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Assessors via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/atlanta" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

@@ -9,7 +9,7 @@ const faqs = [
 ["How do I appeal my Tampa property taxes?","File a VAB petition with the Hillsborough County Value Adjustment Board within 25 days of your TRIM notice. TaxAppeal mails your petition at least 7 days early to ensure receipt by Florida's strict deadline."],
 ["What is the county filing fee?","Florida House Bill 7031 (effective July 2025) requires a mandatory filing fee paid to the Hillsborough County Value Adjustment Board. Hillsborough's rate is $50 (the state maximum). TaxAppeal pays this fee on your behalf — it's included in your $139 total. You don't need to make a separate payment."],
 ["What is the Hillsborough County Property Appraiser?","The Hillsborough County Property Appraiser determines assessed values for all properties in Hillsborough County including Tampa, Brandon, Plant City, and surrounding areas."],
-["How much can Tampa homeowners save?","Tampa homeowners save an average of $2,200 per year when they successfully appeal. At $139 all-in, a successful appeal pays for itself within the first three weeks of savings."],
+["How much can Tampa homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. At $139 all-in, a successful appeal pays for itself within the first three weeks of savings."],
 ["What is the Tampa property tax appeal deadline?","25 days after your TRIM notice is mailed, typically mid-September. Florida requires RECEIPT by this date — not just postmark. TaxAppeal files 7+ days early to protect you."],
 ["Does TaxAppeal serve all Hillsborough County cities?","Yes. We serve Tampa, Brandon, Plant City, Riverview, Valrico, Lithia, and every other city in Hillsborough County."]
 ];
@@ -23,10 +23,10 @@ return (
 <>
 <Head>
 <title>Tampa Property Tax Appeal Service | $139 All-In | TaxAppeal USA</title>
-<meta name="description" content="Appeal your Tampa property taxes for $139 all-in ($89 service + $50 Hillsborough County VAB fee). Hillsborough County homeowners save an average of $2,200/year. We file your VAB petition and pay the county fee. No percentage cuts." />
+<meta name="description" content="Appeal your Tampa property taxes for $139 all-in ($89 service + $50 Hillsborough County VAB fee). We check whether a protest can actually lower your bill before you pay. We file your VAB petition and pay the county fee. No percentage cuts." />
 <link rel="canonical" href="https://www.taxappealusa.com/tampa" />
 <meta property="og:title" content="Tampa Property Tax Appeal — $139 All-In | TaxAppeal USA" />
-<meta property="og:description" content="Appeal your Tampa property taxes for $139 all-in. Hillsborough County homeowners save an average of $2,200/year. We file your VAB petition and pay the mandatory county fee on your behalf." />
+<meta property="og:description" content="Appeal your Tampa property taxes for $139 all-in. We check whether a protest can actually lower your bill before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." />
 <meta property="og:url" content="https://www.taxappealusa.com/tampa" />
 <meta property="og:type" content="website" />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

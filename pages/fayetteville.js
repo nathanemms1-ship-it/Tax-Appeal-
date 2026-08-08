@@ -6,7 +6,7 @@ const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=D
 const faqs = [
   ["What is the deadline to appeal Fayetteville property taxes?","The Washington County Board of Equalization deadline is the third Monday in August — August 17, 2026. Postmark by this date. TaxAppeal files via USPS certified mail."],
   ["How does Arkansas assess property taxes?","Arkansas assesses at 20% of fair market value. A home worth $295,000 has an assessed value of $59,000. You are appealing the market value — a 10% reduction means 10% less assessed value and tax."],
-  ["How much can Fayetteville homeowners save?","Washington County homeowners who successfully appeal save an average of $740 per year. TaxAppeal charges $89 flat — you keep 100% of savings."],
+  ["How much can Fayetteville homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat — you keep 100% of savings."],
   ["What is the Washington County Board of Equalization?","The Washington County Board of Equalization hears property tax appeals every August. Three members appointed by the county judge hear evidence and issue decisions."],
   ["Does postmark count in Arkansas?","Yes. Arkansas only requires your appeal be postmarked by the third Monday in August. TaxAppeal uses USPS certified mail for a documented postmark."],
   ["Can I appeal every year?","Yes. Arkansas homeowners can file a new Board of Equalization appeal every August."],
@@ -20,7 +20,7 @@ export default function Fayetteville() {
     <>
       <Head>
         <title>Fayetteville Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Fayetteville property taxes for $89 flat. Washington County homeowners save an average of $740/year. We file with the Board of Equalization via certified mail before the August 17 deadline." />
+        <meta name="description" content="Appeal your Fayetteville property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." />
         <link rel="canonical" href="https://www.taxappealusa.com/fayetteville" />
         <meta property="og:title" content="Fayetteville Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
         <meta property="og:url" content="https://www.taxappealusa.com/fayetteville" />

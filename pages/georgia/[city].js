@@ -177,7 +177,7 @@ export default function GeorgiaCityPage({ city }) {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your {city.name} property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners save an average of $${fSavings}/year. $89 flat — 45-day deadline from your notice.</p>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners — we check whether an appeal can actually lower your bill before you pay. $89 flat — 45-day deadline from your notice.</p>
         <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $89 →</button></Link>
         <p style={{fontSize:13,color:"#5A7A9F",marginTop:16}}>O.C.G.A. § 48-5-311 · {city.district} · USPS Certified Mail Filing</p>
       </section>

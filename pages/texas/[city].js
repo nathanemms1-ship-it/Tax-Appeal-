@@ -58,7 +58,7 @@ export default function TexasCityPage({ city }) {
     { step: "1", title: "Enter Your Address", desc: `Provide your ${city.name} property address. TaxAppeal pulls your current ${city.district} assessed value and property details automatically.` },
     { step: "2", title: "We Build Your Case", desc: "Our system compiles comparable sales evidence from your neighborhood and generates a formal protest letter citing Texas Tax Code §41.41 and §41.43." },
     { step: "3", title: "We Mail via Certified Mail", desc: `Your protest is printed and mailed to the ${city.district} via USPS Certified Mail with Return Receipt — creating irrefutable legal proof of timely filing.` },
-    { step: "4", title: "You Save Money", desc: `The appraisal district reviews your evidence and typically responds within 30–90 days. ${city.name} homeowners who protest save an average of $${formattedSavings} per year.` },
+    { step: "4", title: "You Save Money", desc: `The appraisal district reviews your evidence and typically responds within 30–90 days. Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate.` },
   ];
 
   const schema = {
@@ -88,7 +88,7 @@ export default function TexasCityPage({ city }) {
         {/* Single template literal — see pages/florida/[city].js. The two-child form
             served `Midland<!-- --> Property Tax Protest Service | ...`. */}
         <title>{`${city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA`}</title>
-        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save an average of $${formattedSavings}/year. We file with ${city.district} via certified mail. No percentage cuts.`} />
+        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with ${city.district} via certified mail. No percentage cuts.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} />
         <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} />
         <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Certified mail filing. No percentage cuts — you keep every dollar of any reduction.`} />

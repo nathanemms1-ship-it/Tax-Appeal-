@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const faqs = [["How do I protest my Austin property taxes?","File a formal protest with Travis Central Appraisal District (TCAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your protest letter with comparable sales and files via USPS certified mail."],["What is TCAD?","TCAD (Travis Central Appraisal District) appraises all properties in Travis County. Your TCAD assessed value determines your Austin property tax bill. If it's too high, you can protest under Texas Tax Code §41.41."],["How much can Austin homeowners save?","Austin homeowners save an average of $2,400 per year when they successfully protest — the highest average in Texas due to high home values. TaxAppeal charges $89 flat."],["Is Austin's real estate correction helping homeowners protest?","Yes. If your home was assessed at peak 2022 values but the market has since corrected, you have strong grounds to protest. Comparable sales from the past 12 months showing lower values are powerful evidence."],["What is the Austin property tax protest deadline?","May 15 or 30 days after TCAD mails your Notice of Appraised Value, whichever is later."]];
+const faqs = [["How do I protest my Austin property taxes?","File a formal protest with Travis Central Appraisal District (TCAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your protest letter with comparable sales and files via USPS certified mail."],["What is TCAD?","TCAD (Travis Central Appraisal District) appraises all properties in Travis County. Your TCAD assessed value determines your Austin property tax bill. If it's too high, you can protest under Texas Tax Code §41.41."],["How much can Austin homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat."],["Is Austin's real estate correction helping homeowners protest?","Yes. If your home was assessed at peak 2022 values but the market has since corrected, you have strong grounds to protest. Comparable sales from the past 12 months showing lower values are powerful evidence."],["What is the Austin property tax protest deadline?","May 15 or 30 days after TCAD mails your Notice of Appraised Value, whichever is later."]];
 
 export default function Austin() {
   const router = useRouter();
@@ -15,10 +15,10 @@ export default function Austin() {
     <>
       <Head>
         <title>Austin Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your Austin property taxes for $89 flat. Travis County homeowners save an average of $2,400/year. We mail your protest to TCAD via certified mail. No percentage cuts." />
+        <meta name="description" content="Protest your Austin property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We mail your protest to TCAD via certified mail. No percentage cuts." />
         <link rel="canonical" href="https://www.taxappealusa.com/austin" />
         <meta property="og:title" content="Austin Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your Austin property taxes for $89 flat. Travis County homeowners save an average of $2,400/year. We mail your protest to TCAD via certified mail. No percentage cuts." />
+        <meta property="og:description" content="Protest your Austin property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We mail your protest to TCAD via certified mail. No percentage cuts." />
         <meta property="og:url" content="https://www.taxappealusa.com/austin" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

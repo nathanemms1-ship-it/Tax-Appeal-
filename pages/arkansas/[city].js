@@ -17,7 +17,7 @@ export default function ArkansasCityPage({ city }) {
 
   const faqs = [
     { q:`How do I appeal my ${city.name} property taxes?`, a:`File a formal protest with the ${city.county} County Board of Equalization (BOE) before the third Monday in August — August 17, 2026. TaxAppeal prepares your appeal letter with comparable sales evidence and mails it via USPS certified mail under Ark. Code §26-27-317.` },
-    { q:`How much can ${city.name} homeowners save?`, a:`${city.name} homeowners who appeal successfully save an average of $${fSavings} per year. TaxAppeal's flat $89 fee means you keep 100% of those savings instead of paying a contingency firm 25–35%.` },
+    { q:`How much can ${city.name} homeowners save?`, a:`${city.name} homeowners: your saving is the reduction multiplied by your local millage rate, so it depends on the property. We check whether an appeal can lower your bill at all before you pay. TaxAppeal's flat $89 fee means you keep 100% of those savings instead of paying a contingency firm 25–35%.` },
     { q:`What is the appeal deadline for ${city.name}?`, a:`The third Monday in August — August 17, 2026. Arkansas Code §26-27-317 requires protests to be filed with the Board of Equalization by this date. The postmark date controls, so TaxAppeal files certified mail well before the deadline.` },
     { q:`What is the Arkansas 20% assessment ratio?`, a:`Arkansas assesses residential property at 20% of its estimated fair market value. So a home valued at $${fValue} would have an assessed value of approximately $${Math.round(city.medianValue * 0.20).toLocaleString()}. Your appeal targets the full market value — even a 10% reduction cuts your tax bill by 10% every year.` },
     { q:`What is Amendment 79 and how does it affect my appeal?`, a:`Amendment 79 to the Arkansas Constitution caps homestead assessment increases at 5% per year regardless of actual market appreciation. For homeowners 65 and older, the assessed value is frozen entirely. Even if you have Amendment 79 protection, appealing can lock in a lower base value, reducing future increases.` },
@@ -203,7 +203,7 @@ export default function ArkansasCityPage({ city }) {
       {/* CTA */}
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your {city.name} property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners save an average of $${fSavings}/year. $89 flat — August 17, 2026 BOE deadline.</p>
+        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners — we check whether an appeal can actually lower your bill before you pay. $89 flat — August 17, 2026 BOE deadline.</p>
         <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $89 →</button></Link>
         <p style={{fontSize:13,color:"#5A7A9F",marginTop:16}}>Ark. Code §26-27-317 · {city.district} · USPS Certified Mail Filing</p>
       </section>

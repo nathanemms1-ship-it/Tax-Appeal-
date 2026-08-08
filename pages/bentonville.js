@@ -8,7 +8,7 @@ const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=D
 const faqs = [
   ["What is the deadline to appeal Bentonville property taxes?", "The Benton County Board of Equalization deadline is the third Monday in August — August 17, 2026. Your appeal letter must be postmarked by this date. TaxAppeal files via USPS certified mail to document your postmark."],
   ["How does Arkansas assess property taxes?", "Arkansas assesses residential property at 20% of fair market value. So if your home is worth $380,000, your assessed value is $76,000. When you appeal, you are arguing about the full market value — a 10% reduction in market value means 10% less in assessed value and a proportional reduction in your tax bill."],
-  ["How much can Bentonville homeowners save?", "Benton County homeowners who successfully appeal save an average of $950 per year in property taxes. TaxAppeal charges a flat $89 — you keep 100% of your savings."],
+  ["How much can Bentonville homeowners save?", "Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges a flat $89 — you keep 100% of your savings."],
   ["What is the Benton County Board of Equalization?", "The Benton County Board of Equalization hears property tax appeals every August. It is made up of three members appointed by the county judge. You or your representative present evidence that your assessed value is too high, and the Board issues a decision."],
   ["Does postmark count in Arkansas?", "Yes. Arkansas requires your appeal to be postmarked by the third Monday in August — not physically received. TaxAppeal USA files via USPS certified mail, which provides a documented postmark date and delivery confirmation."],
   ["Can I appeal my Bentonville property taxes every year?", "Yes. Arkansas homeowners can file a new Board of Equalization appeal every August. Rising markets often create new over-assessments each cycle, so annual appeals are common and worthwhile."],
@@ -24,7 +24,7 @@ export default function Bentonville() {
     <>
       <Head>
         <title>Bentonville Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Bentonville property taxes for $89 flat. Benton County homeowners save an average of $950/year. We file with the Board of Equalization via certified mail before the August 17 deadline." />
+        <meta name="description" content="Appeal your Bentonville property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." />
         <link rel="canonical" href="https://www.taxappealusa.com/bentonville" />
         <meta property="og:title" content="Bentonville Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
         <meta property="og:description" content="Appeal your Bentonville property taxes for $89 flat. Benton County Board of Equalization deadline: August 17, 2026." />
