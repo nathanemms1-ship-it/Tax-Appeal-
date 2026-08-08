@@ -133,6 +133,8 @@ export default async function handler(req, res) {
       // sit in this band. The UI must route these to the condition step rather
       // than dead-ending them. See lib/dor/qualify.js, 7 Aug 2026.
       rescuable: savings.rescuable === true,
+      // The question, kept apart from the finding so the UI can emphasise it.
+      conditionPrompt: savings.conditionPrompt || null,
       confidence: savings.confidence || null,
       reason: savings.reason,
 

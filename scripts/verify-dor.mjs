@@ -51,8 +51,12 @@ t('...it is RESCUABLE, not refused', m.rescuable === true);
 t('...and says so by name', m.reason === 'needs_condition_case');
 t('best case ON COMPS ALONE is under the service fee', m.bestCaseSaving < 104);
 t('the invitation quotes the actual comps-only best case', m.message.includes('$57'));
-t('the invitation asks about condition rather than closing the door', /tell us what is wrong with it/i.test(m.message));
-t('the invitation promises a re-check before payment', /before you pay anything/i.test(m.message));
+// The question is kept OUT of `message` and in its own field, so the UI can
+// emphasise it without emphasising the arithmetic around it. If these two ever
+// merge again, the screen loses the only sentence that can change the outcome.
+t('the message is the arithmetic only, not the question', !/tell us what is wrong with it/i.test(m.message));
+t('the invitation asks about condition rather than closing the door', /tell us what is wrong with it/i.test(m.conditionPrompt));
+t('the invitation promises a re-check before payment', /before you pay anything/i.test(m.conditionPrompt));
 t('break-even equals the assessed value', m.breakEven === 459927);
 t('differential is 149,071', m.differential === 149071);
 t('required cut is 24.5%', Math.abs(m.requiredCutPct - 0.2448) < 0.0005);
@@ -119,6 +123,11 @@ const d = qualify(DEEP);
 t('an unreachable cap is refused', d.eligible === false);
 t('...for absorbing everything, not for a small saving', d.reason === 'cap_absorbs_everything');
 t('...and its best case is exactly zero', d.bestCaseSaving === 0);
+// A cut this deep is beyond ANY documented cure, so it must not be dressed up as
+// a question. The condition prompt exists only where condition can actually change
+// the answer — offering it here would be a false hope.
+t('...and a flat refusal carries NO condition prompt', !d.conditionPrompt);
+t('...and is not flagged rescuable', !d.rescuable);
 
 // ── Fixture 2: non-homesteaded ───────────────────────────────────────────────
 // The 10% cap (s 193.1554) does NOT apply to school levies, so av_sd equals jv.

@@ -828,11 +828,13 @@ function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides,
             forever. Asked once, answered — after that it is an honest no. */}
         {d.rescuable && onAddIssues && !alreadyAsked && (
           <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
-            <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 14, fontSize: 14 }}>
-              <strong>This answer assumes your home is in average condition.</strong> What it would cost to put
-              right a failed roof, a dead air conditioner, an original kitchen or active damage reduces what your
-              property is worth <em>on top of</em> what comparable sales show. On a property like this that can be
-              the difference between an appeal being pointless and being worth filing.
+            {/* UNDERLINED, at Nathan's instruction, 7 Aug 2026. This is the only
+                sentence on the screen that can change the outcome, and it sits
+                directly above the button that acts on it. The text comes from
+                qualify.js so the wording cannot drift apart from the arithmetic
+                that produced it. */}
+            <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.85, marginBottom: 14, fontSize: 14, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              {d.conditionPrompt || 'This answer assumes your home is in average condition. What it would cost to put right a failed roof, a dead air conditioner, an original kitchen or active damage reduces what your property is worth on top of what comparable sales show.'}
             </p>
             <button style={{ ...primaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onAddIssues}>
               Tell us what&rsquo;s wrong with the property →
@@ -1023,7 +1025,11 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>💡 Optional but strengthens your case</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>Property issues</h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 24, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Select any problems that apply. Each one will be cited as evidence in your dispute letter.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 10, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Select any problems that apply. Each one will be cited as evidence in your dispute letter.</p>
+        {/* Deliberately the loudest thing on the page. Cost to cure is what carries
+            the 688,497 Florida homes whose comparable sales alone fall short of the
+            Save Our Homes cap — an unticked box is money the owner does not get. */}
+        <p style={{ fontSize: 14, color: '#B3261E', marginBottom: 24, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, fontWeight: 600 }}>Check every item that is wrong with the home — don&rsquo;t leave anything off. Each one builds your case and can lower your appraised value, which is what puts money back in your pocket.</p>
         {ISSUE_CATEGORIES.map((cat) => (
           <div key={cat.category} style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: cat.color, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 7 }}>
