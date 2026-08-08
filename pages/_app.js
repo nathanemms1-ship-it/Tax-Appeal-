@@ -11,6 +11,18 @@ import WaitlistBanner from '../components/WaitlistBanner'
 const GTAG_ID = process.env.NEXT_PUBLIC_GTAG_ID || ''
 const GADS_ID = process.env.NEXT_PUBLIC_GADS_ID || ''
 
+// Either ID is enough to justify loading gtag.js, and the loader only needs ONE
+// of them in its src — additional properties are attached by the config() calls
+// below.
+//
+// This used to be gated on GTAG_ID alone. Google Ads conversion tracking does not
+// require GA4, so an account configured with only NEXT_PUBLIC_GADS_ID loaded no
+// tag at all: apply.js and success.js both check `window.gtag` before firing, so
+// every conversion silently did nothing and Google Ads reported zero conversions
+// on real, paid orders. Caught 8 Aug 2026 while wiring conversion tracking for the
+// Florida launch, before any ad spend — which is the only reason it was cheap.
+const TAG_LOADER_ID = GTAG_ID || GADS_ID
+
 export function gtag(...args) {
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag(...args)
@@ -45,11 +57,11 @@ export default function App({ Component, pageProps }) {
 
   return (
     <>
-      {/* Google tag (gtag.js) — loads only when IDs are configured */}
-      {GTAG_ID && (
+      {/* Google tag (gtag.js) — loads when EITHER a GA4 or a Google Ads ID is set */}
+      {TAG_LOADER_ID && (
         <>
           <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${TAG_LOADER_ID}`}
             strategy="afterInteractive"
           />
           <Script id="gtag-init" strategy="afterInteractive">{`
@@ -57,7 +69,7 @@ export default function App({ Component, pageProps }) {
             function gtag(){dataLayer.push(arguments);}
             window.gtag = gtag;
             gtag('js', new Date());
-            gtag('config', '${GTAG_ID}', { page_path: window.location.pathname });
+            ${GTAG_ID ? `gtag('config', '${GTAG_ID}', { page_path: window.location.pathname });` : ''}
             ${GADS_ID ? `gtag('config', '${GADS_ID}');` : ''}
           `}</Script>
         </>
