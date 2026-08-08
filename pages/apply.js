@@ -828,12 +828,12 @@ function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides,
             forever. Asked once, answered — after that it is an honest no. */}
         {d.rescuable && onAddIssues && !alreadyAsked && (
           <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
-            {/* UNDERLINED, at Nathan's instruction, 7 Aug 2026. This is the only
-                sentence on the screen that can change the outcome, and it sits
-                directly above the button that acts on it. The text comes from
-                qualify.js so the wording cannot drift apart from the arithmetic
-                that produced it. */}
-            <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.85, marginBottom: 14, fontSize: 14, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+            {/* BOLD, not underlined — underline was tried first and read as a link
+                across four lines of body copy. This is the only sentence on the
+                screen that can change the outcome, and it sits directly above the
+                button that acts on it. The text comes from qualify.js so the
+                wording cannot drift apart from the arithmetic that produced it. */}
+            <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.75, marginBottom: 14, fontSize: 14, fontWeight: 600 }}>
               {d.conditionPrompt || 'This answer assumes your home is in average condition. What it would cost to put right a failed roof, a dead air conditioner, an original kitchen or active damage reduces what your property is worth on top of what comparable sales show.'}
             </p>
             <button style={{ ...primaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onAddIssues}>
