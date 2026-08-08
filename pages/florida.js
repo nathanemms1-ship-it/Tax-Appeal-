@@ -5,6 +5,7 @@ import Link from 'next/link';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
 import { floridaCities } from '../lib/floridaCities';
 import { counties as ALL_COUNTIES } from '../lib/countyData';
+import { FL_TAGLINES } from '../lib/flTaglines';
 
 const C = {
 navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -182,6 +183,13 @@ Appeal Your Florida Property Taxes — $89 + County Fee
 </h1>
 <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
 Stop overpaying. We draft a formal VAB petition, you sign it, and we pay your county&apos;s mandatory filing fee and mail everything 7+ days before your deadline to ensure timely receipt. No percentage cuts. Keep 100% of your savings.
+</p>
+{/* The state page gets the line carrying the number — it is the page where the
+    figure does the most work, and the one people land on from search. The 34%
+    is measured against all 8,409,573 residential parcels on the 2026 DOR roll;
+    see lib/dor/parcels.js. */}
+<p style={{ fontSize: 18, color: C.gold, lineHeight: 1.55, maxWidth: 640, marginBottom: 18, fontWeight: 700 }}>
+{FL_TAGLINES[2]}
 </p>
 
 {/* Pricing breakdown banner */}

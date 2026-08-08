@@ -5,6 +5,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { floridaCities } from '../../lib/floridaCities';
+import { taglineFor } from '../../lib/flTaglines';
 
 
 
@@ -130,6 +131,9 @@ export default function FloridaCityPage({ city }) {
           <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
           <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} We prepare your petition and mail it for <strong style={{ color: "#C9A84C" }}>$89 flat</strong> plus your county's filing fee - and we never take a percentage of what you save.</p>
+          {/* See lib/flTaglines.js — Florida only, because the savings gate it
+              promises is built on the DOR parcel roll we hold only for Florida. */}
+          <p style={{ fontSize: "18px", color: "#1B2A4A", maxWidth: "680px", margin: "-16px auto 30px", lineHeight: "1.55", fontWeight: 700 }}>{taglineFor(city.slug || city.name)}</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes</button></Link>
         </section>
 

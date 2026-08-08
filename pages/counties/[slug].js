@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { getAllCountySlugs, getCountyBySlug } from "../../lib/countyData";
+import { taglineFor } from '../../lib/flTaglines';
 
 const C = {
   navy: "#1B2A4A",
@@ -230,6 +231,16 @@ export default function CountyPage({ county, lastUpdated, lastUpdatedISO }) {
             <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 32px", lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
               We write your protest letter, pull comparable sales in {county.name} County, and send it via trackable USPS mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
             </p>
+            {/* FLORIDA ONLY. The line is a promise about the savings gate in
+                lib/dor/qualify.js, and that gate only exists for Florida — it is
+                built on the DOR parcel roll, which we hold for FL and nowhere
+                else. Showing it on a Texas or Georgia page would be a promise
+                the product cannot keep there. See lib/flTaglines.js. */}
+            {county.code === "FL" && (
+              <p style={{ fontSize: 16, color: C.gold, margin: "-14px 0 30px", lineHeight: 1.6, fontFamily: "Arial,sans-serif", fontWeight: 700 }}>
+                {taglineFor(county.slug || county.name)}
+              </p>
+            )}
             <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
                 File My {action} — $89 Flat
