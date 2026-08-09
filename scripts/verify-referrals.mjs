@@ -310,6 +310,34 @@ t('the shared email blocks are defined once and called from both emails',
   'one definition, one call per email — inlining them is how the two bodies diverged');
 
 // ============================================================================
+// 6c. THE OPERATOR CAN SEE THE PROGRAMME
+// ============================================================================
+// Before this existed, "who signed up", "who connected a bank" and "who has earned
+// money we cannot send" were answerable only from the Supabase table editor.
+const roster = read('pages/api/partner-roster.js');
+const admin = readCode('pages/admin.js');
+
+t('the partner roster endpoint is admin-authed',
+  /requireAdmin\(req, res, 'partner-roster'\)/.test(roster));
+t('the roster derives figures from settle(), not from stale columns',
+  /from '.*referralSettlement'/.test(roster) &&
+    !/total_referrals\b[^,]*\|\|/.test(roster) && !/r\.total_paid/.test(roster),
+  'referrals.total_referrals and total_paid are written at signup and never maintained');
+t('the roster is read-only — it must never move money',
+  !/transfers\.create/.test(roster) && !/\.upsert\(/.test(roster) && !/\.update\(/.test(roster),
+  'the settlement cron is the only writer');
+t('the roster surfaces partners owed money it cannot pay',
+  /awaitingPayoutAccount/.test(roster) && /owedButUnpayable/.test(roster),
+  'earned-but-unpayable is a follow-up list, and it was previously invisible');
+t('/admin has a partners view that uses the roster',
+  /partner-roster/.test(admin) && /PartnersView/.test(admin));
+t('/admin shows the nudge list, paid and pending separately',
+  /awaitingPayoutAccount/.test(admin) && /totalPaid/.test(admin) && /totalPending/.test(admin));
+t('the partners view loads lazily, not at login',
+  /showPartners/.test(admin),
+  'the roster makes a Stripe call per connected partner; the orders view must not pay for it');
+
+// ============================================================================
 // 7. RATE LIMITING ON THE UNAUTHENTICATED SIGNUP
 // ============================================================================
 const register = read('pages/api/register-referrer.js');

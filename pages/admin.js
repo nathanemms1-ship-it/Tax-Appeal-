@@ -58,6 +58,177 @@ function LobBadge({ status }) {
   );
 }
 
+/**
+ * THE PARTNER OPERATOR VIEW.
+ *
+ * Ordered by what costs money if you do not see it, not by what is interesting:
+ *
+ *   1. THE NUDGE LIST first, above everything, and only when it is non-empty.
+ *      These partners have earned money we physically cannot send because Stripe
+ *      payouts are not enabled on their account. Every name is real money owed and
+ *      one email away from being deliverable. Buried below a roster, it would be
+ *      found in December.
+ *   2. Totals, so the number about to leave the balance on the 1st is never a surprise.
+ *   3. The roster, so "who signed up and did they connect" has an answer that is not
+ *      the Supabase table editor.
+ *
+ * Every figure comes from /api/partner-roster, which derives them through the same
+ * settle() the settlement cron uses. Nothing here reads referrals.total_referrals or
+ * referrals.total_paid — those columns are written at signup and never maintained.
+ */
+function StripeBadge({ stripe }) {
+  const map = {
+    active:        { bg: "#E6F4ED", color: "#2E7D52", label: "Payouts on" },
+    pending:       { bg: "#FFF8E6", color: "#7A5C10", label: "Setup incomplete" },
+    not_connected: { bg: "#FEE8E7", color: "#C0392B", label: "No bank" },
+    error:         { bg: "#FEE8E7", color: "#C0392B", label: "Stripe error" },
+    unknown:       { bg: "#EEF3FB", color: "#1B3A6B", label: "Unknown" },
+  };
+  const st = map[stripe?.status] || map.unknown;
+  return (
+    <span style={{ background: st.bg, color: st.color, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 10, whiteSpace: "nowrap" }}>
+      {st.label}
+    </span>
+  );
+}
+
+function PartnersView({ data, loading, error, onRetry }) {
+  if (loading) {
+    return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading partners…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{error}</div>
+        <button onClick={() => onRetry()} style={{ background: C.navy, color: C.white, border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const s = data.summary;
+  const nudge = data.awaitingPayoutAccount || [];
+
+  return (
+    <>
+      {/* 1. THE NUDGE LIST — money owed that no automated process will ever deliver. */}
+      {nudge.length > 0 && (
+        <div style={{ background: "#FEE8E7", border: "1.5px solid #F5C6C0", borderRadius: 12, padding: "20px 24px", marginBottom: 24 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.red, marginBottom: 6 }}>
+            ${s.owedButUnpayable.toLocaleString()} owed to {nudge.length} partner{nudge.length === 1 ? '' : 's'} we cannot pay
+          </div>
+          <div style={{ fontSize: 13, color: "#7f1d1d", lineHeight: 1.7, marginBottom: 14 }}>
+            They have earned money and Stripe payouts are not enabled on their account, so the settlement run
+            holds their orders over every month. Nothing will resolve this on its own — they need an email.
+          </div>
+          <table style={{ background: C.white, borderRadius: 8, overflow: "hidden" }}>
+            <thead>
+              <tr style={{ background: C.bg }}>
+                <th>Partner</th><th>Email</th><th>Owed</th><th>Referrals</th><th>Stripe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nudge.map(p => (
+                <tr key={p.code} style={{ cursor: "default" }}>
+                  <td><div style={{ fontWeight: 500 }}>{p.name}</div><div style={{ fontSize: 11, color: C.mutedGray }}>{p.code}</div></td>
+                  <td style={{ fontSize: 12 }}><a href={`mailto:${p.email}`} style={{ color: C.navy }}>{p.email}</a></td>
+                  <td style={{ fontWeight: 600, color: C.red, whiteSpace: "nowrap" }}>${p.pending.toLocaleString()}</td>
+                  <td>{p.pendingOrders}</td>
+                  <td><StripeBadge stripe={p.stripe} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 2. Totals. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 14, marginBottom: 24 }}>
+        {[
+          ["Partners", s.partners, "🤝", C.navy],
+          ["Bank connected", `${s.connected}/${s.partners}`, "🏦", s.connected === s.partners ? C.green : C.gold],
+          ["With earnings", s.withEarnings, "✨", C.navy],
+          ["Earned all-time", `$${s.totalEarned.toLocaleString()}`, "📊", C.navy],
+          ["Paid out", `$${s.totalPaid.toLocaleString()}`, "✓", C.green],
+          ["Pending", `$${s.totalPending.toLocaleString()}`, "⏳", s.totalPending > 0 ? C.gold : C.mutedGray],
+        ].map(([label, value, icon, color]) => (
+          <div key={label} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "18px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: C.mutedGray }}>{label}</span>
+              <span style={{ fontSize: 16 }}>{icon}</span>
+            </div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. The roster. */}
+      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: `1.5px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>Partner roster</div>
+          <div style={{ fontSize: 12, color: C.mutedGray }}>${data.ratePerReferral} per completed referral</div>
+        </div>
+        <table>
+          <thead>
+            <tr style={{ background: C.bg }}>
+              <th>Joined</th><th>Partner</th><th>Role / States</th><th>Stripe</th>
+              <th>Referrals</th><th>Earned</th><th>Paid</th><th>Pending</th><th>Last paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.roster.length === 0 ? (
+              <tr><td colSpan={9} style={{ textAlign: "center", padding: 40, color: C.mutedGray }}>
+                No partners have signed up yet.
+              </td></tr>
+            ) : data.roster.map(p => (
+              <tr key={p.code} style={{ cursor: "default", opacity: p.active ? 1 : 0.55 }}>
+                <td style={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDate(p.joined)}</td>
+                <td>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{p.name}{!p.active && <span style={{ fontSize: 11, color: C.red }}> · inactive</span>}</div>
+                  <div style={{ fontSize: 11, color: C.mutedGray }}>{p.email}</div>
+                  <div style={{ fontSize: 11, color: C.mutedGray }}>{p.code}</div>
+                </td>
+                <td style={{ fontSize: 12, color: C.bodyGray }}>
+                  <div>{(p.role || '—').replace(/_/g, ' ')}</div>
+                  <div style={{ color: C.mutedGray }}>{p.statesActive || '—'}</div>
+                </td>
+                <td><StripeBadge stripe={p.stripe} /></td>
+                <td>{p.earnedOrders}</td>
+                <td style={{ whiteSpace: "nowrap" }}>${p.earned.toLocaleString()}</td>
+                <td style={{ whiteSpace: "nowrap", color: C.green, fontWeight: 600 }}>${p.paid.toLocaleString()}</td>
+                <td style={{ whiteSpace: "nowrap", color: p.pending > 0 ? C.gold : C.mutedGray, fontWeight: p.pending > 0 ? 600 : 400 }}>
+                  ${p.pending.toLocaleString()}
+                  {p.clawedBackOrders > 0 && <div style={{ fontSize: 10, color: C.red }}>{p.clawedBackOrders} clawed back</div>}
+                </td>
+                <td style={{ fontSize: 12, whiteSpace: "nowrap", color: C.mutedGray }}>{p.lastPaidAt ? formatDate(p.lastPaidAt) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Referred orders that did not count, programme-wide. A spike in self_referral
+          is the one worth watching — it is the exploit the eligibility rules exist for. */}
+      {data.notCounted && Object.keys(data.notCounted).length > 0 && (
+        <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "16px 20px", marginTop: 16 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px", color: C.mutedGray, marginBottom: 10 }}>Referred orders that did not count</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            {Object.entries(data.notCounted).map(([reason, count]) => (
+              <div key={reason} style={{ fontSize: 13, color: C.bodyGray }}>
+                <strong style={{ color: reason === 'self_referral' ? C.red : C.darkNavy }}>{count}</strong> {reason.replace(/_/g, ' ')}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ textAlign: "center", marginTop: 32, fontSize: 12, color: C.mutedGray }}>
+        {data.roster.length} partner{data.roster.length === 1 ? '' : 's'} · TaxAppeal Admin
+      </div>
+    </>
+  );
+}
+
 export default function Admin() {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
@@ -70,6 +241,14 @@ export default function Admin() {
   const [search, setSearch] = useState('');
   const [processingId, setProcessingId] = useState(null);
   const [processResults, setProcessResults] = useState({});
+
+  // PARTNERS. Kept in its own state and fetched separately from orders: the roster
+  // endpoint makes a Stripe call per connected partner, and that must never be able
+  // to slow down or break the orders view, which is the one used every day.
+  const [view, setView] = useState('orders');
+  const [partnerData, setPartnerData] = useState(null);
+  const [partnersLoading, setPartnersLoading] = useState(false);
+  const [partnersError, setPartnersError] = useState('');
 
   const fetchOrders = async (pw) => {
     setLoading(true);
@@ -93,6 +272,31 @@ export default function Admin() {
       setError('Failed to connect');
     }
     setLoading(false);
+  };
+
+  const fetchPartners = async (pw) => {
+    setPartnersLoading(true);
+    setPartnersError('');
+    try {
+      const res = await fetch('/api/partner-roster', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || password }),
+      });
+      const data = await res.json();
+      if (data.error) setPartnersError(data.error);
+      else setPartnerData(data);
+    } catch (e) {
+      setPartnersError('Failed to connect');
+    }
+    setPartnersLoading(false);
+  };
+
+  // Loaded on first visit to the tab rather than at login, so signing in to check an
+  // order does not pay for a Stripe round-trip per partner.
+  const showPartners = () => {
+    setView('partners');
+    if (!partnerData && !partnersLoading) fetchPartners();
   };
 
   const handleLogin = () => {
@@ -174,7 +378,7 @@ export default function Admin() {
         </div>
         {authenticated && (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => fetchOrders()} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
+            <button onClick={() => (view === 'partners' ? fetchPartners() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
             <a href="/" style={{ fontSize: 12, color: C.mutedGray, textDecoration: "none" }}>← Back to site</a>
           </div>
         )}
@@ -203,6 +407,18 @@ export default function Admin() {
         </div>
       ) : (
         <div style={{ padding: "24px 32px", maxWidth: 1400, margin: "0 auto" }}>
+          {/* View switch. Partners were previously visible only by curling
+              /api/referral-stats or opening the Supabase table editor. */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
+            {[['orders', '📦 Orders'], ['partners', '🤝 Partners']].map(([key, label]) => (
+              <button key={key} onClick={() => (key === 'partners' ? showPartners() : setView('orders'))}
+                style={{ background: view === key ? C.navy : C.white, color: view === key ? C.white : C.bodyGray, border: `1.5px solid ${view === key ? C.navy : C.border}`, borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {view === 'orders' && (<>
           {/* Stats cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 14, marginBottom: 28 }}>
             {[
@@ -427,6 +643,11 @@ export default function Admin() {
           <div style={{ textAlign: "center", marginTop: 32, fontSize: 12, color: C.mutedGray }}>
             Showing {filteredOrders.length} of {orders.length} orders · TaxAppeal Admin
           </div>
+          </>)}
+
+          {view === 'partners' && (
+            <PartnersView data={partnerData} loading={partnersLoading} error={partnersError} onRetry={fetchPartners} />
+          )}
         </div>
       )}
     </>
