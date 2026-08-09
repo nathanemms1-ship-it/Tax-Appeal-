@@ -19,20 +19,20 @@ export default function Terms() {
               <div style={{ fontSize: 20, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>TaxAppeal USA</div>
             </Link>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1B2A4A', margin: '16px 0 8px' }}>Terms of Service</h1>
-            <p style={{ fontSize: 13, color: '#999' }}>Last updated: July 2026</p>
+            <p style={{ fontSize: 13, color: '#999' }}>Last updated: August 2026</p>
           </div>
 
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>1. Service Description</h2>
-            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest or petition yourself; we then mail it in your name to the correct county authority — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Clerk of the Value Adjustment Board in Florida. We are not your agent or representative in any of those proceedings and do not appear before any board on your behalf. See section 7A for Florida specifically.</p>
+            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest or petition yourself; we then mail it in your name to the correct county authority — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Clerk of the Value Adjustment Board in Florida. We are not your agent or representative in any of those proceedings and do not appear before any board on your behalf. See section 12 for Florida specifically.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
             <p>Our service fee is <strong>$89 per property per filing season</strong>. This covers preparation of your protest or petition, mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
             <p style={{ marginTop: 10 }}><strong>Florida — county filing fee.</strong> Florida counties charge a Value Adjustment Board petition filing fee, currently <strong>$15 to $50 per parcel</strong> depending on the county (Fla. Stat. § 194.013). That fee is set by your county, not by us. We collect it at checkout as a separate line item and pay it to your county's Clerk of the Value Adjustment Board on your behalf, so your total in Florida is <strong>$104 to $139</strong>. The exact amount for your county is shown before you pay.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. No Outcome Guarantee</h2>
-            <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the applicable county appraisal district. Our service guarantees only that your filing will be professionally prepared and dispatched by USPS within the applicable filing window — by certified mail in Texas, Georgia, Arkansas and Alabama, and by tracked First Class mail in Florida, where certified service is not available on the payment product used to pay your county filing fee.</p>
+            <p>We do not guarantee any particular outcome, reduction in assessed value, or tax savings. Property tax protest results depend entirely on the decisions of the county authority that reviews your filing — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Value Adjustment Board in Florida. What we commit to is that your filing will be prepared and dispatched by USPS within the applicable filing window — by certified mail in Texas, Georgia, Arkansas and Alabama, and by tracked First Class mail in Florida, where certified service is not available on the payment product used to pay your county filing fee.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Refund Policy</h2>
             <p>TaxAppeal USA is a document preparation and mailing service. Your protest or petition is prepared in our system within 24 hours of purchase, and that preparation is the substance of what you are paying for.</p>
@@ -46,17 +46,19 @@ export default function Terms() {
             <ul>
               <li><strong>Texas:</strong> Generally May 15 or 30 days after notice (whichever is later)</li>
               <li><strong>Georgia:</strong> 45 days from assessment notice date</li>
-              <li><strong>Florida:</strong> 25 days from TRIM notice (letter must be RECEIVED, not postmarked)</li>
+              <li><strong>Florida:</strong> 25 days from TRIM notice (petition must be RECEIVED, not postmarked)</li>
+              <li><strong>Arkansas and Alabama:</strong> postmark deadlines — see section 15</li>
             </ul>
+            <p style={{ marginTop: 14 }}><strong>Florida — when we stop accepting orders.</strong> Because Florida is satisfied by physical receipt rather than by postmark, we stop accepting Florida orders once there is no longer enough mail time left to be confident your petition arrives before your county&rsquo;s deadline. That cut-off is earlier than the deadline itself and is enforced automatically at checkout: if it has passed for your county, we will not take your money. We would rather decline the sale than file something that arrives late, because a Florida petition received after the deadline is dismissed with no recourse and no refund from the county.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>6. Supported States</h2>
             <p>Our service currently supports properties in Texas, Georgia, Florida, Arkansas, and Alabama. In Florida we serve all 67 counties. Where we have not yet verified a county's Value Adjustment Board filing address and fee directly with that county, we tell you before taking payment, prepare your petition by hand rather than mailing it automatically, and refund you in full — including the county fee — if we cannot file it before your deadline. We reserve the right to expand or restrict supported states and counties at any time.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. User Responsibilities</h2>
-            <p>You agree to provide accurate property and contact information. Inaccurate information that results in a failed or improper filing does not entitle you to a refund. You are responsible for monitoring your mail and email for any response from the appraisal district.</p>
+            <p>You agree to provide accurate property and contact information. Inaccurate information that results in a failed or improper filing does not entitle you to a refund. You are responsible for monitoring your mail and email for any response from the county authority — including, in Florida, any notice of hearing issued by the Value Adjustment Board.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>8. Limitation of Liability</h2>
-            <p>To the maximum extent permitted by law, TaxAppeal USA's liability is limited to the amount paid for the service ($89). We are not liable for any indirect, incidental, or consequential damages arising from use of our service.</p>
+            <p>To the maximum extent permitted by law, TaxAppeal USA's liability is limited to the total amount you actually paid us in connection with the order in question, including any county filing fee we collected from you. We are not liable for any indirect, incidental, or consequential damages arising from use of our service.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>9. Governing Law</h2>
             <p>These Terms are governed by the laws of the State of Texas, except that nothing in these Terms limits any right or remedy you may have under the consumer-protection laws of the state in which your property is located, including Florida. Disputes will be resolved in Tarrant County, Texas, unless applicable law in your state requires otherwise.</p>
@@ -70,13 +72,13 @@ export default function Terms() {
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>7. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal for you, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
+              <strong>11. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal for you, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
             </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>7A. Florida &mdash; Value Adjustment Board Petitions.</strong>{' '}
+              <strong>12. Florida &mdash; Value Adjustment Board Petitions.</strong>{' '}
               <strong>You sign your own petition.</strong> Fla. Stat. &sect; 194.011(3) requires a petition to the
               Value Adjustment Board to be signed by the taxpayer, or else to be accompanied by the taxpayer&rsquo;s
               written authorization or power of attorney. We rely on the first of those: we prepare your Form DR-486,
@@ -101,19 +103,19 @@ export default function Terms() {
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>8. Alabama Filing Authorization.</strong> By completing checkout, you authorize TaxAppeal USA to prepare and file your property tax appeal with your county Board of Equalization on your behalf. Your appeal is signed by you and filed in your name; TaxAppeal USA does not act as your agent or representative and will not represent you before the Board of Equalization or in any hearing. This electronic authorization is recorded with your full name, email address, property address, and the date and time of authorization, and is included as a separate page in your USPS certified mail filing. This authorization is limited to the specific property and tax year identified in your order and does not constitute a general power of attorney. Note: Mobile County, Alabama maintains its own filing requirements. If your property is in Mobile County, TaxAppeal USA will contact you regarding any additional requirements.
+              <strong>13. Alabama Filing Authorization.</strong> By completing checkout, you authorize TaxAppeal USA to prepare and file your property tax appeal with your county Board of Equalization on your behalf. Your appeal is signed by you and filed in your name; TaxAppeal USA does not act as your agent or representative and will not represent you before the Board of Equalization or in any hearing. This electronic authorization is recorded with your full name, email address, property address, and the date and time of authorization, and is included as a separate page in your USPS certified mail filing. This authorization is limited to the specific property and tax year identified in your order and does not constitute a general power of attorney. Note: Mobile County, Alabama maintains its own filing requirements. If your property is in Mobile County, TaxAppeal USA will contact you regarding any additional requirements.
 </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>9. Alabama Circuit Court Appeals.</strong> If you are dissatisfied with the Alabama Board of Equalization's decision and wish to pursue further appeal, you may file a petition with the Circuit Court of your county. This second level of appeal is not covered by TaxAppeal USA's service. To preserve your Circuit Court appeal rights, Alabama law requires that you pay your assessed property taxes by December 31 of the tax year, or post a bond in double the amount of the taxes due. TaxAppeal USA is not responsible for advising you on or facilitating Circuit Court appeals. If you wish to pursue a Circuit Court appeal, we strongly recommend consulting a licensed Alabama attorney.
+              <strong>14. Alabama Circuit Court Appeals.</strong> If you are dissatisfied with the Alabama Board of Equalization's decision and wish to pursue further appeal, you may file a petition with the Circuit Court of your county. This second level of appeal is not covered by TaxAppeal USA's service. To preserve your Circuit Court appeal rights, Alabama law requires that you pay your assessed property taxes by December 31 of the tax year, or post a bond in double the amount of the taxes due. TaxAppeal USA is not responsible for advising you on or facilitating Circuit Court appeals. If you wish to pursue a Circuit Court appeal, we strongly recommend consulting a licensed Alabama attorney.
             </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
-              <strong>10. Arkansas and Alabama Deadline.</strong> Arkansas and Alabama use postmark deadlines for property tax appeals. Your appeal must be postmarked by the applicable deadline date. TaxAppeal USA files via USPS certified mail 7–10 days before the posted deadline to ensure timely delivery with tracked, documented proof of mailing. However, TaxAppeal USA is not responsible for postal delays, incorrect addresses provided by the customer, or county office closures that may affect receipt.
+              <strong>15. Arkansas and Alabama Deadline.</strong> Arkansas and Alabama use postmark deadlines for property tax appeals. Your appeal must be postmarked by the applicable deadline date. TaxAppeal USA files via USPS certified mail 7–10 days before the posted deadline to ensure timely delivery with tracked, documented proof of mailing. However, TaxAppeal USA is not responsible for postal delays, incorrect addresses provided by the customer, or county office closures that may affect receipt.
             </p>
           </div>
 
