@@ -1,9 +1,50 @@
 // pages/partners.js
+/**
+ * THE RECRUITING PAGE — AND EVERY CLAIM ON IT LEAVES THIS SITE.
+ *
+ * A partner reads this page, then repeats it to their own clients in their own
+ * name. A price we overstate here is a price a real estate agent gets held to by a
+ * homeowner. A county we claim here is a county someone promises a filing in. So
+ * this page is held to a stricter standard than a normal landing page, not a looser
+ * one.
+ *
+ * What was wrong, and what replaced it:
+ *
+ *   "$89"                     -> $89 is the Texas and Georgia price. Florida adds a
+ *                                mandatory county VAB filing fee of $15–$50 set by
+ *                                statute per county (lib/flCountyFees.js), so the
+ *                                Florida total is $104–$139. The season this page
+ *                                exists for is the Florida one.
+ *
+ *   "all 67 Florida counties, -> Counted at build time from lib/serviceCoverage.js.
+ *    all 75 Arkansas...",        Florida is however many are confirmed today;
+ *                                Arkansas and Alabama are not served until 2027 and
+ *                                are no longer advertised as if they were.
+ *
+ *   "saving thousands"        -> Removed. We hold no substantiation for a typical
+ *                                saving, and lib/bannedClaims already forbids this
+ *                                shape of claim everywhere else on the site.
+ *
+ *   "What a season looks like" -> Same arithmetic, relabelled as the multiplication
+ *                                it is rather than as a forecast of earnings.
+ *
+ *   "Stripe will automatically -> Depends on Stripe tax reporting being switched on,
+ *    issue you a 1099-NEC"       which is a setting on our account. Stated as our
+ *                                obligation instead of as somebody else's automation.
+ *
+ * The county numbers arrive through getStaticProps at the bottom of this file. Do
+ * not import lib/serviceCoverage.js up here — see the note in that file.
+ */
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
+import { BUSINESS_NAME, BUSINESS_ADDRESS } from '../lib/businessInfo';
 const C = { navy:'#1B3A6B',gold:'#C9A84C',darkNavy:'#0F1F3D',bg:'#F4F7FC',lightBlue:'#EEF3FB',bodyGray:'#5A6B82',mutedGray:'#8596AF',border:'#E8EDF4',white:'#FFFFFF',green:'#16a34a',lightGreen:'#f0fdf4' };
-export default function PartnersPage() {
+
+/** Florida's county filing fee, from lib/flCountyFees.js. Pass-through, not ours. */
+const FL_FEE_RANGE = '$15–$50';
+
+export default function PartnersPage({ coverage, coverageAnswer }) {
   const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',role:'',statesActive:'',clientVolume:'' });
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
@@ -76,10 +117,12 @@ export default function PartnersPage() {
             Earn $20 every time a client files their property tax appeal
           </h1>
           <p style={{fontSize:18,color:'#8596AF',lineHeight:1.6,maxWidth:560,marginBottom:40}}>
-            Share your unique link. When a homeowner clicks it and completes their $89 filing, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
+            Share your unique link. When a homeowner clicks it and completes a paid filing, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
           </p>
           <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-            {[['$20','Per referral, flat'],['$89','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
+            {/* "$89 — Customer pays" was flatly untrue for every Florida customer,
+                who pays $89 plus a county filing fee of $15–$50. */}
+            {[['$20','Per referral, flat'],['$89 + county fee','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
               <div key={l} style={{background:'#0F1F3D',borderRadius:10,padding:'16px',textAlign:'center'}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:'#5A7A9F',marginTop:4}}>{l}</div>
@@ -93,8 +136,12 @@ export default function PartnersPage() {
           <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:48,alignItems:'start'}}>
             <div>
               <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,marginBottom:12}}>How the program works</h2>
-              <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:32}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
-              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:'They click your link, enter their address, and our system pulls comparable market sales data to build a customized dispute letter. They review it, pay $89, and we prepare and mail the filing directly to the correct county authority.'},{n:'4',title:'You get paid monthly',desc:'At the end of each month we tally your referrals and pay you $20 per completed order directly to your bank account via Stripe Connect — automated, no manual transfers needed.'}].map(({n,title,desc})=>(
+              <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:8}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
+              {/* Counted, not written. See getStaticProps at the foot of this file. */}
+              <p style={{fontSize:13,color:C.mutedGray,lineHeight:1.7,marginBottom:32}}>
+                Filing today in {coverage.servingStates.join(', ')} — all {coverage.texas.total} Texas counties, all {coverage.georgia.total} Georgia counties, and {coverage.florida.complete ? `all ${coverage.florida.total}` : `${coverage.florida.supported} of ${coverage.florida.total}`} Florida counties.
+              </p>
+              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:`They click your link, enter their address, and our system pulls comparable market sales data to build a customized filing. They review it, sign it themselves, and pay $89 — plus their county's filing fee where one applies, which in Florida is ${FL_FEE_RANGE} set by the county. We prepare and mail the filing to the correct county authority.`},{n:'4',title:'You get paid monthly',desc:'On the 1st of each month we settle the previous month’s completed orders and send $20 each to your bank account via Stripe Connect. Refunded and cancelled orders are not counted, and you can see exactly which referrals counted — and which did not, and why — on your dashboard.'}].map(({n,title,desc})=>(
                 <div key={n} style={{display:'flex',gap:16,marginBottom:24}}>
                   <div style={{width:36,height:36,background:C.navy,color:C.gold,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Serif Display',serif",fontSize:18,flexShrink:0}}>{n}</div>
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
@@ -108,23 +155,40 @@ export default function PartnersPage() {
                 <div style={{background:C.white,borderLeft:`3px solid ${C.gold}`,borderRadius:6,padding:'12px 16px',fontSize:14,color:C.darkNavy,lineHeight:1.7,fontStyle:'italic',marginBottom:14}}>
                   &ldquo;Your assessment notice is about to land — here&apos;s how to make sure you&apos;re not overpaying.&rdquo;
                 </div>
+                {/* "a real shot at saving thousands" quantified an outcome we cannot
+                    substantiate — no outcome data exists yet, and lib/bannedClaims
+                    already forbids exactly this shape of claim on every other page.
+                    The reason to make the call is the call, not a number. */}
                 <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.75}}>
-                  That&apos;s a call worth making. Your client gets a real shot at saving thousands for $89 — and you&apos;re the one who told them about it. It costs you nothing, it makes you look good, and it puts you back in front of them right before they think about buying, selling, or shopping a policy.
+                  That&apos;s a call worth making. Your client gets their assessment reviewed and a properly prepared appeal filed — and you&apos;re the one who told them about it. It costs you nothing, it makes you look good, and it puts you back in front of them right before they think about buying, selling, or shopping a policy.
                 </p>
               </div>
               <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:10,padding:'16px 20px',marginTop:16}}>
-                <div style={{fontSize:11,fontWeight:500,color:C.green,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>What a season looks like</div>
-                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:8}}>Filing season comes once a year — most partners share their link with their whole client list at once.</div>
-                {[['10 clients referred','$200'],['25 clients referred','$500'],['50 clients referred','$1,000'],['100 clients referred','$2,000']].map(([vol,amt])=>(
+                {/* THIS IS AN EARNINGS CLAIM AND IT IS REGULATED.
+                    Headed "What a season looks like", introduced with "most partners
+                    share their link with their whole client list", it read as a
+                    description of what partners typically make. The program has no
+                    partners with results yet, so there was nothing behind it — and
+                    under the FTC Act § 5 net-impression standard the caption is the
+                    claim, not the arithmetic underneath it.
+                    The table is the same $20 × N it always was. It is now labelled as
+                    that, and as nothing more. Do not restore a caption that implies a
+                    typical result until there are results to be typical of. */}
+                <div style={{fontSize:11,fontWeight:500,color:C.green,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>The math, at $20 a referral</div>
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:8}}>Simple multiplication, not a projection — how much you earn depends entirely on how many of your clients choose to file.</div>
+                {[['10 clients file','$200'],['25 clients file','$500'],['50 clients file','$1,000'],['100 clients file','$2,000']].map(([vol,amt])=>(
                   <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #bbf7d0',fontSize:13,color:C.darkNavy}}>
-                    <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{amt}</strong> / season</span>
+                    <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{amt}</strong></span>
                   </div>
                 ))}
-                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>And it repeats — we remind every customer to refile 11 months later. If they come back through your link, you earn $20 again.</div>
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>Filing season comes once a year, and it repeats — we remind every customer to refile 11 months later. If they come back through your link, you earn $20 again.</div>
               </div>
               <div style={{background:C.lightBlue,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginTop:24}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>What to tell your clients</div>
-                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They prepare and mail your protest for $89 flat, no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
+                {/* The single highest-risk string on the page: a partner says this in
+                    their own name, to their own client. "for $89 flat" is a price
+                    quote they cannot honour in Florida. */}
+                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They prepare the appeal, you sign it, and they mail it. $89 plus your county&apos;s filing fee, and no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
               </div>
             </div>
             <div>
@@ -179,13 +243,17 @@ export default function PartnersPage() {
                       <option value="TX">Texas</option>
                       <option value="FL">Florida</option>
                       <option value="GA">Georgia</option>
-                      <option value="AR">Arkansas</option>
-                      <option value="AL">Alabama</option>
+                      {/* Still selectable — a partner who works Arkansas is exactly
+                          who we want on the list before the season opens — but
+                          labelled, so signing up is not mistaken for us being live
+                          there. pages/apply.js blocks both at checkout. */}
+                      <option value="AR">Arkansas (opens 2027)</option>
+                      <option value="AL">Alabama (opens 2027)</option>
                       <option value="TX,FL">Texas + Florida</option>
                       <option value="TX,GA">Texas + Georgia</option>
                       <option value="FL,GA">Florida + Georgia</option>
                       <option value="TX,FL,GA">Texas + Florida + Georgia</option>
-                      <option value="TX,FL,GA,AR,AL">All 5 States</option>
+                      <option value="TX,FL,GA,AR,AL">All 5 states</option>
                       <option value="other">Other / Multiple</option>
                     </select>
                   </div>
@@ -214,8 +282,21 @@ export default function PartnersPage() {
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],['When do I get paid?','At the end of each month we pay via your connected bank account via Stripe — fully automated, no manual transfers. There is no minimum balance required. We do not withhold income taxes from your payouts.'],['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],['Does TaxAppeal serve all counties?','Yes — all 254 Texas counties, all 67 Florida counties, all 159 Georgia counties, all 75 Arkansas counties, and all 67 Alabama counties.'],['What does the $89 fee cover?','AI-generated dispute letter built with comparable market sales data and county assessment records, tracked USPS mailing, and status updates through the county process — everything needed to make a compelling case for a reduction.'],
-            ['Do you withhold taxes from my payouts?','No. Referral earnings are self-employment income and we do not withhold income taxes. You are responsible for reporting earnings on your tax return. If you earn $600 or more in a calendar year, Stripe will automatically issue you a 1099-NEC and file it with the IRS. We recommend setting aside 25–30% of your earnings for taxes.']].map(([q,a])=>(
+            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],
+            ['When do I get paid?','On the 1st of each month we settle the previous month’s completed orders and send your $20 per order to your connected bank account through Stripe. There is no minimum balance. You need a connected bank account to receive a payout — until you connect one your earnings keep accruing and are paid in the first run after you do.'],
+            ['Which referrals count?','Orders that were paid for and not refunded. Abandoned checkouts, refunds and chargebacks do not count, and neither does a filing you buy for yourself through your own link. Your dashboard lists anything that did not count and the reason, so the number you see is the number we pay.'],
+            ['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],
+            ['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],
+            // Counted at build time. When Nathan confirms another county by phone,
+            // this answer changes on the next deploy with no copy edit.
+            ['Does TaxAppeal serve all counties?', coverageAnswer],
+            ['What does the fee cover?',`Your client pays $89 for the appeal itself: a dispute letter or petition built from comparable market sales data and county assessment records, prepared for them to sign, then mailed with tracking, plus status updates through the county process. Florida counties also charge a mandatory filing fee of ${FL_FEE_RANGE} set by each county — we collect it and pay the county on your client's behalf, and none of it comes to us. Texas and Georgia have no county filing fee.`],
+            // Rewritten from "Stripe will automatically issue you a 1099-NEC and file
+            // it with the IRS". That is only true if Stripe tax reporting is enabled
+            // on the platform account — a setting, not a guarantee. If it is off,
+            // nobody files anything and the partner discovers it in April. Stated as
+            // our obligation, which it is either way.
+            ['Do you withhold taxes from my payouts?','No. Referral earnings are self-employment income and we do not withhold income taxes — you are responsible for reporting them. If you receive $600 or more from us in a calendar year we will arrange the required 1099-NEC using the details you provide to Stripe. Keep your own record of what you receive either way. We recommend setting aside 25–30% of your earnings for taxes. This is not tax advice; ask your own accountant about your situation.']].map(([q,a])=>(
               <div key={q} style={{background:C.bg,borderRadius:12,padding:'20px 24px'}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>{q}</div>
                 <div style={{fontSize:13,color:C.bodyGray,lineHeight:1.7}}>{a}</div>
@@ -225,7 +306,15 @@ export default function PartnersPage() {
         </div>
       </section>
       <footer style={{background:C.darkNavy,padding:'24px 40px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12}}>
-        <p style={{color:C.mutedGray,fontSize:12}}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
+        {/* The postal address, from lib/businessInfo.js. This page recruits people
+            into a paid commercial relationship and is the landing page for the
+            partner outreach mail — the same address CAN-SPAM requires in that mail
+            should be visible at the destination it points to. One definition,
+            imported; do not retype it here. */}
+        <p style={{color:C.mutedGray,fontSize:12,lineHeight:1.6}}>
+          © 2026 {BUSINESS_NAME} · customerservice@taxappealusa.com<br />
+          {BUSINESS_ADDRESS}
+        </p>
         <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
           {[['Texas','/texas'],['Florida','/florida'],['Georgia','/georgia'],['Arkansas','/arkansas'],['Alabama','/alabama'],['Blog','/blog'],['Terms','/terms'],['Privacy','/privacy']].map(([label,href])=>(
             <Link key={href} href={href} style={{color:C.mutedGray,fontSize:12,textDecoration:'none'}}>{label}</Link>
@@ -234,4 +323,26 @@ export default function PartnersPage() {
       </footer>
     </>
   );
+}
+
+/**
+ * County coverage, counted at BUILD time.
+ *
+ * Two reasons this is getStaticProps and not a module-scope import:
+ *
+ *   1. lib/serviceCoverage.js pulls in the full 67-entry Florida VAB address table.
+ *      Imported into the component, Next would ship every street address, phone note
+ *      and source URL to the browser in order to render one integer.
+ *
+ *   2. Nathan is working through the remaining county calls. Each confirmation flips
+ *      a `confidence` flag in lib/flVabAddresses.js; the next deploy recounts and
+ *      this page is right again, with nothing to remember and no copy to edit.
+ *
+ * If the count ever needs to update WITHOUT a deploy, add `revalidate` here. It does
+ * not, today: confirming a county is a code change, so a deploy happens anyway.
+ */
+export async function getStaticProps() {
+  const { getServiceCoverage, coverageSentence } = await import('../lib/serviceCoverage');
+  const coverage = getServiceCoverage();
+  return { props: { coverage, coverageAnswer: coverageSentence(coverage) } };
 }
