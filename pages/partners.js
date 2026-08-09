@@ -44,7 +44,7 @@ const C = { navy:'#1B3A6B',gold:'#C9A84C',darkNavy:'#0F1F3D',bg:'#F4F7FC',lightB
 /** Florida's county filing fee, from lib/flCountyFees.js. Pass-through, not ours. */
 const FL_FEE_RANGE = '$15–$50';
 
-export default function PartnersPage({ coverage, coverageAnswer }) {
+export default function PartnersPage({ coverage, coverageAnswer, holdbackDays }) {
   const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',role:'',statesActive:'',clientVolume:'' });
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
@@ -141,7 +141,7 @@ export default function PartnersPage({ coverage, coverageAnswer }) {
               <p style={{fontSize:13,color:C.mutedGray,lineHeight:1.7,marginBottom:32}}>
                 Filing today in {coverage.servingStates.join(', ')} — all {coverage.texas.total} Texas counties, all {coverage.georgia.total} Georgia counties, and {coverage.florida.complete ? `all ${coverage.florida.total}` : `${coverage.florida.supported} of ${coverage.florida.total}`} Florida counties.
               </p>
-              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:`They click your link, enter their address, and our system pulls comparable market sales data to build a customized filing. They review it, sign it themselves, and pay $89 — plus their county's filing fee where one applies, which in Florida is ${FL_FEE_RANGE} set by the county. We prepare and mail the filing to the correct county authority.`},{n:'4',title:'You get paid monthly',desc:'On the 1st of each month we settle the previous month’s completed orders and send $20 each to your bank account via Stripe Connect. Refunded and cancelled orders are not counted, and you can see exactly which referrals counted — and which did not, and why — on your dashboard.'}].map(({n,title,desc})=>(
+              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:`They click your link, enter their address, and our system pulls comparable market sales data to build a customized filing. They review it, sign it themselves, and pay $89 — plus their county's filing fee where one applies, which in Florida is ${FL_FEE_RANGE} set by the county. We prepare and mail the filing to the correct county authority.`},{n:'4',title:'You get paid monthly',desc:`On the 1st of each month we settle the previous month’s completed orders and send $20 each to your bank account via Stripe Connect. We hold each order for ${holdbackDays} days first, so a customer refund can’t land after you’ve already been paid — referrals from the last few days of a month simply go out in the following run. Refunded and cancelled orders never count, and your dashboard shows exactly which referrals counted, which are still waiting, and why.`}].map(({n,title,desc})=>(
                 <div key={n} style={{display:'flex',gap:16,marginBottom:24}}>
                   <div style={{width:36,height:36,background:C.navy,color:C.gold,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Serif Display',serif",fontSize:18,flexShrink:0}}>{n}</div>
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
@@ -283,7 +283,7 @@ export default function PartnersPage({ coverage, coverageAnswer }) {
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
             {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],
-            ['When do I get paid?','On the 1st of each month we settle the previous month’s completed orders and send your $20 per order to your connected bank account through Stripe. There is no minimum balance. You need a connected bank account to receive a payout — until you connect one your earnings keep accruing and are paid in the first run after you do.'],
+            ['When do I get paid?',`On the 1st of each month we settle the previous month’s completed orders and send your $20 per order to your connected bank account through Stripe. Each order is held for ${holdbackDays} days before it is paid, so a referral from the last few days of a month goes out in the following run rather than that one — it shows as pending on your dashboard in the meantime. There is no minimum balance. You need a connected bank account to receive a payout; until you connect one your earnings keep accruing and go out in the first run after you do.`],
             ['Which referrals count?','Orders that were paid for and not refunded. Abandoned checkouts, refunds and chargebacks do not count, and neither does a filing you buy for yourself through your own link. Your dashboard lists anything that did not count and the reason, so the number you see is the number we pay.'],
             ['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],
             ['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],
@@ -343,6 +343,10 @@ export default function PartnersPage({ coverage, coverageAnswer }) {
  */
 export async function getStaticProps() {
   const { getServiceCoverage, coverageSentence } = await import('../lib/serviceCoverage');
+  // The holdback is a promise about WHEN a partner gets paid, so it is read from the
+  // constant the settlement run actually enforces. Typing "7" here is how the page and
+  // the code drift apart the first time the number is tuned.
+  const { MIN_ORDER_AGE_DAYS } = await import('../lib/referralSettlement');
   const coverage = getServiceCoverage();
-  return { props: { coverage, coverageAnswer: coverageSentence(coverage) } };
+  return { props: { coverage, coverageAnswer: coverageSentence(coverage), holdbackDays: MIN_ORDER_AGE_DAYS } };
 }

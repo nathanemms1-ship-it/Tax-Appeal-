@@ -274,6 +274,7 @@ t('/partners does not state that Stripe files the 1099 automatically',
 // ============================================================================
 t('/partners renders the postal address', /BUSINESS_ADDRESS/.test(partners));
 
+
 // ============================================================================
 // 6b. THE PARTNER EMAILS
 // ============================================================================
@@ -305,6 +306,22 @@ const register = read('pages/api/register-referrer.js');
 t('register-referrer actually calls enforceRateLimit',
   /await enforceRateLimit\(req, res, 'referrer'/.test(register),
   'importing it is not calling it — this route sends mail from our sending domain');
+
+// The holdback is a promise about WHEN a partner is paid. Every surface that makes
+// that promise must read the constant the settlement run enforces, or the first time
+// the number is tuned the copy quietly becomes a lie.
+t('/partners states the holdback and derives it',
+  /holdbackDays/.test(partners) && /MIN_ORDER_AGE_DAYS/.test(read('pages/partners.js')),
+  'orders from the last days of a month do not settle that run — the page must say so');
+t('the dashboard states the holdback and derives it',
+  /MIN_ORDER_AGE_DAYS/.test(dashboard));
+t('the partner emails state the holdback and derive it',
+  /MIN_ORDER_AGE_DAYS/.test(registerCode));
+for (const [name, src] of [['/partners', partners], ['dashboard', dashboard], ['emails', registerCode]]) {
+  t(`${name} does not hardcode the holdback number`,
+    !/held for 7 days/i.test(src) && !/7-day hold/i.test(src),
+    'derive it from MIN_ORDER_AGE_DAYS so tuning the constant updates the copy');
+}
 
 // ============================================================================
 console.log(`\nreferrals: ${pass} passed, ${failures.length} failed`);

@@ -7,6 +7,7 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { escapeHtml } from '../../lib/webhookAuth';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { BUSINESS_NAME, BUSINESS_ADDRESS, SUPPORT_EMAIL } from '../../lib/businessInfo';
+import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -54,7 +55,7 @@ const partnerScriptBlock = (referralLink) => `
 const payoutSetupBlock = (connectUrl) => `
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
 <div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
-<p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. You'll provide your tax details to Stripe during setup — we never see your bank information. Payouts run on the 1st of each month for the previous month's completed referrals; until an account is connected your earnings keep accruing and go out in the first run after you connect.</p>
+<p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. You'll provide your tax details to Stripe during setup — we never see your bank information. Payouts run on the 1st of each month for the previous month's completed referrals. Each order is held for ${MIN_ORDER_AGE_DAYS} days before it is paid, so a customer refund cannot land after you have been paid — a referral from the last few days of a month goes out in the following run. Until an account is connected your earnings keep accruing and go out in the first run after you connect.</p>
 <a href="${connectUrl}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
 </div>`;
 

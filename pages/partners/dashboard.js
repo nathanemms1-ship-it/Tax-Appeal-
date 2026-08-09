@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FILING_WINDOWS } from '../../lib/filingWindows';
+import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 /**
  * Florida's opening date, read from the one table that decides it.
@@ -395,7 +396,7 @@ export default function PartnerDashboard() {
                 <StripeStatusBadge stripe={data.stripe} refCode={data.partner.code} email={data.partner.email} />
                 {data.stripe.status === 'active' && (
                   <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
-                    Payouts run on the 1st of each month for the previous month&apos;s completed referrals.
+                    Payouts run on the 1st of each month for the previous month&apos;s completed referrals. Each one is held for {MIN_ORDER_AGE_DAYS} days first, so a refund can&apos;t land after you&apos;ve been paid.
                     {/* "Stripe will issue a 1099-NEC automatically" was stated as fact.
                         Whether it happens depends on Stripe tax reporting being
                         configured on the platform account, which is a setting, not a
