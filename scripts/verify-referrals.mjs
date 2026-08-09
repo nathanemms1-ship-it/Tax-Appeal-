@@ -206,6 +206,30 @@ t('/partners does not state that Stripe files the 1099 automatically',
 t('/partners renders the postal address', /BUSINESS_ADDRESS/.test(partners));
 
 // ============================================================================
+// 6b. THE PARTNER EMAILS
+// ============================================================================
+// Two near-identical bodies meant every claim existed twice, so a fix applied to
+// one silently left the other wrong. They now share one definition each.
+const registerCode = readCode('pages/api/register-referrer.js');
+
+t('partner emails carry a postal address (CAN-SPAM)',
+  /BUSINESS_ADDRESS/.test(registerCode) && /emailFooter\(\)/.test(registerCode),
+  '15 U.S.C. 7704(a)(5) requires a physical postal address in commercial email');
+t('partner emails offer a way to opt out',
+  /unsubscribe/i.test(registerCode));
+t('partner emails do not quote a bare flat $89',
+  !/\$89 flat/.test(registerCode),
+  'Florida customers pay $89 plus a county filing fee of $15-$50');
+t('partner emails do not promise Stripe files the 1099',
+  !/Stripe will issue a 1099/.test(registerCode) && !/1099 tax forms automatically/.test(registerCode),
+  'that depends on Stripe tax reporting being enabled — a setting, not a guarantee');
+t('the shared email blocks are defined once and called from both emails',
+  /const partnerScriptBlock =/.test(registerCode) &&
+    (registerCode.match(/\$\{partnerScriptBlock\(/g) || []).length === 2 &&
+    (registerCode.match(/\$\{emailFooter\(\)\}/g) || []).length === 2,
+  'one definition, one call per email — inlining them is how the two bodies diverged');
+
+// ============================================================================
 // 7. RATE LIMITING ON THE UNAUTHENTICATED SIGNUP
 // ============================================================================
 const register = read('pages/api/register-referrer.js');

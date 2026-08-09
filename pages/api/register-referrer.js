@@ -6,8 +6,74 @@ import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { escapeHtml } from '../../lib/webhookAuth';
 import { LIMITS, cap } from '../../lib/inputLimits';
+import { BUSINESS_NAME, BUSINESS_ADDRESS, SUPPORT_EMAIL } from '../../lib/businessInfo';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/**
+ * ============================================================================
+ * THE SHARED BLOCKS BELOW EXIST BECAUSE THE SAME CLAIM WAS WRONG TWICE
+ * ============================================================================
+ * This file sends two emails — a welcome and a "you already have a code"
+ * reminder — and they were near-identical copies. The partner script, the payout
+ * setup box, the tax note and the footer were each written out twice, so every
+ * defect below was present in duplicate and a fix applied to one would have
+ * silently left the other wrong:
+ *
+ *   "they prepare and mail your property tax protest for $89 flat"
+ *     Wrong in Florida, which is the season this program was built for. Florida
+ *     adds a mandatory county VAB filing fee of $15–$50 set by statute per county
+ *     (lib/flCountyFees.js), so the real total is $104–$139. And this is the
+ *     sentence a partner pastes to their own client, in their own name — a price
+ *     we overstate here is a price a real estate agent gets held to.
+ *
+ *   "Stripe will issue a 1099-NEC"
+ *   "Stripe also handles your W-9 and any required 1099 tax forms automatically"
+ *     Only true if Stripe tax reporting is enabled on the platform account. It is
+ *     a setting, not a law of nature. If it is off, nobody files anything and the
+ *     partner finds out in April. Stated as OUR obligation, which it is either way.
+ *
+ *   NO POSTAL ADDRESS ANYWHERE.
+ *     CAN-SPAM (15 U.S.C. § 7704(a)(5)) requires a valid physical postal address
+ *     in commercial email. The footer carried a name and a domain. These two are
+ *     arguably transactional — the person just submitted a form asking for the
+ *     link — but the partner program is a paid commercial relationship, the
+ *     outreach campaign that drives people to that form is unambiguously
+ *     commercial, and the address costs one line. It comes from lib/businessInfo.js
+ *     so it is defined once for the site and the mail together.
+ *
+ * Written once here, used by both emails. Do not inline them again.
+ */
+
+/** The line a partner sends to their own client. The highest-risk string we ship. */
+const partnerScriptBlock = (referralLink) => `
+<div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare your property tax appeal, you sign it, and they mail it for you. $89 plus your county's filing fee, and no percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
+</div>`;
+
+const payoutSetupBlock = (connectUrl) => `
+<div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+<div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
+<p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. You'll provide your tax details to Stripe during setup — we never see your bank information. Payouts run on the 1st of each month for the previous month's completed referrals; until an account is connected your earnings keep accruing and go out in the first run after you connect.</p>
+<a href="${connectUrl}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
+</div>`;
+
+const taxNoteBlock = () => `
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+<p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying tax on them. If you receive $600 or more from us in a calendar year, we will arrange the required 1099-NEC using the details you provide to Stripe; keep your own record of what you receive either way. We suggest setting aside roughly 25–30% for tax. This is not tax advice — please ask your own accountant about your situation.</p>
+</div>`;
+
+/**
+ * CAN-SPAM footer. The postal address is the legally required part; the opt-out
+ * line is here because the partner programme is a commercial relationship and a
+ * recipient needs a way out that does not depend on us reading their reply.
+ */
+const emailFooter = () => `
+<div style="background:#f0f2f7;padding:16px 36px;text-align:center;border-top:1px solid #e5e8ef;font-size:12px;color:#94a3b8;line-height:1.7;">
+${escapeHtml(BUSINESS_NAME)} · taxappealusa.com<br>
+${escapeHtml(BUSINESS_ADDRESS)}<br>
+Don't want partner emails from us? Reply "unsubscribe" to <a href="mailto:${escapeHtml(SUPPORT_EMAIL)}?subject=Unsubscribe" style="color:#64748b;">${escapeHtml(SUPPORT_EMAIL)}</a> and we'll remove you.
+</div>`;
 
 let redis = null;
 try {
@@ -77,20 +143,12 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
-<div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
-<div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
-<p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. Stripe also handles your W-9 and any required 1099 tax forms automatically.</p>
-<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
-</div>
-<div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare and mail your property tax protest for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
-</div>
-<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
-<p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>
-</div>
+${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}`)}
+${partnerScriptBlock(referralLink)}
+${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Didn't request this? You can ignore this email, or reply to <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a> with questions.</p>
 </div>
-<div style="background:#f0f2f7;padding:16px 36px;text-align:center;border-top:1px solid #e5e8ef;font-size:12px;color:#94a3b8;">TaxAppeal USA · taxappealusa.com</div>
+${emailFooter()}
 </div>
 </div>
 </body>
@@ -219,20 +277,12 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
-<div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
-<div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
-<p style="font-size:13px;color:#1e293b;line-height:1.6;margin:0 0 10px;">Connect your bank account through Stripe to receive monthly payouts. Stripe also handles your W-9 and any required 1099 tax forms automatically.</p>
-<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}" style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Connect Bank Account via Stripe →</a>
-</div>
-<div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare and mail your property tax protest for $89 flat. No percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
-</div>
-<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
-<p style="font-size:12px;color:#64748b;margin:0;line-height:1.7;"><strong style="color:#1e293b;">Tax note:</strong> Referral earnings are considered self-employment income. We do not withhold income taxes from your payouts — you are responsible for reporting and paying taxes on any earnings. If you receive $600 or more in a calendar year, Stripe will issue a 1099-NEC. We recommend setting aside approximately 25–30% of your earnings for tax purposes.</p>
-</div>
+${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}`)}
+${partnerScriptBlock(referralLink)}
+${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Questions? Reply to this email or contact <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a></p>
 </div>
-<div style="background:#f0f2f7;padding:16px 36px;text-align:center;border-top:1px solid #e5e8ef;font-size:12px;color:#94a3b8;">TaxAppeal USA · taxappealusa.com</div>
+${emailFooter()}
 </div>
 </div>
 </body>
