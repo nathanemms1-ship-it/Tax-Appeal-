@@ -86,18 +86,31 @@ CREATE INDEX IF NOT EXISTS idx_referral_payouts_status
   ON public.referral_payouts (status);
 
 
--- ── 5. status may only ever be one of three values. ─────────────────────────
+-- ── 5. status may only ever be one of four values. ──────────────────────────
+--
+--   pending      claimed, transfer not yet confirmed
+--   paid         Stripe confirmed the transfer
+--   failed       Stripe refused; the next run retries this row
+--   clawed_back  settled by OFFSET rather than by money moving. Written in pairs:
+--                the reversed order that created the debt, and the order withheld
+--                from a later run to discharge it. Neither was transferred, and
+--                neither may be picked up again.
+--
+-- Dropped and re-added rather than created only when absent, so a database that
+-- already has the three-value version is corrected instead of silently kept.
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1 FROM pg_constraint
      WHERE conrelid = 'public.referral_payouts'::regclass
        AND conname  = 'referral_payouts_status_check'
   ) THEN
-    ALTER TABLE public.referral_payouts
-      ADD CONSTRAINT referral_payouts_status_check
-      CHECK (status IN ('pending', 'paid', 'failed'));
+    ALTER TABLE public.referral_payouts DROP CONSTRAINT referral_payouts_status_check;
   END IF;
+
+  ALTER TABLE public.referral_payouts
+    ADD CONSTRAINT referral_payouts_status_check
+    CHECK (status IN ('pending', 'paid', 'failed', 'clawed_back'));
 END
 $$;
 

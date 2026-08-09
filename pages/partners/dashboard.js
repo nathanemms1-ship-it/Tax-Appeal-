@@ -115,6 +115,8 @@ function StripeStatusBadge({ stripe, refCode, email }) {
  * a partner testing their own link, not someone gaming us.
  */
 const NOT_COUNTED_LABELS = {
+  // Not a rejection — a delay. Worded so nobody reads it as money lost.
+  too_recent: 'too recent to pay out yet — held until the refund window closes, then paid in the next run',
   unknown_referral_code: 'used a referral code we could not match',
   partner_inactive: 'placed while your partner account was inactive',
   self_referral: 'placed from your own email address — the program pays for clients you refer, not your own filings',
@@ -330,6 +332,24 @@ export default function PartnerDashboard() {
               sub={`$${data.thisMonth.earnings} earned this month`}
             />
           </div>
+
+          {/* Referrals withheld to offset an earlier one that was reversed. Shown
+              explicitly: a pending total that quietly shrinks is the fastest way to
+              lose a partner's trust, and this is the one number they are most likely
+              to challenge. */}
+          {(data.adjustments?.orders ?? 0) > 0 && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.red, marginBottom: 6 }}>
+                ${data.adjustments.amount.toLocaleString()} adjustment
+                {' '}({data.adjustments.orders} referral{data.adjustments.orders === 1 ? '' : 's'} withheld)
+              </div>
+              <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.7 }}>
+                A referral you were already paid for was later refunded or charged back by the customer.
+                Rather than ask you to send money back, we withheld the same amount from a later referral.
+                Questions? Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.red }}>customerservice@taxappealusa.com</a>.
+              </div>
+            </div>
+          )}
 
           {/* Why a referral they can see did not count. Without this the only person
               who can explain a gap between "orders I sent you" and "referrals shown"

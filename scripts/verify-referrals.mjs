@@ -131,9 +131,78 @@ t('the migration adds every column the cron writes',
   ['partner_email', 'stripe_account_id', 'failure_reason'].every(c => sql.includes(c)));
 
 // ============================================================================
+// 2b. THE REFUND HOLDBACK AND THE CLAWBACK
+// ============================================================================
+const { MIN_ORDER_AGE_DAYS, eligibility, settle: settleFn } =
+  await import('../lib/referralSettlement.js');
+
+t('a refund holdback exists and is at least a day',
+  Number.isFinite(MIN_ORDER_AGE_DAYS) && MIN_ORDER_AGE_DAYS >= 1,
+  'without it, an order placed at 11pm on the 31st is paid at 10am on the 1st');
+t('the cron applies the holdback', /minAgeDays: MIN_ORDER_AGE_DAYS/.test(cron));
+t('the cron looks back past the period so held orders return',
+  /CATCHUP_DAYS/.test(cron) && /catchupFrom/.test(cron),
+  'a strictly month-bounded query never revisits an order it held back, so it is never paid');
+
+// The holdback is arithmetic, so test the arithmetic rather than the source text.
+const PARTNER = { code: 'JANE-SMITH', email: 'jane@x.com', active: true, stripe_account_id: 'acct_1' };
+const NOW = new Date('2026-09-01T15:00:00Z');
+const orderAgedDays = (d, id) => ({
+  id, ref_code: 'JANE-SMITH', customer_email: 'buyer@x.com', payment_status: 'paid',
+  created_at: new Date(NOW.getTime() - d * 24 * 3600 * 1000).toISOString(),
+});
+
+t('an order younger than the holdback is not payable',
+  eligibility(orderAgedDays(0.5, 'fresh'), PARTNER, new Set(),
+    { minAgeDays: MIN_ORDER_AGE_DAYS, now: NOW }).reason === 'too_recent');
+t('an order older than the holdback is payable',
+  eligibility(orderAgedDays(MIN_ORDER_AGE_DAYS + 1, 'old'), PARTNER, new Set(),
+    { minAgeDays: MIN_ORDER_AGE_DAYS, now: NOW }).ok === true);
+t('an order with no created_at is held, not paid',
+  eligibility({ id: 'x', ref_code: 'JANE-SMITH', payment_status: 'paid' }, PARTNER, new Set(),
+    { minAgeDays: MIN_ORDER_AGE_DAYS, now: NOW }).reason === 'too_recent',
+  'an order whose age cannot be established is exactly the one not to pay early');
+t('the dashboard and payout sheet do NOT apply the holdback',
+  !/minAgeDays/.test(partnerStats) && !/minAgeDays/.test(referralStats),
+  'a partner should see a referral the moment it lands, labelled pending');
+
+// Netting withholds the NEWEST order, which needs settle() to sort oldest-first.
+const sorted = settleFn({
+  orders: [orderAgedDays(10, 'newer'), orderAgedDays(30, 'older')],
+  partners: [PARTNER], minAgeDays: MIN_ORDER_AGE_DAYS, now: NOW,
+});
+t('settle sorts each partner\'s orders oldest first',
+  sorted.payable[0]?.orders.map(o => o.id).join(',') === 'older,newer',
+  'the clawback withholds from the end of this list, so it must be the newest order');
+
+t('the cron nets reversals instead of reversing transfers',
+  /applyClawback/.test(cron) && /clawed_back/.test(cron),
+  'once the money is in a partner bank account a reversal only makes their account negative');
+t('clawed_back counts as settled everywhere, not just paid',
+  /clawed_back/.test(cron) && /clawed_back/.test(partnerStats) && /clawed_back/.test(referralStats),
+  'omitting it hands the withheld order back to the next run, undoing the clawback');
+t('the ledger permits the clawed_back status', /'clawed_back'/.test(sql),
+  'the CHECK constraint rejects the write otherwise, and the clawback silently fails');
+// ============================================================================
+// 2c. PARTNER PAYOUT SCHEDULE IS THE CLAWBACK RECOVERY WINDOW
+// ============================================================================
+const connect = readCode('pages/api/create-connect-account.js');
+t('new partner accounts pay out weekly',
+  /interval: 'weekly'/.test(connect),
+  'monthly on the 1st could leave a partner waiting 30 days for money we said was sent');
+t('partner accounts are no longer anchored to the settlement day',
+  !/monthly_anchor: 1/.test(connect),
+  'the same day the cron fires was the worst possible anchor');
+
+// ============================================================================
 // 3. THE DASHBOARD MAY NOT CALL UNPAID MONEY "PAID"
 // ============================================================================
 const dashboard = readCode('pages/partners/dashboard.js');
+t('the dashboard explains an adjustment rather than silently shrinking',
+  /adjustments/.test(dashboard),
+  'a pending total that drops with no reason is how you lose a partner');
+t('the dashboard explains a held-back referral as a delay, not a loss',
+  /too_recent/.test(dashboard));
 t('dashboard reads `paid` from the ledger', /data\.paid\?\.amount/.test(dashboard));
 t('dashboard shows pending separately', /data\.pending\?\.amount/.test(dashboard));
 t('dashboard no longer captions earnings as paid out',

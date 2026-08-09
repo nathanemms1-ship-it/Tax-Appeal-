@@ -84,13 +84,19 @@ export default async function handler(req, res) {
     const paidRows = (ledger || []).filter(r => r.status === 'paid');
     const paidOrderIds = new Set(paidRows.map(r => r.order_id));
 
+    // Settled is not the same as paid. A clawed_back row was discharged by offset
+    // against a reversed order — no money moved and none will. Omitting these would
+    // put them back on the sheet as still owed.
+    const clawedBackRows = (ledger || []).filter(r => r.status === 'clawed_back');
+    const settledOrderIds = new Set([...paidOrderIds, ...clawedBackRows.map(r => r.order_id)]);
+
     // requirePayoutAccount stays FALSE here. This sheet answers "what do we owe",
     // and we owe a partner their $20 whether or not they have connected a bank yet.
     // The cron applies that filter when it is time to actually send it.
     const result = settle({
       orders: orders || [],
       partners: partners || [],
-      settledOrderIds: paidOrderIds,
+      settledOrderIds,
       requirePayoutAccount: false,
     });
 
@@ -121,6 +127,7 @@ export default async function handler(req, res) {
     const periodOrderIds = new Set((orders || []).map(o => o.id));
     const alreadyPaid = paidRows.filter(r => periodOrderIds.has(r.order_id));
     const alreadyPaidCents = alreadyPaid.reduce((s, r) => s + (r.amount_cents || 0), 0);
+    const clawedBack = clawedBackRows.filter(r => periodOrderIds.has(r.order_id));
 
     return res.status(200).json({
       period: { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] },
@@ -132,6 +139,9 @@ export default async function handler(req, res) {
         awaitingPayoutAccount: payouts.filter(p => !p.payoutReady).length,
         alreadyPaidThisPeriod: dollars(alreadyPaidCents),
         alreadyPaidOrders: alreadyPaid.length,
+        // Discharged by offset against a reversed order, not by a transfer.
+        clawedBackOrders: clawedBack.length,
+        clawedBackAmount: dollars(clawedBack.reduce((s, r) => s + (r.amount_cents || 0), 0)),
       },
       payouts,
       // Excluded orders are reported, not silently dropped — a payout sheet that

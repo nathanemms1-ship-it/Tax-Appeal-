@@ -100,6 +100,13 @@ export default async function handler(req, res) {
     const paidRows = (ledger || []).filter(r => r.status === 'paid');
     const paidOrderIds = new Set(paidRows.map(r => r.order_id));
 
+    // Orders discharged by OFFSET rather than by money moving — see the clawback in
+    // /api/cron/settle-referrals. They are settled: not paid, and never pending.
+    // Counting them as pending would leave a permanent phantom balance on the
+    // dashboard for money the partner is never going to receive.
+    const clawedBackRows = (ledger || []).filter(r => r.status === 'clawed_back');
+    const settledOrderIds = new Set([...paidOrderIds, ...clawedBackRows.map(r => r.order_id)]);
+
     // settledOrderIds is EMPTY on purpose. We want the full picture of what this
     // partner has earned all-time, including orders already paid; the paid/pending
     // split is applied below from the ledger. Passing the settled set here would
@@ -136,11 +143,12 @@ export default async function handler(req, res) {
     const lastMonthOrders = eligible.filter(o => inRange(o, lastMonthStart, monthStart));
 
     const paidCents = paidRows.reduce((s, r) => s + (r.amount_cents || 0), 0);
+    const clawedBackCents = clawedBackRows.reduce((s, r) => s + (r.amount_cents || 0), 0);
     const earnedCents = eligible.length * REFERRAL_PAYOUT_CENTS;
     // Clamped at zero: a manual out-of-band transfer could in principle exceed what
     // the rules say is earned, and "-$20 pending" on a partner's dashboard is worse
-    // than $0.
-    const pendingCents = Math.max(0, earnedCents - paidCents);
+    // than $0. Clawed-back orders come out here too — they are settled, not owed.
+    const pendingCents = Math.max(0, earnedCents - paidCents - clawedBackCents);
 
     // State breakdown counts ELIGIBLE orders only, so the bars add up to the
     // headline referral count. They used to be computed over every row, which is
@@ -197,7 +205,11 @@ export default async function handler(req, res) {
       },
       // The three numbers that used to be one.
       paid: { orders: paidRows.length, amount: paidCents / 100 },
-      pending: { orders: Math.max(0, eligible.length - paidRows.length), amount: pendingCents / 100 },
+      pending: { orders: Math.max(0, eligible.length - settledOrderIds.size), amount: pendingCents / 100 },
+      // Referrals withheld to offset an earlier one that was refunded or charged
+      // back. Shown rather than silently netted, because a partner watching their
+      // pending total drop with no explanation will — reasonably — ask why.
+      adjustments: { orders: clawedBackRows.length, amount: clawedBackCents / 100 },
       thisMonth: {
         referrals: thisMonthOrders.length,
         earnings: thisMonthOrders.length * RATE,

@@ -68,9 +68,26 @@
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from '../supabase';
 import { requireCronSecret } from '../../../lib/webhookAuth';
-import { settle, REFERRAL_PAYOUT_CENTS } from '../../../lib/referralSettlement';
+import { settle, REFERRAL_PAYOUT_CENTS, MIN_ORDER_AGE_DAYS } from '../../../lib/referralSettlement';
 
 export const config = { maxDuration: 300 };
+
+/**
+ * How far BEFORE the period start to look for orders.
+ *
+ * The holdback (MIN_ORDER_AGE_DAYS) means an order from the last week of August is
+ * not payable on 1 September. If the query were bounded strictly to August, the
+ * October run — scoped to September — would never look at it again and that partner
+ * would simply never be paid.
+ *
+ * So the lower bound reaches back a clear margin beyond the holdback. Re-examining
+ * already-paid orders is free and safe: `already_settled` skips them, and the UNIQUE
+ * constraint on referral_payouts.order_id is underneath that.
+ *
+ * 45 days is six times the holdback — wide enough to absorb a skipped or failed run,
+ * narrow enough that the query stays bounded as volume grows.
+ */
+const CATCHUP_DAYS = 45;
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check — same
 // reasoning as pages/api/cron/notify-waitlist.js. A module-scope throw on a missing
@@ -147,11 +164,15 @@ export default async function handler(req, res) {
 
   try {
     // ── Load the three inputs ────────────────────────────────────────────────
+    // The lower bound reaches back CATCHUP_DAYS before the period so orders held by
+    // the age check last month are reconsidered this month. See CATCHUP_DAYS above.
+    const catchupFrom = new Date(start.getTime() - CATCHUP_DAYS * 24 * 60 * 60 * 1000);
+
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('id, ref_code, customer_email, payment_status, amount_paid, created_at')
       .not('ref_code', 'is', null)
-      .gte('created_at', start.toISOString())
+      .gte('created_at', catchupFrom.toISOString())
       .lt('created_at', end.toISOString());
     if (ordersError) throw ordersError;
 
@@ -165,7 +186,7 @@ export default async function handler(req, res) {
     // October run scoped to August. Period bounds the ORDERS; the ledger is global.
     const { data: ledger, error: ledgerError } = await supabase
       .from('referral_payouts')
-      .select('order_id, status');
+      .select('order_id, ref_code, status, stripe_transfer_id');
     if (ledgerError) {
       // This is the one error we refuse to work around. An empty settledOrderIds set
       // means "nothing has ever been paid", and acting on that belief pays everyone
@@ -180,38 +201,106 @@ export default async function handler(req, res) {
     // Only `paid` counts as settled. `pending` and `failed` rows are unfinished work
     // and MUST come back round — a crash between claim and transfer would otherwise
     // strand that partner's $20 permanently.
-    const paidOrderIds = new Set((ledger || []).filter(r => r.status === 'paid').map(r => r.order_id));
+    const paidRows = (ledger || []).filter(r => r.status === 'paid');
+    const paidOrderIds = new Set(paidRows.map(r => r.order_id));
     const priorAttempt = new Set((ledger || []).map(r => r.order_id));
+
+    // SETTLED means "this order is finished with", which is NOT the same as "paid".
+    // A clawed_back row was discharged by offset — no money moved, and none ever
+    // will. Leaving it out of this set would hand it straight back to settle() next
+    // month and pay it, undoing the clawback and making the whole mechanism a
+    // one-month deferral instead of a recovery.
+    const settledOrderIds = new Set([
+      ...paidOrderIds,
+      ...(ledger || []).filter(r => r.status === 'clawed_back').map(r => r.order_id),
+    ]);
+
+    // ── CLAWBACK: orders we already paid for that have since been reversed ────
+    //
+    // The holdback stops us paying inside a refund window. It cannot stop a
+    // chargeback, which card networks allow for roughly 120 days — long after the
+    // $20 has reached the partner's bank, where a transfer reversal would only drive
+    // their connected account negative and may never be recovered.
+    //
+    // So instead of reversing, we NET. A partner who was paid for an order that later
+    // refunded or charged back has that $20 withheld from their next settlement.
+    //
+    // Netting is exact because payouts are always whole $20 units: owe five, claw back
+    // one, transfer four. The withheld order is marked 'clawed_back' rather than
+    // 'paid', which records that it was settled by offset and stops it being paid
+    // again. If the debt exceeds what is payable this run, the excess is simply not
+    // marked and comes round again next month.
+    const orderStatusById = new Map((orders || []).map(o => [o.id, o.payment_status]));
+    const reversedByCode = {};
+    for (const row of paidRows) {
+      const current = orderStatusById.get(row.order_id);
+      // undefined = the order is outside the catch-up window, so we cannot judge it
+      // here. Not an error; it will be judged the month it falls inside the window.
+      if (current === undefined || current === 'paid') continue;
+      const code = String(row.ref_code || '').trim().toUpperCase();
+      (reversedByCode[code] ||= []).push({ orderId: row.order_id, nowStatus: current });
+    }
 
     // ── Decide who gets paid ─────────────────────────────────────────────────
     // requirePayoutAccount: true — this is the one caller that is about to move
     // money, so a partner with no connected bank is held over, not paid and not
     // forgotten. The dashboard and the payout sheet pass false, so those partners
     // still SEE what they have earned.
+    //
+    // minAgeDays — the refund holdback, applied HERE and only here. The dashboard and
+    // the payout sheet pass 0, so a partner sees a referral the moment it lands,
+    // labelled pending, rather than a week later.
     const result = settle({
       orders: orders || [],
       partners: partners || [],
-      settledOrderIds: paidOrderIds,
+      settledOrderIds,
       requirePayoutAccount: true,
+      minAgeDays: MIN_ORDER_AGE_DAYS,
     });
 
     const period = { start: day(start), end: day(end), month: monthKey(start) };
+
+    /**
+     * Split a partner's payable orders into what we transfer and what we withhold to
+     * settle a clawback. Withholding comes off the END of the list, which settle()
+     * sorted oldest-first — so the newest order is the one held, the one with the most
+     * refund window still to run.
+     */
+    const applyClawback = (group) => {
+      const debts = reversedByCode[group.code] || [];
+      const offsetCount = Math.min(debts.length, group.orders.length);
+      return {
+        transfer: group.orders.slice(0, group.orders.length - offsetCount),
+        withheld: group.orders.slice(group.orders.length - offsetCount),
+        debts: debts.slice(0, offsetCount),
+        unsettledDebt: debts.length - offsetCount,
+      };
+    };
 
     if (dryRun) {
       return res.status(200).json({
         dryRun: true,
         period,
-        wouldPay: result.payable.map(g => ({
-          code: g.code,
-          partner: g.partner?.email || null,
-          orders: g.orderCount,
-          amount: `$${(g.amountCents / 100).toFixed(2)}`,
-          stripeAccount: g.partner?.stripe_account_id || null,
-          retries: g.orders.filter(o => priorAttempt.has(o.id)).length,
-        })),
-        totalAmount: `$${(result.totalCents / 100).toFixed(2)}`,
-        totalOrders: result.totalOrders,
+        holdbackDays: MIN_ORDER_AGE_DAYS,
+        wouldPay: result.payable.map(g => {
+          const { transfer, withheld, unsettledDebt } = applyClawback(g);
+          return {
+            code: g.code,
+            partner: g.partner?.email || null,
+            orders: transfer.length,
+            amount: `$${((transfer.length * REFERRAL_PAYOUT_CENTS) / 100).toFixed(2)}`,
+            stripeAccount: g.partner?.stripe_account_id || null,
+            retries: g.orders.filter(o => priorAttempt.has(o.id)).length,
+            withheldForClawback: withheld.length,
+            clawbackCarriedToNextRun: unsettledDebt,
+          };
+        }),
+        totalAmount: `$${(result.payable.reduce((s, g) => s + applyClawback(g).transfer.length, 0) * REFERRAL_PAYOUT_CENTS / 100).toFixed(2)}`,
+        totalOrders: result.payable.reduce((s, g) => s + applyClawback(g).transfer.length, 0),
+        // Reversed orders we already paid for, whether or not they net out this run.
+        reversedSincePaid: Object.entries(reversedByCode).map(([code, rows]) => ({ code, count: rows.length, orders: rows })),
         excluded: result.excluded,
+        heldForRefundWindow: result.excluded.filter(e => e.reason === 'too_recent'),
         heldForNoPayoutAccount: result.excluded.filter(e => e.reason === 'no_payout_account'),
       });
     }
@@ -224,11 +313,56 @@ export default async function handler(req, res) {
     const stripe = stripeClient();
     const paid = [];
     const failed = [];
+    const clawedBack = [];
 
     for (const group of result.payable) {
       const destination = group.partner.stripe_account_id;
+      const { transfer, withheld, debts, unsettledDebt } = applyClawback(group);
 
-      for (const order of group.orders) {
+      // Settle the clawback FIRST, and only in memory-safe pairs: each withheld order
+      // is matched to exactly one reversed order. Both rows are marked 'clawed_back'
+      // together, so the books show which order discharged which debt. Neither is
+      // paid, and neither can be picked up again.
+      for (let i = 0; i < withheld.length; i++) {
+        const held = withheld[i];
+        const debt = debts[i];
+        try {
+          await supabase.from('referral_payouts').upsert({
+            order_id: held.id,
+            ref_code: group.code,
+            partner_email: group.partner.email || null,
+            amount_cents: REFERRAL_PAYOUT_CENTS,
+            status: 'clawed_back',
+            stripe_account_id: destination,
+            payout_month: period.month,
+            failure_reason: `withheld to offset reversed order ${debt.orderId} (${debt.nowStatus})`,
+          }, { onConflict: 'order_id' });
+
+          await supabase
+            .from('referral_payouts')
+            .update({
+              status: 'clawed_back',
+              failure_reason: `order ${debt.nowStatus}; recovered by withholding order ${held.id}`,
+            })
+            .eq('order_id', debt.orderId);
+
+          clawedBack.push({ code: group.code, reversedOrder: debt.orderId, offsetByOrder: held.id, reason: debt.nowStatus });
+        } catch (e) {
+          // Do not fall through to paying. An unrecorded clawback that still transfers
+          // is the failure this whole mechanism exists to prevent.
+          console.error(`[settle-referrals] clawback bookkeeping failed for ${debt.orderId}: ${e.message}`);
+          failed.push({ orderId: debt.orderId, code: group.code, reason: `clawback_failed: ${e.message}` });
+        }
+      }
+
+      if (unsettledDebt > 0) {
+        console.warn(
+          `[settle-referrals] ${group.code} still owes ${unsettledDebt} x $${REFERRAL_PAYOUT_CENTS / 100} ` +
+          `after netting — carried to the next run.`
+        );
+      }
+
+      for (const order of transfer) {
         try {
           // 1. CLAIM. Unique on order_id, so if a concurrent run got here first this
           //    insert fails and we skip — which is exactly the desired outcome.
@@ -313,19 +447,28 @@ export default async function handler(req, res) {
 
     const totalPaidCents = paid.length * REFERRAL_PAYOUT_CENTS;
     const held = result.excluded.filter(e => e.reason === 'no_payout_account');
+    const heldForRefundWindow = result.excluded.filter(e => e.reason === 'too_recent');
 
     console.log(
       `[settle-referrals] ${period.start}..${period.end} — ` +
       `paid ${paid.length} order(s) / $${(totalPaidCents / 100).toFixed(2)}, ` +
-      `failed ${failed.length}, held-for-no-bank ${held.length}`
+      `clawed back ${clawedBack.length}, failed ${failed.length}, ` +
+      `held-for-refund-window ${heldForRefundWindow.length}, held-for-no-bank ${held.length}`
     );
 
     return res.status(200).json({
       period,
+      holdbackDays: MIN_ORDER_AGE_DAYS,
       paidOrders: paid.length,
       totalPaid: `$${(totalPaidCents / 100).toFixed(2)}`,
       paid,
       failed,
+      // Money recovered by withholding, not by reversing a transfer. Each entry names
+      // the reversed order and the order withheld to discharge it.
+      clawedBack,
+      // Earned, but too new to pay without risking a refund landing after the money
+      // has gone. These come round next run — they are not lost.
+      heldForRefundWindow,
       // Not a failure and not a payment: these partners have earned money and have
       // not connected a bank account. They are the follow-up list.
       heldForNoPayoutAccount: held,

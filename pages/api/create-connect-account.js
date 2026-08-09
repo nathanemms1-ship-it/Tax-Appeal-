@@ -66,7 +66,28 @@ export default async function handler(req, res) {
         },
         business_type: 'individual',
         settings: {
-          payouts: { schedule: { interval: 'monthly', monthly_anchor: 1 } },
+          // WEEKLY, AND THE REASON IS CLAWBACK RECOVERY — NOT PARTNER CONVENIENCE.
+          //
+          // This was `monthly, monthly_anchor: 1` — the same day the settlement run
+          // fires, which was the worst of both worlds. A transfer landing on the 1st
+          // could arrive just after that month's payout had already gone, leaving the
+          // partner's $20 in their Stripe balance until the 1st of the NEXT month:
+          // up to thirty days late, for money the dashboard says was sent.
+          //
+          // The opposite extreme is worse. While the $20 is still in the connected
+          // account's Stripe balance, a chargeback can be recovered with a transfer
+          // reversal. Once it has reached the partner's own bank, a reversal only
+          // drives their connected account negative — and an Express account with no
+          // revenue of its own may never repay that.
+          //
+          // So the payout interval IS the recovery window. Weekly gives roughly seven
+          // days to recover and makes a partner wait at most a week after settlement.
+          // Daily would pay them sooner and leave almost nothing to recover from.
+          //
+          // Accounts created BEFORE this change keep their old monthly schedule —
+          // Stripe does not retro-apply it. See scripts/sql/referral_payouts.sql notes
+          // and the Open Items queue if any exist.
+          payouts: { schedule: { interval: 'weekly', weekly_anchor: 'friday' } },
         },
       });
 
