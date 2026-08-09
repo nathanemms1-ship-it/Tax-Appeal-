@@ -1,12 +1,44 @@
 // pages/api/referral-stats.js
-// Monthly payout query. The admin password NO LONGER goes in the query string —
-// see lib/adminAuth.js for why. Call it one of these two ways:
-//
-//   curl -H "X-Admin-Password: $PW" 'https://taxappealusa.com/api/referral-stats?month=2026-07'
-//   curl -X POST -H 'Content-Type: application/json' \
-//        -d '{"password":"...","month":"2026-07"}' https://taxappealusa.com/api/referral-stats
+/**
+ * THE OPERATOR'S VIEW OF A SETTLEMENT PERIOD.
+ *
+ * Read-only. This route has never moved money and must not start: the transfers
+ * happen in /api/cron/settle-referrals, which is the only writer of the
+ * referral_payouts ledger. This is the sheet you look at before and after that run.
+ *
+ * The eligibility rules used to live inline here, duplicated (differently, and
+ * wrongly) in /api/partner-stats. Both now call lib/referralSettlement.js, so the
+ * number a partner sees on their dashboard and the number on this sheet are
+ * produced by the same code. When they disagreed, the partner was the one who
+ * noticed, and we had nothing to show them.
+ *
+ * The admin password NO LONGER goes in the query string — see lib/adminAuth.js.
+ *   curl -H "X-Admin-Password: $PW" 'https://taxappealusa.com/api/referral-stats?month=2026-07'
+ *   curl -X POST -H 'Content-Type: application/json' \
+ *        -d '{"password":"...","month":"2026-07"}' https://taxappealusa.com/api/referral-stats
+ */
 import { getSupabaseAdmin } from './supabase';
 import { requireAdmin } from '../../lib/adminAuth';
+import { settle, REFERRAL_PAYOUT_CENTS } from '../../lib/referralSettlement';
+
+/**
+ * UTC boundaries. `created_at` is UTC; building these in server local time moves the
+ * month boundary by the server's offset, which hands a 1st-of-the-month order to the
+ * previous period — or drops it out of both.
+ */
+function periodFor(month) {
+  if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    const start = new Date(`${month}-01T00:00:00.000Z`);
+    return { start, end: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)) };
+  }
+  const now = new Date();
+  return {
+    start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)),
+    end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+  };
+}
+
+const dollars = (cents) => Number((cents / 100).toFixed(2));
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -16,108 +48,95 @@ export default async function handler(req, res) {
   if (await requireAdmin(req, res, 'referral-stats')) return;
 
   const month = req.body?.month || req.query?.month;
+  const { start, end } = periodFor(month);
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
 
   try {
-    let startDate, endDate;
-    if (month) {
-      startDate = new Date(`${month}-01T00:00:00Z`);
-      endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
-    } else {
-      const now = new Date();
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      endDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('id, ref_code, amount_paid, created_at, property_address, customer_name, customer_email, payment_status')
       .not('ref_code', 'is', null)
-      .gte('created_at', startDate.toISOString())
-      .lt('created_at', endDate.toISOString())
+      .gte('created_at', start.toISOString())
+      .lt('created_at', end.toISOString())
       .order('created_at', { ascending: false });
-
     if (ordersError) throw ordersError;
 
-    const { data: referrers, error: refError } = await supabase
+    const { data: partners, error: partnersError } = await supabase
       .from('referrals')
-      .select('code, name, email, phone, total_referrals, total_paid');
+      .select('code, name, first_name, last_name, email, phone, stripe_account_id, active, total_referrals, total_paid');
+    if (partnersError) throw partnersError;
 
-    if (refError) throw refError;
-
-    const payoutMap = {};
-    // Load every partner once so we can (a) reject codes that don't belong to a real
-  // partner, (b) block self-referrals, and (c) skip deactivated partners.
-  const { data: allPartners } = await supabase
-    .from('referrals')
-    .select('code, email, first_name, last_name, phone, stripe_account_id, active');
-  const partnerByCode = {};
-  for (const p of allPartners || []) partnerByCode[String(p.code).trim().toUpperCase()] = p;
-
-  // Orders already settled in a previous payout run must never be paid again.
-  const { data: settled } = await supabase
-    .from('referral_payouts')
-    .select('order_id');
-  const settledOrderIds = new Set((settled || []).map(r => r.order_id));
-
-  const excluded = [];
-
-  for (const order of orders || []) {
-    const code = String(order.ref_code || '').trim().toUpperCase();
-    const partner = partnerByCode[code];
-
-    // 1. Unknown code — an attacker can put any string in ?ref=, so a code that
-    //    matches no partner must never appear on a payout sheet.
-    if (!partner) { excluded.push({ order: order.id, code, reason: 'unknown_referral_code' }); continue; }
-
-    // 2. Deactivated partner. `active` was previously written and never read, so
-    //    suspending a partner you caught defrauding you had no effect.
-    if (partner.active === false) { excluded.push({ order: order.id, code, reason: 'partner_inactive' }); continue; }
-
-    // 3. SELF-REFERRAL. Nothing previously compared the buyer to the partner, so
-    //    anyone could register, buy through their own link, and take $20 off their
-    //    own $89 — repeatedly, at scale, with disposable emails.
-    if (partner.email && order.customer_email &&
-        String(partner.email).trim().toLowerCase() === String(order.customer_email).trim().toLowerCase()) {
-      excluded.push({ order: order.id, code, reason: 'self_referral' }); continue;
+    // The whole ledger, not this period's slice — see the same note in the cron.
+    const { data: ledger, error: ledgerError } = await supabase
+      .from('referral_payouts')
+      .select('order_id, ref_code, amount_cents, status, stripe_transfer_id, paid_at');
+    if (ledgerError) {
+      // Do not fall through to an empty Set. "Nothing has ever been paid" is a
+      // dangerous default for a sheet someone works from.
+      throw new Error(
+        `referral_payouts is unreadable (${ledgerError.message}). ` +
+        `If the table does not exist yet, run scripts/sql/referral_payouts.sql.`
+      );
     }
 
-    // 4. Payment must still be good. Refunds and chargebacks previously had no
-    //    effect on payouts at all.
-    if (order.payment_status && order.payment_status !== 'paid') {
-      excluded.push({ order: order.id, code, reason: `payment_${order.payment_status}` }); continue;
-    }
+    const paidRows = (ledger || []).filter(r => r.status === 'paid');
+    const paidOrderIds = new Set(paidRows.map(r => r.order_id));
 
-    // 5. Never pay the same order twice across runs.
-    if (settledOrderIds.has(order.id)) { excluded.push({ order: order.id, code, reason: 'already_settled' }); continue; }
+    // requirePayoutAccount stays FALSE here. This sheet answers "what do we owe",
+    // and we owe a partner their $20 whether or not they have connected a bank yet.
+    // The cron applies that filter when it is time to actually send it.
+    const result = settle({
+      orders: orders || [],
+      partners: partners || [],
+      settledOrderIds: paidOrderIds,
+      requirePayoutAccount: false,
+    });
 
-      if (!order.ref_code) continue;
-      if (!payoutMap[order.ref_code]) {
-        payoutMap[order.ref_code] = { code: order.ref_code, orders: [], orderCount: 0, payoutDue: 0 };
-      }
-      payoutMap[order.ref_code].orders.push({ orderId: order.id, customerName: order.customer_name, address: order.property_address, date: order.created_at });
-      payoutMap[order.ref_code].orderCount++;
-      payoutMap[order.ref_code].payoutDue += 2000;
-    }
+    const payouts = result.payable.map(g => ({
+      code: g.code,
+      orderCount: g.orderCount,
+      payoutDue: dollars(g.amountCents),
+      // Surfaced so the sheet says WHY a partner is on it but unpayable, instead of
+      // the operator finding out from the cron's held-for-no-bank list a month later.
+      payoutReady: Boolean(g.partner?.stripe_account_id),
+      referrer: {
+        name: g.partner?.name || [g.partner?.first_name, g.partner?.last_name].filter(Boolean).join(' ') || 'Unknown',
+        email: g.partner?.email || null,
+        phone: g.partner?.phone || null,
+      },
+      orders: g.orders.map(o => ({
+        orderId: o.id,
+        customerName: o.customer_name,
+        address: o.property_address,
+        date: o.created_at,
+      })),
+    }));
 
-    const referrerMap = {};
-    for (const r of referrers || []) referrerMap[r.code] = r;
-
-    const payouts = Object.values(payoutMap).map(p => ({
-      ...p,
-      payoutDue: p.payoutDue / 100,
-      referrer: referrerMap[p.code] || { name: 'Unknown', email: null },
-    })).sort((a, b) => b.payoutDue - a.payoutDue);
+    // What this period has ALREADY been paid, straight from the ledger. Without it
+    // a re-run of this sheet after settlement looks like the money vanished: the
+    // orders drop off `payouts` (correctly — they are settled) and nothing accounts
+    // for them.
+    const periodOrderIds = new Set((orders || []).map(o => o.id));
+    const alreadyPaid = paidRows.filter(r => periodOrderIds.has(r.order_id));
+    const alreadyPaidCents = alreadyPaid.reduce((s, r) => s + (r.amount_cents || 0), 0);
 
     return res.status(200).json({
+      period: { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] },
+      ratePerReferral: dollars(REFERRAL_PAYOUT_CENTS),
+      summary: {
+        totalPayoutDue: dollars(result.totalCents),
+        totalOrders: result.totalOrders,
+        activeReferrers: payouts.length,
+        awaitingPayoutAccount: payouts.filter(p => !p.payoutReady).length,
+        alreadyPaidThisPeriod: dollars(alreadyPaidCents),
+        alreadyPaidOrders: alreadyPaid.length,
+      },
+      payouts,
       // Excluded orders are reported, not silently dropped — a payout sheet that
       // quietly shrinks is worse than one that explains itself.
-      excluded,
-      period: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
-      summary: { totalPayoutDue: payouts.reduce((s,p)=>s+p.payoutDue,0), totalOrders: payouts.reduce((s,p)=>s+p.orderCount,0), activeReferrers: payouts.length },
-      payouts,
+      excluded: result.excluded,
     });
   } catch (err) {
     console.error('Referral stats error:', err);

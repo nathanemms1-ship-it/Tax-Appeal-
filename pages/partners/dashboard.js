@@ -3,6 +3,23 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { FILING_WINDOWS } from '../../lib/filingWindows';
+
+/**
+ * Florida's opening date, read from the one table that decides it.
+ *
+ * This page hardcoded "August 11" in two places. lib/filingWindows.js moved FL to
+ * 24 August — and these two strings did not, so the dashboard was telling partners
+ * to start calling clients thirteen days before we could file anything for them.
+ * That is the exact drift lib/filingWindows.js was created to end; the fix is to
+ * read from it rather than to correct the copy and wait for the next move.
+ */
+const FL_OPEN_LABEL = (() => {
+  const fw = FILING_WINDOWS.FL;
+  if (!fw) return '';
+  return new Date(2000, fw.openMonth - 1, fw.openDay)
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+})();
 
 const C = {
   navy: '#1B3A6B', gold: '#FFC940', darkNavy: '#0F1F3D', bg: '#F4F7FC',
@@ -85,6 +102,33 @@ function StripeStatusBadge({ stripe, refCode, email }) {
       </button>
     </div>
   );
+}
+
+/**
+ * Plain-English versions of the exclusion reasons from lib/referralSettlement.js.
+ *
+ * Written for the partner, not for us. "payment_refunded" means nothing to a real
+ * estate agent looking at a number that is smaller than they expected, and a partner
+ * who cannot see WHY has no option except to email and ask.
+ *
+ * `self_referral` is worded as a rule rather than an accusation — the common case is
+ * a partner testing their own link, not someone gaming us.
+ */
+const NOT_COUNTED_LABELS = {
+  unknown_referral_code: 'used a referral code we could not match',
+  partner_inactive: 'placed while your partner account was inactive',
+  self_referral: 'placed from your own email address — the program pays for clients you refer, not your own filings',
+  already_settled: 'already paid out in an earlier run',
+  no_payout_account: 'waiting on your bank connection',
+  payment_unknown: 'started but never completed payment',
+  payment_pending: 'payment still processing',
+  payment_refunded: 'refunded to the customer',
+  payment_failed: 'payment failed',
+};
+
+function describeNotCounted(reason) {
+  if (String(reason).startsWith('payment_')) return 'not completed at checkout';
+  return 'not eligible';
 }
 
 function formatDate(iso) {
@@ -249,13 +293,62 @@ export default function PartnerDashboard() {
             <p style={{ fontSize: 14, color: C.bodyGray }}>Partner since {formatMonth(data.partner.memberSince)} · Code: <strong style={{ color: C.navy }}>{data.partner.code}</strong></p>
           </div>
 
-          {/* Stats grid */}
+          {/* Stats grid
+              EARNED, PAID and PENDING ARE THREE DIFFERENT NUMBERS. Keep them that way.
+
+              This grid used to render `data.lastMonth.earnings` under the label
+              "paid out" — a figure computed by multiplying a row count by 20, from a
+              handler with no knowledge of whether any money had ever been sent. At
+              the time there was no settlement run at all, so that caption was false
+              for every partner who ever read it.
+
+              /api/partner-stats now returns `paid` (rows in the payout ledger with a
+              confirmed Stripe transfer) separately from `pending` (earned, not yet
+              sent). Only `paid` may ever be captioned as paid. If you find yourself
+              wanting a fallback like `data.paid?.amount ?? data.allTime.earnings`,
+              that fallback is the original bug. */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-            <StatCard label="All-time referrals" value={data.allTime.referrals} sub={`$${data.allTime.earnings.toLocaleString()} earned total`} />
-            <StatCard label={`${data.thisMonth.month} referrals`} value={data.thisMonth.referrals} sub={`$${data.thisMonth.earnings} pending payout`} highlight />
-            <StatCard label={`${data.lastMonth.month}`} value={data.lastMonth.referrals} sub={`$${data.lastMonth.earnings} paid out`} />
-            <StatCard label="Per referral" value="$20" sub="Paid 1st of each month" />
+            <StatCard
+              label="All-time referrals"
+              value={data.allTime.referrals}
+              sub={`$${data.allTime.earnings.toLocaleString()} earned total`}
+            />
+            <StatCard
+              label="Pending payout"
+              value={`$${(data.pending?.amount ?? 0).toLocaleString()}`}
+              sub={`${data.pending?.orders ?? 0} referral${(data.pending?.orders ?? 0) === 1 ? '' : 's'} awaiting the next run`}
+              highlight
+            />
+            <StatCard
+              label="Paid to date"
+              value={`$${(data.paid?.amount ?? 0).toLocaleString()}`}
+              sub={`${data.paid?.orders ?? 0} referral${(data.paid?.orders ?? 0) === 1 ? '' : 's'} sent to your bank`}
+            />
+            <StatCard
+              label={`${data.thisMonth.month} referrals`}
+              value={data.thisMonth.referrals}
+              sub={`$${data.thisMonth.earnings} earned this month`}
+            />
           </div>
+
+          {/* Why a referral they can see did not count. Without this the only person
+              who can explain a gap between "orders I sent you" and "referrals shown"
+              is us, by email, one partner at a time. */}
+          {data.notCounted && Object.keys(data.notCounted).length > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#92400e', marginBottom: 6 }}>
+                Some clicks on your link didn&apos;t become paid referrals
+              </div>
+              <div style={{ fontSize: 12, color: '#78350f', lineHeight: 1.7 }}>
+                {Object.entries(data.notCounted).map(([reason, count]) => (
+                  <div key={reason}>{count} × {NOT_COUNTED_LABELS[reason] || describeNotCounted(reason)}</div>
+                ))}
+                <div style={{ marginTop: 6 }}>
+                  Questions about any of these? Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#92400e' }}>customerservice@taxappealusa.com</a>.
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="main-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
 
@@ -272,7 +365,7 @@ export default function PartnerDashboard() {
                   <CopyButton text={data.partner.referralLink} />
                 </div>
                 <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
-                  Share this link via text, email, or your email signature. Every homeowner who clicks it and completes their $89 filing earns you $20 — automatically tracked.
+                  Share this link via text, email, or your email signature. Every homeowner who clicks it and completes a paid filing earns you ${data.ratePerReferral ?? 20} — automatically tracked.
                 </p>
               </div>
 
@@ -282,7 +375,14 @@ export default function PartnerDashboard() {
                 <StripeStatusBadge stripe={data.stripe} refCode={data.partner.code} email={data.partner.email} />
                 {data.stripe.status === 'active' && (
                   <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
-                    Payouts are sent on the 1st of each month for the previous month's referrals. If you earn $600+ in a year, Stripe will issue a 1099-NEC automatically.
+                    Payouts run on the 1st of each month for the previous month&apos;s completed referrals.
+                    {/* "Stripe will issue a 1099-NEC automatically" was stated as fact.
+                        Whether it happens depends on Stripe tax reporting being
+                        configured on the platform account, which is a setting, not a
+                        law of nature — and if it is off, nobody files anything and the
+                        partner finds out in April. Worded as what we will do, and the
+                        partner is told to keep their own records either way. */}
+                    {' '}Referral earnings are self-employment income and we do not withhold tax. If you receive $600 or more from us in a calendar year we will arrange the required 1099-NEC using the details you gave Stripe — keep your own record of what you receive regardless.
                   </p>
                 )}
               </div>
@@ -295,7 +395,7 @@ export default function PartnerDashboard() {
                     <div style={{ fontSize: 28, marginBottom: 10 }}>📬</div>
                     <div style={{ fontSize: 14, color: C.bodyGray, marginBottom: 6 }}>No referrals yet</div>
                     <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
-                      Share your referral link with homeowners in your network. Filing season opens August 11 for Florida — a great time to reach out.
+                      Share your referral link with homeowners in your network. Florida&apos;s filing season opens {FL_OPEN_LABEL} — a great time to reach out.
                     </div>
                   </div>
                 ) : (
@@ -308,7 +408,10 @@ export default function PartnerDashboard() {
                           </div>
                           <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 2 }}>{formatDate(item.date)}</div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.green }}>+${item.earnings}</div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: C.green }}>+${item.earnings}</div>
+                          <div style={{ fontSize: 10, color: C.mutedGray, marginTop: 2 }}>{item.paid ? 'paid' : 'pending'}</div>
+                        </div>
                       </div>
                     ))}
                     {data.allTime.referrals > 10 && (
@@ -336,7 +439,7 @@ export default function PartnerDashboard() {
                         <div key={state} style={{ marginBottom: 14 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                             <span style={{ fontSize: 13, color: C.darkNavy }}>{STATE_LABELS[state] || state}</span>
-                            <span style={{ fontSize: 13, color: C.bodyGray }}>{count} · ${count * 20}</span>
+                            <span style={{ fontSize: 13, color: C.bodyGray }}>{count} · ${count * (data.ratePerReferral ?? 20)}</span>
                           </div>
                           <div style={{ height: 6, background: C.bg, borderRadius: 99, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${pct}%`, background: C.navy, borderRadius: 99 }} />
@@ -355,16 +458,22 @@ export default function PartnerDashboard() {
                 {data.thisMonth.referrals === 0 ? (
                   <>
                     <p style={{ fontSize: 13, color: '#8596AF', lineHeight: 1.7, marginBottom: 14 }}>
-                      Florida's filing window opens <strong style={{ color: C.white }}>August 11</strong>. This week is the perfect time to reach out — homeowners are getting their TRIM notices right now.
+                      Florida&apos;s filing window opens <strong style={{ color: C.white }}>{FL_OPEN_LABEL}</strong>. Now is a good time to reach out — homeowners are getting their TRIM notices.
                     </p>
                     <div style={{ background: '#0F1F3D', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#8596AF', lineHeight: 1.7, fontStyle: 'italic' }}>
-                      "Your property tax notice just arrived — here's how to fight it for $89 flat: {data.partner.referralLink}"
+                      {/* "$89 flat" is true in Texas and Georgia and FALSE in Florida,
+                          where the county's mandatory VAB filing fee ($15–$50, set by
+                          statute per county) is charged on top — see pages/florida.js
+                          and lib/flCountyFees.js. This card appears during the Florida
+                          season, so the flat-fee wording was wrong precisely when it
+                          was shown most. */}
+                      &ldquo;Your property tax notice just arrived — here&apos;s how to appeal it. $89 plus your county&apos;s filing fee, no percentage of your savings: {data.partner.referralLink}&rdquo;
                     </div>
                   </>
                 ) : (
                   <>
                     <p style={{ fontSize: 13, color: '#8596AF', lineHeight: 1.7, marginBottom: 14 }}>
-                      You've referred <strong style={{ color: C.white }}>{data.thisMonth.referrals} homeowner{data.thisMonth.referrals !== 1 ? 's' : ''}</strong> this month. Every referral you made earns $20 — paid on the 1st.
+                      You&apos;ve referred <strong style={{ color: C.white }}>{data.thisMonth.referrals} homeowner{data.thisMonth.referrals !== 1 ? 's' : ''}</strong> this month, worth ${data.thisMonth.earnings}. It goes out in the settlement run on the 1st{data.stripe.status === 'active' ? '' : ' — once your bank account is connected'}.
                     </p>
                     <p style={{ fontSize: 12, color: '#5A7A9F', lineHeight: 1.6 }}>
                       Remember: customers get a renewal reminder 11 months after filing. If they refile through your link, you earn another $20.
@@ -380,11 +489,13 @@ export default function PartnerDashboard() {
                   {[
                     {
                       label: '📧 Email template',
-                      text: `Subject: Save money on your property taxes\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They prepare a formal protest letter with comparable sales data and prepare and mail it for $89 flat — no percentage of your savings.\n\nTakes about 4 minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
+                      // Templates a partner sends to THEIR clients under their own name.
+                      // A price we overstate here is a price they get held to.
+                      text: `Subject: Your property tax assessment\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They prepare a formal appeal with comparable sales data, you sign it, and they mail it for you. $89 plus your county's filing fee if there is one — no percentage of your savings.\n\nTakes about 4 minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
                     },
                     {
                       label: '💬 Text message',
-                      text: `Your property tax notice just arrived — worth protesting if you haven't. TaxAppeal USA files it for $89 flat, no % taken. Here's my link: ${data.partner.referralLink}`,
+                      text: `Your property tax notice just arrived — worth appealing if you haven't. TaxAppeal USA prepares and mails it: $89 plus the county filing fee, no % taken. Here's my link: ${data.partner.referralLink}`,
                     },
                   ].map(({ label, text }) => (
                     <button
