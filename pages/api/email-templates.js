@@ -1,4 +1,5 @@
 import { escapeHtml as h } from '../../lib/escape';
+import { BUSINESS_NAME, BUSINESS_ADDRESS, BUSINESS_ADDRESS_LINES } from '../../lib/businessInfo';
 
 /**
  * Every ${...} below that carries a customer-supplied or vendor-supplied value is
@@ -314,7 +315,8 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <div style="font-size:12px;color:#999;">
                 TaxAppeal USA · taxappealusa.com<br/>
                 Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
-                Filing disputes handled exclusively at <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
+                Filing disputes handled exclusively at <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
+                ${BUSINESS_NAME}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
               </div>
               <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
             </td>
@@ -375,7 +377,8 @@ export function deliveryEmailTemplate({ firstName, trackingNumber, address, coun
             <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
               <div style="font-size:12px;color:#999;">
                 TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
-                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
+                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
+                ${BUSINESS_NAME}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
               </div>
               <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
             </td>
@@ -449,7 +452,8 @@ export function deliveryConfirmationEmail({ customerName, address, districtName,
             <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
               <div style="font-size:12px;color:#999;">
                 TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
-                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a>
+                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
+                ${BUSINESS_NAME}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
               </div>
               <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
             </td>
@@ -468,6 +472,8 @@ Good news — your property tax protest letter${address ? ` for ${address}` : ''
 The district will review your protest and send their decision — typically within 30-90 days. Watch your mail and email for a notice from the appraisal district.
 ${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}\n` : ''}
 Questions? Email us at customerservice@taxappealusa.com
+
+${BUSINESS_NAME}, ${BUSINESS_ADDRESS}
 
 © ${year} TaxAppeal USA`;
 

@@ -1,6 +1,7 @@
 // pages/terms.js
 import Head from 'next/head';
 import Link from 'next/link';
+import { BUSINESS_NAME, BUSINESS_ADDRESS_LINES, SUPPORT_EMAIL } from '../lib/businessInfo';
 
 export default function Terms() {
   return (
@@ -66,8 +67,8 @@ export default function Terms() {
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>10. Contact</h2>
             <p>
               For questions about these Terms or your filing, contact us at:<br />
-              <strong>Customer Service:</strong> <a href="mailto:customerservice@taxappealusa.com" style={{ color: '#C9A84C' }}>customerservice@taxappealusa.com</a><br />
-      
+              <strong>Customer Service:</strong> <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: '#C9A84C' }}>{SUPPORT_EMAIL}</a><br />
+              <strong>Mailing address:</strong> {BUSINESS_NAME}, {BUSINESS_ADDRESS_LINES[0]}, {BUSINESS_ADDRESS_LINES[1]}
             </p>
 
           <div style={{ marginBottom: 24 }}>
