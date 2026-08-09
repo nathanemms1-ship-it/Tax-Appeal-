@@ -240,12 +240,22 @@ t('/partners no longer advertises Arkansas and Alabama as served',
 
 // Sanity-check the derived number against the address table it comes from, so a
 // refactor of serviceCoverage that silently returns 0 or 67 is caught.
-t('Florida supported-county count is plausible',
-  coverage.florida.supported > 0 && coverage.florida.supported <= 67,
-  `got ${coverage.florida.supported}`);
-t('Florida supported + pending accounts for every county',
-  coverage.florida.supported + coverage.florida.pending === 67,
-  `${coverage.florida.supported} + ${coverage.florida.pending} != 67`);
+t('every Florida county is SERVED — served is not the same as automated',
+  coverage.florida.served === 67,
+  'an unconfirmed county is accepted, disclosed before payment and filed by hand; ' +
+  'saying we serve fewer tells partners not to refer clients we would happily file for');
+t('the automated count is plausible',
+  coverage.florida.automatic > 0 && coverage.florida.automatic <= 67,
+  `got ${coverage.florida.automatic}`);
+t('automatic + hand-filed accounts for every county',
+  coverage.florida.automatic + coverage.florida.handFiled === 67,
+  `${coverage.florida.automatic} + ${coverage.florida.handFiled} != 67`);
+t('the ambiguous `supported` field is gone for good',
+  coverage.florida.supported === undefined,
+  'that name is what let served and automated be collapsed into one wrong number');
+t('/partners and /florida agree that all 67 are served',
+  /all \{coverage\.florida\.served\}/.test(partners) && /all 67/.test(read('pages/florida.js')),
+  'two pages on one site disagreeing about coverage is worse than either being wrong alone');
 
 // ============================================================================
 // 5. PRICING AND EARNINGS CLAIMS
