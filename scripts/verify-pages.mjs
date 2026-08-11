@@ -735,69 +735,85 @@ if (flChecked) {
    * check EVERY dollar amount sitting near fee language anywhere in that post.
    * A page states one price or it is wrong.
    */
+  /**
+   * SCAN EVERY STRING LITERAL, IN EVERY POST, FOR EVERY COUNTY.
+   *
+   * Third rewrite, and the reason is the same each time: the check keyed on ONE
+   * shape of claim and declared the class clean.
+   *
+   *   v1  matched the bullet `"<County> VAB filing fee: $NN"` and missed the FAQ
+   *       answers, so Polk shipped saying $50 in the bullet and $15 in the FAQ.
+   *   v2  added FAQ pairs but still identified ONE county per post, so
+   *       /blog/florida-vab-filing-fee-by-county-2026 — a post whose entire purpose
+   *       is an eleven-county fee table — was skipped end to end. Clay sat there
+   *       reading "$35-$50 per petition" against a $35 charge.
+   *
+   * So: no per-post county. Walk the string literals; any literal that names a
+   * Florida county AND talks about a fee gets its amounts checked against that
+   * county's row. A FAQ question pulls in the following literal (its answer), and
+   * only then — a bullet must not borrow the next bullet's numbers.
+   */
   const claims = [];
+  const CAP_PHRASING = /\b(?:up to|as much as|maximum(?: of| to)?|no more than|capped at|range[sd]? from)\b[^.]{0,30}/gi;
+
   for (const chunk of src.split(/slug: "/).slice(1)) {
     const slug = (chunk.match(/^([^"]+)"/) || [])[1] || '(unknown)';
     /**
-     * The county name must come from the county LIST, not from a regex capture.
-     *
-     * My first version took whatever preceded "VAB filing fee" and got
-     * "What is the Manatee" out of the FAQ question. That name is not in the table
-     * — and getFlVabFee does not return null for an unknown county, it returns a
-     * $50 `estimated` FALLBACK. So every post was judged against a guessed fee and
-     * reported as a county we refuse. The guard `if (!fee) continue` cannot work
-     * against a function that always answers.
+     * The leading quote is restored on purpose. `split(/slug: "/)` cuts AFTER the
+     * opening quote of the slug, so the first quote in the chunk is a CLOSING one
+     * and every quote pair from there on is offset by one — each "literal" I
+     * extracted was the text BETWEEN two real literals. The check found zero fee
+     * claims in a file full of them and reported success.
      */
-    const county = FL_COUNTY_NAMES.find((n) => chunk.includes(`${n} County VAB filing fee`) || chunk.includes(`"${n} VAB filing fee:`));
-    if (!county) continue;
-    /**
-     * The window must cross string boundaries, and that is the whole point.
-     *
-     * It was `[^"]{0,80}` — which cannot span a quote, so it could never see a FAQ
-     * pair like `"...VAB filing fee?", "Approximately $15 per petition."` where the
-     * keyword and the amount live in two adjacent strings. That is exactly the
-     * shape that shipped $50-and-$15 on the same page, and the first two injection
-     * tests of this check sailed through because of it.
-     *
-     * Safe to widen because the text is already chunked per post, so a match cannot
-     * reach into a different county's guide.
-     */
-    /**
-     * Crosses a quote, never a bracket.
-     *
-     * `[^"]` was too tight — it could not span the `", "` inside a FAQ pair, which
-     * is exactly where the $15 hid. `[\s\S]` was too loose — it reached backwards
-     * over `"], ["` into the PREVIOUS FAQ answer and read a "$255-735 per year"
-     * savings figure as a filing fee.
-     *
-     * Excluding brackets is the seam: a question and its answer sit inside one
-     * array entry, so the window stays within a single claim.
-     */
-    const near = String.raw`[^\[\]]{0,80}`;
-    // (?![\d,.]) so a house price cannot be read as a fee. Widening the window to
-    // cross string boundaries immediately produced a false positive on "$350,000"
-    // in a market-conditions paragraph 80 characters from the word "fee".
-    /**
-     * A RANGE HAS TWO ENDS AND BOTH ARE CLAIMS.
-     *
-     * "Charlotte VAB filing fee: Approximately $15-30 per petition" passed every
-     * version of this check, because only the "$15" carries a dollar sign and it
-     * happened to match the table. The "30" is an assertion that the fee might be
-     * twice what we charge, on a page whose own FAQ said $15 — caught by opening
-     * the live page, not by the build. Again.
-     *
-     * So the bare upper bound of a "$NN-NN" range counts as a quoted amount too.
-     */
-    const rangeTops = [...chunk.matchAll(new RegExp(String.raw`\$\d{1,3}\s*[-\u2013]\s*(\d{1,3})(?![\d,.])${near}(?:VAB|petition|filing)\s*fee`, 'gi'))]
-      .concat([...chunk.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${near}\$\d{1,3}\s*[-\u2013]\s*(\d{1,3})(?![\d,.])`, 'gi'))])
-      .map((m) => Number(m[1]));
+    const literals = [...('"' + chunk).matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
 
-    const amounts = [
-      ...chunk.matchAll(new RegExp(String.raw`\$(\d{1,3})(?![\d,.])${near}(?:VAB|petition|filing)\s*fee`, 'gi')),
-      ...chunk.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${near}\$(\d{1,3})(?![\d,.])`, 'gi')),
-    ].map((m) => Number(m[1]));
-    claims.push([slug, county.trim(), [...new Set([...amounts, ...rangeTops])]]);
+    for (let i = 0; i < literals.length; i++) {
+      const lit = literals[i];
+      /**
+       * EXACTLY ONE COUNTY, OR IT IS NOT A PER-COUNTY CLAIM.
+       *
+       * `.find()` returned whichever county sorted first, so the sentence "We pull
+       * your Miami-Dade, Broward, or Palm Beach County assessment data" was
+       * attributed to Broward and judged against Broward's $25. A literal naming
+       * several counties is a general statement by definition; there is no single
+       * fee it could be quoting.
+       */
+      const named = FL_COUNTY_NAMES.filter((n) => lit.includes(n));
+      if (named.length !== 1) continue;
+      const county = named[0];
+      if (!/(?:VAB|petition|filing)\s*fee|per petition/i.test(lit)) continue;
+
+      // A question borrows its answer. Nothing else borrows anything.
+      const scan = (lit + (lit.trim().endsWith('?') ? ' ' + (literals[i + 1] || '') : ''))
+        .replace(CAP_PHRASING, '');   // a statutory ceiling is not a price quote
+
+      /**
+       * PROXIMITY, NOT CO-PRESENCE. Within a sentence of the fee language.
+       *
+       * Taking every amount in the literal was too coarse: a body paragraph that
+       * names the county, mentions a filing fee somewhere, and also quotes typical
+       * savings produced "Manatee quotes $540, $660" against a $50 fee. Ten posts
+       * failed on figures that were never fee claims.
+       *
+       * `[^.]{0,60}` keeps the match inside one sentence, which is the natural
+       * boundary in prose and costs nothing in the bullets and FAQ answers, where
+       * the amount sits directly beside the words.
+       */
+      const FEE = String.raw`(?:VAB|petition|filing)\s*fee|per petition`;
+      const WIN = String.raw`[^.]{0,60}`;
+      const amounts = [
+        ...scan.matchAll(new RegExp(String.raw`\$(\d{1,3})(?![\d,.])${WIN}(?:${FEE})`, 'gi')),
+        ...scan.matchAll(new RegExp(String.raw`(?:${FEE})${WIN}\$(\d{1,3})(?![\d,.])`, 'gi')),
+      ].map((m) => Number(m[1]));
+      const rangeTops = [
+        ...scan.matchAll(new RegExp(String.raw`\$\d{1,3}\s*[-\u2013]\s*\$?(\d{1,3})(?![\d,.])${WIN}(?:${FEE})`, 'gi')),
+        ...scan.matchAll(new RegExp(String.raw`(?:${FEE})${WIN}\$\d{1,3}\s*[-\u2013]\s*\$?(\d{1,3})(?![\d,.])`, 'gi')),
+      ].map((m) => Number(m[1]));
+      const all = [...new Set([...amounts, ...rangeTops])];
+      if (all.length) claims.push([slug, county, all]);
+    }
   }
+
   const bad = [];
 
   for (const [slug, county, amounts] of claims) {
@@ -822,8 +838,22 @@ if (flChecked) {
     failures++;
     console.error(`  FAIL  ${bad.length} blog county guide(s) quote a VAB fee that is not what checkout charges`);
     bad.forEach((b) => console.error(`          ${b}`));
-  } else if (claims.length) {
-    console.log(`  ${claims.length} blog county guides quote the fee checkout charges`);
+  } else if (claims.length >= 15) {
+    console.log(`  ${claims.length} blog fee claims match what checkout charges`);
+  } else {
+    /**
+     * A CHECK THAT MATCHES NOTHING IS NOT A PASSING CHECK.
+     *
+     * The rewrite above shipped once with an off-by-one in the literal pairing. It
+     * found zero claims, printed nothing, and let the suite go green over a file
+     * with dozens of fee statements in it. Silence looked identical to success.
+     *
+     * There are at least 15 per-county fee claims in blogPosts.js today. If this
+     * ever sees materially fewer, the extractor has broken — which is a louder
+     * problem than any single wrong fee.
+     */
+    failures++;
+    console.error(`  FAIL  the blog fee check found only ${claims.length} claims — it has stopped matching, not started passing`);
   }
 }
 
