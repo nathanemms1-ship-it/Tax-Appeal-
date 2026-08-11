@@ -717,30 +717,89 @@ if (flChecked) {
  */
 {
   const { getFlVabFee } = await import('../lib/flCountyFees.js');
-  const { isFlCountySupported } = await import('../lib/flVabAddresses.js');
+  const { isFlCountySupported, FL_COUNTY_NAMES } = await import('../lib/flVabAddresses.js');
   const src = fs.readFileSync(path.join('lib', 'blogPosts.js'), 'utf8');
 
-  const claims = [...src.matchAll(/"([A-Z][A-Za-z.\- ]+?)(?: County)? VAB filing fee:([^"]*)"/g)];
+  /**
+   * SCAN THE WHOLE POST, NOT ONE PHRASING.
+   *
+   * The first version of this check matched only the bullet form
+   * `"<County> VAB filing fee: $NN per petition"`. It went green while every one of
+   * these guides ALSO carried a FAQ entry — `"What is the Polk County VAB filing
+   * fee?", "Approximately $15 per petition"` — that it never looked at. Result:
+   * /blog/polk-county-... shipped saying $50 in the fee breakdown and $15 in the
+   * FAQ, contradicting itself on one page, while this check reported success. It
+   * was caught by opening the live page, not by the build.
+   *
+   * So: split the file into posts, and for each post that names a Florida county,
+   * check EVERY dollar amount sitting near fee language anywhere in that post.
+   * A page states one price or it is wrong.
+   */
+  const claims = [];
+  for (const chunk of src.split(/slug: "/).slice(1)) {
+    const slug = (chunk.match(/^([^"]+)"/) || [])[1] || '(unknown)';
+    /**
+     * The county name must come from the county LIST, not from a regex capture.
+     *
+     * My first version took whatever preceded "VAB filing fee" and got
+     * "What is the Manatee" out of the FAQ question. That name is not in the table
+     * — and getFlVabFee does not return null for an unknown county, it returns a
+     * $50 `estimated` FALLBACK. So every post was judged against a guessed fee and
+     * reported as a county we refuse. The guard `if (!fee) continue` cannot work
+     * against a function that always answers.
+     */
+    const county = FL_COUNTY_NAMES.find((n) => chunk.includes(`${n} County VAB filing fee`) || chunk.includes(`"${n} VAB filing fee:`));
+    if (!county) continue;
+    /**
+     * The window must cross string boundaries, and that is the whole point.
+     *
+     * It was `[^"]{0,80}` — which cannot span a quote, so it could never see a FAQ
+     * pair like `"...VAB filing fee?", "Approximately $15 per petition."` where the
+     * keyword and the amount live in two adjacent strings. That is exactly the
+     * shape that shipped $50-and-$15 on the same page, and the first two injection
+     * tests of this check sailed through because of it.
+     *
+     * Safe to widen because the text is already chunked per post, so a match cannot
+     * reach into a different county's guide.
+     */
+    /**
+     * Crosses a quote, never a bracket.
+     *
+     * `[^"]` was too tight — it could not span the `", "` inside a FAQ pair, which
+     * is exactly where the $15 hid. `[\s\S]` was too loose — it reached backwards
+     * over `"], ["` into the PREVIOUS FAQ answer and read a "$255-735 per year"
+     * savings figure as a filing fee.
+     *
+     * Excluding brackets is the seam: a question and its answer sit inside one
+     * array entry, so the window stays within a single claim.
+     */
+    const near = String.raw`[^\[\]]{0,80}`;
+    // (?![\d,.]) so a house price cannot be read as a fee. Widening the window to
+    // cross string boundaries immediately produced a false positive on "$350,000"
+    // in a market-conditions paragraph 80 characters from the word "fee".
+    const amounts = [
+      ...chunk.matchAll(new RegExp(String.raw`\$(\d{1,3})(?![\d,.])${near}(?:VAB|petition|filing)\s*fee`, 'gi')),
+      ...chunk.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${near}\$(\d{1,3})(?![\d,.])`, 'gi')),
+    ].map((m) => Number(m[1]));
+    claims.push([slug, county.trim(), [...new Set(amounts)]]);
+  }
   const bad = [];
 
-  for (const [whole, rawCounty, rest] of claims) {
-    const county = rawCounty.trim();
+  for (const [slug, county, amounts] of claims) {
     const fee = getFlVabFee(county);
-    if (!fee) continue;                       // not a county we hold — nothing to compare
     const sellable = isFlCountySupported(county) && fee.confidence === 'confirmed';
     const dollars = fee.vabFee / 100;
-    const amounts = [...rest.matchAll(/\$(\d{1,3})/g)].map((m) => Number(m[1]));
 
     if (!sellable) {
       // The all-in figure cannot appear either, since there is no order to price.
       if (amounts.length) {
-        bad.push(`${county}: quotes $${amounts.join(', $')} but the fee is ${fee.confidence} and checkout refuses ${county} County orders`);
+        bad.push(`${slug}: quotes $${amounts.join(', $')} but the ${county} fee is ${fee.confidence} and checkout refuses those orders`);
       }
       continue;
     }
-    const wrong = [...new Set(amounts.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars))];
+    const wrong = amounts.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars);
     if (wrong.length) {
-      bad.push(`${county}: quotes $${wrong.join(', $')} — lib/flCountyFees.js charges $${dollars}`);
+      bad.push(`${slug}: quotes $${wrong.join(', $')} for ${county} — lib/flCountyFees.js charges $${dollars}`);
     }
   }
 
