@@ -15,7 +15,54 @@ const faqs = [
 ["Does TaxAppeal serve all Hillsborough County cities?","Yes. We serve Tampa, Brandon, Plant City, Riverview, Valrico, Lithia, and every other city in Hillsborough County."]
 ];
 
-export default function Tampa() {
+/**
+ * THE FILING WINDOW DATES ARE DERIVED, NOT TYPED. 11 Aug 2026.
+ *
+ * This page carried `windowOpen = new Date('2026-08-11')`. lib/filingWindows.js
+ * moved Florida to 24 Aug — because filing before TRIM notices exist produces
+ * premature petitions against the prior year's assessed value — and this hardcoded
+ * copy never followed. From 11 Aug the banner read "Florida's filing window is
+ * open, file before your county's 25-day deadline" and linked to /apply, while
+ * pages/apply.js refused anything but a pre-order for another thirteen days.
+ *
+ * The templated city pages (pages/florida/[city].js) were corrected on 10 Aug.
+ * These five hand-written metro pages were missed, and they have zero inbound
+ * internal links, so nothing pointed at them to notice.
+ *
+ * Now from FILING_WINDOWS.FL, the same table the checkout gate reads.
+ * scripts/verify-pages.mjs asserts it.
+ */
+export async function getStaticProps() {
+  const { FILING_WINDOWS } = await import('../lib/filingWindows');
+  /**
+   * THE PETITION DOES NOT GO TO THE PROPERTY APPRAISER, AND THIS PAGE SAID IT DID.
+   *
+   * The contact card below carried the Property Appraiser's street address, phone
+   * number and website under a heading about filing. lib/flVabAddresses.js opens
+   * with the reason that is not a cosmetic error: a DR-486 mailed to the Property
+   * Appraiser is never filed, and the owner loses the appeal year with no recovery,
+   * because Florida's deadline is satisfied by physical receipt.
+   *
+   * Our own dispatch was always correct — send-letter.js reads this same table. It
+   * was the page telling a homeowner who decided to file themselves to mail into a
+   * void.
+   */
+  const { getFlVabAddress } = await import('../lib/flVabAddresses');
+  const w = FILING_WINDOWS.FL;
+  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  return {
+    props: {
+      windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
+      windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
+      trimOpen: pretty(at(w.openMonth, w.openDay)),
+      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+      vab: getFlVabAddress('Hillsborough'),
+    },
+  };
+}
+
+export default function Tampa({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline, vab }) {
 const router = useRouter();
 const [openFaq, setOpenFaq] = useState(null);
 const go = () => router.push('/apply');
@@ -51,8 +98,8 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 
 {(() => {
   const preOrderOpen = new Date('2026-06-12');
-  const windowOpen = new Date('2026-08-11');
-  const windowClose = new Date('2026-09-18');
+  const windowOpen = new Date(windowOpenISO);
+  const windowClose = new Date(windowCloseISO);
   const today = new Date();
   const barStyle = { background: C.gold, color: C.darkNavy, textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
   if (today >= preOrderOpen && today < windowOpen) {
@@ -138,13 +185,13 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 
 <section style={{padding:"56px 40px",background:C.lightBlue}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
-<h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Filing With Hillsborough County VAB</h2>
+<h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Where Your Hillsborough Petition Goes</h2>
 <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal prepares your VAB petition, you sign it, and we mail it with the county filing fee paid to the Hillsborough County Value Adjustment Board, mailed 7+ days before your deadline to ensure timely receipt.</p>
 <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
 <div style={{fontSize:16,fontWeight:600,color:C.darkNavy,marginBottom:16}}>Hillsborough County VAB</div>
-{[["📍","419 Pierce St, Tampa, FL 33602"],["📞","(813) 276-8100"],["🌐","hcpafl.org"],["📅","Deadline: 25 days after TRIM notice (mid-Sept)"],["💵","County VAB fee: $50 (we pay for you)"],["⚖️","Florida Statute §194.011"]].map(([icon,text]) => (
+{[["📍",`${vab.vabName}`],["✉️",`${vab.attn}`],["🏛️",`${vab.street}, ${vab.city}, ${vab.state} ${vab.zip}`],["📅",`Deadline: ${trimDeadline} — by physical receipt, not postmark`],["💵","County VAB fee: $50 (we pay it with your petition — $139 all-in)"],["⚖️","Florida Statute §194.011"]].map(([icon,text]) => (
 <div key={text} style={{display:"flex",gap:10,marginBottom:10,fontSize:13,color:C.bodyGray}}>
 <span style={{flexShrink:0}}>{icon}</span><span>{text}</span>
 </div>

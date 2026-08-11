@@ -217,9 +217,47 @@ for (const [page, county] of FEE_PAGES) {
   if (!file) continue;
   const html = fs.readFileSync(file, 'utf8');
   const dollars = getFlVabFee(county).vabFee / 100;
-  // Every FL VAB fee is a whole number of dollars, so a bare "$NN" is the right match.
-  const quoted = [...html.matchAll(/\$(\d{1,3})\s*(?:per parcel\s*)?(?:county\s*)?(?:VAB|petition|filing)/gi)]
-    .map((m) => Number(m[1]));
+  /**
+   * BOTH ORDERS. The amount can come before the keyword or after it.
+   *
+   * This pattern used to require the amount to PRECEDE the keyword, which made it
+   * blind to the most natural way to write the sentence. On 11 Aug 2026 /orlando
+   * carried a card headed "$50 County Fee Only" whose body read "Orange County's
+   * VAB petition fee is just $15" — and this check passed green, because it matched
+   * "$50 petition" in the heading and never saw the "$15" that came after "fee".
+   * The build reported success on the third occurrence of the exact defect the
+   * comment above says it exists to catch.
+   *
+   * A window rather than adjacency: any dollar amount within ~40 characters of a
+   * fee keyword, in either direction. Wider nets more false positives in principle,
+   * but every FL fee figure on these pages is either the county fee, the $89
+   * service fee, or the all-in — and all three are already allowed below.
+   */
+  /**
+   * A STATUTORY CEILING IS NOT A PRICE QUOTE. Exclusion added the moment the wider
+   * window above was switched on, because it immediately failed a sentence that is
+   * correct and worth keeping:
+   *
+   *   "Miami-Dade charges a $15 VAB filing fee (HB 7031 allows counties up to $50;
+   *    Miami-Dade's own adopted rate is $15)."
+   *
+   * That is the fee explained properly — our figure, the statute's cap, and which
+   * is which. A check that fails on it teaches people to delete the explanation,
+   * which is the opposite of what this file is for. So cap phrasings are removed
+   * before scanning; anything left near a fee keyword is a claim about what THIS
+   * county charges.
+   *
+   * Deliberately narrow: only these three lead-ins, and only for the amount that
+   * immediately follows one. "$50 petition fee" on a $15 county still fails.
+   */
+  const withoutCaps = html.replace(/\b(?:up to|as much as|maximum of|no more than|capped at)\s*\$\d{1,3}/gi, '');
+
+  const NEAR = String.raw`[^<>$]{0,40}`;
+  const quoted = [
+    ...withoutCaps.matchAll(new RegExp(String.raw`\$(\d{1,3})${NEAR}(?:VAB|petition|filing)\s*fee`, 'gi')),
+    ...withoutCaps.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${NEAR}\$(\d{1,3})`, 'gi')),
+    ...withoutCaps.matchAll(/\$(\d{1,3})\s*(?:per parcel\s*)?(?:county\s*)?(?:VAB|petition|filing)/gi),
+  ].map((m) => Number(m[1]));
   const wrong = [...new Set(quoted.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars))];
   if (wrong.length) {
     failures++;
@@ -477,6 +515,241 @@ if (flChecked) {
     stale.forEach((s) => console.error(`          ${s}`));
   } else {
     console.log(`  FL city pages quote the ${right} open date FILING_WINDOWS.FL declares`);
+  }
+}
+
+/**
+ * ============================================================================
+ * THE FIVE HAND-WRITTEN METRO PAGES — DATES AND FILING DESTINATION
+ * ============================================================================
+ * Added 11 Aug 2026, after all five were found live and wrong on the same day.
+ *
+ * /orlando, /miami, /tampa, /jacksonville and /fort-lauderdale predate every
+ * template on the site. They are in the sitemap at priority 0.8+ with ZERO inbound
+ * internal links, so nothing points at them and nobody opens them. Two defects had
+ * survived there for months:
+ *
+ *   1. `windowOpen = new Date('2026-08-11')`, so from 11 Aug they announced
+ *      "Florida's filing window is open — file before your county's 25-day
+ *      deadline" and linked to /apply, while apply.js refused anything but a
+ *      pre-order until the 24th. The templated pages were fixed on 10 Aug; these
+ *      were missed because the existing date check only sampled /florida/[city].
+ *
+ *   2. /miami and /tampa printed the PROPERTY APPRAISER's street address, phone
+ *      and website under a heading about filing. lib/flVabAddresses.js opens with
+ *      why that is not cosmetic: a DR-486 mailed there is never filed and the owner
+ *      loses the year. The misdirect check that catches this already existed — it
+ *      was scoped inside the /counties/* loop and never ran on these pages.
+ *
+ * Both checks below run on the metros specifically, because "it is covered by the
+ * check for the templated pages" is exactly the assumption that let this ship.
+ */
+{
+  const { FILING_WINDOWS } = await import('../lib/filingWindows.js');
+  const { getFlVabAddress } = await import('../lib/flVabAddresses.js');
+  const w = FILING_WINDOWS.FL;
+  const rightOpen = new Date(2026, w.openMonth - 1, w.openDay)
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const METROS = [
+    ['orlando', 'Orange'], ['miami', 'Miami-Dade'], ['tampa', 'Hillsborough'],
+    ['jacksonville', 'Duval'], ['fort-lauderdale', 'Broward'], ['florida', null],
+  ];
+
+  const staleDate = [], openClaim = [], misdirect = [];
+
+  for (const [slug, county] of METROS) {
+    const file = findHtml(slug);
+    if (!file) continue;
+    const raw = fs.readFileSync(file, 'utf8');
+    const text = decodeEntities(visibleText(raw));
+
+    // (a) No August date other than the one FILING_WINDOWS.FL declares.
+    const wrong = [...new Set([...text.matchAll(/August \d{1,2}, 2026/g)].map((m) => m[0]))]
+      .filter((d) => d !== rightOpen);
+    if (wrong.length) staleDate.push(`/${slug}: ${wrong.join(', ')}`);
+
+    /**
+     * (b) The banner itself. The date check alone would NOT have caught this —
+     * `new Date('2026-08-11')` renders as "in N days" or as the open-window banner
+     * and never prints a date string at all. So assert the claim directly: the page
+     * may only say the window is open when FILING_WINDOWS.FL says it is.
+     */
+    const claimsOpen = /filing window is open/i.test(text);
+    const actuallyOpen = (() => {
+      const today = new Date();
+      const open = new Date(2026, w.openMonth - 1, w.openDay);
+      const close = new Date(2026, w.closeMonth - 1, w.closeDay);
+      return today >= open && today <= close;
+    })();
+    if (claimsOpen && !actuallyOpen) openClaim.push(`/${slug}`);
+
+    /**
+     * (c) Where the petition goes.
+     *
+     * The rule is NOT "every metro page must print the VAB address" — my first
+     * version asserted that and failed /orlando, /jacksonville and /fort-lauderdale,
+     * which carry no filing address at all. That is a perfectly good page, and a
+     * check that demands one invents a requirement instead of testing a defect.
+     *
+     * The real failure is a page that presents a filing destination which is not
+     * the Value Adjustment Board. That has a recognisable shape: the words
+     * "Property Appraiser" sitting next to a street address. Naming the office in
+     * an explanatory FAQ ("What is the Miami-Dade Property Appraiser?") is correct
+     * and must keep passing; printing its address under a heading about filing is
+     * what sends a DIY homeowner's petition into a void.
+     *
+     * So: flag a Property Appraiser mention within 200 characters of something
+     * shaped like a street address, unless the county's real VAB street is also on
+     * the page.
+     */
+    if (county) {
+      const vab = getFlVabAddress(county);
+      const STREETISH = String.raw`\d{2,5}\s+[\w.\- ]{2,40}\b(?:St|Street|Ave|Avenue|Blvd|Boulevard|Way|Road|Rd|Drive|Dr)\b`;
+      const near = new RegExp(String.raw`Property Appraiser[\s\S]{0,200}?${STREETISH}|${STREETISH}[\s\S]{0,200}?Property Appraiser`, 'i');
+      if (near.test(text) && vab && !text.includes(vab.street)) {
+        misdirect.push(`/${slug}: a street address sits beside "Property Appraiser" and the ${county} VAB address (${vab.street}) is absent`);
+      }
+    }
+  }
+
+  if (staleDate.length) {
+    failures++;
+    console.error(`  FAIL  metro pages advertise an August date other than the ${rightOpen} open date in FILING_WINDOWS.FL`);
+    staleDate.forEach((x) => console.error(`          ${x}`));
+  }
+  if (openClaim.length) {
+    failures++;
+    console.error(`  FAIL  ${openClaim.join(', ')} claim the filing window is open while FILING_WINDOWS.FL says it is not`);
+    console.error(`          this is the claim a hardcoded date produces WITHOUT printing a date, so the check above cannot see it`);
+  }
+  if (misdirect.length) {
+    failures++;
+    console.error(`  FAIL  a metro page sends petitions to the wrong office`);
+    misdirect.forEach((x) => console.error(`          ${x}`));
+  }
+  /**
+   * ==========================================================================
+   * SOURCE SWEEP — because the HTML sweep above has two blind spots.
+   * ==========================================================================
+   * Found by injection-testing the checks above, which is the only reason I know:
+   *
+   *   - FAQ ANSWERS NEVER REACH THE BUILT HTML. They live in an accordion that
+   *     renders on click, so a hardcoded "typically August 11, 2026" in a FAQ
+   *     answer is invisible to visibleText(). Reintroducing exactly that string on
+   *     /jacksonville passed every check above.
+   *   - A WRONG ADDRESS PASSES IF THE RIGHT ONE IS ALSO PRESENT. The misdirect
+   *     check excuses a page that carries the real VAB street somewhere, so
+   *     swapping the contact card back to the Property Appraiser's address went
+   *     green while the page displayed both.
+   *
+   * The fix is to stop sniffing rendered output for these two and read the source.
+   * A hardcoded Florida date or a hardcoded street literal in one of these files is
+   * wrong on its face, whether or not it happens to render today — that is the
+   * whole reason they are derived.
+   */
+  const srcStale = [];
+  for (const [slug, county] of METROS) {
+    const file = path.join('pages', `${slug}.js`);
+    if (!fs.existsSync(file)) continue;
+    // Comments quote the strings they replaced, deliberately. Read code only.
+    const code = fs.readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+
+    /**
+     * August and September only. `preOrderOpen = new Date('2026-06-12')` is a
+     * legitimate literal — the pre-order date is 60 days ahead of the window and is
+     * not a field in FILING_WINDOWS, so there is nothing to derive it from. My first
+     * pattern covered June too and failed all five pages on a constant that is
+     * correct. The defect is a hardcoded OPEN or CLOSE date, which is 08 or 09.
+     */
+    if (/new Date\('2026-0[89]-\d{2}'\)/.test(code)) {
+      srcStale.push(`/${slug}: hardcoded window open/close date — derive it from FILING_WINDOWS.FL`);
+    }
+    const months = [...new Set([...code.matchAll(/(?:August|September) \d{1,2}, 2026/g)].map((m) => m[0]))];
+    if (months.length) {
+      srcStale.push(`/${slug}: hardcoded date literal ${months.join(', ')} — FAQ answers never reach the built HTML, so only this check sees them`);
+    }
+    if (county) {
+      const vab = getFlVabAddress(county);
+      const streets = [...new Set([...code.matchAll(/["'`]\s*\d{2,5}\s+[\w.\- ]{2,40}\b(?:St|Street|Ave|Avenue|Blvd|Boulevard)\b[^"'`]{0,40}["'`]/g)].map((m) => m[0].trim()))];
+      const bad = streets.filter((t) => !vab || !t.includes(vab.street));
+      if (bad.length) {
+        srcStale.push(`/${slug}: hardcoded street literal ${bad.join(' | ')} — the filing address must come from getFlVabAddress('${county}')`);
+      }
+    }
+  }
+  if (srcStale.length) {
+    failures++;
+    console.error(`  FAIL  a metro page hardcodes a date or an address instead of deriving it`);
+    srcStale.forEach((x) => console.error(`          ${x}`));
+  }
+
+  if (!staleDate.length && !openClaim.length && !misdirect.length && !srcStale.length) {
+    console.log(`  ${METROS.length} metro pages derive the ${rightOpen} open date and name the VAB Clerk`);
+  }
+}
+
+/**
+ * ============================================================================
+ * BLOG COUNTY GUIDES MUST QUOTE THE FEE CHECKOUT CHARGES
+ * ============================================================================
+ * Added 11 Aug 2026. Ten published Florida county guides carried
+ * "<County> VAB filing fee: Approximately $15 per petition" while
+ * lib/flCountyFees.js charged $40–$50 — Polk, St. Johns, Osceola, St. Lucie,
+ * Alachua, Escambia and Bay were all $15 against $50. HB 7031 raised the cap from
+ * $15 to $50 on 1 July 2025 and those counties adopted it; the posts were written
+ * before that and nothing connected them to the table.
+ *
+ * This is the same defect class the FEE_PAGES check above exists for, one layer
+ * out: the metro landing pages were checked and the 192 blog posts were not, even
+ * though a county guide is the page most likely to be read by someone deciding
+ * whether to file in that specific county.
+ *
+ * Two rules, because a county we cannot file in is a different failure from a
+ * county whose price we have wrong:
+ *   - sellable county  -> the post must quote the table fee, and no other amount
+ *   - unsellable county -> the post must NOT quote a fee at all. Nassau's $50 is a
+ *     GUESS; send-letter.js refuses to mail a guessed amount and the funnel
+ *     declines the order, so advertising any figure there is a price we will not
+ *     honour.
+ */
+{
+  const { getFlVabFee } = await import('../lib/flCountyFees.js');
+  const { isFlCountySupported } = await import('../lib/flVabAddresses.js');
+  const src = fs.readFileSync(path.join('lib', 'blogPosts.js'), 'utf8');
+
+  const claims = [...src.matchAll(/"([A-Z][A-Za-z.\- ]+?)(?: County)? VAB filing fee:([^"]*)"/g)];
+  const bad = [];
+
+  for (const [whole, rawCounty, rest] of claims) {
+    const county = rawCounty.trim();
+    const fee = getFlVabFee(county);
+    if (!fee) continue;                       // not a county we hold — nothing to compare
+    const sellable = isFlCountySupported(county) && fee.confidence === 'confirmed';
+    const dollars = fee.vabFee / 100;
+    const amounts = [...rest.matchAll(/\$(\d{1,3})/g)].map((m) => Number(m[1]));
+
+    if (!sellable) {
+      // The all-in figure cannot appear either, since there is no order to price.
+      if (amounts.length) {
+        bad.push(`${county}: quotes $${amounts.join(', $')} but the fee is ${fee.confidence} and checkout refuses ${county} County orders`);
+      }
+      continue;
+    }
+    const wrong = [...new Set(amounts.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars))];
+    if (wrong.length) {
+      bad.push(`${county}: quotes $${wrong.join(', $')} — lib/flCountyFees.js charges $${dollars}`);
+    }
+  }
+
+  if (bad.length) {
+    failures++;
+    console.error(`  FAIL  ${bad.length} blog county guide(s) quote a VAB fee that is not what checkout charges`);
+    bad.forEach((b) => console.error(`          ${b}`));
+  } else if (claims.length) {
+    console.log(`  ${claims.length} blog county guides quote the fee checkout charges`);
   }
 }
 

@@ -51,7 +51,39 @@ const counties = ALL_COUNTIES.filter(c => c.code === 'FL');
 
 
 
-export default function Florida() {
+/**
+ * THE FILING WINDOW DATES ARE DERIVED, NOT TYPED. 11 Aug 2026.
+ *
+ * This page carried `windowOpen = new Date('2026-08-11')`. lib/filingWindows.js
+ * moved Florida to 24 Aug — because filing before TRIM notices exist produces
+ * premature petitions against the prior year's assessed value — and this hardcoded
+ * copy never followed. From 11 Aug the banner read "Florida's filing window is
+ * open, file before your county's 25-day deadline" and linked to /apply, while
+ * pages/apply.js refused anything but a pre-order for another thirteen days.
+ *
+ * The templated city pages (pages/florida/[city].js) were corrected on 10 Aug.
+ * These five hand-written metro pages were missed, and they have zero inbound
+ * internal links, so nothing pointed at them to notice.
+ *
+ * Now from FILING_WINDOWS.FL, the same table the checkout gate reads.
+ * scripts/verify-pages.mjs asserts it.
+ */
+export async function getStaticProps() {
+  const { FILING_WINDOWS } = await import('../lib/filingWindows');
+  const w = FILING_WINDOWS.FL;
+  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  return {
+    props: {
+      windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
+      windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
+      trimOpen: pretty(at(w.openMonth, w.openDay)),
+      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+    },
+  };
+}
+
+export default function Florida({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline }) {
 const router = useRouter();
 const [openFaq, setOpenFaq] = useState(null);
 
@@ -132,8 +164,8 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 
 {(() => {
   const preOrderOpen = new Date('2026-06-12');
-  const windowOpen = new Date('2026-08-11');
-  const windowClose = new Date('2026-09-18');
+  const windowOpen = new Date(windowOpenISO);
+  const windowClose = new Date(windowCloseISO);
   const today = new Date();
   const barStyle = { background: C.gold, color: C.darkNavy, textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
   if (today >= preOrderOpen && today < windowOpen) {

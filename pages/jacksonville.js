@@ -4,14 +4,46 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF"};
 const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
-const faqs=[["What is the Jacksonville property tax appeal deadline?","25 days from the mailing date of your TRIM notice, typically August 11, 2026. Florida requires physical receipt by the Duval County VAB."],["Is there a filing fee for Jacksonville property tax appeals?","Yes. Duval County VAB charges a $50 petition fee (Duval adopted the higher fee allowed by House Bill 7031), added at checkout. Your total is $139 — $89 for the service and $50 paid to the county on your behalf."],["Does Florida have two-way review risk?","No. Florida's VAB can only reduce or maintain your assessment — it cannot raise it."],["Does TaxAppeal serve all of Jacksonville?","Yes. TaxAppeal serves all Duval County communities including Jacksonville, Jacksonville Beach, Neptune Beach, Atlantic Beach, and Baldwin."],["How much can Jacksonville homeowners save?","A $30,000 value reduction saves approximately $600–750/year at Duval County's effective rate."]];
-export default function Jacksonville(){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');return(<><Head><title>Jacksonville Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Jacksonville Florida property taxes for $89 flat. Duval County VAB: challenge your assessment before the 25-day TRIM deadline. No two-way review risk. TaxAppeal USA." /><link rel="canonical" href="https://www.taxappealusa.com/jacksonville" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Duval County',href:'/counties/duval-county-fl'},{name:'Jacksonville'}],'https://www.taxappealusa.com/jacksonville'))}} /></Head>
+const faqs=[["What is the Jacksonville property tax appeal deadline?","25 days from the mailing date of your TRIM notice, twenty-five days after your TRIM notice is mailed. Florida requires physical receipt by the Duval County VAB \u2014 a postmark alone is not enough."],["Is there a filing fee for Jacksonville property tax appeals?","Yes. Duval County VAB charges a $50 petition fee (Duval adopted the higher fee allowed by House Bill 7031), added at checkout. Your total is $139 — $89 for the service and $50 paid to the county on your behalf."],["Does Florida have two-way review risk?","No. Florida's VAB can only reduce or maintain your assessment — it cannot raise it."],["Does TaxAppeal serve all of Jacksonville?","Yes. TaxAppeal serves all Duval County communities including Jacksonville, Jacksonville Beach, Neptune Beach, Atlantic Beach, and Baldwin."],["How much can Jacksonville homeowners save?","A $30,000 value reduction saves approximately $600–750/year at Duval County's effective rate."]];
+/**
+ * THE FILING WINDOW DATES ARE DERIVED, NOT TYPED. 11 Aug 2026.
+ *
+ * This page carried `windowOpen = new Date('2026-08-11')`. lib/filingWindows.js
+ * moved Florida to 24 Aug — because filing before TRIM notices exist produces
+ * premature petitions against the prior year's assessed value — and this hardcoded
+ * copy never followed. From 11 Aug the banner read "Florida's filing window is
+ * open, file before your county's 25-day deadline" and linked to /apply, while
+ * pages/apply.js refused anything but a pre-order for another thirteen days.
+ *
+ * The templated city pages (pages/florida/[city].js) were corrected on 10 Aug.
+ * These five hand-written metro pages were missed, and they have zero inbound
+ * internal links, so nothing pointed at them to notice.
+ *
+ * Now from FILING_WINDOWS.FL, the same table the checkout gate reads.
+ * scripts/verify-pages.mjs asserts it.
+ */
+export async function getStaticProps() {
+  const { FILING_WINDOWS } = await import('../lib/filingWindows');
+  const w = FILING_WINDOWS.FL;
+  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  return {
+    props: {
+      windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
+      windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
+      trimOpen: pretty(at(w.openMonth, w.openDay)),
+      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+    },
+  };
+}
+
+export default function Jacksonville({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline }){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');return(<><Head><title>Jacksonville Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Jacksonville Florida property taxes for $89 flat. Duval County VAB: challenge your assessment before the 25-day TRIM deadline. No two-way review risk. TaxAppeal USA." /><link rel="canonical" href="https://www.taxappealusa.com/jacksonville" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Duval County',href:'/counties/duval-county-fl'},{name:'Jacksonville'}],'https://www.taxappealusa.com/jacksonville'))}} /></Head>
 <style>{`${FONT} *{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn-p{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:15px;font-weight:500;cursor:pointer;transition:background 0.2s;}.btn-p:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:28px!important;}.g2{grid-template-columns:1fr!important;}}`}</style>
 
 {(() => {
   const preOrderOpen = new Date('2026-06-12');
-  const windowOpen = new Date('2026-08-11');
-  const windowClose = new Date('2026-09-18');
+  const windowOpen = new Date(windowOpenISO);
+  const windowClose = new Date(windowCloseISO);
   const today = new Date();
   const barStyle = { background: '#FFC940', color: '#0F1F3D', textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
   if (today >= preOrderOpen && today < windowOpen) {
