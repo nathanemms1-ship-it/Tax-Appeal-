@@ -777,11 +777,26 @@ if (flChecked) {
     // (?![\d,.]) so a house price cannot be read as a fee. Widening the window to
     // cross string boundaries immediately produced a false positive on "$350,000"
     // in a market-conditions paragraph 80 characters from the word "fee".
+    /**
+     * A RANGE HAS TWO ENDS AND BOTH ARE CLAIMS.
+     *
+     * "Charlotte VAB filing fee: Approximately $15-30 per petition" passed every
+     * version of this check, because only the "$15" carries a dollar sign and it
+     * happened to match the table. The "30" is an assertion that the fee might be
+     * twice what we charge, on a page whose own FAQ said $15 — caught by opening
+     * the live page, not by the build. Again.
+     *
+     * So the bare upper bound of a "$NN-NN" range counts as a quoted amount too.
+     */
+    const rangeTops = [...chunk.matchAll(new RegExp(String.raw`\$\d{1,3}\s*[-\u2013]\s*(\d{1,3})(?![\d,.])${near}(?:VAB|petition|filing)\s*fee`, 'gi'))]
+      .concat([...chunk.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${near}\$\d{1,3}\s*[-\u2013]\s*(\d{1,3})(?![\d,.])`, 'gi'))])
+      .map((m) => Number(m[1]));
+
     const amounts = [
       ...chunk.matchAll(new RegExp(String.raw`\$(\d{1,3})(?![\d,.])${near}(?:VAB|petition|filing)\s*fee`, 'gi')),
       ...chunk.matchAll(new RegExp(String.raw`(?:VAB|petition|filing)\s*fee${near}\$(\d{1,3})(?![\d,.])`, 'gi')),
     ].map((m) => Number(m[1]));
-    claims.push([slug, county.trim(), [...new Set(amounts)]]);
+    claims.push([slug, county.trim(), [...new Set([...amounts, ...rangeTops])]]);
   }
   const bad = [];
 
