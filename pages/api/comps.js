@@ -252,6 +252,41 @@ export default async function handler(req, res) {
       }
     }
 
+    /**
+     * ===================================================================
+     * FLORIDA COMPS COME FROM THE COUNTY OR THEY DO NOT COME. 11 Aug 2026.
+     * ===================================================================
+     * Below this line is the RentCast comps path. For Florida it was reachable
+     * whenever the county comps were merely thin, and what it returned had no
+     * `basis.source` — so pages/apply.js admitted it and generate-dr486.js printed
+     * it under a hardcoded line reading "qualified arms-length sales from the
+     * Florida Department of Revenue sale data file … drawn from the same appraiser
+     * neighborhood as the subject property." None of that was true of those rows.
+     * The payload's own honest `attribution` string was never read.
+     *
+     * Both of those admission points are now gated on provenance, so vendor comps
+     * would be dropped downstream anyway. Refusing here as well means we do not
+     * pay RentCast for a result Florida can no longer use, and the customer gets
+     * the zero-comps explainer immediately rather than after a billed round trip.
+     *
+     * `countyDeclined` already carries the reason the county path returned
+     * nothing, and the funnel renders it. A Florida petition with no comps rests
+     * on the statutory methodology, which is a supported and deliberate outcome —
+     * see the note above compsBlock in generate-dr486.js.
+     */
+    if (stateUpper === 'FL') {
+      console.log('[comps] FL: county comps unavailable and no vendor fallback is permitted');
+      return res.status(200).json({
+        sufficient: false,
+        comps: [],
+        countyDeclined,
+        basis: { source: 'county' },
+        reason: countyDeclined?.reason || 'county_comps_unavailable',
+        message: 'We could not build a comparable-sales set from your county\'s own sale data for this property.',
+        retrievedAt: new Date().toISOString(),
+      });
+    }
+
     // Two billed calls worst case. Counted before either is made, so a tripped
     // ceiling costs nothing.
     const spend = await checkSpend('rentcast', 2);

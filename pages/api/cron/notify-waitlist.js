@@ -349,6 +349,26 @@ export default async function handler(req, res) {
         continue;
       }
 
+      /**
+       * ANY OTHER BLOCK: NEVER SEND THE GENERIC "YOUR WINDOW IS OPEN" EMAIL.
+       *
+       * `fl_no_parcel_record` is the live case — someone whose property we could
+       * not find on the Florida roll. The window opening changes nothing for them:
+       * we still cannot identify their parcel, so "file today!" would send them
+       * back into a funnel that refuses them again. They were told to email us
+       * their folio number and that a human would look; that is the open promise,
+       * and it is not one a cron can keep.
+       *
+       * Written as a catch-all on purpose. The default for an unrecognised block
+       * must be silence, not the marketing email — a new reason added above
+       * without a branch here should send nothing rather than the wrong thing.
+       */
+      if (blocked_reason) {
+        console.log(`[notify-waitlist] Skipping ${email} — blocked_reason=${blocked_reason}, no generic reminder`);
+        totalSkipped++;
+        continue;
+      }
+
       if (!windowStatus || !windowStatus.isOpen) {
         console.log(`[notify-waitlist] Skipping ${email} — window not open`);
         totalSkipped++;

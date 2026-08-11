@@ -498,6 +498,101 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
   );
 }
 
+/**
+ * We have no parcel record for this property, so we will not file on it.
+ *
+ * WHY THIS REFUSES RATHER THAN WARNS. Everything the petition has to assert is
+ * keyed on the parcel: the folio number in Part 1 identifies WHICH property the
+ * Board is being asked about, the current assessed value is the figure being
+ * disputed, and the requested value is the ask. With no roll record we hold none
+ * of the three, and the DR-486 was filling all three with the literal string
+ * "See county records" — on a document signed under penalty of perjury, beneath a
+ * pre-checked box asserting that the assessed value exceeds market value.
+ *
+ * There is no version of that which is worth $89 to the homeowner. A petition the
+ * clerk cannot match to a parcel is not a weak petition, it is not a petition, and
+ * Florida's deadline is satisfied by receipt with no second chance.
+ *
+ * Saved to the waitlist like the county block, for two reasons: rolls are loaded
+ * per year, so a new build or a recent split genuinely does appear later; and if a
+ * lot of these land in one county it is the fastest signal that a county's roll
+ * failed to load rather than that the properties do not exist.
+ */
+function NoParcelRecord({ property, account, detail, onBack }) {
+  const autoSaved = useRef(false);
+  const outsideCoverage = detail?.reason === 'outside_coverage';
+
+  useEffect(() => {
+    if (autoSaved.current) return;
+    if (!account?.email) return;
+    autoSaved.current = true;
+    fetch('/api/join-waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: account.email,
+        name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
+        state: 'FL',
+        county: property?.county || null,
+        propertyAddress: property && property.street
+          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+          : null,
+        blockedReason: 'fl_no_parcel_record',
+      }),
+    }).catch((e) => console.error('waitlist save failed:', e));
+  }, [account, property]);
+
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto', padding: '56px 24px' }}>
+      <div style={{ ...cardStyle, textAlign: 'center' }}>
+        <div style={{ fontSize: 44, marginBottom: 14 }}>🔍</div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 25, color: C.darkNavy, marginBottom: 14 }}>
+          We couldn&rsquo;t find a parcel record for this property
+        </h2>
+
+        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 16px', marginBottom: 18, fontSize: 13, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
+          📍 {property.street}{property.city ? `, ${property.city}` : ''}{property.zip ? ` ${property.zip}` : ''}
+        </div>
+
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
+          {outsideCoverage
+            ? <>This address does not appear to be in Florida, and Florida is the only state whose Value Adjustment Board we file with at this time of year.</>
+            : <>We searched the current Florida Department of Revenue tax roll and there is no parcel matching this address. That usually means one of three things: the address has a unit, lot or suite number we need, it is very recently built or recently split from another parcel and has not reached the published roll yet, or it is spelled differently on the county&rsquo;s records than the way it is written here.</>}
+        </p>
+
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
+          <strong style={{ color: C.darkNavy }}>Without that record we cannot file for you, and we are not going to try.</strong>{' '}
+          A Value Adjustment Board petition has to name the parcel, state the assessed value you are
+          disputing and state the value you are asking for. We would be guessing at all three, and you
+          would be signing it under penalty of perjury. A petition the county cannot match to a parcel
+          is not a weak petition &mdash; it is not a petition at all, and Florida gives no second chance
+          once the deadline passes.
+        </p>
+
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
+          <strong style={{ color: C.darkNavy }}>Worth trying first:</strong> go back and check the address
+          against your TRIM notice exactly as the county writes it &mdash; including any unit, lot or
+          suite number. That fixes most of these.
+        </p>
+
+        <div style={{ padding: 18, background: '#E6F4ED', border: '1px solid #B7DEC8', borderRadius: 8, textAlign: 'left' }}>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Nothing charged</div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
+            You have not been billed. If you believe this is our mistake, email{' '}
+            <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>{' '}
+            with your address and the parcel or folio number from your TRIM notice, and we will look at
+            it by hand before your deadline.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <button style={primaryBtn} onClick={onBack}>&larr; Check my address again</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StepAccount({ data, onChange, onNext }) {
   const [err, setErr] = useState("");
   const go = () => {
@@ -753,7 +848,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * continue, because refusing on absence of evidence would turn an outage into
  * lost customers who were perfectly eligible.
  */
-function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked }) {
+function StepFloridaCheck({ property, account, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked }) {
   const [state, setState] = useState({ status: 'loading', data: null, comps: null });
 
   useEffect(() => {
@@ -782,9 +877,59 @@ function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides,
           fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
           fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null),
         ]);
+        /**
+         * ====================================================================
+         * "NO RECORD OF THIS PROPERTY" IS NOT THE SAME AS "PROCEED"
+         * ====================================================================
+         * This line used to read:
+         *
+         *   if (!j || j.found === false || j.eligible === undefined) { onEligible(); return; }
+         *
+         * `onEligible()` advances to the issues step. So a property we hold NO
+         * data on was treated as byte-identical to one we had checked and cleared,
+         * and the screen never rendered — the customer saw a flicker and moved on.
+         *
+         * What that produced, traced end to end on 11 Aug 2026: nothing downstream
+         * asked for a parcel either. `generate-dr486` printed the string
+         * "See county records" into the folio box, the current-assessed-value box
+         * AND the requested-value box — under a pre-checked assertion that the
+         * assessed value exceeds market value, above a Part 3 declaration signed
+         * under penalty of perjury. The cheque memo fell back to the owner's
+         * surname, so the county's finance office and its VAB clerk held two
+         * documents with no common key between them. `processOrder`'s preflight
+         * required only `letter_text` and `owner_street`, so it mailed.
+         *
+         * Nathan's call: we do not file a petition for a property we cannot
+         * identify. Refuse, say why, take nothing.
+         *
+         * THE THREE OUTCOMES ARE GENUINELY DIFFERENT AND MUST NOT BE COLLAPSED
+         * AGAIN — collapsing them is exactly what caused this:
+         *
+         *   ambiguous   several parcels share the address (a condo or duplex
+         *               with no unit number). The customer can fix this in ten
+         *               seconds by adding their unit. Recoverable — send them back.
+         *   found:false we looked, and this property is not on the roll. Refuse.
+         *   error       OUR side failed — a 500, a dropped connection, Supabase
+         *               down. Their property may be perfectly fine. Telling this
+         *               customer "we have no record of your property" is a false
+         *               statement about their home and loses a good sale. Say the
+         *               check failed and let them retry.
+         */
+        if (!cRes.ok) { setState({ status: 'unavailable', data: null, comps: null }); return; }
         const j = await cRes.json();
         if (cancelled) return;
-        if (!j || j.found === false || j.eligible === undefined) { onEligible(); return; }
+        if (!j || j.eligible === undefined && j.found !== false) {
+          setState({ status: 'unavailable', data: null, comps: null });
+          return;
+        }
+        if (j.found === false) {
+          setState({
+            status: j.reason === 'ambiguous' ? 'ambiguous' : 'noparcel',
+            data: j,
+            comps: null,
+          });
+          return;
+        }
 
         // A comps failure must never block anyone. Only one specific verdict
         // stops the funnel: the subject itself sold above what the comps argue.
@@ -797,7 +942,10 @@ function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides,
 
         setState({ status: 'done', data: j, comps });
       } catch {
-        if (!cancelled) onEligible();
+        // A thrown fetch is our failure, not evidence about their property.
+        // See the long note above — this used to call onEligible() and wave them
+        // through on an outage.
+        if (!cancelled) setState({ status: 'unavailable', data: null, comps: null });
       }
     })();
     return () => { cancelled = true; };
@@ -813,6 +961,85 @@ function StepFloridaCheck({ property, onEligible, onBack, issues, costOverrides,
           We&rsquo;re reading the {property.city || 'county'} assessment roll to see whether an appeal
           can actually lower your bill. This takes a moment and costs you nothing.
         </p>
+      </div>
+    );
+  }
+
+  // ── Several parcels share this address. Recoverable — they add a unit. ─────
+  //
+  // Condos and duplexes typed without a unit number. lib/dor/parcels.js:284
+  // returns every candidate with its `phy_addr2`, so we can show them the actual
+  // unit list from the county roll rather than a generic "try again".
+  if (state.status === 'ambiguous') {
+    const units = (state.data?.candidates || []).map(c => c.unit).filter(Boolean);
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '56px 24px' }}>
+        <div style={{ ...cardStyle, textAlign: 'center' }}>
+          <div style={{ fontSize: 44, marginBottom: 14 }}>🏢</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 25, color: C.darkNavy, marginBottom: 12 }}>
+            Several properties share that address
+          </h2>
+          <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
+            The county roll has more than one parcel at <strong style={{ color: C.darkNavy }}>{property.street}</strong>.
+            That usually means a unit or apartment number is missing. Each unit is assessed separately, so
+            we need to know which one is yours before we can petition on it.
+          </p>
+          {units.length > 0 && (
+            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 18, textAlign: 'left' }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.mutedGray, marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+                Units the county lists at this address
+              </div>
+              <div style={{ fontSize: 13, color: C.darkNavy, lineHeight: 1.8, fontFamily: "'DM Sans', sans-serif" }}>
+                {units.slice(0, 12).join(' · ')}{units.length > 12 ? ` · +${units.length - 12} more` : ''}
+              </div>
+            </div>
+          )}
+          <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
+            Go back and add your unit number to the street address &mdash; for example
+            &ldquo;{property.street}{units[0] ? `, ${units[0]}` : ', Unit 4B'}&rdquo;.
+          </p>
+          <button style={primaryBtn} onClick={onBack}>&larr; Add my unit number</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── We looked, and this property is not on the roll. Refuse. ───────────────
+  if (state.status === 'noparcel') {
+    return (
+      <NoParcelRecord
+        property={property}
+        account={account}
+        detail={state.data}
+        onBack={onBack}
+      />
+    );
+  }
+
+  // ── OUR failure, not a finding about their property. ──────────────────────
+  if (state.status === 'unavailable') {
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '56px 24px' }}>
+        <div style={{ ...cardStyle, textAlign: 'center' }}>
+          <div style={{ fontSize: 44, marginBottom: 14 }}>⚠️</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 25, color: C.darkNavy, marginBottom: 12 }}>
+            We couldn&rsquo;t check your property just now
+          </h2>
+          <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
+            This is a problem on our end, not with your property &mdash; the county roll lookup did not
+            respond. We will not take your money for a petition we have not been able to check first,
+            so nothing has been charged.
+          </p>
+          <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 22, fontFamily: "'DM Sans', sans-serif" }}>
+            Please try again in a few minutes. If it keeps happening, email{' '}
+            <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>{' '}
+            with your address and we will look it up by hand.
+          </p>
+          <button style={primaryBtn} onClick={() => window.location.reload()}>Try again</button>
+          <div style={{ marginTop: 14 }}>
+            <button style={{ ...secondaryBtn, width: 'auto', padding: '10px 22px' }} onClick={onBack}>&larr; Back</button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1961,6 +2188,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
         // block the petition — no comps means the petition argues methodology
         // alone, exactly as it did before, and never invents any.
         let flComps = null;
+        // Travels with the comps so the petition cites the source it actually has,
+        // rather than a source it assumes. See the admission test below.
+        let flCompsSource = null;
         try {
           const cRes = await fetch('/api/comps', {
             method: 'POST',
@@ -1972,8 +2202,34 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             // Only a set that is BOTH sufficient and actually supports a
             // reduction may reach the petition. Comps indicating a value above
             // the county's would be evidence against our own customer.
-            if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps)) {
+            /**
+             * PROVENANCE IS NOW PART OF THE ADMISSION TEST — added 11 Aug 2026.
+             *
+             * This accepted any sufficient comp set. The county path
+             * (pages/api/comps.js) returns `basis.source === 'county'`; the
+             * RentCast fallback returns no `basis` at all and no
+             * `supportsReduction` key either — so `undefined !== false` was true
+             * and vendor comps sailed through.
+             *
+             * That mattered because generate-dr486.js printed ONE hardcoded source
+             * line under whatever it was given: "qualified arms-length sales from
+             * the Florida Department of Revenue sale data file … drawn from the
+             * same appraiser neighborhood as the subject property." RentCast rows
+             * are neither, and they carry their own correct attribution
+             * ('...via RentCast') which nothing read. So a petition signed under
+             * penalty of perjury asserted a source for its evidence that was not
+             * the source.
+             *
+             * A Florida petition now cites county sale data or it cites nothing.
+             * Nothing is a supported outcome — the zero-comps explainer already
+             * exists on the preview and the petition argues methodology instead.
+             */
+            const compsAreCountySourced = cJson?.basis?.source === 'county';
+            if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps) && compsAreCountySourced) {
               flComps = cJson.comps;
+              flCompsSource = 'county';
+            } else if (cJson?.sufficient && Array.isArray(cJson.comps) && !compsAreCountySourced) {
+              console.warn('[apply] comps rejected — not county-sourced, so they cannot carry the DOR attribution');
             }
             // The count the summary card shows. Zero when the engine declined —
             // including when the subject's own sale refuted the comps, which is
@@ -1999,6 +2255,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             ownerState: property.state,
             ownerZip: property.zip,
             comps: flComps,
+            compsSource: flCompsSource,
             // Which ground supports the ask, and how much of it the priced
             // defects actually account for. Without these the petition described
             // an 18% floor-based figure as "assessed value less cost to cure".
@@ -2526,7 +2783,7 @@ function ApplyFunnel() {
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { const sc = property.state.trim().toUpperCase(); setStep(sc === 'FL' ? 'florida-check' : 'issues'); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "florida-check" && <StepFloridaCheck property={property} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}

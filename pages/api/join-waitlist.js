@@ -20,7 +20,7 @@ export default async function handler(req, res) {
    * through to the normal branch and send exactly the wrong email, so anything we
    * do not recognise is stored as null and treated as a plain waitlist row.
    */
-  const BLOCKED_REASONS = ['fl_county_unconfirmed'];
+  const BLOCKED_REASONS = ['fl_county_unconfirmed', 'fl_no_parcel_record'];
   const reason = BLOCKED_REASONS.includes(blockedReason) ? blockedReason : null;
 
   const supabase = getSupabaseAdmin();

@@ -218,7 +218,15 @@ export function buildDR486Html({
   evidenceText, vabName, ownerSignatureName, ownerSignatureDate, filingDate,
   willNotAttend, authorizeConfidential, preview,
 }) {
-  const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : 'See county records';
+  /**
+   * A blank is honest. "See county records" is a placeholder wearing the costume
+   * of content — on a sworn form, in the box stating the value under dispute, it
+   * reads as though a figure were supplied. The handler now refuses outright when
+   * a value is missing (see FL_MISSING_PARCEL_FACTS), so this branch should be
+   * unreachable for the values that matter; it renders an em dash rather than a
+   * sentence so that if it ever IS reached the gap is visible instead of disguised.
+   */
+  const fmt = (n) => (Number(n) > 0 ? `$${Number(n).toLocaleString()}` : '\u2014');
   const today = filingDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const yr = taxYear || new Date().getFullYear().toString();
   const box = (checked) => checked
@@ -333,6 +341,14 @@ export default async function handler(req, res) {
     // below — the identifier existed only as a parameter of buildDR486Html, a
     // different function. Every Florida petition failed at the final step.
     comps,
+    // WHERE THOSE COMPS CAME FROM. Must be destructured HERE, in the handler —
+    // adding it only to buildDR486Html's parameter list reproduces exactly the
+    // ReferenceError described directly above, and verify-routes catches it by
+    // actually invoking the handler rather than by reading it.
+    //
+    // 'county' is the only value that admits comps to the petition, because the
+    // source line printed beneath them names the DOR sale data file specifically.
+    compsSource,
     // Derived in lib/valuation.js with the statutory grounds supporting the ask.
     valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
@@ -358,6 +374,43 @@ export default async function handler(req, res) {
   // carried a timestamp that predated the document's existence.
   if (!preview && (!ownerSignatureName || !String(ownerSignatureName).trim())) {
     return res.status(400).json({ error: 'Owner signature is required before a Florida petition can be prepared.' });
+  }
+
+  /**
+   * ======================================================================
+   * NO PARCEL, NO VALUES, NO PETITION.
+   * ======================================================================
+   * Added 11 Aug 2026, after tracing what this route did with an empty lookup.
+   *
+   * `fmt()` returns the string "See county records" for any falsy number, and the
+   * same fallback was applied to `parcelId` at the call site. So a property we held
+   * no roll data on produced a DR-486 carrying that string in the folio box, the
+   * current-assessed-value box AND the requested-value box — under a pre-checked
+   * assertion that the assessed value exceeds market value, above a Part 3
+   * declaration the owner signs under penalty of perjury.
+   *
+   * All three fields are load-bearing. The folio tells the Board WHICH property.
+   * The assessed value is the figure being disputed. The requested value is the
+   * ask. A petition missing them is not a weak petition — it is one the clerk
+   * cannot process, and Florida's deadline is satisfied by physical receipt with
+   * no recovery once it passes.
+   *
+   * Same shape and same reasoning as the county refusal directly below: where we
+   * cannot file correctly we refuse, rather than produce something that looks like
+   * a filing. The funnel now stops these at pages/apply.js StepFloridaCheck, so
+   * reaching here means that gate was bypassed or has regressed. Refusing in both
+   * places is the point.
+   */
+  const missingPetitionFacts = [];
+  if (!parcelId || !String(parcelId).trim()) missingPetitionFacts.push('parcel/folio number');
+  if (!(Number(assessedValue) > 0)) missingPetitionFacts.push('current assessed value');
+  if (!(Number(requestedValue) > 0)) missingPetitionFacts.push('requested value');
+  if (missingPetitionFacts.length) {
+    return res.status(400).json({
+      error: `We cannot prepare a Value Adjustment Board petition without the ${missingPetitionFacts.join(', ')} for this property. A petition has to identify the parcel and state the values in dispute.`,
+      code: 'FL_MISSING_PARCEL_FACTS',
+      missing: missingPetitionFacts,
+    });
   }
 
   // Never let an LLM address government mail. If the county is not in the
@@ -404,7 +457,28 @@ export default async function handler(req, res) {
     // Bounded before use. The engine returns at most MAX_COMPS (6), but this
     // route is reachable by direct POST and every row is interpolated into the
     // prompt, so the cap is enforced here rather than assumed upstream.
-    const compRows = (Array.isArray(comps) ? comps : [])
+    /**
+     * =====================================================================
+     * COMPS WITHOUT KNOWN PROVENANCE ARE NOT USED. Added 11 Aug 2026.
+     * =====================================================================
+     * The source line below is a specific factual assertion — DOR sale data
+     * file, appraiser neighborhood — and it was emitted unconditionally under
+     * whatever array arrived. pages/api/comps.js has two paths: the county one
+     * returns `basis.source === 'county'`, and a RentCast fallback that returns
+     * neither. Vendor rows were being printed under the DOR attribution on a
+     * document signed under penalty of perjury, while their own correct label
+     * ('...via RentCast') was discarded upstream.
+     *
+     * Dropping them is the right failure. A petition with no comps argues the
+     * statutory methodology, which is already fully supported below and is what
+     * the zero-comps explainer on the preview describes. A petition citing sales
+     * to the wrong source is a misstatement on a sworn form.
+     */
+    const compsProvenanceOk = compsSource === 'county';
+    if (Array.isArray(comps) && comps.length && !compsProvenanceOk) {
+      console.warn(`[generate-dr486] dropping ${comps.length} comp(s): compsSource=${compsSource || 'none'}, cannot carry the DOR attribution`);
+    }
+    const compRows = (compsProvenanceOk && Array.isArray(comps) ? comps : [])
       .filter((c) => c && c.salePrice && c.address)
       .slice(0, 12);
     const compsBlock = compRows.length
@@ -536,7 +610,7 @@ Professional, factual, first person as the property owner. Output only the four 
     const dr486Html = buildDR486Html({
       ownerFirstName, ownerLastName, ownerEmail, ownerPhone,
       ownerStreet, ownerCity, ownerState, ownerZip,
-      propertyAddress, county, parcelId: parcelId || 'See county records',
+      propertyAddress, county, parcelId,
       assessedValue, requestedValue, taxYear,
       evidenceText, vabName: vab.vabName,
       ownerSignatureName: preview ? '' : ownerSignatureName,

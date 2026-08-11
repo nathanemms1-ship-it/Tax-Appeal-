@@ -62,6 +62,11 @@ const ROUTES = [
       county: 'Broward', parcelId: '504007071100',
       assessedValue: 1047630, requestedValue: 859057, taxYear: '2026',
       comps: [{ address: '1170 LAGUNA SPRINGS DR, WESTON', parcelId: '504007071310', saleDate: '2026-04-01', salePrice: 869000, sqft: 2952, pricePerSqft: 294, yearBuilt: 1989 }],
+      // Without this the handler now DROPS the comps (they cannot carry the DOR
+      // attribution without stated provenance) and this fixture would silently
+      // exercise the no-comps branch instead of the one it was written for —
+      // the same shape of invisible gap as the `comps` ReferenceError above.
+      compsSource: 'county',
       askRestsOn: 'mass_appraisal_floor', costToCureTotal: 102600,
       valuationBasis: '1. Fla. Stat. § 193.011(6) — condition defects priced at cost to cure.',
       valuationGrounds: [{ criterion: 'Fla. Stat. § 193.011(6)', basis: 'Condition.' }],

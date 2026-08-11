@@ -16,7 +16,14 @@
 -- For these counties it has not opened, and the funnel would refuse them the second
 -- they clicked. This column is what makes that branch possible.
 --
--- Values: NULL (ordinary waitlist row) | 'fl_county_unconfirmed'
+-- Values: NULL (ordinary waitlist row)
+--         'fl_county_unconfirmed'  county VAB address or fee not confirmed
+--         'fl_no_parcel_record'    no parcel for this address on the DOR roll
+--
+-- RE-RUN THIS FILE if you ran an earlier version: 'fl_no_parcel_record' was added
+-- on 11 Aug 2026 and the CHECK constraint below would reject it. The file drops and
+-- recreates the constraint, so re-running is safe and is the intended way to widen
+-- the allowed set.
 -- The API stores anything unrecognised as NULL rather than passing it through, so an
 -- unknown value can never route someone into the wrong email.
 
@@ -33,7 +40,7 @@ alter table waitlist
 
 alter table waitlist
   add constraint waitlist_blocked_reason_check
-  check (blocked_reason is null or blocked_reason in ('fl_county_unconfirmed'));
+  check (blocked_reason is null or blocked_reason in ('fl_county_unconfirmed', 'fl_no_parcel_record'));
 
 -- The cron scans the whole current filing year every day and branches on this
 -- column. Partial index: the blocked rows are the small set and the only ones the

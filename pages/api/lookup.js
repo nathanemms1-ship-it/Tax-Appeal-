@@ -100,7 +100,11 @@ async function cacheSet(key, value, ttl) {
  * endpoint returns a valid, well-formed, confidently wrong answer, and every
  * check you run to debug it hits the same cached entry.
  */
-const CACHE_VERSION = 'v4-millage';
+// Bumped 11 Aug 2026 with the Florida vendor cut-off. Entries written under
+// v4-millage can hold RentCast-derived Florida payloads with a 30-day TTL, so
+// without a bump the change would not take effect for a month on every address
+// already looked up. A cache key is cheaper than a migration.
+const CACHE_VERSION = 'v5-fl-county-only';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -306,7 +310,37 @@ export default async function handler(req, res) {
 
     // Only when our own data did not answer: a Florida address off-roll, or any
     // other state. Every RentCast call is now an exception, not the norm.
-    const needVendor = assessedValue === null || sqft === null || parcelId === null;
+    /**
+     * ===================================================================
+     * FLORIDA RUNS ON COUNTY DATA. NO VENDOR FALLBACK. 11 Aug 2026, Nathan's call.
+     * ===================================================================
+     * RentCast normalises every state into one `taxAssessments[year].value` and,
+     * as lib/providers/rentcast.js says in its own header, "does not tell us which
+     * of the two we received" — Florida just value, or the Save Our Homes CAPPED
+     * assessed value. A DR-486 disputes JUST value. Measured against a real
+     * Hillsborough parcel the vendor was 26% below the county's just value and
+     * reported 2,399 sq ft against the county's 2,699.
+     *
+     * That number was reaching the "Current Assessed Value" box of a sworn
+     * petition. Three flags exist to stop it — `valueFieldIsAmbiguous`,
+     * `valueNeedsConfirmation`, `lookupStatus` — and a repo-wide grep finds no
+     * consumer for any of them. The "confirm this against your TRIM notice" step
+     * the header describes was never built.
+     *
+     * So for Florida the county roll is required. If it did not answer, the fields
+     * stay null, /api/check refuses the customer at the eligibility step, and
+     * nothing is charged. Not-selling is a supported outcome; guessing at the
+     * number a homeowner swears to is not.
+     *
+     * TX and GA are unchanged. They mail a district letter, not a fee-bearing
+     * statutory petition keyed on a folio, and RentCast is their only source.
+     */
+    const isFloridaLookup = stateUpper === 'FL';
+    const needVendor = !isFloridaLookup && (assessedValue === null || sqft === null || parcelId === null);
+    if (isFloridaLookup && (assessedValue === null || sqft === null || parcelId === null)) {
+      console.log('[lookup] FL: county roll incomplete and no vendor fallback is permitted — returning nulls for manual entry');
+      lookupStatus = 'county_roll_miss';
+    }
 
     let record = needVendor ? await cacheGet(rcKey) : null;
     if (record) console.log(`RENTCAST FROM CACHE (${rcKey})`);
@@ -353,8 +387,22 @@ export default async function handler(req, res) {
       if (yearBuilt === null) yearBuilt = record.yearBuilt;
       if (beds === null) beds = record.beds;
       if (baths === null) baths = record.baths;
-      parcelId = record.parcelId;
-      annualTax = record.annualTax;
+      /**
+       * FILL NULLS ONLY — these two were UNCONDITIONAL. Fixed 11 Aug 2026.
+       *
+       * Every field above uses an `=== null` guard; these two dropped it, so a
+       * vendor call triggered by (say) a null `tot_lvg_area` on a parcel we HAD
+       * found on the county roll would keep the county's just value and replace
+       * the county's folio with RentCast's assessorID — while `valueSource` below
+       * still reported "Florida DOR assessment roll". A mixed-provenance payload
+       * claiming single provenance.
+       *
+       * The folio is the field that tells the Value Adjustment Board WHICH
+       * property is being disputed. It is the last one that should be taken from
+       * a national aggregator when the county itself has answered.
+       */
+      if (parcelId === null) parcelId = record.parcelId;
+      if (annualTax === null) annualTax = record.annualTax;
 
       // Only flag for confirmation if the value actually came from the provider.
       // If the customer typed it, they were reading their TRIM notice and there is
