@@ -408,6 +408,96 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
   );
 }
 
+/**
+ * A Florida county we cannot file in yet.
+ *
+ * Reached from applyResolvedCounty when either send-letter.js gate would refuse.
+ * The funnel ENDS here — no fee step, no signature, no checkout. See the long note
+ * on applyResolvedCounty for why this replaced accepting the order and filing it
+ * by hand.
+ *
+ * NO BUTTON, saves on mount — same as UnsupportedState, for the same reason. By the
+ * time anyone reaches this screen we already hold their name and email from step 1
+ * and their full property address from step 2. Asking them to press "Notify Me" to
+ * hand over what they have already typed adds a step whose only possible outcome is
+ * losing the record.
+ *
+ * `blockedReason` is what stops cron/notify-waitlist.js from emailing these people
+ * "your Florida filing window just opened!" on 24 August — for these counties it
+ * has not, and that email is exactly the promise we are not in a position to keep.
+ */
+function FloridaCountyUnavailable({ county, reason, onBack, account, property }) {
+  const autoSaved = useRef(false);
+  const countyName = county || "This";
+
+  useEffect(() => {
+    if (autoSaved.current) return;
+    if (!account?.email) return;
+    autoSaved.current = true;
+    fetch("/api/join-waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: account.email,
+        name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+        state: "FL",
+        county: county || null,
+        propertyAddress: property && property.street
+          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+          : null,
+        blockedReason: "fl_county_unconfirmed",
+      }),
+      // Nothing to show them if this fails and nothing they could do about it.
+    }).catch((e) => console.error("waitlist save failed:", e));
+  }, [account, property, county]);
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
+      <div style={{ ...cardStyle, maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 10 }}>
+          {countyName} County isn&rsquo;t open yet
+        </h2>
+
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+          {reason === "fee" ? (
+            <>Before we file in a county we confirm its Value Adjustment Board filing fee for the current
+            tax year directly with that county. Many boards set the fee at an organising meeting in late
+            August, and {countyName} County has not published its 2026 figure yet.</>
+          ) : (
+            <>Before we file in a county we confirm two things directly with that county&rsquo;s Value
+            Adjustment Board: the exact address a petition and filing-fee check must be delivered to, and
+            the filing fee for the current tax year. {countyName} County has not published a petition
+            mailing address, so we are confirming it with their clerk by phone.</>
+          )}
+        </p>
+
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 20, fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+          We are not going to take your money and guess. Florida counts your petition as filed when it is
+          physically <strong style={{ color: C.darkNavy }}>received</strong> with the correct fee &mdash; a
+          wrong address or a short check is not a late filing, it is no filing, and there is no way to fix
+          it after the deadline.
+        </p>
+
+        <div style={{ padding: 18, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8, textAlign: "left" }}>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Saved &mdash; nothing charged</div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
+            We&rsquo;ll write to <strong style={{ color: C.darkNavy }}>{account?.email || "you"}</strong>
+            {property?.street ? <> about <strong style={{ color: C.darkNavy }}>{property.street}</strong></> : null}
+            {" "}as soon as {countyName} County is confirmed, so you can file. We will only send that email
+            if there is still enough time left to get your petition delivered before your deadline &mdash;
+            we won&rsquo;t point you at a window you cannot make. Nothing else &mdash; no marketing.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StepAccount({ data, onChange, onNext }) {
   const [err, setErr] = useState("");
   const go = () => {
@@ -2192,6 +2282,15 @@ function ApplyFunnel() {
   const [notes, setNotes] = useState("");
   const [unsupportedState, setUnsupportedState] = useState(null);
   const [closedWindow, setClosedWindow] = useState(null);
+  /**
+   * A Florida county we will not take an order in yet, and why.
+   *
+   * Set by applyResolvedCounty when either of send-letter.js's two refusal gates
+   * would fire. Renders FloridaCountyUnavailable INSTEAD of the fee step, so the
+   * funnel terminates BEFORE checkout rather than after it. See the long note on
+   * applyResolvedCounty for why this replaced the hand-filing path.
+   */
+  const [flCountyBlocked, setFlCountyBlocked] = useState(null);
   const [flFeeData, setFlFeeData] = useState(null);
   const [flSignature, setFlSignature] = useState(null);
   /**
@@ -2260,34 +2359,60 @@ function ApplyFunnel() {
     }
   };
   /**
-   * Accept a county — resolved automatically or chosen by the customer — and move
-   * on to the fee step.
+   * Accept a county — resolved automatically or chosen by the customer — and either
+   * move on to the fee step or stop the funnel.
    *
-   * Counties whose VAB mailing address we have NOT confirmed directly with the
-   * county used to be a hard block. Nathan's call is to accept those orders and
-   * file them by hand. That is fine commercially, but it must not be silent: the
-   * automated mail path refuses an unconfirmed address (getFlVabAddress returns
-   * null and send-letter rejects), so without a flag the customer would pay, see
-   * "filed", and nothing would ever go out. `needsManualFiling` rides with the
-   * order so it lands in the ops queue instead of the automated one.
+   * ==========================================================================
+   * WE DO NOT FILE BY HAND. WE REFUSE THE SALE AND TAKE THE EMAIL.
+   * ==========================================================================
+   * Nathan's call, 11 Aug 2026, replacing the accept-and-hand-file model.
    *
-   * THE FEE HALF MUST BE CHECKED HERE TOO — added 4 Aug 2026.
+   * The previous design accepted an order in an unconfirmed county, warned the
+   * customer on the payment screen, and flagged it `needsManualFiling` so it would
+   * "land in the ops queue". There was no ops queue. The flag never left this file:
+   * it was never in the /api/checkout body, never in Stripe metadata, never a
+   * column. So the order queued like any other, send-letter refused it every hour,
+   * and cron/process-queued-orders swallowed the failure — paid, promised, never
+   * filed, and invisible until the deadline had passed.
    *
-   * send-letter.js refuses on TWO independent conditions: no verified VAB address
-   * (FL_COUNTY_UNSUPPORTED, 12 counties) AND a fee whose confidence is not
-   * "confirmed" (FL_FEE_UNCONFIRMED, 10 counties). This screen only ever checked
-   * the address half. Columbia, Levy and Nassau have a CONFIRMED address and an
-   * ESTIMATED fee, so they passed this check silently, showed the customer no
-   * warning, took the money, and were then refused by send-letter — landing in
-   * the automated queue that had just rejected them rather than in the ops queue.
-   * The two gates have to test the same thing or the disclosure is a lie.
+   * Refusing is also the better product. Florida counts a petition as filed when it
+   * is physically RECEIVED with the correct fee. A guessed address or a short check
+   * is not a late filing, it is no filing, and there is no recovery after the
+   * deadline. Taking money against that is a refund we have to remember to make and
+   * a year the homeowner cannot get back.
+   *
+   * So: capture the email, say plainly why, and notify them if and when the county
+   * confirms. cron/notify-waitlist.js owns that promise — it re-tests these same
+   * two gates every day and only writes to someone once there is still enough time
+   * to file. See `blocked_reason = 'fl_county_unconfirmed'` there.
+   *
+   * BOTH GATES ARE TESTED HERE, and they must stay identical to the two in
+   * send-letter.js:148-169 or the refusal is in the wrong place:
+   *   - no confirmed VAB mailing address  (FL_COUNTY_UNSUPPORTED) — 8 counties
+   *   - fee confidence !== 'confirmed'    (FL_FEE_UNCONFIRMED)    — Nassau,
+   *     Columbia, Levy, which have a good address and a $50 guess
+   * scripts/verify-fl-dispatch.mjs asserts the two sets agree.
    */
   const applyResolvedCounty = (county, source = 'address') => {
     const feeInfo = getFlVabFee(county);
-    const verified = isFlCountySupported(county) && feeInfo?.confidence === 'confirmed';
+    const addressOk = isFlCountySupported(county);
+    const feeOk = feeInfo?.confidence === 'confirmed';
+
+    if (!addressOk || !feeOk) {
+      setProperty(p => ({ ...p, county }));
+      setFlCountyError(null);
+      // Which gate failed changes one sentence of the copy, nothing else. Fee-only
+      // is the honest "waiting on their board meeting" case; a missing address is
+      // waiting on a phone call.
+      setFlCountyBlocked({ county, reason: !addressOk ? 'address' : 'fee' });
+      window.scrollTo(0, 0);
+      return;
+    }
+
     setProperty(p => ({ ...p, county }));
-    setFlFeeData({ ...feeInfo, county, needsManualFiling: !verified, countySource: source });
+    setFlFeeData({ ...feeInfo, county, countySource: source });
     setFlCountyError(null);
+    setFlCountyBlocked(null);
     setStep('florida-fee');
     window.scrollTo(0, 0);
   };
@@ -2379,7 +2504,15 @@ function ApplyFunnel() {
       <AnnouncementBar />
       <NavBar step={step} account={account} property={property} />
       {!unsupportedState && <ProgressBar currentStep={step} />}
-      {flCountyError ? (
+      {flCountyBlocked ? (
+        <FloridaCountyUnavailable
+          county={flCountyBlocked.county}
+          reason={flCountyBlocked.reason}
+          onBack={() => { setFlCountyBlocked(null); setStep('property'); }}
+          account={account}
+          property={property}
+        />
+      ) : flCountyError ? (
         <FloridaCountyPicker
           info={flCountyError}
           onConfirm={(c) => applyResolvedCounty(c, 'customer-picked')}

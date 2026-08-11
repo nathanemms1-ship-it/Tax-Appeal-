@@ -14,6 +14,9 @@ import { salesEnabled } from '../../../lib/salesGate';
 // Records that this job COMPLETED. Read back by checkCronHeartbeat — see
 // lib/heartbeat.js for why a green 200 from this route is not evidence it ran.
 import { stampHeartbeat } from '../../../lib/heartbeat';
+// A dispatch failure here is a paid order that is not filed. It has to reach a human
+// on the day it happens, not on the day someone reads a Vercel log.
+import { alertOps } from '../../../lib/alertOps';
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
 //
@@ -113,7 +116,33 @@ export default async function handler(req, res) {
 
     console.log(`[process-queued-orders] Found ${queuedOrders.length} queued orders`);
 
-    for (const order of queuedOrders) {
+    /**
+     * A repeatedly-failing order must not sit at the head of the queue eating the run.
+     *
+     * The batch is ordered oldest-first and MAX_PER_RUN counts SUCCESSES only, so a
+     * failure does not consume the cap — the loop simply walks on. That is the right
+     * behaviour for one bad order and the wrong behaviour for twenty: each retry costs
+     * a full preflight including a live /api/lookup round-trip, and with a 300-second
+     * budget a wall of permanently-failing orders can burn the entire run before a
+     * single healthy order is reached. Nobody notices, because the run still returns
+     * 200 and stamps a heartbeat.
+     *
+     * Once an order has failed this many times the cause is not transient. It stays
+     * queued, it stays visible in /admin with its error, ops has already been paged —
+     * but it stops being retried ahead of orders that can actually file. RETRY_FLOOR
+     * is deliberately low: at hourly cadence 12 attempts is half a day, which is long
+     * enough for a Lob blip to clear and short enough not to waste a filing season.
+     */
+    const RETRY_FLOOR = 12;
+    const deferred = queuedOrders.filter(o => (o.dispatch_attempts || 0) >= RETRY_FLOOR);
+    const workable = queuedOrders.filter(o => (o.dispatch_attempts || 0) < RETRY_FLOOR);
+    if (deferred.length) {
+      // Never let a cap be silent. A run that quietly skips work reads exactly like a
+      // run with nothing to do.
+      console.warn(`[process-queued-orders] ${deferred.length} order(s) parked after ${RETRY_FLOOR}+ failed attempts and NOT retried this run: ${deferred.map(o => o.id).join(', ')}`);
+    }
+
+    for (const order of workable) {
       if (totalFiled >= MAX_PER_RUN) {
         console.log(`[process-queued-orders] Hit per-run cap of ${MAX_PER_RUN} — remaining orders will process next run`);
         break;
@@ -139,9 +168,83 @@ export default async function handler(req, res) {
       const result = await dispatchQueuedOrder(order, { supabase, resend });
 
       if (!result.success) {
-        console.error(`[process-queued-orders] Order ${order.id} failed:`, result.error);
+        /**
+         * ==============================================================
+         * A DISPATCH FAILURE HAS TO LEAVE THE BUILDING. IT USED NOT TO.
+         * ==============================================================
+         * This was `console.error` and `continue`, with no alertOps call anywhere in
+         * the file. Every way filing can fail passes through this one line — the
+         * county gates in send-letter.js, a Lob outage, a wrong LOB_BANK_ACCOUNT_ID,
+         * the daily Lob spend ceiling, and the assessed-value drift halt that is
+         * GUARANTEED to start firing when TRIM notices land and replace the
+         * pre-order's prior-year figure. All of them wrote a line to a Vercel log
+         * nobody reads, left the order `queued`, and retried an hour later, forever.
+         *
+         * Nothing downstream covered it either. checkCronHeartbeat reads `filed` and
+         * never `errored`, so a run that filed 0 and errored 200 stamped a healthy
+         * heartbeat. checkFilingDeadlines is keyed on days-to-deadline, not on
+         * failure, so an order failing hourly from 24 August still read `ok` until
+         * 4 September — two days before the last date its petition could physically
+         * arrive in time.
+         *
+         * So: persist the failure on the row so /admin can show it and this loop can
+         * stop re-trying it at the head of the queue, and page a human. Persisting
+         * first, because an alert we fail to send must not also lose the record.
+         */
+        const attempts = (order.dispatch_attempts || 0) + 1;
+        const reason = String(result.error || 'unknown').slice(0, 500);
+        await supabase
+          .from('orders')
+          .update({ dispatch_attempts: attempts, last_dispatch_error: reason })
+          .eq('id', order.id);
+
+        console.error(`[process-queued-orders] Order ${order.id} failed (attempt ${attempts}):`, reason);
         totalErrored++;
+
+        /**
+         * Alert on the FIRST failure and then back off hard.
+         *
+         * The first one is the one that matters — it is a working system becoming a
+         * broken one. After that the same order failing sixty times in a row is the
+         * same fact repeated, and an inbox with sixty copies of it is an inbox nobody
+         * reads on the day the sixty-first thing is different. force:true because
+         * alertOps otherwise de-duplicates by subject, and each order genuinely is a
+         * separate customer who has paid.
+         */
+        if (attempts === 1 || attempts === 6 || attempts % 24 === 0) {
+          await alertOps(
+            `Order ${order.id} could not be filed (attempt ${attempts})`,
+            [
+              `Order:     ${order.id}`,
+              `Customer:  ${order.customer_email || 'unknown'}`,
+              `Property:  ${order.owner_street || 'unknown'}`,
+              `County:    ${order.county || 'unknown'}, ${stateCode}`,
+              `Deadline:  ${windowStatus.daysUntilHard} days away`,
+              `Attempts:  ${attempts}`,
+              ``,
+              `Error: ${reason}`,
+              ``,
+              `This order is PAID and is not filed. It stays queued and retries hourly.`,
+              `It will keep failing until the underlying cause is fixed — the retry is`,
+              `not a fix. Florida is satisfied by physical RECEIPT, so the usable time`,
+              `is ${windowStatus.daysUntilHard} days minus mail transit, not ${windowStatus.daysUntilHard} days.`,
+            ].join('\n'),
+            { force: true },
+          );
+        }
         continue;
+      }
+
+      /**
+       * A success clears the failure record. Without this an order that failed once
+       * on a transient Lob 500 and then filed cleanly keeps a `last_dispatch_error`
+       * on the row forever, and /admin shows a scary string against a filed order.
+       */
+      if (order.dispatch_attempts) {
+        await supabase
+          .from('orders')
+          .update({ last_dispatch_error: null })
+          .eq('id', order.id);
       }
 
       totalFiled++;

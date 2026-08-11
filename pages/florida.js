@@ -24,7 +24,7 @@ const faqs = [
 ["What is a TRIM notice in Florida?", "TRIM stands for Truth in Millage. It is the annual notice mailed every August showing your assessed value and estimated tax bill. This is NOT your final tax bill — it is a proposal you can challenge within 25 days."],
 ["What is the Value Adjustment Board in Florida?", "The VAB is a county board that hears property tax petitions in Florida. If you disagree with your property appraiser's assessment, you file a petition with the VAB. A Special Magistrate reviews the evidence and issues a recommended decision."],
 ["What is a Special Magistrate in Florida?", "A Special Magistrate is an independent hearing officer appointed by the Value Adjustment Board. They review comparable sales evidence presented by both the property owner and the county appraiser, then issue a recommended decision to the VAB."],
-["Does TaxAppeal serve all Florida counties?", "Yes — all 67. We hold the current Department of Revenue roll for every Florida county. Where we have not yet confirmed a county's Value Adjustment Board mailing address and filing fee directly with that county, we tell you on the payment screen before you are charged, prepare and check your petition by hand rather than mailing it automatically, and refund you in full — including the county fee — if we cannot file it before your deadline."],
+["Does TaxAppeal serve all Florida counties?", "Almost. We hold the current Department of Revenue roll for every Florida county, and we file in every county that has published — or confirmed to us directly by phone — the Value Adjustment Board mailing address and filing fee a petition needs in order to be accepted. A handful of the smallest counties have not done so yet, and we are working through them. If yours is one of them we tell you before you pay anything, we do not take the order, and we email you the moment that county is confirmed. Florida counts a petition as filed only when it is physically received with the correct fee, so a guessed address or a short check is not a late filing — it is no filing, and there is no fixing it after the deadline. We would rather turn the order away than take your money for that."],
 ["Who signs the petition — me or TaxAppeal?", "You do. Florida Statute § 194.011(3) requires a VAB petition to be signed by the taxpayer, so we prepare your DR-486 and, immediately after payment, show you the complete petition to read and sign Part 3 yourself. TaxAppeal USA is not your representative or agent: we do not sign as a representative, we do not appear before the Board, and we file no power of attorney. We prepare the document, pay your county filing fee, and mail it."],
 ["Will TaxAppeal attend my VAB hearing?", "No. TaxAppeal USA is a document preparation and mailing service, not your representative, and cannot appear before the Board on your behalf. Many petitions are decided on the written evidence without anyone appearing. If a hearing is scheduled, attending is your decision — we notify you when we receive the notice, and your evidence package remains on the record either way."],
 ["Can my assessment go up if I appeal in Florida?", "No. Florida law protects petitioners. Your assessment cannot increase as a result of filing a VAB petition — there is zero risk to filing."],
@@ -87,10 +87,10 @@ return (
 <>
 <Head>
 <title>Florida Property Tax Appeal Service | $89 + County Fee | TaxAppeal USA</title>
-<meta name="description" content="Appeal your Florida TRIM notice for $89 plus your county's mandatory VAB filing fee (set by each county, typically $15–$50). We draft your VAB petition, pay the county fee, and mail it to your county VAB 7+ days before your deadline. All 67 Florida counties." />
+<meta name="description" content="Appeal your Florida TRIM notice for $89 plus your county's mandatory VAB filing fee (set by each county, typically $15–$50). We draft your VAB petition, pay the county fee, and mail it to your county VAB 7+ days before your deadline. Florida counties statewide." />
 <link rel="canonical" href="https://www.taxappealusa.com/florida" />
 <meta property="og:title" content="Florida Property Tax Appeal — $89 + County Fee | TaxAppeal USA" />
-<meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). You sign your petition; we pay the county fee and mail it. All 67 counties." />
+<meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). You sign your petition; we pay the county fee and mail it. Counties statewide." />
 <meta property="og:url" content="https://www.taxappealusa.com/florida" />
 <meta property="og:type" content="website" />
 {/* FAQPage removed 10 Aug 2026 — Google: "As of May 7, 2026, FAQ rich results are
@@ -106,7 +106,7 @@ breadcrumbSchema([{ name: 'Home', href: '/' }, { name: 'Florida' }], 'https://ww
 "name": "Florida Property Tax Appeal Filing",
 "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
 "areaServed": { "@type": "State", "name": "Florida" },
-"description": "Property tax appeal petition preparation, county VAB fee payment, and tracked mail filing for Florida homeowners. Covers all 67 counties.",
+"description": "Property tax appeal petition preparation, county VAB fee payment, and tracked mail filing for Florida homeowners.",
 "offers": { "@type": "AggregateOffer", "lowPrice": "104.00", "highPrice": "139.00", "priceCurrency": "USD", "offerCount": "67" }
 })}} />
 </Head>
@@ -287,8 +287,8 @@ File My Florida Appeal — $89 + County Fee →
 {/* All 67 Counties */}
 <section style={{ padding: "56px 40px", background: C.bg }}>
 <div style={{ maxWidth: 900, margin: "0 auto" }}>
-<h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>All 67 Florida Counties Served</h2>
-<p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Miami to Jacksonville, Tampa to Orlando — every Florida homeowner can file.</p>
+<h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida Counties</h2>
+<p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Miami to Jacksonville, Tampa to Orlando. Open your county for its Value Adjustment Board address, filing fee and 2026 deadline.</p>
 <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
 {counties.map(c => (
 <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>

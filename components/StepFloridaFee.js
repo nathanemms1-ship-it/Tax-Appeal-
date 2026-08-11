@@ -101,7 +101,6 @@ onAuthorize({
 county: feeData?.county,
 vabFee,
 payableTo,
-needsManualFiling: !!feeData?.needsManualFiling,
 // NO hearing election here — see the note above. It is captured in
 // SignatureStep and written to orders.fl_will_not_attend by
 // /api/finalize-order, which is the only value processOrder reads when it
@@ -189,16 +188,18 @@ Not {feeData?.county}? Change it
 </div>
 </div>
 
-{feeData?.needsManualFiling && (
-<div style={{ background: 'rgba(255,201,64,0.12)', border: '1px solid rgba(255,201,64,0.35)', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 12.5, color: '#FFD97A', lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
-<strong>{feeData?.county} County is filed by hand.</strong> We have not yet confirmed this
-county&rsquo;s Value Adjustment Board details &mdash; its mailing address and filing fee &mdash;
-directly with the county, so your petition is prepared and reviewed by a person before it is
-mailed rather than going out automatically.
-We will email you once it is confirmed filed. If we cannot file it before your deadline we
-refund you in full, including the county fee.
-</div>
-)}
+{/*
+  The hand-filing disclosure that used to live here is gone, and so is the thing it
+  disclosed. As of 11 Aug 2026 an unconfirmed county never reaches this step at all —
+  pages/apply.js `applyResolvedCounty` diverts to FloridaCountyUnavailable before the
+  fee screen, so every customer who sees this card is in a county whose VAB address
+  and fee we have confirmed directly with the county.
+
+  Do not reintroduce a "we'll file this one by hand" path here without also building
+  somewhere for that order to GO. The last version of it flagged the order in React
+  state that was never sent to the server, so the order queued like any other, was
+  refused hourly by send-letter, and nobody found out.
+*/}
 
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
 <div>

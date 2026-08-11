@@ -7,8 +7,21 @@ export default async function handler(req, res) {
   // signup spam
   if (await enforceRateLimit(req, res, 'waitlist', 5, 60)) return;
 
-  const { email, name, state, county, propertyAddress, notifyDate } = req.body;
+  const { email, name, state, county, propertyAddress, notifyDate, blockedReason } = req.body;
   if (!email || !state) return res.status(400).json({ error: 'Missing required fields' });
+
+  /**
+   * Why the reason is an allow-list and not a free string.
+   *
+   * cron/notify-waitlist.js BRANCHES on this value to decide which promise it is
+   * keeping — a normal row gets "your filing window is open", an
+   * `fl_county_unconfirmed` row must NOT (for those counties it is not, and that
+   * email is the one promise we cannot keep). An unrecognised value would fall
+   * through to the normal branch and send exactly the wrong email, so anything we
+   * do not recognise is stored as null and treated as a plain waitlist row.
+   */
+  const BLOCKED_REASONS = ['fl_county_unconfirmed'];
+  const reason = BLOCKED_REASONS.includes(blockedReason) ? blockedReason : null;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
@@ -49,6 +62,26 @@ export default async function handler(req, res) {
       .limit(1);
 
     if (existing?.length) {
+      /**
+       * A duplicate is not always a no-op, and getting this wrong sends the wrong email.
+       *
+       * The uniqueness key is email + state + year, so someone who joined the Florida
+       * list in July (window closed) and comes back in August with a property in an
+       * unconfirmed county matches an existing row. Returning early would leave that
+       * row with `blocked_reason = null`, and on 24 August notify-waitlist would tell
+       * them their filing window is open and to go file — in a county we still cannot
+       * file in. Promote the row instead.
+       *
+       * Only ever null -> reason, never reason -> null: a plain revisit must not clear
+       * a block that is still real.
+       */
+      if (reason) {
+        await supabase
+          .from('waitlist')
+          .update({ blocked_reason: reason, county: county || null })
+          .eq('id', existing[0].id)
+          .is('blocked_reason', null);
+      }
       return res.status(200).json({ success: true, duplicate: true, message: 'Already on the waitlist' });
     }
 
@@ -62,6 +95,7 @@ export default async function handler(req, res) {
         property_address: propertyAddress || null,
         notify_date: notifyDate || null,
         filing_year: filingYear,
+        blocked_reason: reason,
         notified_count: 0,
         notified: false,
       })

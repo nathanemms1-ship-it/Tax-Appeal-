@@ -1,6 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
+import { isFlCountySupported } from '../../../lib/flVabAddresses';
+import { getFlVabFee } from '../../../lib/flCountyFees';
+
+/**
+ * The two gates that decide whether we can file in a Florida county, in one place.
+ *
+ * These MUST stay identical to pages/api/send-letter.js:148-169 and to
+ * applyResolvedCounty in pages/apply.js. If this one drifts looser than send-letter,
+ * this cron emails someone "your county is confirmed, go file" and the funnel then
+ * refuses them — which is worse than never writing at all, because they acted on it.
+ * scripts/verify-fl-dispatch.mjs asserts the three agree.
+ */
+function flCountyFilable(county) {
+  if (!county) return false;
+  const fee = getFlVabFee(county);
+  return isFlCountySupported(county) && fee?.confidence === 'confirmed';
+}
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
 //
@@ -136,6 +153,57 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
   };
 }
 
+/**
+ * The two emails owed to someone we turned away because their county was not
+ * confirmed. pages/apply.js FloridaCountyUnavailable makes exactly one promise —
+ * "we'll write as soon as your county is confirmed, and only if there is still time
+ * to file" — and these are the two ways that promise ends.
+ *
+ * Deliberately plain. These go to someone who tried to give us money and was told no;
+ * the countdown-bar treatment the reminder emails use would read as marketing.
+ */
+function buildCountyConfirmedEmail({ name, county, propertyAddress, daysLeft, fee, payableTo }) {
+  const firstName = name ? name.split(' ')[0] : 'there';
+  const feeLine = fee ? `$${(fee / 100).toFixed(0)}` : 'the county filing fee';
+  return {
+    subject: `${county} County is confirmed — you can file now`,
+    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F4F7FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:560px;margin:40px auto;padding:0 16px 40px;">
+  <div style="text-align:center;padding:24px 0 18px;"><span style="font-size:20px;font-weight:700;color:#0F1F3D;"><span style="color:#22c55e;">Tax</span>Appeal USA</span></div>
+  <div style="background:#fff;border-radius:16px;padding:32px 34px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">${h(county)} County is confirmed</h1>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — when you came to us earlier we could not file in ${h(county)} County, because the county had not confirmed the details we need to get a petition delivered correctly. That has now come back to us.</p>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Their Value Adjustment Board filing fee is <strong>${h(feeLine)}</strong>${payableTo ? `, payable to ${h(payableTo)}` : ''}, and we have their petition mailing address confirmed. You can file.</p>
+    ${propertyAddress ? `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin:0 0 18px;"><div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Your property</div><div style="font-size:14px;color:#1e293b;">${h(propertyAddress)}</div></div>` : ''}
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 22px;"><strong>You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.</strong> Florida counts a petition as filed when it is physically received, so we stop accepting new filings while there is still enough time for yours to arrive.</p>
+    <div style="text-align:center;margin:0 0 8px;"><a href="https://www.taxappealusa.com/apply" style="display:inline-block;background:#C9A84C;color:#0F1F3D;font-weight:700;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:8px;">File my petition &rarr;</a></div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;line-height:1.6;">TaxAppeal USA · 3130 Sabine St, Ste B, Forest Hill, TX 76119<br/>You asked us to tell you when ${h(county)} County opened. This is that email.</p>
+</div></body></html>`,
+  };
+}
+
+function buildCountyMissedEmail({ name, county, propertyAddress }) {
+  const firstName = name ? name.split(' ')[0] : 'there';
+  return {
+    subject: `We could not get ${county} County confirmed in time`,
+    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F4F7FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:560px;margin:40px auto;padding:0 16px 40px;">
+  <div style="text-align:center;padding:24px 0 18px;"><span style="font-size:20px;font-weight:700;color:#0F1F3D;"><span style="color:#22c55e;">Tax</span>Appeal USA</span></div>
+  <div style="background:#fff;border-radius:16px;padding:32px 34px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">We could not file in ${h(county)} County this year</h1>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — we said we would write to you either way, so here it is. ${h(county)} County did not confirm the details we need in time for us to get a petition delivered before this year's deadline, so we are not going to pretend otherwise or take your money at the last minute.</p>
+    ${propertyAddress ? `<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">This was for <strong>${h(propertyAddress)}</strong>.</p>` : ''}
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">You can still file the petition yourself directly with your county's Value Adjustment Board — you do not need us to do it, and the form (DR-486) is free from the Florida Department of Revenue. If you want to go that route, call your county clerk's VAB office and ask for the petition mailing address and the current filing fee. That is the same call we make.</p>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0;">We have kept your details for next season and will write when the window opens, with ${h(county)} County confirmed by then. You were never charged.</p>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;line-height:1.6;">TaxAppeal USA · 3130 Sabine St, Ste B, Forest Hill, TX 76119</p>
+</div></body></html>`,
+  };
+}
+
 // Season cap per person. Opening reminder, midpoint, and a final warning.
 const MAX_NOTIFICATIONS_PER_SEASON = 3;
 
@@ -188,13 +256,98 @@ export default async function handler(req, res) {
     console.log(`[notify-waitlist] Found ${waitlistEntries.length} waitlist entries`);
 
     for (const entry of waitlistEntries) {
-      const { id, email, name, state, county, property_address, last_notified_at } = entry;
+      const { id, email, name, state, county, property_address, last_notified_at, blocked_reason } = entry;
 
       // Check if this state/county window is currently open
       const stateUpper = (state || '').toUpperCase().trim();
       const windowStatus = getFilingWindowStatus(stateUpper, county);
 
-      console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysUntilClose}`);
+      console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} blocked=${blocked_reason || 'no'} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysUntilClose}`);
+
+      /**
+       * ==================================================================
+       * COUNTY-BLOCKED ROWS ARE A DIFFERENT PROMISE AND MUST NOT FALL THROUGH
+       * ==================================================================
+       * These people were REFUSED at the funnel because their county's VAB address
+       * or fee was unconfirmed (pages/apply.js FloridaCountyUnavailable). They have
+       * paid nothing and are owed exactly one email: "your county is confirmed, and
+       * there is still time" — or, at the end of the season, "we could not."
+       *
+       * The normal branch below would send them "🎉 Your Florida filing window just
+       * opened — file today!" on 24 August. For their county it did not, and the
+       * funnel would refuse them the moment they clicked. That is worse than
+       * silence, because they acted on it. Hence the early `continue` on every path
+       * out of this block.
+       */
+      if (blocked_reason === 'fl_county_unconfirmed') {
+        // canFile, not isOpen: it goes false at minDays before the hard deadline,
+        // which is the last date a petition can still physically arrive in time.
+        // Past that there is nothing to tell them to do.
+        const stillTime = !!windowStatus?.canFile;
+        const seasonGone = !!windowStatus && !windowStatus.canFile && !windowStatus.canPreOrder;
+        const filable = flCountyFilable(county);
+
+        if (filable && stillTime) {
+          const fee = getFlVabFee(county);
+          const mail = buildCountyConfirmedEmail({
+            name, county, propertyAddress: property_address,
+            daysLeft: windowStatus.daysUntilHard,
+            fee: fee?.vabFee, payableTo: fee?.payableTo,
+          });
+          try {
+            await resend.emails.send({
+              from: 'TaxAppeal USA <reminders@taxappealusa.com>',
+              to: email, subject: mail.subject, html: mail.html,
+            });
+            // Clearing the reason hands the row back to the normal reminder track,
+            // so they get the ordinary deadline nudges from here on.
+            await supabase.from('waitlist').update({
+              blocked_reason: null,
+              last_notified_at: new Date().toISOString(),
+              notified_count: (entry.notified_count || 0) + 1,
+            }).eq('id', id);
+            totalSent++;
+            console.log(`[notify-waitlist] ${county} County confirmed — told ${email} (${windowStatus.daysUntilHard}d left)`);
+          } catch (emailErr) {
+            // Leave blocked_reason set so tomorrow's run tries again.
+            console.error(`[notify-waitlist] county-confirmed email failed for ${email}:`, emailErr.message);
+          }
+          continue;
+        }
+
+        if (seasonGone) {
+          const mail = buildCountyMissedEmail({ name, county, propertyAddress: property_address });
+          try {
+            await resend.emails.send({
+              from: 'TaxAppeal USA <reminders@taxappealusa.com>',
+              to: email, subject: mail.subject, html: mail.html,
+            });
+            // Roll them to next season and take the row out of this year's set, so
+            // the "we could not" email can only ever be sent once.
+            const nextYear = currentYear + 1;
+            const { data: already } = await supabase.from('waitlist').select('id')
+              .eq('email', email.toLowerCase()).eq('state', stateUpper)
+              .eq('filing_year', nextYear).limit(1);
+            if (!already?.length) {
+              await supabase.from('waitlist').insert({
+                email: email.toLowerCase(), name, state: stateUpper, county,
+                property_address, filing_year: nextYear, notified_count: 0,
+              });
+              totalEnrolledNextYear++;
+            }
+            await supabase.from('waitlist').delete().eq('id', id);
+            totalSent++;
+            console.log(`[notify-waitlist] season closed with ${county} unconfirmed — told ${email}`);
+          } catch (emailErr) {
+            console.error(`[notify-waitlist] county-missed email failed for ${email}:`, emailErr.message);
+          }
+          continue;
+        }
+
+        // Still unconfirmed, still time. Say nothing — there is nothing to say yet.
+        totalSkipped++;
+        continue;
+      }
 
       if (!windowStatus || !windowStatus.isOpen) {
         console.log(`[notify-waitlist] Skipping ${email} — window not open`);

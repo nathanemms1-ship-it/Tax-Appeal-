@@ -32,8 +32,25 @@ export default async function handler(req, res) {
     if (fetchErr || !order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.dispute_status !== 'queued') {
-      return res.status(400).json({ error: `Order is not queued (current status: ${order.dispute_status})` });
+    /**
+     * `needs_review` is dispatchable from here — widened 11 Aug 2026.
+     *
+     * Several paths write `needs_review` when a mail attempt fails (see attemptMail
+     * in lib/fulfillOrder.js). Every one of them produced an order that the dispatch
+     * cron no longer selects — it queries `dispute_status = 'queued'` — and that this
+     * endpoint then refused, and that /admin did not even render. A paid order could
+     * reach a state with NO route back into the system short of hand-editing the row
+     * in Supabase, at the one time of year when nobody has an evening spare.
+     *
+     * Reviewing an order and re-dispatching it is exactly what an operator is for.
+     * The guards that actually matter are below and unchanged: the reversal check,
+     * and dispatchQueuedOrder's own signature and county gates. Anything not in this
+     * list — `filed`, `mailed` — stays refused, because re-mailing a filed petition
+     * cuts a second county check.
+     */
+    const DISPATCHABLE = ['queued', 'needs_review'];
+    if (!DISPATCHABLE.includes(order.dispute_status)) {
+      return res.status(400).json({ error: `Order is not dispatchable (current status: ${order.dispute_status})` });
     }
 
     // Same guard as the cron. This button bypasses the filing-window check, so

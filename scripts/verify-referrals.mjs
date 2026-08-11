@@ -215,6 +215,57 @@ t('partner-stats returns paid and pending separately',
 // 4. COVERAGE CLAIMS MATCH THE CODE THAT ENFORCES THEM
 // ============================================================================
 const { getServiceCoverage, SERVING_STATES, NOT_YET_SERVING } = await import('../lib/serviceCoverage.js');
+// Imported to re-derive the served count independently, rather than trusting the
+// number serviceCoverage hands back — a refactor that returns a constant would
+// otherwise satisfy every assertion below.
+const { FL_COUNTY_NAMES, isFlCountySupported } = await import('../lib/flVabAddresses.js');
+const { getFlVabFee } = await import('../lib/flCountyFees.js');
+
+/**
+ * THE HAND-FILING PATH IS GONE AND MUST NOT COME BACK BY ACCIDENT.
+ *
+ * `needsManualFiling` was set in React state, read by one component, and sent
+ * nowhere. It described an ops queue that did not exist, so an order in an
+ * unconfirmed county queued like any other, was refused hourly by send-letter, and
+ * nobody found out. Reintroducing the flag without also building somewhere for the
+ * order to GO recreates exactly that, and it is invisible in review because the
+ * funnel looks like it is doing the right thing.
+ */
+const applySrc = read('pages/apply.js');
+
+/**
+ * readCode(), not read() — comments are stripped, deliberately.
+ *
+ * The first version of this assertion failed on the block comments in apply.js and
+ * serviceCoverage.js that explain WHY the flag was removed, which is the most
+ * valuable text in either file and exactly what the next person needs to read
+ * before reinventing it. A check that punishes writing down the reason teaches
+ * people to delete the reason. Test the code; leave the history alone.
+ */
+t('the needsManualFiling flag is gone from the whole funnel',
+  !/needsManualFiling/.test(readCode('pages/apply.js')) &&
+  !/needsManualFiling/.test(readCode('components/StepFloridaFee.js')),
+  'it promised routing that was never implemented; if it returns, build the queue first');
+/**
+ * `setFlCountyBlocked({` — the brace matters, and the injection test is what proved it.
+ *
+ * The first version asserted `setFlCountyBlocked(` and passed happily with the divert
+ * deleted, because the CLEARING calls — setFlCountyBlocked(null) on the success path
+ * and on Back — still matched. The check was satisfied by the code that undoes the
+ * thing it exists to protect. Only a call that SETS a block counts.
+ */
+t('an unconfirmed county is refused before checkout, not accepted and flagged',
+  /setFlCountyBlocked\(\s*\{/.test(applySrc),
+  'applyResolvedCounty must divert to FloridaCountyUnavailable, not fall through to the fee step');
+t('the block is cleared again on the path that does file',
+  /setFlCountyBlocked\(\s*null\s*\)/.test(applySrc),
+  'a stale block would strand a customer who went Back and picked a county we do serve');
+t('the funnel tests BOTH send-letter gates, not just the address',
+  /isFlCountySupported\(county\)/.test(applySrc) && /confidence === 'confirmed'/.test(applySrc),
+  'checking only the address lets Nassau, Columbia and Levy through to a checkout that then refuses them');
+t('the refused customer is recorded so the notify promise can be kept',
+  /blockedReason: *["']fl_county_unconfirmed["']/.test(applySrc),
+  'the screen promises an email when the county opens; without this row there is nobody to write to');
 const coverage = getServiceCoverage();
 
 // The marketing page must not outrun the checkout gate. pages/apply.js is the gate.
@@ -240,22 +291,67 @@ t('/partners no longer advertises Arkansas and Alabama as served',
 
 // Sanity-check the derived number against the address table it comes from, so a
 // refactor of serviceCoverage that silently returns 0 or 67 is caught.
-t('every Florida county is SERVED — served is not the same as automated',
-  coverage.florida.served === 67,
-  'an unconfirmed county is accepted, disclosed before payment and filed by hand; ' +
-  'saying we serve fewer tells partners not to refer clients we would happily file for');
-t('the automated count is plausible',
-  coverage.florida.automatic > 0 && coverage.florida.automatic <= 67,
-  `got ${coverage.florida.automatic}`);
-t('automatic + hand-filed accounts for every county',
-  coverage.florida.automatic + coverage.florida.handFiled === 67,
-  `${coverage.florida.automatic} + ${coverage.florida.handFiled} != 67`);
+t('the served count is plausible',
+  coverage.florida.served > 0 && coverage.florida.served <= 67,
+  `got ${coverage.florida.served}`);
+t('served + not-yet-open accounts for every county',
+  coverage.florida.served + coverage.florida.notYetOpen === 67,
+  `${coverage.florida.served} + ${coverage.florida.notYetOpen} != 67`);
 t('the ambiguous `supported` field is gone for good',
   coverage.florida.supported === undefined,
   'that name is what let served and automated be collapsed into one wrong number');
-t('/partners and /florida agree that all 67 are served',
-  /all \{coverage\.florida\.served\}/.test(partners) && /all 67/.test(read('pages/florida.js')),
-  'two pages on one site disagreeing about coverage is worse than either being wrong alone');
+
+/**
+ * SERVED MUST TRACK THE CHECKOUT GATE — rewritten 11 Aug 2026.
+ *
+ * These assertions used to require `served === 67`, on the basis that an unconfirmed
+ * county was accepted and filed by hand. Hand-filing is gone: pages/apply.js
+ * `applyResolvedCounty` now refuses the sale and captures the email instead. So 67 is
+ * no longer the number we are allowed to say, and the check has to enforce the
+ * opposite of what it used to.
+ *
+ * The rule is one sentence: NO MARKETING SURFACE MAY CLAIM MORE COUNTIES THAN THE
+ * FUNNEL WILL TAKE AN ORDER IN. That is the failure this whole file exists to stop.
+ */
+t('the hand-filing fields are gone — the product no longer does it',
+  coverage.florida.automatic === undefined && coverage.florida.handFiled === undefined,
+  'leaving them in invites copy that promises a hand-filing path with nothing behind it');
+/**
+ * Re-derived from the two underlying tables, NOT from the helper serviceCoverage
+ * uses — otherwise the assertion is a tautology that passes however wrong the
+ * helper is. This is not hypothetical: the first version of this check compared
+ * `served` against `isFlCountySupported` alone, which is what serviceCoverage was
+ * already (wrongly) doing, so it went green on a count of 59 while the funnel would
+ * accept 56. Assert against the source of truth, not against the thing under test.
+ */
+const trulyFilable = FL_COUNTY_NAMES.filter(
+  c => isFlCountySupported(c) && getFlVabFee(c)?.confidence === 'confirmed'
+).length;
+t('serviceCoverage counts only counties send-letter.js will actually mail to',
+  coverage.florida.served === trulyFilable,
+  `serviceCoverage says ${coverage.florida.served}, both gates say ${trulyFilable} — ` +
+  'a marketing page that outruns the checkout gate is the failure this file exists to stop');
+t('the fee gate is counted, not just the address gate',
+  coverage.florida.served <= FL_COUNTY_NAMES.filter(isFlCountySupported).length,
+  'Nassau, Columbia and Levy have confirmed addresses and estimated fees; send-letter refuses them');
+/**
+ * Targeted at COVERAGE claims, not at every occurrence of the number.
+ *
+ * pages/florida.js legitimately cites a Department of Revenue statistic measured
+ * "across all 67 Florida counties" — that is a fact about Florida's boards, not a
+ * claim about us, and a blunter regex would fail the build on a true sentence and
+ * teach the next person to weaken the check. What is forbidden is asserting that WE
+ * serve, file in, or cover all 67 while the checkout gate refuses some of them.
+ */
+const OVERCLAIM = /(serve|serving|serves|served|file in|filing in|filed in|cover|covers|covering)\s+(all\s+)?(67|sixty-seven)\s*(florida\s*)?count/i;
+for (const [label, src] of [['/partners', partners], ['/florida', read('pages/florida.js')]]) {
+  t(`${label} does not claim more Florida counties than the funnel will accept`,
+    coverage.florida.complete || !OVERCLAIM.test(src),
+    `${coverage.florida.notYetOpen} counties are refused at checkout; claiming all 67 is a promise we cannot honour`);
+}
+t('/partners discloses what happens in a county we cannot file in',
+  coverage.florida.complete || /charged nothing|charge nothing|do not take orders there/.test(partners),
+  'a partner asked "what about my client in Dixie County?" needs an answer that is not a guess');
 
 // ============================================================================
 // 5. PRICING AND EARNINGS CLAIMS

@@ -321,9 +321,30 @@ export default function Admin() {
     return true;
   });
 
+  /**
+   * `needs_review` orders belong in this panel — widened 11 Aug 2026.
+   *
+   * This filter was `=== 'queued'`, which meant an order that failed a mail attempt
+   * and was written to `needs_review` vanished from the only screen an operator
+   * looks at. It was also refused by /api/process-order-now, so a paid order could
+   * end up with no route back into the system short of editing the row by hand.
+   *
+   * They sort to the top rather than by date: an order the system has already given
+   * up on is more urgent than one still waiting for its window to open.
+   */
+  const DISPATCHABLE_STATUSES = ['queued', 'needs_review'];
   const queuedOrders = [...orders]
-    .filter(o => o.dispute_status === 'queued')
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    .filter(o => DISPATCHABLE_STATUSES.includes(o.dispute_status))
+    .sort((a, b) => {
+      const aBad = a.dispute_status === 'needs_review' ? 0 : 1;
+      const bBad = b.dispute_status === 'needs_review' ? 0 : 1;
+      if (aBad !== bBad) return aBad - bBad;
+      // Then a failing order ahead of a healthy one, then oldest first.
+      const aErr = a.last_dispatch_error ? 0 : 1;
+      const bErr = b.last_dispatch_error ? 0 : 1;
+      if (aErr !== bErr) return aErr - bErr;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
 
   const handleProcessNow = async (orderId) => {
     if (!confirm('Dispatch this order now? This will mail the letter immediately.')) return;
@@ -455,12 +476,16 @@ export default function Admin() {
                   <th>State / County</th>
                   <th>Scheduled File Date</th>
                   <th>Opens In</th>
+                  {/* Added 11 Aug 2026. Every dispatch failure used to be a console
+                      line in Vercel; this table showed a normal-looking row with a
+                      button that returned the same error every hour. */}
+                  <th>Dispatch</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {queuedOrders.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: "center", padding: "32px", color: C.mutedGray }}>No queued pre-orders</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign: "center", padding: "32px", color: C.mutedGray }}>No queued pre-orders</td></tr>
                 ) : (
                   queuedOrders.map(order => {
                     const daysUntil = order.scheduled_file_date ? Math.ceil((new Date(order.scheduled_file_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
@@ -477,6 +502,22 @@ export default function Admin() {
                         <td style={{ whiteSpace: "nowrap" }}>{order.scheduled_file_date ? formatDate(order.scheduled_file_date) : '—'}</td>
                         <td style={{ whiteSpace: "nowrap", color: daysUntil !== null && daysUntil <= 0 ? C.green : C.bodyGray, fontWeight: daysUntil !== null && daysUntil <= 0 ? 700 : 400 }}>
                           {daysUntil === null ? '—' : daysUntil <= 0 ? 'Window open' : `${daysUntil} days`}
+                        </td>
+                        <td style={{ maxWidth: 260 }}>
+                          {order.dispute_status === 'needs_review' && (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 3 }}>NEEDS REVIEW</div>
+                          )}
+                          {order.dispatch_attempts ? (
+                            <div style={{ fontSize: 11, color: order.dispatch_attempts >= 12 ? C.red : '#B7791F', fontWeight: 600 }}>
+                              {order.dispatch_attempts} failed attempt{order.dispatch_attempts === 1 ? '' : 's'}
+                              {order.dispatch_attempts >= 12 ? ' · parked, not retrying' : ''}
+                            </div>
+                          ) : null}
+                          {order.last_dispatch_error ? (
+                            <div title={order.last_dispatch_error} style={{ fontSize: 11, color: C.mutedGray, lineHeight: 1.4, marginTop: 2, maxHeight: 34, overflow: 'hidden' }}>
+                              {order.last_dispatch_error}
+                            </div>
+                          ) : (!order.dispatch_attempts && order.dispute_status === 'queued' ? <span style={{ fontSize: 11, color: C.mutedGray }}>—</span> : null)}
                         </td>
                         <td>
                           <button
