@@ -6,6 +6,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { floridaCities } from '../../lib/floridaCities';
 import { taglineFor } from '../../lib/flTaglines';
+import { breadcrumbSchema } from '../../lib/breadcrumbs';
 
 
 
@@ -19,14 +20,53 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const city = floridaCities.find((c) => c.slug === params.city);
   if (!city) return { notFound: true };
-  return { props: { city } };
+
+  /**
+   * THE FILING WINDOW DATES WERE HARDCODED HERE, AND THEY WERE THE OLD ONES.
+   *
+   * This page carried `trimOpen = "August 15, 2026"` in the copy and
+   * `windowOpen = new Date('2026-08-11')` in the countdown bar. Both predate the
+   * correction recorded in lib/filingWindows.js, which moved Florida's open date to
+   * 24 Aug precisely because filing before TRIM notices exist produces premature
+   * petitions filed against the prior year's assessed value.
+   *
+   * The live effect on all 131 city pages: from 11 Aug the banner would have read
+   * "Florida's filing window is open" for thirteen days during which the funnel
+   * refuses to file. Read it, buy, and nothing goes out.
+   *
+   * Both now derive from FILING_WINDOWS.FL — the same table apply.js gates on — so
+   * the page cannot advertise a window the product will not honour.
+   */
+  const { FILING_WINDOWS } = await import('../../lib/filingWindows');
+  const { counties } = await import('../../lib/countyData');
+  const w = FILING_WINDOWS.FL;
+  const fmt = (m, d) => new Date(2026, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const countySlug = counties.find((c) => c.code === 'FL' && c.name === city.county)?.slug || null;
+
+  return {
+    props: {
+      city,
+      countySlug,
+      windowOpenISO: new Date(Date.UTC(2026, w.openMonth - 1, w.openDay)).toISOString().slice(0, 10),
+      windowCloseISO: new Date(Date.UTC(2026, w.hardMonth - 1, w.hardDay)).toISOString().slice(0, 10),
+      trimOpen: fmt(w.openMonth, w.openDay),
+      trimDeadline: fmt(w.hardMonth, w.hardDay),
+    },
+  };
 }
 
-export default function FloridaCityPage({ city }) {
+export default function FloridaCityPage({ city, countySlug, windowOpenISO, windowCloseISO, trimOpen, trimDeadline }) {
   const formattedValue = city.medianHomeValue.toLocaleString();
   const formattedSavings = city.avgSavings.toLocaleString();
-  const trimDeadline = "September 18, 2026";
-  const trimOpen = "August 15, 2026";
+  const countyHref = countySlug ? `/counties/${countySlug}` : '/florida';
+
+  const trail = [
+    { name: 'Home', href: '/' },
+    { name: 'Florida', href: '/florida' },
+    { name: `${city.county} County`, href: countyHref },
+    { name: city.name },
+  ];
 
   const faqs = [
     {
@@ -55,27 +95,26 @@ export default function FloridaCityPage({ city }) {
     },
   ];
 
-  const faqSchema = {
+  /**
+   * SCHEMA. The FAQPage block that used to sit here is gone — Google's own doc reads
+   * "As of May 7, 2026, FAQ rich results are no longer appearing in Google Search",
+   * and the documentation was withdrawn on 15 June 2026. It produced nothing on any of
+   * these 131 pages. The visible FAQ section stays; only the inert markup went.
+   *
+   * LocalBusiness became Service for the same reason it did on the county pages: the
+   * type requires a postal address and this had none, so every copy was invalid. The
+   * valid version would have advertised a Forest Hill, Texas address on a Miami Beach
+   * page. Organization is already declared once, site-wide, in pages/_app.js.
+   */
+  const serviceSchema = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => {
-      return {
-        "@type": "Question",
-        name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: f.a },
-      };
-    }),
-  };
-
-  const localBusinessSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: "TaxAppeal USA",
-    description: `Property tax appeal service for ${city.name}, Florida homeowners`,
+    "@type": "Service",
+    name: `${city.name} property tax appeal filing`,
+    serviceType: "Florida VAB petition preparation and tracked mail filing",
+    description: `Value Adjustment Board petition preparation, county filing fee payment and tracked mail filing for ${city.name}, ${city.county} County homeowners.`,
     url: `https://www.taxappealusa.com/florida/${city.slug}`,
+    provider: { "@type": "Organization", name: "TaxAppeal USA", url: "https://www.taxappealusa.com", telephone: "+18175644050" },
     areaServed: { "@type": "City", name: city.name },
-    priceRange: "$89 flat fee",
-    telephone: "+18175644050",
   };
 
   return (
@@ -92,14 +131,17 @@ export default function FloridaCityPage({ city }) {
         <meta property="og:description" content={`Appeal your ${city.name} property taxes. Flat $89 fee - no percentages, ever. We prepare the petition, you sign it, we mail it on time.`} />
         <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} />
         <meta property="og:type" content="website" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema(trail, `https://www.taxappealusa.com/florida/${city.slug}`)) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
       </Head>
 
       {(() => {
         const preOrderOpen = new Date('2026-06-12');
-        const windowOpen = new Date('2026-08-11');
-        const windowClose = new Date('2026-09-18');
+        // Derived from FILING_WINDOWS.FL in getStaticProps, not typed in here. The
+        // literals this replaces said the window opened 11 Aug — thirteen days before
+        // the funnel will actually file. See the note in getStaticProps.
+        const windowOpen = new Date(windowOpenISO);
+        const windowClose = new Date(windowCloseISO);
         const today = new Date();
         const barStyle = { background: '#FFC940', color: '#0F1F3D', textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
         if (today >= preOrderOpen && today < windowOpen) {
@@ -127,7 +169,21 @@ export default function FloridaCityPage({ city }) {
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "8px", padding: "12px 28px", fontWeight: "700", fontSize: "15px", cursor: "pointer" }}>Start My Appeal — $89</button></Link>
         </nav>
 
-        <section style={{ padding: "60px 0 40px", textAlign: "center" }}>
+        {/* Breadcrumb — built from the same `trail` the JSON-LD above uses. The
+            {County} crumb is the first inbound link these 131 pages have ever given
+            /counties/*, which the TX, GA and AR city templates have had all along. */}
+        <nav style={{ padding: "14px 0 0", fontSize: "13px", color: "#6b7280" }}>
+          {trail.map((crumb, i) => (
+            <span key={crumb.name}>
+              {i > 0 && " → "}
+              {crumb.href
+                ? <Link href={crumb.href} style={{ color: "#6b7280", textDecoration: "none" }}>{crumb.name}</Link>
+                : <span style={{ color: "#1B2A4A" }}>{crumb.name}</span>}
+            </span>
+          ))}
+        </nav>
+
+        <section style={{ padding: "40px 0 40px", textAlign: "center" }}>
           <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
           <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} We prepare your petition and mail it for <strong style={{ color: "#C9A84C" }}>$89 flat</strong> plus your county's filing fee - and we never take a percentage of what you save.</p>
@@ -199,6 +255,21 @@ export default function FloridaCityPage({ city }) {
           <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>File before your county's VAB deadline. Just $89 flat, plus the county filing fee - and we never take a percentage of your savings.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — $89 Flat</button></Link>
           <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · Mailed Filing</p>
+        </section>
+
+        {/* The county page carries the things that vary by county and not by city —
+            the VAB Clerk's mailing address, the exact filing fee, the millage. Sending
+            people there rather than restating it here is what stops 131 city pages
+            becoming 131 copies of the same county facts. */}
+        <section style={{ padding: "36px 0", borderTop: "1px solid #e5e7eb", textAlign: "center" }}>
+          <p style={{ fontSize: "16px", color: "#4b5563", lineHeight: "1.7", maxWidth: "620px", margin: "0 auto" }}>
+            {city.name} files through {city.county} County. The{" "}
+            <Link href={countyHref} style={{ color: "#1B2A4A", fontWeight: 700 }}>
+              {city.county} County appeal guide
+            </Link>{" "}
+            has the Value Adjustment Board&apos;s mailing address, the county filing fee, the {trimDeadline} deadline
+            and the current millage rate.
+          </p>
         </section>
 
         <footer style={{ borderTop: "1px solid #e5e7eb", padding: "32px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>

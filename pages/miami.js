@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import { breadcrumbSchema } from '../lib/breadcrumbs';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -29,10 +30,7 @@ return (
 <meta property="og:description" content="Appeal your Miami property taxes for $104 all-in.Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." />
 <meta property="og:url" content="https://www.taxappealusa.com/miami" />
 <meta property="og:type" content="website" />
-<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-"@context":"https://schema.org","@type":"FAQPage",
-"mainEntity": faqs.map(([q,a]) => ({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))
-})}} />
+<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Miami-Dade County',href:'/counties/miami-dade-county-fl'},{name:'Miami'}],'https://www.taxappealusa.com/miami'))}} />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
 "@context":"https://schema.org","@type":"Service",
 "name":"Miami Property Tax Appeal Filing",

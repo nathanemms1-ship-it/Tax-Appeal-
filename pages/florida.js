@@ -6,6 +6,7 @@ import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
 import { floridaCities } from '../lib/floridaCities';
 import { counties as ALL_COUNTIES } from '../lib/countyData';
 import { FL_TAGLINES } from '../lib/flTaglines';
+import { breadcrumbSchema } from '../lib/breadcrumbs';
 
 const C = {
 navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -92,15 +93,13 @@ return (
 <meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). You sign your petition; we pay the county fee and mail it. All 67 counties." />
 <meta property="og:url" content="https://www.taxappealusa.com/florida" />
 <meta property="og:type" content="website" />
-<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-"@context": "https://schema.org",
-"@type": "FAQPage",
-"mainEntity": faqs.map(([q, a]) => ({
-"@type": "Question",
-"name": q,
-"acceptedAnswer": { "@type": "Answer", "text": a }
-}))
-})}} />
+{/* FAQPage removed 10 Aug 2026 — Google: "As of May 7, 2026, FAQ rich results are
+no longer appearing in Google Search". Docs withdrawn 15 June 2026. The visible FAQ
+section below stays; only the inert markup went. BreadcrumbList replaces it because it
+is the one type on this page that still produces a rich result. */}
+<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(
+breadcrumbSchema([{ name: 'Home', href: '/' }, { name: 'Florida' }], 'https://www.taxappealusa.com/florida')
+)}} />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
 "@context": "https://schema.org",
 "@type": "Service",

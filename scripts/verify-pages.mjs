@@ -249,6 +249,237 @@ for (const [hub, code] of [['florida', 'FL'], ['texas', 'TX'], ['georgia', 'GA']
   }
 }
 
+/**
+ * ============================================================================
+ * FLORIDA COUNTY PAGES: THE PETITION MUST BE ADDRESSED TO THE VAB CLERK
+ * ============================================================================
+ * Until 10 Aug 2026 every one of the 67 FL county pages told the homeowner we mail
+ * the DR-486 "to the {county.district}" — the Property Appraiser. lib/flVabAddresses.js
+ * opens with the reason that is wrong, in capitals: a petition mailed to the Property
+ * Appraiser is never filed and the appeal year is lost. The filing pipeline was always
+ * correct; only these pages described the wrong office, and nothing in the build noticed
+ * because no check connected the page copy to the address table.
+ *
+ * This asserts the built HTML carries the county's actual VAB Clerk street address for
+ * every county where we hold a confirmed one. It is the same shape as the FL city fee
+ * check above, and for the same reason: the page and the operation must not be able to
+ * drift apart silently.
+ */
+// getFlVabFee is already imported above for the FL city fee check.
+const { getFlVabAddress } = await import('../lib/flVabAddresses.js');
+
+const countyHtml = (slug) => findHtml(path.join('counties', slug));
+
+/**
+ * visibleText() strips tags but leaves HTML entities encoded, and these are government
+ * office names: "Clerk of the Circuit Court & Comptroller" renders as `&amp;`, and
+ * "Clerk's Finance Office" as `&#x27;`. Comparing a raw table value against that misses
+ * 20 of the 59 counties — every one whose Clerk name contains an apostrophe or an
+ * ampersand. Decode before matching rather than escaping the expectation, so the check
+ * cannot be defeated by a different-but-equivalent encoding.
+ */
+const decodeEntities = (s) => s
+  .replace(/&amp;/g, '&')
+  .replace(/&#x27;|&#39;/g, "'")
+  .replace(/&quot;|&#34;/g, '"')
+  .replace(/&#x2F;/g, '/')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&nbsp;/g, ' ');
+
+let flChecked = 0, flSkipped = 0;
+for (const c of ALL_COUNTIES.filter((c) => c.code === 'FL')) {
+  const file = countyHtml(c.slug);
+  if (!file) { flSkipped++; continue; }
+  const html = fs.readFileSync(file, 'utf8');
+  const vab = getFlVabAddress(c.name);
+
+  // Counties without a CONFIRMED address deliberately render no address at all —
+  // getFlVabAddress returns null and the page says so. Nothing to assert but the
+  // absence of a fabricated one, which is what the null path guarantees.
+  if (!vab) { flSkipped++; continue; }
+
+  const text = decodeEntities(visibleText(html));
+  if (!text.includes(vab.street)) {
+    failures++;
+    console.error(`  FAIL  /counties/${c.slug} does not carry the ${c.name} County VAB Clerk address`);
+    console.error(`          expected "${vab.street}" — a DR-486 sent to the Property Appraiser instead is never filed`);
+    continue;
+  }
+
+  /**
+   * PRESENCE OF THE ADDRESS IS NOT ENOUGH — it must be named as the DESTINATION.
+   *
+   * The first version of this check only asserted the street address appeared somewhere
+   * in the HTML. Reverting filingTargetFor() to `county.district` was then invisible to
+   * it: the district card still printed the Clerk's address from the same table, while
+   * the hero, the direct answer and the how-it-works step all went back to telling the
+   * homeowner we mail to the Property Appraiser. The build stayed green on exactly the
+   * bug this check exists to catch.
+   *
+   * So assert the preposition. "to the {Property Appraiser}" and "with the {Property
+   * Appraiser}" are the phrasings of a mailing destination, and neither may appear on a
+   * Florida county page. The negative lookbehind exempts "NOT to the {Property
+   * Appraiser}", which is the page explicitly warning against the thing this checks for;
+   * "Not the {Property Appraiser}" and the "Who Set Your Value" label never matched.
+   */
+  const misdirect = new RegExp(`(?<!\\bnot )\\b(?:to|with) the ${c.district.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+  if (misdirect.test(text)) {
+    failures++;
+    console.error(`  FAIL  /counties/${c.slug} names the ${c.district} as the filing destination`);
+    console.error(`          a DR-486 mailed to the Property Appraiser is never filed and the appeal year is lost`);
+    console.error(`          the destination must be the VAB Clerk — see filingTargetFor() in pages/counties/[slug].js`);
+    continue;
+  }
+  if (!text.includes(vab.vabName)) {
+    failures++;
+    console.error(`  FAIL  /counties/${c.slug} never names the ${c.name} County VAB Clerk in visible text`);
+    continue;
+  }
+
+  // The fee must match the table checkout charges from, and the all-in must be $89 + it.
+  const dollars = getFlVabFee(c.name).vabFee / 100;
+  const quoted = [...html.matchAll(/\$(\d{1,3})\s*(?:per parcel\s*)?(?:county\s*)?(?:VAB|petition|filing)/gi)].map((m) => Number(m[1]));
+  const wrong = [...new Set(quoted.filter((n) => n !== dollars && n !== 89 && n !== 89 + dollars))];
+  if (wrong.length) {
+    failures++;
+    console.error(`  FAIL  /counties/${c.slug} advertises a ${c.name} County fee of $${wrong.join(', $')} — the table says $${dollars}`);
+    continue;
+  }
+  flChecked++;
+}
+if (flChecked) {
+  console.log(`  ${flChecked} FL county pages address the VAB Clerk and quote the fee checkout charges` +
+    (flSkipped ? ` (${flSkipped} skipped — no confirmed address on file)` : ''));
+}
+
+/**
+ * DEAD STRUCTURED DATA MUST NOT COME BACK.
+ *
+ * Google removed the HowTo rich result on 14 Sept 2023 and the FAQ rich result on
+ * 7 May 2026 ("FAQ rich results are no longer appearing in Google Search"), withdrawing
+ * both sets of documentation. Neither type produces anything in the SERP for a
+ * commercial site today. They were shipping on all 573 county pages.
+ *
+ * BreadcrumbList is asserted positively because it is the one type on these pages that
+ * still earns a rich result, and because the site went its whole life with visible
+ * breadcrumb trails on /texas/[city] and /blog/[slug] and zero markup behind them —
+ * which is exactly the sort of thing that gets quietly dropped in a refactor.
+ */
+{
+  // The Florida surface, end to end: hub, metros, the city template and the county
+  // template. Every one of these shipped FAQPage before 10 Aug 2026 and none of them
+  // shipped BreadcrumbList. Sampled county pages cover one per state so a non-FL
+  // regression is caught too.
+  const FL_SURFACE = [
+    'florida', 'miami', 'tampa', 'orlando', 'jacksonville', 'fort-lauderdale',
+    path.join('florida', 'miami-beach'), path.join('florida', 'boca-raton'),
+  ];
+  const sampleCounties = ALL_COUNTIES
+    .filter((c, i, a) => a.findIndex((x) => x.code === c.code) === i)
+    .map((c) => path.join('counties', c.slug));
+
+  let schemaChecked = 0;
+  for (const name of [...FL_SURFACE, ...sampleCounties]) {
+    const file = findHtml(name);
+    if (!file) continue;
+    const html = fs.readFileSync(file, 'utf8');
+    for (const dead of ['FAQPage', 'HowTo']) {
+      if (html.includes(`"@type":"${dead}"`) || html.includes(`"@type": "${dead}"`)) {
+        failures++;
+        console.error(`  FAIL  /${name} ships ${dead} structured data — Google stopped rendering it (HowTo Sept 2023, FAQ May 2026)`);
+      }
+    }
+    if (!html.includes('BreadcrumbList')) {
+      failures++;
+      console.error(`  FAIL  /${name} has no BreadcrumbList — the only rich result these pages are still eligible for`);
+    }
+    schemaChecked++;
+  }
+  if (schemaChecked) console.log(`  ${schemaChecked} pages carry BreadcrumbList and no dead FAQ/HowTo markup`);
+}
+
+/**
+ * FLORIDA CITY PAGES MUST LINK UP TO THEIR COUNTY.
+ *
+ * /texas/[city], /georgia/[city] and /arkansas/[city] have linked their county page
+ * since the July 30 orphan fix. /florida/[city] never did — 131 pages, the largest city
+ * set on the site, in the launch state, with no path to the page that carries the VAB
+ * address, the filing fee and the millage.
+ *
+ * Also asserts the reverse edge: a county page with cities must link at least one of
+ * them, so the two directions cannot silently come apart.
+ */
+{
+  const { floridaCities } = await import('../lib/floridaCities.js');
+  const flCounties = new Map(ALL_COUNTIES.filter((c) => c.code === 'FL').map((c) => [c.name, c.slug]));
+  let up = 0, down = 0, missing = [];
+
+  for (const city of floridaCities) {
+    const file = findHtml(path.join('florida', city.slug));
+    if (!file) continue;
+    const wantSlug = flCounties.get(city.county);
+    if (!wantSlug) { missing.push(`${city.slug} (no countyData match for "${city.county}")`); continue; }
+    const html = fs.readFileSync(file, 'utf8');
+    if (!html.includes(`/counties/${wantSlug}`)) missing.push(`/florida/${city.slug} → /counties/${wantSlug}`);
+    else up++;
+  }
+  if (missing.length) {
+    failures++;
+    console.error(`  FAIL  ${missing.length} FL city pages do not link their county page`);
+    console.error(`          ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` … +${missing.length - 5} more` : ''}`);
+  } else if (up) {
+    console.log(`  ${up} FL city pages link up to their county page`);
+  }
+
+  for (const [name, slug] of flCounties) {
+    const kids = floridaCities.filter((c) => c.county === name);
+    if (!kids.length) continue;
+    const file = countyHtml(slug);
+    if (!file) continue;
+    const html = fs.readFileSync(file, 'utf8');
+    if (!kids.some((k) => html.includes(`/florida/${k.slug}`))) {
+      failures++;
+      console.error(`  FAIL  /counties/${slug} links none of its ${kids.length} ${name} County city pages`);
+    } else down++;
+  }
+  if (down) console.log(`  ${down} FL county pages link down to the cities they contain`);
+}
+
+/**
+ * THE ADVERTISED FILING WINDOW MUST BE THE ONE THE FUNNEL HONOURS.
+ *
+ * /florida/[city] hardcoded `windowOpen = new Date('2026-08-11')` and "TRIM notices mail
+ * around August 15" — both predating the correction in lib/filingWindows.js that moved
+ * Florida's open date to 24 Aug. On 131 pages, from 11 Aug, the banner would have read
+ * "Florida's filing window is open" for thirteen days while apply.js refused to file.
+ *
+ * Assert the built HTML does not contain a Florida open date other than the one
+ * FILING_WINDOWS.FL declares.
+ */
+{
+  const { FILING_WINDOWS } = await import('../lib/filingWindows.js');
+  const w = FILING_WINDOWS.FL;
+  const right = new Date(2026, w.openMonth - 1, w.openDay)
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const stale = [];
+  for (const slug of ['miami-beach', 'boca-raton', 'weston']) {
+    const file = findHtml(path.join('florida', slug));
+    if (!file) continue;
+    const text = decodeEntities(visibleText(fs.readFileSync(file, 'utf8')));
+    const dates = [...text.matchAll(/August \d{1,2}, 2026/g)].map((m) => m[0]);
+    const wrong = [...new Set(dates.filter((d) => d !== right))];
+    if (wrong.length) stale.push(`/florida/${slug}: ${wrong.join(', ')}`);
+  }
+  if (stale.length) {
+    failures++;
+    console.error(`  FAIL  FL city pages advertise an August date other than the ${right} open date in FILING_WINDOWS.FL`);
+    stale.forEach((s) => console.error(`          ${s}`));
+  } else {
+    console.log(`  FL city pages quote the ${right} open date FILING_WINDOWS.FL declares`);
+  }
+}
+
 if (failures) {
   console.error(`\nPage verification failed (${failures}).\n`);
   process.exit(1);
