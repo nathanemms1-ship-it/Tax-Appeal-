@@ -6,7 +6,7 @@ import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { escapeHtml } from '../../lib/webhookAuth';
 import { LIMITS, cap } from '../../lib/inputLimits';
-import { BUSINESS_NAME, BUSINESS_ADDRESS, SUPPORT_EMAIL } from '../../lib/businessInfo';
+import { BUSINESS_NAME, LEGAL_ENTITY, BUSINESS_ADDRESS, SUPPORT_EMAIL } from '../../lib/businessInfo';
 import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -72,6 +72,7 @@ const taxNoteBlock = () => `
 const emailFooter = () => `
 <div style="background:#f0f2f7;padding:16px 36px;text-align:center;border-top:1px solid #e5e8ef;font-size:12px;color:#94a3b8;line-height:1.7;">
 ${escapeHtml(BUSINESS_NAME)} · taxappealusa.com<br>
+${escapeHtml(LEGAL_ENTITY)}<br>
 ${escapeHtml(BUSINESS_ADDRESS)}<br>
 Don't want partner emails from us? Reply "unsubscribe" to <a href="mailto:${escapeHtml(SUPPORT_EMAIL)}?subject=Unsubscribe" style="color:#64748b;">${escapeHtml(SUPPORT_EMAIL)}</a> and we'll remove you.
 </div>`;

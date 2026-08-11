@@ -857,6 +857,63 @@ if (flChecked) {
   }
 }
 
+const t2 = (label, ok, detail) => {
+  if (ok) { console.log(`  ${label}`); return; }
+  failures++;
+  console.error(`  FAIL  ${label}`);
+  if (detail) console.error(`          ${detail}`);
+};
+
+/**
+ * ============================================================================
+ * THE CONTRACT NAMES A LEGAL ENTITY, SPELLED THE WAY THE STATE SPELLS IT
+ * ============================================================================
+ * Added 11 Aug 2026, when the Texas certificate landed.
+ *
+ * Until today /terms identified the counterparty as "TaxAppeal USA" — a brand.
+ * A brand cannot be a party to an agreement, and the reason it said that was
+ * deliberate: the registered entity was still `TX Vape Vendor LLC` and naming it
+ * on a property-tax contract was worse than naming nothing.
+ *
+ * Two things now have to stay true, and they pull in opposite directions:
+ *   - the LEGAL name must appear on the contract and in the CAN-SPAM footers
+ *   - it must be spelled EXACTLY as the certificate spells it, because Google
+ *     advertiser verification, Stripe and the bank all compare it against the
+ *     state record. "TaxAppeal USA LLC" (one word) is NOT the registered name.
+ *   - and the former name must never come back onto a customer-facing page.
+ */
+{
+  const { LEGAL_ENTITY, BUSINESS_NAME } = await import('../lib/businessInfo.js');
+
+  t2('the registered name is spelled as the certificate spells it',
+    LEGAL_ENTITY === 'Tax Appeal USA LLC',
+    `businessInfo says "${LEGAL_ENTITY}" — Texas SOS file 806147096 says "Tax Appeal USA LLC"`);
+  t2('the brand and the legal name are still different strings',
+    BUSINESS_NAME !== LEGAL_ENTITY && !BUSINESS_NAME.includes('LLC'),
+    'collapsing them puts "LLC" in page headers and a brand on the contract');
+
+  const terms = fs.readFileSync(findHtml('terms') || '/dev/null', 'utf8');
+  const termsText = decodeEntities(visibleText(terms));
+  t2('/terms names the contracting entity',
+    termsText.includes(LEGAL_ENTITY),
+    'section 1 identified only the brand, which is not a party capable of contracting');
+  t2('/terms states the entity type and home state',
+    /limited liability company/i.test(termsText) && /Texas/i.test(termsText));
+
+  // The old shell company must not reappear anywhere a customer can read it.
+  const built = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f); else if (e.name.endsWith('.html')) built.push(f);
+    }
+  })(DIR);
+  const vape = built.filter((f) => /TX Vape Vendor/i.test(fs.readFileSync(f, 'utf8')));
+  t2('the former entity name appears on no page',
+    vape.length === 0,
+    `found on: ${vape.slice(0, 3).join(', ')}`);
+}
+
 if (failures) {
   console.error(`\nPage verification failed (${failures}).\n`);
   process.exit(1);

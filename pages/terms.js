@@ -1,7 +1,7 @@
 // pages/terms.js
 import Head from 'next/head';
 import Link from 'next/link';
-import { BUSINESS_NAME, BUSINESS_ADDRESS_LINES, SUPPORT_EMAIL } from '../lib/businessInfo';
+import { BUSINESS_NAME, LEGAL_ENTITY, LEGAL_ENTITY_STATE, LEGAL_ENTITY_FILE_NUMBER, BUSINESS_ADDRESS_LINES, SUPPORT_EMAIL } from '../lib/businessInfo';
 
 export default function Terms() {
   return (
@@ -26,7 +26,7 @@ export default function Terms() {
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>1. Service Description</h2>
-            <p>TaxAppeal USA ("we," "our," "us") provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest or petition yourself; we then mail it in your name to the correct county authority — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Clerk of the Value Adjustment Board in Florida. We are not your agent or representative in any of those proceedings and do not appear before any board on your behalf. See section 12 for Florida specifically.</p>
+            <p><strong>{LEGAL_ENTITY}</strong>, a {LEGAL_ENTITY_STATE} limited liability company (Texas Secretary of State file no. {LEGAL_ENTITY_FILE_NUMBER}), trading as {BUSINESS_NAME} (&ldquo;we,&rdquo; &ldquo;our,&rdquo; &ldquo;us&rdquo;), provides a document preparation service that helps homeowners prepare their own property tax protest letters. We are not a law firm, and our service does not constitute legal advice. You review and sign each protest or petition yourself; we then mail it in your name to the correct county authority — the appraisal district or board of equalization in Texas, Georgia, Arkansas and Alabama, and the Clerk of the Value Adjustment Board in Florida. We are not your agent or representative in any of those proceedings and do not appear before any board on your behalf. See section 12 for Florida specifically.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. Flat Fee &amp; Payment</h2>
             <p>Our service fee is <strong>$89 per property per filing season</strong>. This covers preparation of your protest or petition, mail dispatch, and confirmation email delivery. Payment is processed securely via Stripe.</p>
@@ -68,7 +68,7 @@ export default function Terms() {
             <p>
               For questions about these Terms or your filing, contact us at:<br />
               <strong>Customer Service:</strong> <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: '#C9A84C' }}>{SUPPORT_EMAIL}</a><br />
-              <strong>Mailing address:</strong> {BUSINESS_NAME}, {BUSINESS_ADDRESS_LINES[0]}, {BUSINESS_ADDRESS_LINES[1]}
+              <strong>Mailing address:</strong> {LEGAL_ENTITY}, {BUSINESS_ADDRESS_LINES[0]}, {BUSINESS_ADDRESS_LINES[1]}
             </p>
 
           <div style={{ marginBottom: 24 }}>
