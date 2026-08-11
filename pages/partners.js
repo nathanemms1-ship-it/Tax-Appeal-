@@ -131,6 +131,82 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
           </div>
         </div>
       </section>
+      {/*
+        ==================================================================
+        PERPETUAL ATTRIBUTION — the promise that replaced a false one.
+        ==================================================================
+        This block REPLACES the claim "We email every customer 11 months after
+        their filing with a renewal reminder." There was no such job: four crons
+        exist and none of them sends it, and `grep -i renewal` across every cron
+        and the whole email-templates file returned nothing. It was a recurring-
+        revenue pitch used to recruit partners, and it was not true.
+
+        What is written here is different in kind, and that is why it can be
+        published before the payout logic is built:
+
+          - The DATA is already captured. lib/fulfillOrder.js writes
+            `ref_code` onto every order at purchase, permanently. We already know
+            who referred each customer.
+          - The OBLIGATION cannot come due until FL 2027. No customer can refile
+            before next August, so nobody can be short-changed in the meantime.
+          - The window-open partner email first fires for TX/GA on 31 Jan 2027.
+
+        Both come due AFTER the off-season build. Do not add further partner
+        promises on the same terms without checking that second condition —
+        "nobody can be short-changed before we ship it" is what makes this
+        publishable, not the fact that we intend to build it.
+
+        Decisions this copy encodes, settled 11 Aug 2026:
+          - Credit follows the ORIGINAL referrer, forever, with no action needed.
+          - EXCEPT where the customer arrives through a different partner's link
+            that season — then the active partner earns it. Without that carve-out
+            a partner who does the work loses to one who did nothing, notices, and
+            tells other realtors.
+          - Conditional on remaining an active partner, so a removed or closed
+            account stops accruing.
+          - Match on email AND property, so a customer changing email address does
+            not silently cost their referrer the credit.
+      */}
+      <section style={{padding:'44px 40px',background:C.white,borderTop:`4px solid ${C.gold}`}}>
+        <div className="container">
+          <div style={{display:'flex',gap:14,alignItems:'flex-start',flexWrap:'wrap'}}>
+            <div style={{flex:'1 1 380px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.green,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10}}>
+                Every year, not just the first
+              </div>
+              <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,marginBottom:14,lineHeight:1.2}}>
+                You keep earning on the clients you bring us
+              </h2>
+              <p style={{fontSize:15.5,color:C.bodyGray,lineHeight:1.75,marginBottom:14}}>
+                When someone you refer files again next season, you earn another <strong>$20</strong> &mdash;
+                automatically. You don&rsquo;t need to send them a new link, and you don&rsquo;t need to do
+                anything at all. We record who referred each customer at their first filing and it stays
+                with them, for as long as you&rsquo;re an active partner.
+              </p>
+              <p style={{fontSize:15.5,color:C.bodyGray,lineHeight:1.75}}>
+                When your state&rsquo;s filing window opens we email you first, with your link, so you can
+                reach your clients before we contact them. <strong style={{color:C.darkNavy}}>And if a client
+                of yours comes back on their own later, you still get paid.</strong> We are not going to take
+                your client direct.
+              </p>
+            </div>
+            <div style={{flex:'0 1 250px',background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 22px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.mutedGray,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>
+                One referral, over time
+              </div>
+              {[['Year 1','$20'],['Year 2','$20'],['Year 3','$20']].map(([y,v])=>(
+                <div key={y} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:`1px solid ${C.border}`,fontSize:14}}>
+                  <span style={{color:C.bodyGray}}>{y}</span>
+                  <strong style={{color:C.darkNavy}}>{v}</strong>
+                </div>
+              ))}
+              <div style={{fontSize:12.5,color:C.mutedGray,marginTop:12,lineHeight:1.6}}>
+                Each time that homeowner files again. Nothing further required from you.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       <section style={{padding:'56px 40px'}}>
         <div className="container">
           <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:48,alignItems:'start'}}>
@@ -182,7 +258,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{amt}</strong></span>
                   </div>
                 ))}
-                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>Filing season comes once a year, and it repeats — we remind every customer to refile 11 months later. If they come back through your link, you earn $20 again.</div>
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>Filing season comes once a year, and it repeats — when a client of yours files again, you earn $20 again, automatically, with nothing further required from you. If they come back through your link, you earn $20 again.</div>
               </div>
               <div style={{background:C.lightBlue,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginTop:24}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>What to tell your clients</div>
@@ -287,7 +363,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
             ['When do I get paid?',`On the 1st of each month we settle the previous month’s completed orders and send your $20 per order to your connected bank account through Stripe. Each order is held for ${holdbackDays} days before it is paid, so a referral from the last few days of a month goes out in the following run rather than that one — it shows as pending on your dashboard in the meantime. There is no minimum balance. You need a connected bank account to receive a payout; until you connect one your earnings keep accruing and go out in the first run after you do.`],
             ['Which referrals count?','Orders that were paid for and not refunded. Abandoned checkouts, refunds and chargebacks do not count, and neither does a filing you buy for yourself through your own link. Your dashboard lists anything that did not count and the reason, so the number you see is the number we pay.'],
             ['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],
-            ['What if a client files again next year?','We email every customer 11 months after their filing with a renewal reminder. If they refile through your link, you earn $20 again.'],
+            ['What if a client files again next year?','You earn $20 again, and you do not have to do anything to get it. We record who referred each customer at their first filing and the credit stays with you for as long as you are an active partner — whether they come back through your link or on their own. The one exception is if they are actively referred by a different partner that season, in which case the credit follows that referral.'],
             // Counted at build time. When Nathan confirms another county by phone,
             // this answer changes on the next deploy with no copy edit.
             ['Does TaxAppeal serve all counties?', coverageAnswer],

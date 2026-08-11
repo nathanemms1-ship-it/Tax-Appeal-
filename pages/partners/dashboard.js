@@ -497,7 +497,7 @@ export default function PartnerDashboard() {
                       You&apos;ve referred <strong style={{ color: C.white }}>{data.thisMonth.referrals} homeowner{data.thisMonth.referrals !== 1 ? 's' : ''}</strong> this month, worth ${data.thisMonth.earnings}. It goes out in the settlement run on the 1st{data.stripe.status === 'active' ? '' : ' — once your bank account is connected'}.
                     </p>
                     <p style={{ fontSize: 12, color: '#5A7A9F', lineHeight: 1.6 }}>
-                      Remember: customers get a renewal reminder 11 months after filing. If they refile through your link, you earn another $20.
+                      Remember: when a client you referred files again next season you earn another $20 — automatically, whether they use your link or come back on their own.
                     </p>
                   </>
                 )}

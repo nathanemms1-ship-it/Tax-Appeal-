@@ -222,6 +222,55 @@ const { FL_COUNTY_NAMES, isFlCountySupported } = await import('../lib/flVabAddre
 const { getFlVabFee } = await import('../lib/flCountyFees.js');
 
 /**
+ * ============================================================================
+ * THE PARTNER PAGE MAY NOT PROMISE AN EMAIL NOBODY SENDS
+ * ============================================================================
+ * Added 11 Aug 2026. /partners, twice, and the partner dashboard once, claimed:
+ * "We email every customer 11 months after their filing with a renewal reminder."
+ * There was no such job — four crons exist, and `renewal` appeared in none of them
+ * nor anywhere in email-templates.js. It was a recurring-revenue claim used to
+ * recruit partners, which is the worst kind to get wrong: they repeat it to their
+ * own clients in their own name.
+ *
+ * Replaced by perpetual attribution, which is publishable BEFORE it is built for a
+ * specific reason worth preserving: `ref_code` is already written onto every order
+ * at purchase, and no customer can refile before FL 2027, so nobody can be
+ * short-changed between publishing and shipping. That reasoning does not transfer
+ * automatically — before adding another forward-looking partner promise, check that
+ * second condition holds for it too.
+ *
+ * These assertions pin both halves: the dead claim cannot return, and the live one
+ * cannot quietly lose the parts that make it fair.
+ */
+{
+  const partnersSrc = readCode('pages/partners.js');
+  const dashSrc = readCode('pages/partners/dashboard.js');
+
+  t('no page promises a renewal email on a timer',
+    !/11 months/.test(partnersSrc) && !/11 months/.test(dashSrc) &&
+    !/renewal reminder/i.test(partnersSrc) && !/renewal reminder/i.test(dashSrc),
+    'there is no cron that sends one; if one is ever built, this check is what should be relaxed');
+
+  t('the renewal promise is not reinstated without a cron behind it',
+    !/renewal/i.test(readCode('pages/api/email-templates.js')) ||
+    /renewal/i.test(read('vercel.json')),
+    'a renewal template with no scheduled job is the same defect in a new place');
+
+  // The perpetual-credit promise, and the three parts that make it honest.
+  t('/partners states that credit carries to repeat filings',
+    /You keep earning on the clients you bring us/.test(partnersSrc));
+  t('the promise is scoped to active partners',
+    /as long as you(&rsquo;|\')?re an active partner/.test(partnersSrc),
+    'without this a removed or closed account accrues forever');
+  t('the promise says plainly we will not take the client direct',
+    /comes back on their own later, you still get paid/.test(partnersSrc),
+    'that sentence is the whole reason a realtor hands over their client list');
+  t('the FAQ discloses the competing-referral exception',
+    /actively referred by a different partner that season/.test(partnersSrc),
+    'a partner who does the work and loses to one who did nothing will notice');
+}
+
+/**
  * THE HAND-FILING PATH IS GONE AND MUST NOT COME BACK BY ACCIDENT.
  *
  * `needsManualFiling` was set in React state, read by one component, and sent
