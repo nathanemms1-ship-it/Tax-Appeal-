@@ -130,8 +130,13 @@ t('heartbeat: process-queued-orders stamps on the sales-paused path',
 const cronSrc = read('pages/api/cron/process-queued-orders.js');
 t('deadline check premise: the cron still gates on canFile',
   cronSrc.includes('windowStatus.canFile'));
+// Pinned the literal `missed.length || urgent.length` at first, which broke the day a
+// third bucket (stale — season closed) was ORed in between them, even though the thing
+// being asserted was still true. Assert that `missed` reaches critical, not the exact
+// shape of the expression around it.
 t('deadline check treats window-open-but-not-fileable as critical',
-  /!w\.canFile/.test(healthSrc) && /missed\.length \|\| urgent\.length[\s\S]{0,120}'critical'/.test(healthSrc));
+  /!w\.canFile/.test(healthSrc) &&
+  /if \([^)]*\bmissed\.length\b[^)]*\)\s*return result\('Filing deadlines', 'critical'/.test(healthSrc));
 t('deadline check excludes reversed payments, matching the cron',
   /refunded[\s\S]{0,80}partially_refunded[\s\S]{0,80}disputed/.test(
     healthSrc.slice(healthSrc.indexOf('checkFilingDeadlines'))));
@@ -168,6 +173,78 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   // The customer-facing delivery claim is asserted in verify-emails.mjs, which
   // RENDERS the template — grepping this source matches the explanatory comments
   // as well as the strings, which is how the first version of this check failed.
+}
+
+/**
+ * ── 4c. "NOT OPEN YET" AND "CLOSED FOR THE SEASON" ARE NOT THE SAME THING ─────
+ *
+ * getFilingWindowStatus reports `isOpen: false` for both, and checkFilingDeadlines
+ * counted both as `waiting` — printed to the operator as "waiting on a window that
+ * has not opened yet (safe)". So a paid, signed, PERMANENTLY UNFILEABLE order was
+ * reported as healthy by the one check written to catch that exact condition, while
+ * process-queued-orders hit `!canFile` and did `continue` every hour in silence.
+ *
+ * Found on a real Cherokee County, GA order created 23 June 2026 — eight days after
+ * Cherokee's 15 June close — which had been invisible for seven weeks.
+ *
+ * Asserted behaviourally, against the real numbers, because the string "waiting"
+ * appearing in the file proves nothing about which bucket a row lands in.
+ */
+{
+  /**
+   * CALL THE REAL FUNCTION. The first version of this block reimplemented the
+   * bucketing locally and asserted on its own copy — so neutering the actual branch
+   * in healthChecks.js changed nothing and the test still passed. That is the same
+   * tautology recorded against an earlier check in this project: comparing a value
+   * against the helper that produces it proves only that arithmetic works.
+   *
+   * So: stub Supabase's response, invoke checkFilingDeadlines() itself, and assert on
+   * what the operator would actually see.
+   */
+  const { checkFilingDeadlines } = await import('../lib/healthChecks.js');
+
+  const withStubbedOrders = async (rows, fn) => {
+    const realFetch = globalThis.fetch;
+    const realUrl = process.env.SUPABASE_URL;
+    const realKey = process.env.SUPABASE_SERVICE_KEY;
+    process.env.SUPABASE_URL = 'https://stub.invalid';
+    process.env.SUPABASE_SERVICE_KEY = 'stub';
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => rows });
+    try { return await fn(); } finally {
+      globalThis.fetch = realFetch;
+      if (realUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = realUrl;
+      if (realKey === undefined) delete process.env.SUPABASE_SERVICE_KEY; else process.env.SUPABASE_SERVICE_KEY = realKey;
+    }
+  };
+
+  // The real row: Cherokee County GA, bought 23 June 2026, eight days after Cherokee's
+  // 15 June close. Its next window is ~295 days out and we sell 60 days ahead.
+  const stale = await withStubbedOrders(
+    [{ id: 'cherokee-fixture', county: 'Cherokee', state_code: 'GA', payment_status: 'paid', created_at: '2026-06-23T15:37:59Z' }],
+    () => checkFilingDeadlines(),
+  );
+  t('an order whose season has closed is reported CRITICAL, not as safely waiting',
+    stale.status === 'critical' && /SEASON THEY BOUGHT HAS CLOSED/.test(stale.detail || ''));
+  t('a closed-season order is not counted in the safe waiting tally',
+    !/1 waiting on a window that has not opened yet/.test(stale.detail || ''));
+
+  // Only worth having if it stays quiet for a legitimate pre-order — otherwise it is
+  // noise on every Florida order taken before 24 August.
+  const fresh = await withStubbedOrders(
+    [{ id: 'fl-preorder', county: 'Broward', state_code: 'FL', payment_status: 'paid', created_at: new Date().toISOString() }],
+    () => checkFilingDeadlines(),
+  );
+  t('a genuine Florida pre-order still reads as safely waiting',
+    fresh.status === 'ok' && /waiting on a window that has not opened yet/.test(fresh.detail || ''));
+
+  const health = read('lib/healthChecks.js');
+  t('the season-missed bucket is wired into the deadline check',
+    /const stale = \[\]/.test(health) && /stale\.push\(/.test(health));
+  t('a missed season is CRITICAL, not a warning',
+    /if \(missed\.length \|\| stale\.length \|\| urgent\.length\) return result\('Filing deadlines', 'critical'/.test(health));
+  t('the deadline check derives its threshold from PRE_ORDER_DAYS rather than a literal',
+    /PRE_ORDER_DAYS \* 24 \* 60 \* 60 \* 1000/.test(health) &&
+    /import \{ getFilingWindowStatus, PRE_ORDER_DAYS \}/.test(health));
 }
 
 /**
