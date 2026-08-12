@@ -914,6 +914,223 @@ const t2 = (label, ok, detail) => {
     `found on: ${vape.slice(0, 3).join(', ')}`);
 }
 
+/**
+ * EVERY PUBLISHED PRICE MUST BE THE PRICE CHECKOUT CHARGES.
+ *
+ * $89 is our service fee. In Florida, checkout adds the county's VAB filing fee —
+ * $15 to $50 across these 131 cities — so the real total is $104 to $139. Eleven
+ * separate claims on this one template stated $89 as the whole price, and two were
+ * worse than an omission: the meta description and the deadline FAQ both said "with
+ * the county filing fee paid", which tells the homeowner we absorb it, and the
+ * competitor table put a bare "$89" in a column headed "Cost" directly against
+ * Ownwell's percentage.
+ *
+ * These are the pages Google Ads lands paid Florida traffic on from 24 Aug, so the
+ * gap between the advertised number and the charged number is a refund request and
+ * an Ads policy problem, not a bounce. This is the fourth time a wrong fee has
+ * shipped, which is why the check reads the BUILT pages rather than the source.
+ *
+ * The assertion is deliberately the ARITHMETIC — "$104 in total" — not the presence
+ * of the words "filing fee". A page can say "filing fee" and still quote the wrong
+ * number; it can only carry the right total if it derived it from getFlVabFee(),
+ * which is the table send-letter.js cuts the cheque from.
+ *
+ * A page whose county has no confirmed 2026 fee is the inverse case: checkout
+ * REFUSES those orders, so quoting any total there would be inventing one. Those
+ * pages must show no total and must carry the notice instead.
+ */
+{
+  const { floridaCities } = await import('../lib/floridaCities.js');
+  const { getFlVabFee, formatVabFee } = await import('../lib/flCountyFees.js');
+
+  // Phrases that state $89 as the whole price, or say we cover the county's fee.
+  // Every one of these was live on all 131 pages.
+  const BANNED = [
+    'county filing fee paid',
+    'just $89 flat',
+    'for a flat $89 fee',
+    'all for a flat $89',
+    'Flat $89 fee - no percentages',
+  ];
+
+  let checked = 0, confirmedPages = 0, unconfirmedPages = 0;
+  const wrongTotal = [], banned = [], badTitle = [], bareCost = [], missingNotice = [], inventedTotal = [];
+
+  for (const city of floridaCities) {
+    const file = findHtml(path.join('florida', city.slug));
+    if (!file) continue;
+    checked++;
+    const raw = fs.readFileSync(file, 'utf8');
+    const text = decodeEntities(visibleText(raw));
+    const head = decodeEntities(raw.slice(0, raw.indexOf('</head>') + 7));
+
+    for (const p of BANNED) {
+      if (text.includes(p) || head.includes(p)) banned.push(`/florida/${city.slug}: "${p}"`);
+    }
+
+    // The cost cell in the competitor table. A tag-delimited "$89" can only be a
+    // standalone cell or button — never part of "$89 plus the county's fee".
+    if (/>\s*\$89\s*</.test(raw)) bareCost.push(`/florida/${city.slug}`);
+
+    const fee = getFlVabFee(city.county);
+    if (fee.confidence === 'confirmed') {
+      confirmedPages++;
+      const total = formatVabFee(8900 + fee.vabFee);
+      if (!text.includes(`${total} in total`)) {
+        wrongTotal.push(`/florida/${city.slug} (${city.county}): expected "${total} in total"`);
+      }
+      // The title is the ad headline and the search snippet — the first price seen.
+      const title = decodeEntities((raw.match(/<title[^>]*>(.*?)<\/title>/) || [])[1] || '');
+      if (!title.includes(total)) badTitle.push(`/florida/${city.slug}: <title> omits ${total}`);
+    } else {
+      unconfirmedPages++;
+      if (/\$\d+ in total/.test(text)) {
+        inventedTotal.push(`/florida/${city.slug} (${city.county}) quotes a total for a county whose fee is unconfirmed`);
+      }
+      if (!text.includes('has not set its 2026 filing fee')) {
+        missingNotice.push(`/florida/${city.slug} (${city.county})`);
+      }
+    }
+  }
+
+  // A check that stops matching must not look like a check that passes. The blog fee
+  // check silently found ZERO claims and reported success; this floor is that lesson.
+  if (checked < 120) {
+    failures++;
+    console.error(`  FAIL  FL city price check inspected only ${checked} pages — expected 120+. Did the build or the slug path change?`);
+  }
+  if (!confirmedPages || !unconfirmedPages) {
+    failures++;
+    console.error(`  FAIL  FL city price check saw ${confirmedPages} confirmed-fee and ${unconfirmedPages} unconfirmed-fee pages — it must exercise both branches`);
+  }
+
+  const report = (list, label) => {
+    if (!list.length) return;
+    failures++;
+    console.error(`  FAIL  ${list.length} ${label}`);
+    list.slice(0, 4).forEach((s) => console.error(`          ${s}`));
+    if (list.length > 4) console.error(`          … +${list.length - 4} more`);
+  };
+  report(banned, 'FL city pages carry a phrase stating $89 as the total price');
+  report(wrongTotal, 'FL city pages do not quote the total their county fee produces');
+  report(badTitle, 'FL city page titles omit the total');
+  report(bareCost, 'FL city pages put a bare $89 in the competitor cost table');
+  report(inventedTotal, 'FL city pages quote a total for an unconfirmed county fee');
+  report(missingNotice, 'FL city pages with an unconfirmed fee omit the notice saying so');
+
+  if (!banned.length && !wrongTotal.length && !badTitle.length && !bareCost.length &&
+      !inventedTotal.length && !missingNotice.length && checked >= 120) {
+    console.log(`  ${confirmedPages} FL city pages quote their own county's total; ${unconfirmedPages} with an unconfirmed fee quote none`);
+  }
+}
+
+/**
+ * WE DO NOT SERVE ARKANSAS OR ALABAMA, AND THE STRUCTURED DATA SAID WE DID.
+ *
+ * SUPPORTED_STATES in pages/apply.js marks both `servingFrom: 2027`, so StepProperty
+ * refuses them before checkout. The Organization and Service JSON-LD in pages/_app.js
+ * named both — in areaServed and in the description — on EVERY page on the site,
+ * including all 131 Florida city pages. The Organization block's own areaServed had
+ * already been corrected to the three real states while the sentence beside it had
+ * not, so one file disagreed with itself.
+ *
+ * Asserted over the built HTML's JSON-LD, site-wide, because that is where the claim
+ * was and it is invisible to anyone reading the rendered page.
+ */
+{
+  const built = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f); else if (e.name.endsWith('.html')) built.push(f);
+    }
+  })(DIR);
+
+  /**
+   * SCOPE, STATED PLAINLY: the /arkansas and /alabama page trees are EXCLUDED here.
+   *
+   * Those 181 pages describe themselves, so they name their own state by design.
+   * They are also a live problem in their own right — they run "$89" buy CTAs
+   * against an August 17 deadline for a state apply.js refuses — but removing or
+   * converting them is a decision about 181 indexed SEO pages, not a copy fix, and
+   * it is tracked separately in the open-items queue.
+   *
+   * What this check DOES cover is the leak: the site-wide Organization and Service
+   * JSON-LD in pages/_app.js named both states on every page on the site, which is
+   * how a Miami Beach page came to tell Google we serve Alabama.
+   */
+  // Bind the assertion to the statement it guards. The defect was the two SHARED
+  // blocks in pages/_app.js, which render into every page's <head>. Fingerprinting
+  // those blocks turned out to be unreliable — /arkansas/[city] emits a Service block
+  // with the same serviceType — so assert instead over pages that have no legitimate
+  // reason to name either state: the 131 Florida city pages and the 67 Florida county
+  // pages. AR or AL appearing in JSON-LD there can only have come from a shared block.
+  //
+  // A page-wide grep is the wrong tool here: it sweeps in /arkansas describing itself
+  // and blog posts naming the state in prose, neither of which this fix touched, and
+  // the check stops meaning anything.
+  // /counties/ holds every state's county pages — autauga-county-al lives there too —
+  // so match Florida's by the -fl slug suffix, not by the directory.
+  const flPages = built.filter((f) => /[\\/]florida[\\/]/.test(f) || /[\\/]counties[\\/][a-z0-9-]+-fl\.html$/.test(f));
+  const claiming = flPages.filter((f) => {
+    const ld = [...fs.readFileSync(f, 'utf8').matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)]
+      .map((m) => m[1]).join(' ');
+    return /Arkansas|Alabama/i.test(ld);
+  });
+  t2('no Florida page carries Arkansas or Alabama in its structured data',
+    claiming.length === 0,
+    `${claiming.length} pages, e.g. ${claiming.slice(0, 3).join(', ')} — it can only come from the shared _app.js schema, and apply.js refuses both states`);
+  if (flPages.length < 150) {
+    failures++;
+    console.error(`  FAIL  shared-schema check inspected only ${flPages.length} Florida pages — expected 150+; the path selector has drifted`);
+  }
+
+  // NOT a failure, but it must not be invisible: the /arkansas and /alabama pages,
+  // the AR/AL metro pages and some blog posts still advertise those states in their
+  // own right, with live $89 CTAs against deadlines apply.js will not file. That is a
+  // decision about ~159 indexed pages — delete, or convert to waitlist — not a copy
+  // fix, and it is tracked in the open-items queue.
+  const stillAdvertising = built.filter((f) => {
+    const ld = [...fs.readFileSync(f, 'utf8').matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)]
+      .map((m) => m[1]).join(' ');
+    return /Arkansas|Alabama/i.test(ld);
+  });
+  if (stillAdvertising.length) {
+    warnings++;
+    console.warn(`  WARN  ${stillAdvertising.length} pages still name Arkansas or Alabama in their own schema — apply.js refuses both. Tracked as an open item, not fixed here.`);
+  }
+
+  /**
+   * $89 as a whole price range is correct in Texas and Georgia, where there is no
+   * filing fee, and wrong in Florida, where checkout adds the county's VAB fee. The
+   * first version of this check asserted it site-wide and failed 141 Georgia city
+   * pages that were telling the truth — a check has to know which claim it is
+   * testing, not just which string.
+   */
+  const flBare = built.filter((f) => /[\\/]florida[\\/]/.test(f) && /"priceRange"\s*:\s*"\$89"/.test(fs.readFileSync(f, 'utf8')));
+  t2('no Florida page publishes $89 as the whole price range',
+    flBare.length === 0,
+    `Florida checkout adds the county's VAB fee on top, so $89 is the floor, not the range (${flBare.length} pages)`);
+
+  /**
+   * The published range must be the one the fee table produces. It was typed as a
+   * literal at first — which would have gone stale the first time a VAB changed a
+   * fee, silently, on all 1081 pages.
+   */
+  const { default: FEES } = await import('../lib/flCountyFees.js');
+  const dearest = Math.max(...Object.values(FEES).filter((f) => f.confidence === 'confirmed').map((f) => f.vabFee));
+  const expected = `$89-$${((8900 + dearest) / 100).toFixed(0)}`;
+  const home = fs.readFileSync(findHtml('index') || '/dev/null', 'utf8');
+  t2('the published price range is derived from the county fee table',
+    home.includes(`"priceRange":"${expected}"`),
+    `expected ${expected} from the dearest confirmed county fee; a literal here goes stale unnoticed`);
+
+  if (built.length < 900) {
+    failures++;
+    console.error(`  FAIL  site-wide schema sweep walked only ${built.length} built pages — expected 900+`);
+  }
+}
+
 if (failures) {
   console.error(`\nPage verification failed (${failures}).\n`);
   process.exit(1);

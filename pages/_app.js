@@ -4,6 +4,32 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import DisclaimerFooter from '../components/DisclaimerFooter'
 import WaitlistBanner from '../components/WaitlistBanner'
+import FL_COUNTY_FEES from '../lib/flCountyFees'
+
+/**
+ * THE SITE-WIDE PRICE RANGE, DERIVED — NOT TYPED.
+ *
+ * $89 is the service fee. Texas and Georgia have no filing fee, so $89 is the whole
+ * price there; Florida checkout adds the county's VAB fee, so the top of the range
+ * is $89 plus the dearest confirmed county.
+ *
+ * Written as a literal "$89-$139" first, and that was wrong on the same principle
+ * this whole file's schema was wrong on: a hardcoded fee goes stale the first time a
+ * VAB changes one, and nothing would have said so. Estimated fees are excluded
+ * because checkout refuses those counties outright, so no customer can be charged
+ * one.
+ *
+ * Deliberately no fee range in the prose descriptions below. A concrete "$15-$50"
+ * there put a number on EVERY page on the site — including county pages whose own
+ * fee is neither — which is exactly the defect the Florida city pages were being
+ * fixed for.
+ */
+const CONFIRMED_FEES = Object.values(FL_COUNTY_FEES)
+  .filter((f) => f.confidence === 'confirmed')
+  .map((f) => f.vabFee)
+const PRICE_RANGE_MIN = 8900
+const PRICE_RANGE_MAX = 8900 + Math.max(...CONFIRMED_FEES)
+const usd = (cents) => `$${(cents / 100).toFixed(0)}`
 
 // Google Ads / GA4 tag IDs — set in .env.local and Vercel env vars:
 //   NEXT_PUBLIC_GTAG_ID=G-XXXXXXXXXX   (GA4 Measurement ID)
@@ -104,14 +130,26 @@ export default function App({ Component, pageProps }) {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "customerservice@taxappealusa.com",
-          "description": "Property tax dispute filing service. We prepare property tax protest letters and petitions that the owner signs, and we mail them for a flat $89 fee — USPS certified mail in Texas, Georgia, Arkansas and Alabama, and tracked USPS First Class mail in Florida.",
+          /* Arkansas and Alabama were named here and in the Service block's
+             areaServed below. SUPPORTED_STATES in pages/apply.js marks both
+             `servingFrom: 2027`, so StepProperty refuses them before checkout —
+             which means this told Google we serve two states the funnel turns away.
+             `areaServed` above had already been corrected to the three real states
+             and this sentence had not, so the same file disagreed with itself.
+
+             The price was the second defect: "$89" is our service fee, not the
+             price. Florida checkout adds the county's VAB filing fee ($15–$50, see
+             lib/flCountyFees.js), so the real range is $89–$139. Texas and Georgia
+             have no filing fee, which is why the range starts at $89 rather than
+             being a single number. */
+          "description": "Property tax dispute filing service. We prepare property tax protest letters and petitions that the owner signs, and we mail them for a flat $89 service fee — USPS certified mail in Texas and Georgia, and tracked USPS First Class mail in Florida, where the county's VAB filing fee is added and paid to the county on the owner's behalf.",
           "areaServed": [
             { "@type": "State", "name": "Texas" },
             { "@type": "State", "name": "Georgia" },
             { "@type": "State", "name": "Florida" }
           ],
           "serviceType": "Property Tax Dispute Filing",
-          "priceRange": "$89"
+          "priceRange": `${usd(PRICE_RANGE_MIN)}-${usd(PRICE_RANGE_MAX)}`
         })}} />
         {/* Structured Data — Service */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -127,11 +165,16 @@ export default function App({ Component, pageProps }) {
           "description": "Property tax protest and petition preparation with tracked USPS mailing. We analyze your property assessment, find comparable sales, and prepare a formal filing for you to sign.",
           "offers": {
             "@type": "Offer",
-            "price": "89.00",
             "priceCurrency": "USD",
-            "description": "Flat fee per property filing — includes document preparation and tracked USPS mailing"
+            "priceSpecification": {
+              "@type": "PriceSpecification",
+              "minPrice": (PRICE_RANGE_MIN / 100).toFixed(2),
+              "maxPrice": (PRICE_RANGE_MAX / 100).toFixed(2),
+              "priceCurrency": "USD"
+            },
+            "description": "$89 service fee per property filing — document preparation and tracked USPS mailing. In Florida the county's VAB filing fee is added at checkout and paid to the county on the owner's behalf."
           },
-          "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"]
+          "areaServed": ["Texas", "Georgia", "Florida"]
         })}} />
       </Head>
       <WaitlistBanner />
