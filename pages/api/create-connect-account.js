@@ -64,6 +64,52 @@ export default async function handler(req, res) {
         capabilities: {
           transfers: { requested: true },
         },
+        /**
+         * THE SCREEN WHERE PARTNERS GIVE UP.
+         *
+         * Stripe's Express onboarding asks every connected account for a business
+         * website, because it has to establish what the account does before it will
+         * move money to it — card-network and AML obligations. Our partners are
+         * onboarded with merchant-grade requirements (the dashboard lists them as
+         * "Merchant, recipient") even though all they ever do is RECEIVE $20.
+         *
+         * A realtor does not have a website that "shows the products or services you
+         * sell". Stripe offers "Add product description instead" as an escape hatch,
+         * but only after the question has already been asked — and a question someone
+         * has no answer to is where a funnel loses them. On 12 Aug all three connected
+         * accounts had been sitting Restricted since June, stopped at exactly this
+         * point with the agreement never accepted.
+         *
+         * Supplying the description AT CREATION satisfies the requirement before the
+         * partner ever sees it, removing the screen entirely. Verified live the same
+         * day: entering this text was the single thing that moved an account from
+         * Restricted to Enabled with transfers active.
+         *
+         * The wording is deliberately literal about the economics — a fixed fee per
+         * completed filing, no advice given. Stripe is deciding whether this is a real
+         * and permitted business, and the honest description is also the one most
+         * likely to pass. It matches what /partners tells the partner they are.
+         *
+         * `url` is deliberately NOT set. Stripe is assessing THEIR business, not ours;
+         * putting taxappealusa.com in their profile would misrepresent both.
+         */
+        business_profile: {
+          product_description:
+            'Referral partner for TaxAppeal USA. Refers property owners to a property tax appeal '
+            + 'preparation and mailing service and receives a fixed $20 referral fee for each '
+            + 'completed filing. Does not provide tax, legal, or appraisal advice.',
+        },
+        /**
+         * A DEFAULT, AND A DELIBERATE ONE — Stripe shows it on the review screen with
+         * an Edit button, so a partner trading through an LLC can correct it.
+         *
+         * 'individual' is right for most: the referral fee is paid to a person, and it
+         * is that person's identity Stripe verifies and that person who receives the
+         * 1099-NEC once they pass $600 in a year. A partner who wants the fee paid to
+         * an entity must change this during onboarding, and if they do not, a mismatch
+         * against their tax records will stall verification later rather than fail
+         * loudly here.
+         */
         business_type: 'individual',
         settings: {
           // WEEKLY, AND THE REASON IS CLAWBACK RECOVERY — NOT PARTNER CONVENIENCE.

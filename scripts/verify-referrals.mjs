@@ -271,6 +271,47 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
 }
 
 /**
+ * A PARTNER WHO CANNOT FINISH ONBOARDING CANNOT BE PAID.
+ *
+ * Every guard in this file protects money that only moves if the connected account
+ * reaches `transfers: active`. On 12 Aug all three connected accounts had been
+ * Restricted since June, stopped at the same screen — Stripe asking for a business
+ * website, which a realtor does not have. Agreement never accepted, transfers never
+ * active, and the whole payout apparatus below therefore untested against a real
+ * destination.
+ *
+ * Supplying business_profile.product_description at creation satisfies that
+ * requirement before the partner is ever asked. Verified live: entering that text
+ * was the one thing that moved an account to Enabled with transfers active.
+ *
+ * Asserted because it is invisible — nothing fails, no error is logged, partners
+ * simply stop appearing in the Enabled list and the settlement run holds them over
+ * forever while the dashboard shows them a pending balance.
+ */
+{
+  const connectSrc = read('pages/api/create-connect-account.js');
+  const connectCode = connectSrc
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+  t('connected accounts are created with a product description',
+    /business_profile:\s*\{[\s\S]{0,400}product_description:/.test(connectCode),
+    'without it Stripe asks the partner for a website, which is where three accounts stalled');
+
+  t('the description states the actual economics',
+    /fixed \$20 referral fee/.test(connectCode) && /Does not provide tax, legal, or appraisal advice/.test(connectCode),
+    'Stripe is deciding whether this is a real and permitted business');
+
+  // Their business, not ours. A url here would misrepresent both sides.
+  t('we do not put our own site in the partner\'s Stripe profile',
+    !/business_profile:\s*\{[\s\S]{0,400}url:/.test(connectCode));
+
+  t('the transfers capability is still what is requested',
+    /capabilities:\s*\{[\s\S]{0,120}transfers:\s*\{\s*requested:\s*true/.test(connectCode),
+    'no transfers capability means no payout, whatever else is configured');
+}
+
+/**
  * THE HAND-FILING PATH IS GONE AND MUST NOT COME BACK BY ACCIDENT.
  *
  * `needsManualFiling` was set in React state, read by one component, and sent
