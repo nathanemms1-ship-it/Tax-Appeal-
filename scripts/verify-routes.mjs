@@ -55,6 +55,10 @@ const ROUTES = [
   // imports and the handler executes, which is the failure mode that took the
   // Florida petition route down (a destructure in the wrong function scope).
   { name: 'waitlist-roster',  body: {} },
+  // Lifts the preview blur for one operator's browser. No password sent, so the
+  // expected answer is the auth rejection — what is proven is that it imports and
+  // executes, and verify-security separately proves the guard is not negated.
+  { name: 'preview-unlock',   body: {} },
   { name: 'health',           body: {}, method: 'GET' },
   {
     // The route that broke. Every field the funnel sends, so a field that stops

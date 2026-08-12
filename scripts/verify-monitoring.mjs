@@ -304,6 +304,61 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
 }
 
 /**
+ * ── 4d. THE PETITION PREVIEW UNLOCKS FOR ONE OPERATOR, NOT FOR EVERYONE ───────
+ *
+ * The blur on /apply is the paywall AND the reason two real defects survived to a
+ * mailed document on 12 Aug: reading our own petition required buying one. The old
+ * lever, NEXT_PUBLIC_PREVIEW_UNBLURRED, lifts it for EVERY visitor and must be
+ * remembered back off — the same shape as the Lob test key and the test bank
+ * account that both nearly outlived their purpose the same evening.
+ *
+ * What must hold: it fails CLOSED, the route is admin-gated, and the global env
+ * override cannot creep back into the render path.
+ */
+{
+  const applySrc = read('pages/apply.js');
+  const applyCode = applySrc
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  const unlockApi = read('pages/api/preview-unlock.js');
+
+  t('the unlock route is admin-gated, with the guard the right way round',
+    /if \(await requireAdmin\(req, res, 'preview-unlock'\)\) return;/.test(unlockApi));
+
+  t('the unlock expires on its own',
+    /Max-Age=\$\{clearing \? 0 : UNLOCK_SECONDS\}/.test(unlockApi) &&
+    /UNLOCK_SECONDS = 8 \* 60 \* 60/.test(unlockApi),
+    'a lock with no expiry is the global flag again, wearing a cookie');
+
+  // Not httpOnly is REQUIRED here, not an oversight — apply.js reads it in the
+  // browser. Asserted so nobody "hardens" it into uselessness without reading why.
+  // Strip BOTH comment forms. The first version stripped only /* */ and tripped on
+  // the line comment that explains why HttpOnly is absent — a check reporting the
+  // documentation of a decision as a violation of it.
+  const unlockCode = unlockApi
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  t('the cookie stays readable by the page that needs it',
+    !/HttpOnly/i.test(unlockCode));
+
+  t('the preview starts blurred and can only be unblurred after mount',
+    /useState\(false\);?\s*\n\s*useEffect\(\(\) => \{[\s\S]{0,400}ta_preview_unlocked=1/.test(applyCode),
+    'reading the cookie during render both breaks hydration and risks an unblurred first paint');
+
+  t('the blur is driven by the per-browser flag, not the global env var',
+    /previewUnlocked \? \{\} : \{ filter: "blur\(4px\)"/.test(applyCode) &&
+    !/NEXT_PUBLIC_PREVIEW_UNBLURRED[^\n]*\?\s*\{\}\s*:\s*\{ filter/.test(applyCode));
+
+  t('the global override survives for local development only',
+    /NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'/.test(applyCode),
+    'removing it entirely leaves no way to review a petition with no admin to log in as');
+
+  const adminSrc = read('pages/admin.js');
+  t('an operator can reach it without curl',
+    /preview-unlock/.test(adminSrc) && /Unlock petition preview/.test(adminSrc));
+}
+
+/**
  * ── 5. LEAD CAPTURE CANNOT CLAIM A SAVE IT DID NOT MAKE ───────────────────────
  *
  * Five refusal paths across four components save the homeowner instead of selling

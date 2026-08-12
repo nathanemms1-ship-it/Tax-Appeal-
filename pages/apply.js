@@ -1708,6 +1708,30 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   // unblurred petition. See lib/fulfillOrder.js for why.
   const [agreements, setAgreements] = useState([false, false, false, false]);
   const [checkingOut, setCheckingOut] = useState(false);
+
+  /**
+   * OPERATOR PREVIEW UNLOCK — see pages/api/preview-unlock.js for the reasoning.
+   *
+   * Reading our own petition used to require either buying one or setting
+   * NEXT_PUBLIC_PREVIEW_UNBLURRED, which lifts the blur for every visitor and has
+   * to be remembered back off afterwards. Two settings of exactly that kind nearly
+   * outlived their purpose on 12 Aug. This one is per-browser and expires itself.
+   *
+   * STARTS FALSE AND STAYS FALSE UNTIL AFTER MOUNT, DELIBERATELY. Reading
+   * document.cookie during render would differ between server and client and
+   * produce a hydration mismatch; more importantly, the safe state is blurred, so
+   * the very first paint a customer sees can never be the unlocked one even for a
+   * frame. It fails closed on every path: no cookie, no JS, no hydration.
+   *
+   * The env var is kept for local development, where there is no admin to log in as.
+   */
+  const [previewUnlocked, setPreviewUnlocked] = useState(false);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true') { setPreviewUnlocked(true); return; }
+    try {
+      setPreviewUnlocked(document.cookie.split('; ').some((c) => c === 'ta_preview_unlocked=1'));
+    } catch { /* no document, or cookies blocked — stay blurred */ }
+  }, []);
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
@@ -1941,11 +1965,12 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
             {/* The blur is the paywall: the customer reads the opening of their
                 petition, pays, then reads and signs the whole thing.
-                NEXT_PUBLIC_PREVIEW_UNBLURRED=true lifts it, for reviewing the
-                full document without paying. It is an env var rather than a
-                query parameter so it cannot be guessed, and it should be removed
-                from Vercel before there is meaningful traffic. */}
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true' ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
+                An operator lifts it for their own browser via the Unlock
+                control on /admin, which sets an 8-hour cookie — see
+                pages/api/preview-unlock.js. NEXT_PUBLIC_PREVIEW_UNBLURRED still
+                works and is for local development only: it unblurs for EVERY
+                visitor and must never be set in production. */}
+            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(previewUnlocked ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
           </div>
           {/* WHY THIS NOTICE IS PROMINENT.
               The blur is the paywall, and a customer who does not understand it
@@ -1956,7 +1981,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               background, a heading line, and body text at the same size as the
               petition itself. */}
           <div style={{ background: C.amber, borderTop: `1px solid ${C.border}`, borderLeft: `4px solid ${C.gold}`, padding: "16px 20px", fontFamily: "'DM Sans', sans-serif" }}>
-            {process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'
+            {previewUnlocked
               ? <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6 }}>
                   🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.
                 </div>

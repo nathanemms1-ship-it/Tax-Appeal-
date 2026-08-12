@@ -463,6 +463,31 @@ export default function Admin() {
     if (!waitlistData && !waitlistLoading) fetchWaitlist();
   };
 
+  /**
+   * Read a full petition on /apply without buying one.
+   *
+   * The blur on the preview is the paywall, and it is also why two real defects
+   * survived until a mailed PDF proof exposed them on 12 Aug. The old way to lift
+   * it — NEXT_PUBLIC_PREVIEW_UNBLURRED — unblurs for every visitor and has to be
+   * remembered back off. This unlocks THIS browser for 8 hours and then lapses on
+   * its own. Works for every state, not just Florida.
+   */
+  const [previewMsg, setPreviewMsg] = useState('');
+  const togglePreview = async (unlock) => {
+    setPreviewMsg('');
+    try {
+      const res = await fetch('/api/preview-unlock', {
+        method: unlock ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: unlock ? JSON.stringify({ password }) : undefined,
+      });
+      const data = await res.json();
+      setPreviewMsg(data.error ? `✗ ${data.error}` : `✓ ${data.note}`);
+    } catch (e) {
+      setPreviewMsg('✗ Failed to reach the server');
+    }
+  };
+
   const handleLogin = () => {
     if (!password) return;
     fetchOrders(password);
@@ -857,6 +882,27 @@ export default function Admin() {
           {view === 'waitlist' && (
             <WaitlistView data={waitlistData} loading={waitlistLoading} error={waitlistError} onRetry={fetchWaitlist} />
           )}
+
+          {/* Operator tools. Deliberately at the bottom and visually quiet — used
+              rarely, and nothing here should compete with the order list. */}
+          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 8 }}>Operator tools</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <button onClick={() => togglePreview(true)}
+                style={{ background: C.white, color: C.darkNavy, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                🔓 Unlock petition preview (8h)
+              </button>
+              <button onClick={() => togglePreview(false)}
+                style={{ background: "transparent", color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                Re-blur
+              </button>
+              <span style={{ fontSize: 12, color: C.bodyGray }}>{previewMsg}</span>
+            </div>
+            <div style={{ fontSize: 12, color: C.mutedGray, marginTop: 8, lineHeight: 1.6, maxWidth: 640 }}>
+              Shows the complete petition on <code>/apply</code> in <strong>this browser only</strong>, for any state,
+              so a document can be reviewed without buying one. Customers are unaffected and it expires by itself.
+            </div>
+          </div>
         </div>
       )}
     </>
