@@ -349,6 +349,34 @@ export default async function handler(req, res) {
     // 'county' is the only value that admits comps to the petition, because the
     // source line printed beneath them names the DOR sale data file specifically.
     compsSource,
+    /**
+     * WHICH GROUND THE ASK RESTS ON — SENT SINCE 6 AUG, READ BY NOBODY UNTIL NOW.
+     *
+     * lib/valuation.js computes `askRestsOn` and its own comment calls it "the
+     * load-bearing condition": when the 18% floor governs, the petition MUST
+     * attribute the demand to the mass-appraisal ground and NOT to the cure cost.
+     * pages/apply.js sends it, beside a comment reading "Without these the petition
+     * described an 18% floor-based figure as 'assessed value less cost to cure'".
+     *
+     * It was never destructured here. The diagnosis was right, the value was on the
+     * wire, and the receiving end never listened — so the petition mailed on 12 Aug
+     * said, verbatim: "The requested value of $859,057 represents the current
+     * assessed value reduced by the $114,900 cost to cure." That is $932,730, not
+     * $859,057. The same document then gave a SECOND, different derivation — the
+     * midpoint of five comps less the cure — which is $750,100. Two contradictory
+     * arithmetic claims about the petition's headline figure, neither true, on a
+     * document sworn under penalty of perjury, in front of a board whose function
+     * is to check precisely that arithmetic.
+     *
+     * The real derivation is neither: requestedValue = assessed x (1 - clamped),
+     * clamped = max(BAND.floor, evidencePct). At exactly 18.0000% the floor
+     * governed — meaning the evidence supported LESS, and the ask is a stated
+     * minimum rather than a computed figure.
+     *
+     * Sending a value is not the same as reading it. Same lesson as `compsSource`
+     * immediately above; same lesson as the other flags with zero readers.
+     */
+    askRestsOn, costToCureTotal,
     // Derived in lib/valuation.js with the statutory grounds supporting the ask.
     valuationBasis, valuationGrounds,
     issues, propertyDetails, notes,
@@ -481,13 +509,43 @@ export default async function handler(req, res) {
     const compRows = (compsProvenanceOk && Array.isArray(comps) ? comps : [])
       .filter((c) => c && c.salePrice && c.address)
       .slice(0, 12);
+    /**
+     * SAY THE MONTH, BECAUSE THE MONTH IS WHAT WE HAVE.
+     *
+     * lib/dor/parseRoll.js builds sale_date as `${yr}-${mo}-01` and says so in its
+     * own comment: "Day is unknown in the roll — only year and month are reported.
+     * Using the 1st is a deliberate, documented convention, not a parsing accident."
+     *
+     * That convention is fine inside the database and wrong on a sworn petition. The
+     * document mailed on 12 Aug listed six comparable sales dated "April 1, 2026",
+     * "February 1, 2026", "October 1, 2025" — every one the 1st, because every one
+     * was synthesised. Two problems, and the second is the worse of them: it states
+     * a precise date we do not hold, on a document signed under penalty of perjury;
+     * and six sales all falling on the 1st tells the Property Appraiser at a glance
+     * that the dates are manufactured, which invites them to attack the credibility
+     * of the whole evidence package rather than its substance.
+     *
+     * Rendering the month is both honest and unremarkable — "sold in April 2026" is
+     * how comparable sales are ordinarily described.
+     */
+    const saleMonth = (iso) => {
+      const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(String(iso || ''));
+      if (!m) return String(iso || 'date not reported');
+      const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      const name = MONTHS[Number(m[2]) - 1];
+      return name ? `${name} ${m[1]}` : String(iso);
+    };
+
     const compsBlock = compRows.length
       ? `\nVERIFIED COMPARABLE SALES — these are real recorded transactions supplied to you.
 You MAY restate these rows exactly as given. You MUST NOT add, alter, round, or
 extrapolate from them, and you must not introduce any sale not listed here.
+Sale dates are reported by the county to the MONTH ONLY. Write them exactly as given
+— "sold in April 2026". Never convert a month into a specific day.
 
 ${compRows.map((c, i) =>
-  `${i + 1}. ${c.address} | Parcel ${c.parcelId || 'n/a'} | Sold ${c.saleDate} for ${fmt(c.salePrice)}` +
+  `${i + 1}. ${c.address} | Parcel ${c.parcelId || 'n/a'} | Sold ${saleMonth(c.saleDate)} for ${fmt(c.salePrice)}` +
   `${c.sqft ? ` | ${Number(c.sqft).toLocaleString()} sq ft` : ''}` +
   `${c.pricePerSqft ? ` | ${fmt(c.pricePerSqft)}/sq ft` : ''}` +
   `${c.yearBuilt ? ` | built ${c.yearBuilt}` : ''}`
@@ -497,6 +555,45 @@ Source: qualified arms-length sales from the Florida Department of Revenue sale
 data file for ${bareCounty(county)} County, drawn from the same appraiser neighborhood as the
 subject property.\n`
       : '';
+    /**
+     * HOW THE REQUESTED VALUE WAS ACTUALLY REACHED, SUPPLIED AS A FACT.
+     *
+     * The model was previously handed REQUESTED VALUE as a bare number and asked to
+     * argue for it, so it back-filled a derivation that sounded plausible and was
+     * arithmetically false — twice, in the same document, with two different wrong
+     * answers. That is not a phrasing problem. Given a number and no account of
+     * where it came from, inventing one is the only thing left to do.
+     *
+     * So the account is supplied, in the same shape as the comps source line: a
+     * sentence to restate, plus a prohibition on constructing any other.
+     *
+     * The floor case is the one that matters. When `askRestsOn` is
+     * 'mass_appraisal_floor' the evidence supported LESS than the ask, and saying
+     * "assessed less cost to cure" both overstates the defects' contribution and
+     * gives the Board a subtraction that does not compute. Naming it as a minimum
+     * resting on the mass-appraisal ground is accurate AND stronger: it is an
+     * ordinary alternative-grounds petition rather than one contradicting itself.
+     */
+    const cureNum = Number(costToCureTotal) || 0;
+    const askBasisBlock = (() => {
+      if (!requestedValue || !assessedValue) return '';
+      const head = 'HOW THE REQUESTED VALUE WAS REACHED (state this and only this — see the rules below):';
+      if (askRestsOn === 'evidence') {
+        return `${head}
+The requested value is the assessed value reduced by the priced grounds set out below,
+which together support a reduction of this size.${cureNum > 0 ? ` Of that reduction, ${fmt(cureNum)} is the documented cost to cure the condition defects.` : ''}`;
+      }
+      // Floor governs, or we could not tell — both must be described as a minimum.
+      return `${head}
+The requested value is a MINIMUM reduction. It rests on the mass-appraisal ground —
+that a county-wide valuation model does not reflect this property's individual
+characteristics — which applies to this property irrespective of its condition.
+${cureNum > 0
+  ? `The documented cost to cure of ${fmt(cureNum)} is an ADDITIONAL and independent ground. It is NOT the arithmetic by which the requested value was produced, and the requested value is NOT the assessed value minus the cost to cure. Do not present it as such, and do not subtract one figure from another anywhere in this document.`
+  : 'Do not present the requested value as the output of any subtraction.'}
+The owner asks the Board to determine just value at no more than the requested figure.`;
+    })();
+
     const evidencePrompt = `You are preparing the EVIDENCE AND ARGUMENT section of a Florida DR-486 Value Adjustment Board petition for the ${bareCounty(county)} County VAB, tax year ${taxYear || new Date().getFullYear()}.
 
 PROPERTY: ${propertyAddress}
@@ -504,6 +601,7 @@ COUNTY: ${bareCounty(county)} County, Florida
 PARCEL/FOLIO: ${parcelId || 'not provided'}
 CURRENT ASSESSED VALUE: ${fmt(assessedValue)}
 REQUESTED VALUE: ${fmt(requestedValue)}
+${askBasisBlock}
 ${valuationBasis ? 'GROUNDS FOR THE REQUESTED VALUE (these were derived from the facts below — argue THESE, and do not substitute your own):\n' + valuationBasis : ''}
 ${propertyDetails ? 'PROPERTY DETAILS:\n' + propertyDetails : ''}
 ${compsBlock}
@@ -512,8 +610,18 @@ OWNER NOTES: ${notes || 'None.'}
 
 CRITICAL RULES — this document is signed by the property owner UNDER PENALTY OF PERJURY:
 - DO NOT invent, estimate, or state any specific comparable sale. No street addresses, no sale prices, no sale dates, no parcel numbers other than the one given above.
+- SALE DATES ARE MONTH-PRECISION. The county reports the month and year of a sale, never
+  the day. Write "sold in October 2025". Never write "October 1, 2025" or any other day,
+  for any sale, under any circumstances.
 - The ONLY comparable sales you may reference are those listed under VERIFIED COMPARABLE SALES, if that section is present. Restate them exactly. If it is absent, cite no sales at all.
 - DO NOT state any statistic, percentage, or market figure you cannot source. No fabricated median values or appreciation rates.
+- DO NOT DERIVE THE REQUESTED VALUE. Restate the account given under "HOW THE REQUESTED
+  VALUE WAS REACHED" and construct no other. Do not write that the requested value equals
+  the assessed value minus the cost to cure, or a comparable sale minus anything, or any
+  other subtraction, average or percentage — not even as an aside, and not even if the
+  figures look as though they ought to work. A board member with a calculator is the
+  intended reader of this document, and a derivation that does not compute discredits the
+  petition and everything else in it.
 - Only assert facts supplied above. Everything else must be framed as the analytical standard the Board should apply, not as fact.
 - If a section would require data you do not have, state the standard the Board must apply and rest on the facts given. Do NOT say what evidence the owner should submit.
 - NEVER PROMISE FUTURE EVIDENCE. This petition is the owner's complete submission and the

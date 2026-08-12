@@ -176,6 +176,62 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
 }
 
 /**
+ * ── 4a-bis. THE LOB KEY AND THE BANK ACCOUNT MUST BE THE SAME ENVIRONMENT ─────
+ *
+ * Found live on 12 Aug: LOB_BANK_ACCOUNT_ID held a TEST bank account in production.
+ * Nothing had ever exercised it — send-letter.js passes bank_account only on the
+ * Florida path (/v1/checks); Texas and Georgia use /v1/letters and need none, and
+ * the only order ever mailed was Georgian. On 24 August every Florida dispatch
+ * would have failed with "bank account not found".
+ *
+ * checkLob proved the KEY worked and stopped there. Existence and verification of
+ * the bank account can only be answered by Lob, per environment.
+ *
+ * Asserted behaviourally with a stubbed Lob, because the failure is a specific
+ * status code producing a specific severity — not a string being present.
+ */
+{
+  const { checkLob } = await import('../lib/healthChecks.js');
+
+  const withLob = async ({ key, bankId, bankStatus = 200, bankBody = { verified: true } }, fn) => {
+    const realFetch = globalThis.fetch;
+    const realKey = process.env.LOB_API_KEY;
+    const realBank = process.env.LOB_BANK_ACCOUNT_ID;
+    process.env.LOB_API_KEY = key;
+    if (bankId === undefined) delete process.env.LOB_BANK_ACCOUNT_ID;
+    else process.env.LOB_BANK_ACCOUNT_ID = bankId;
+    globalThis.fetch = async (url) => String(url).includes('/bank_accounts/')
+      ? { ok: bankStatus === 200, status: bankStatus, json: async () => bankBody }
+      : { ok: true, status: 200, json: async () => ({ data: [] }) };
+    try { return await fn(); } finally {
+      globalThis.fetch = realFetch;
+      if (realKey === undefined) delete process.env.LOB_API_KEY; else process.env.LOB_API_KEY = realKey;
+      if (realBank === undefined) delete process.env.LOB_BANK_ACCOUNT_ID; else process.env.LOB_BANK_ACCOUNT_ID = realBank;
+    }
+  };
+
+  const mismatch = await withLob({ key: 'live_abc', bankId: 'bank_test_one', bankStatus: 404 }, () => checkLob());
+  t('a bank account missing from the key\'s Lob environment is CRITICAL',
+    mismatch.status === 'critical' && /does not exist in Lob's live environment/.test(mismatch.detail || ''));
+
+  const unverified = await withLob({ key: 'live_abc', bankId: 'bank_x', bankBody: { verified: false } }, () => checkLob());
+  t('an unverified bank account is CRITICAL, not OK',
+    unverified.status === 'critical' && /NOT VERIFIED/.test(unverified.detail || ''));
+
+  const missing = await withLob({ key: 'live_abc', bankId: undefined }, () => checkLob());
+  t('an unset LOB_BANK_ACCOUNT_ID is CRITICAL',
+    missing.status === 'critical' && /not set/.test(missing.detail || ''));
+
+  const good = await withLob({ key: 'live_abc', bankId: 'bank_ok' }, () => checkLob());
+  t('a live key with a present, verified bank account reads OK',
+    good.status === 'ok' && /present and verified/.test(good.detail || ''));
+
+  const testMode = await withLob({ key: 'test_abc', bankId: 'bank_ok' }, () => checkLob());
+  t('a test key is still CRITICAL even when its bank account is fine',
+    testMode.status === 'critical' && /TEST MODE/.test(testMode.detail || ''));
+}
+
+/**
  * ── 4c. "NOT OPEN YET" AND "CLOSED FOR THE SEASON" ARE NOT THE SAME THING ─────
  *
  * getFilingWindowStatus reports `isOpen: false` for both, and checkFilingDeadlines

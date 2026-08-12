@@ -375,6 +375,137 @@ t('the preparer is disclaimed as non-representative', /not the owner's represent
     'TX and GA have no county roll here; cutting the vendor for them removes their only source');
 }
 
+/**
+ * ============================================================================
+ * THE PROMPT IS PART OF THE DOCUMENT. TEST IT LIKE ONE.
+ * ============================================================================
+ * Both defects below were found by reading the PDF proof of a real test dispatch
+ * on 12 Aug. No check in this repository saw either; all of them passed.
+ *
+ * 1. THE REQUESTED VALUE'S DERIVATION WAS INVENTED. The petition said "The
+ *    requested value of $859,057 represents the current assessed value reduced by
+ *    the $114,900 cost to cure" ($932,730) and then, in the same document, that it
+ *    was the midpoint of five comps less the cure ($750,100). Neither is true.
+ *    requestedValue = assessed x (1 - max(BAND.floor, evidencePct)); at exactly
+ *    18.0000% the floor governed, so the ask is a stated minimum.
+ *
+ *    lib/valuation.js already computed `askRestsOn` for precisely this, and
+ *    pages/apply.js already sent it — beside a comment reading "Without these the
+ *    petition described an 18% floor-based figure as 'assessed value less cost to
+ *    cure'". generate-dr486.js never destructured it. Right diagnosis, value on the
+ *    wire, nothing listening.
+ *
+ * 2. EVERY SALE DATE WAS FABRICATED TO THE DAY. parseRoll builds sale_date as
+ *    `${yr}-${mo}-01` because the roll reports month only — documented, deliberate,
+ *    and fine in a database. The petition printed "sold April 1, 2026" for all six
+ *    comps: a precise date we do not hold, on a sworn document, and six sales on
+ *    the 1st tells the Property Appraiser at a glance that the dates are synthetic.
+ *
+ * These assert on the PROMPT ACTUALLY SENT — the handler is invoked and the
+ * Anthropic call intercepted. Grepping the source for a phrase would have passed
+ * all along on defect 1: apply.js contained the right field name the whole time.
+ */
+{
+  const { default: dr486Handler } = await import('../pages/api/generate-dr486.js');
+
+  const BODY = {
+    ownerFirstName: 'Test', ownerLastName: 'Owner', ownerEmail: 'smoke@example.com',
+    ownerStreet: '1130 GLENWOOD CT', ownerCity: 'WESTON', ownerState: 'FL', ownerZip: '33326',
+    propertyAddress: '1130 GLENWOOD CT, WESTON, FL, 33326',
+    county: 'Broward', parcelId: '504007071100',
+    assessedValue: 1047630, requestedValue: 859057, taxYear: '2026',
+    comps: [{ address: '1170 LAGUNA SPRINGS DR, WESTON', parcelId: '504007071310', saleDate: '2025-10-01', salePrice: 869000, sqft: 2952, pricePerSqft: 294, yearBuilt: 1989 }],
+    compsSource: 'county',
+    costToCureTotal: 114900,
+    valuationBasis: '1. Fla. Stat. § 193.011(6) — condition defects priced at cost to cure.',
+    valuationGrounds: [{ criterion: 'Fla. Stat. § 193.011(6)', basis: 'Condition.' }],
+    issues: ['Roof damage or age (leaks, missing shingles, sagging)'],
+    propertyDetails: '2,952 sq ft, built 1989', notes: '', zip: '33326',
+    ownerSignatureName: '', ownerSignatureDate: '',
+    willNotAttend: true, authorizeConfidential: false, preview: true,
+  };
+
+  const promptFor = async (askRestsOn) => {
+    let captured = null;
+    const realFetch = globalThis.fetch;
+    const realKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'stub';
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).includes('anthropic')) {
+        try { captured = JSON.parse(opts.body).messages[0].content; } catch { /* leave null */ }
+        return { json: async () => ({ content: [{ text: 'BASIS OF PETITION\n\nStub.' }], stop_reason: 'end_turn' }) };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+    const res = {
+      statusCode: 0,
+      status(c) { this.statusCode = c; return this; },
+      json() { return this; },
+      setHeader() { return this; },
+      end() { return this; },
+    };
+    try {
+      await dr486Handler({
+        method: 'POST', body: { ...BODY, askRestsOn }, query: {},
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+        socket: { remoteAddress: '127.0.0.1' },
+      }, res);
+    } catch { /* the assertions judge the prompt, not the response */ }
+    finally {
+      globalThis.fetch = realFetch;
+      if (realKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = realKey;
+    }
+    return captured;
+  };
+
+  const floorPrompt = await promptFor('mass_appraisal_floor');
+
+  t('the prompt is reachable for assertion (the harness itself works)',
+    typeof floorPrompt === 'string' && floorPrompt.length > 500,
+    floorPrompt === null ? 'null — the Anthropic call was never reached' : String(floorPrompt).slice(0, 60));
+
+  if (typeof floorPrompt === 'string') {
+    t('a floor-governed ask is described as a MINIMUM, not a subtraction',
+      /MINIMUM reduction/.test(floorPrompt) && /mass-appraisal ground/.test(floorPrompt),
+      'this is the sentence that stops "assessed value less cost to cure" being invented');
+
+    t('the floor case explicitly forbids the assessed-minus-cure claim',
+      /NOT the assessed value minus the cost to cure/.test(floorPrompt));
+
+    t('the model is forbidden from deriving the requested value at all',
+      /DO NOT DERIVE THE REQUESTED VALUE/.test(floorPrompt) && /construct no other/.test(floorPrompt));
+
+    t('the cost to cure is still supplied, as an independent ground',
+      /\$114,900/.test(floorPrompt) && /ADDITIONAL and independent ground/.test(floorPrompt),
+      'suppressing it would throw away a real § 193.011(6) argument');
+
+    t('comparable sale dates are supplied at month precision',
+      /Sold October 2025 for/.test(floorPrompt),
+      'the roll reports month only; a day is a fact we do not hold');
+
+    // Scoped to the comps rows, NOT the whole prompt. The CRITICAL RULES quote the
+    // forbidden form — Never write "October 1, 2025" — as an example, so a blanket
+    // search finds the prohibition and reports it as the offence. Bind the check to
+    // the block where a fabricated date would actually reach the document.
+    const compsSection = (floorPrompt.split('VERIFIED COMPARABLE SALES')[1] || '').split('Source:')[0];
+    t('the comps block itself carries no day-precision date',
+      compsSection.length > 40 &&
+      !/\b[A-Z][a-z]+ \d{1,2}, \d{4}\b/.test(compsSection) &&
+      !/\d{4}-\d{2}-\d{2}/.test(compsSection),
+      compsSection.slice(0, 120));
+    t('the model is told sale dates are month-precision, and forbidden a day',
+      /SALE DATES ARE MONTH-PRECISION/.test(floorPrompt) && /Never write "October 1, 2025"/.test(floorPrompt));
+  }
+
+  const evidenceLedPrompt = await promptFor('evidence');
+  if (typeof evidenceLedPrompt === 'string') {
+    t('an evidence-governed ask is described as the sum of the priced grounds',
+      /reduced by the priced grounds/.test(evidenceLedPrompt) && !/MINIMUM reduction/.test(evidenceLedPrompt),
+      'the two cases must not collapse into one another');
+  }
+}
+
 if (failures.length) {
   console.error(`verify-petition: ${failures.length} FAILED, ${pass} passed`);
   failures.forEach((f) => console.error(`  ✗ ${f}`));
