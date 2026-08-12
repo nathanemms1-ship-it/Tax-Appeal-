@@ -170,6 +170,98 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   // as well as the strings, which is how the first version of this check failed.
 }
 
+/**
+ * ── 5. LEAD CAPTURE CANNOT CLAIM A SAVE IT DID NOT MAKE ───────────────────────
+ *
+ * Five refusal paths across four components save the homeowner instead of selling
+ * to them. All four called
+ * `fetch(...).catch(console.error)` — fire and forget — then rendered
+ * "✓ Saved — we'll write to you at <email>" unconditionally. A failed save lost
+ * the lead AND told them we had it, with the only trace a console line in a
+ * browser we cannot read.
+ *
+ * This is the second time that defect has been in this file. The comment above
+ * UnsupportedState records the first: a button that set `submitted = true` and
+ * said "You're on the list!" with no network call at all. The fix then added the
+ * call but did not bind the message to its RESULT, which left the lie intact for
+ * every failure. FilingWindowClosed came closest — it tracked `submitted` — and
+ * still failed twice over, because `.then()` fires on a 500 and because nothing
+ * ever read the variable.
+ *
+ * So these assertions are about the WIRING, not the words:
+ *   - the confirmation lives in one component, gated on status === 'saved'
+ *   - no gate screen still does a bare fire-and-forget POST
+ *   - the API pages a human when the insert fails
+ *   - the health check would notice the table going quiet or losing its column
+ */
+{
+  const applySrc = read('pages/apply.js');
+  // The comments in that file quote the old broken strings at length, so strip them
+  // before asserting on code — matching a quoted line inside an explanation is how
+  // an earlier check in this project passed on a live defect.
+  const applyCode = applySrc
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+  t('the "Saved" confirmation exists in exactly one component',
+    (applyCode.match(/&#10003; Saved/g) || []).length === 1);
+
+  t('that confirmation is unreachable unless the save succeeded',
+    /status === 'saved'[\s\S]{0,400}&#10003; Saved/.test(applyCode));
+
+  t('a failed save tells the homeowner they are NOT on the list',
+    /We could not save your details/.test(applyCode) &&
+    /you are <strong[^>]*>not<\/strong> on the list yet/.test(applyCode));
+
+  t('a failed save offers a retry that re-runs the request',
+    /onClick=\{onRetry\}/.test(applyCode) &&
+    /started\.current = false; setNonce/.test(applyCode));
+
+  t('the hook stops retrying a 4xx that is not a rate limit',
+    /res\.status >= 400 && res\.status < 500 && res\.status !== 429\) break/.test(applyCode));
+
+  // The regression that matters: a gate screen added later that goes back to
+  // fire-and-forget. Every join-waitlist reference in the funnel must be the hook's.
+  t('every join-waitlist call in the funnel goes through useLeadCapture',
+    (applyCode.match(/join-waitlist/g) || []).length === 1 && /useLeadCapture\(/.test(applyCode));
+
+  t('no gate screen still swallows a failed capture',
+    !/waitlist save failed/.test(applyCode));
+
+  // FIVE refusal paths, FOUR components — UnsupportedState serves two of them (a
+  // state we do not serve at all, and one we serve from 2027), which is why this
+  // number is 3 and not 4. Three components promise an email and render the notice;
+  // NoParcelRecord deliberately does not, because nothing ever contacts that bucket.
+  // That exemption is asserted rather than assumed, so deleting the comment without
+  // building the job breaks the build.
+  t('every screen that promises an email renders the shared notice',
+    (applyCode.match(/<LeadCaptureNotice/g) || []).length === 3);
+  t('the no-parcel screen still promises no email it cannot send',
+    /THE ONE SCREEN THAT DELIBERATELY DOES NOT RENDER LeadCaptureNotice/.test(applySrc));
+
+  const waitlistApi = read('pages/api/join-waitlist.js');
+  t('a failed capture pages a human instead of only logging',
+    /alertOps\(/.test(waitlistApi) && /if \(error\) \{[\s\S]{0,400}alertOps\(/.test(waitlistApi));
+  t('the capture alert is keyed per state so one outage cannot mask another',
+    /key: `waitlist-insert-fail-\$\{stateUpper\}`/.test(waitlistApi));
+
+  const health = read('lib/healthChecks.js');
+  t('lead capture is a registered health check',
+    /export async function checkWaitlistCapture/.test(health) && /checkWaitlistCapture\(\),/.test(health));
+  t('the health check would catch a missing blocked_reason column',
+    /select=id,created_at,blocked_reason/.test(health) && /res\.status === 400/.test(health));
+
+  const roster = read('pages/api/waitlist-roster.js');
+  t('the admin roster bounds its read rather than selecting everything',
+    /limit\(ROW_CAP \+ 1\)/.test(roster) && /truncated/.test(roster));
+
+  const adminSrc = read('pages/admin.js');
+  t('the admin page surfaces captured leads',
+    /WaitlistView/.test(adminSrc) && /waitlist-roster/.test(adminSrc));
+  t('the admin page reports a truncated read instead of showing a short total',
+    /These totals are understated/.test(adminSrc));
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`verify-monitoring: ${failures.length} FAILED, ${pass} passed`);

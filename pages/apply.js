@@ -282,27 +282,23 @@ function DeadlinePopup({ stateCode, onClose }) {
 }
 
 function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property }) {
-  const [submitted, setSubmitted] = useState(false);
   const state = SUPPORTED_STATES[stateCode];
-  const autoSaved = useRef(false);
 
-  useEffect(() => {
-    if (autoSaved.current) return;
-    if (!account?.email) return;
-    autoSaved.current = true;
-    fetch("/api/join-waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: account.email,
-        name: `${account.firstName} ${account.lastName}`,
-        state: stateCode,
-        county: null,
-        propertyAddress: property ? `${property.street}, ${property.city}, ${property.state} ${property.zip}` : null,
-        notifyDate: windowStatus?.openDate ? windowStatus.openDate.toISOString().split("T")[0] : null,
-      }),
-    }).then(() => { setSubmitted(true); }).catch(e => console.error("Auto-save waitlist error:", e));
-  }, []);
+  /**
+   * This screen was the closest of the five to correct and still wrong twice over.
+   * It tracked the result in `submitted` — but `.then()` fires on ANY response
+   * including a 500, so a rejected save set it to true; and nothing ever read
+   * `submitted` anyway, so the green panel below rendered regardless. State set,
+   * read nowhere, exactly like `needsManualFiling` before it.
+   */
+  const capture = useLeadCapture(account?.email ? {
+    email: account.email,
+    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+    state: stateCode,
+    county: null,
+    propertyAddress: property ? `${property.street}, ${property.city}, ${property.state} ${property.zip}` : null,
+    notifyDate: windowStatus?.openDate ? windowStatus.openDate.toISOString().split("T")[0] : null,
+  } : null);
 
   if (!state || !windowStatus) return null;
   const isTooClose = windowStatus.isOpen && windowStatus.tooClose;
@@ -328,14 +324,138 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
           <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until filing season opens"}</div>
           <div style={{ fontSize: 12, color: "#8596AF", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
         </div>
-        <div style={{ padding: 20, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8, textAlign: "left" }}>
-          <div style={{ fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 8 }}>✓ You're all set!</div>
-          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>We will email <strong>{account?.email || "you"}</strong> the day the {state.name} filing window opens. No action needed on your end.</div>
-        </div>
+        <LeadCaptureNotice
+          status={capture.status}
+          email={account?.email}
+          street={property?.street}
+          promise={`the day the ${state.name} filing window opens. No action needed on your end.`}
+          onRetry={capture.retry}
+        />
         <div style={{ marginTop: 16 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * ============================================================================
+ * LEAD CAPTURE — ONE HOOK, AND THE CONFIRMATION CANNOT OUTRUN IT
+ * ============================================================================
+ * Five screens refuse a sale and save the homeowner instead: an unsupported
+ * state, a state we serve from 2027, a closed filing window, an unconfirmed
+ * Florida county, and a Florida property with no parcel record. All five did
+ * this:
+ *
+ *     fetch('/api/join-waitlist', {...}).catch((e) => console.error(e))
+ *
+ * and then rendered "✓ Saved — we'll write to you at <email> about <street>"
+ * unconditionally. Fire and forget, no retry, no alert, and an affirmative
+ * promise to the customer that the code had no idea whether it had kept. If
+ * Supabase was down or the request failed we lost the lead AND told them we had
+ * it, and the only trace was a console line in a browser we cannot read.
+ *
+ * That is the defect the note below was written about, narrowed rather than
+ * removed. The old version set `submitted = true` and said "You're on the list!"
+ * with no network call at all. Adding the call without binding the message to its
+ * RESULT left the lie intact for every failure case.
+ *
+ * So: status is 'saving' | 'saved' | 'failed', the success panel renders ONLY on
+ * 'saved', and a failure is visible to the homeowner with a working retry. Three
+ * attempts with backoff, because the common failure here is a cold start or a
+ * blip rather than a bad request — but a 4xx that is not a rate limit will not
+ * become valid on the second try, so we stop rather than spin.
+ *
+ * The server end alerts separately (see pages/api/join-waitlist.js). This half
+ * cannot: a browser that failed to reach us also cannot tell us that it failed.
+ */
+function useLeadCapture(payload) {
+  const [status, setStatus] = useState('saving');
+  const [nonce, setNonce] = useState(0);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (!payload || !payload.email) return;
+    if (started.current) return;
+    started.current = true;
+    let cancelled = false;
+
+    (async () => {
+      setStatus('saving');
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const res = await fetch('/api/join-waitlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            if (!cancelled) setStatus('saved');
+            return;
+          }
+          // A malformed body or a rejected reason will not become valid on the
+          // second try. 429 will, and so will anything 5xx.
+          if (res.status >= 400 && res.status < 500 && res.status !== 429) break;
+        } catch (e) {
+          console.error('waitlist save attempt failed:', e);
+        }
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+      }
+      if (!cancelled) setStatus('failed');
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nonce]);
+
+  return {
+    status,
+    retry: () => { started.current = false; setNonce((n) => n + 1); },
+  };
+}
+
+/**
+ * The panel every refusal screen renders. Deliberately ONE component: the reason
+ * the original bug survived a fix is that the promise was hand-written into each
+ * screen, so correcting one left the other four saying the same untrue thing.
+ *
+ * `promise` is what we are actually committing to, and it differs per screen —
+ * "when Nassau County confirms its fee" is not "when Arkansas opens in 2027".
+ */
+function LeadCaptureNotice({ status, email, street, promise, onRetry }) {
+  if (status === 'saved') {
+    return (
+      <div style={{ padding: 18, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8, textAlign: "left" }}>
+        <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Saved</div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
+          We&rsquo;ll write to <strong style={{ color: C.darkNavy }}>{email || "you"}</strong>
+          {street ? <> about <strong style={{ color: C.darkNavy }}>{street}</strong></> : null}
+          {promise ? <> {promise}</> : null}
+          {" "}Nothing else &mdash; no marketing.
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'saving') {
+    return (
+      <div style={{ padding: 18, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, textAlign: "left" }}>
+        <div style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.7 }}>Saving your details&hellip;</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 18, background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 8, textAlign: "left" }}>
+      <div style={{ fontSize: 13, color: C.red, fontWeight: 700, marginBottom: 8 }}>We could not save your details</div>
+      <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 12 }}>
+        Something went wrong on our end, so you are <strong style={{ color: C.darkNavy }}>not</strong> on the list yet and
+        we will not be able to email you. Please try again &mdash; or write to{" "}
+        <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>{" "}
+        and we will add you by hand.
+      </div>
+      <button onClick={onRetry} style={{ ...primaryBtn, width: "auto", padding: "9px 20px", fontSize: 13 }}>Try again</button>
     </div>
   );
 }
@@ -358,50 +478,37 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
   const info = SUPPORTED_STATES[stateCode];
   const servingFrom = info?.servingFrom || null;
   const stateName = info?.name || stateCode;
-  const autoSaved = useRef(false);
+  const capture = useLeadCapture(account?.email ? {
+    email: account.email,
+    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+    state: stateCode,
+    county: property?.county || null,
+    propertyAddress: property && property.street
+      ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+      : null,
+  } : null);
 
-  useEffect(() => {
-    if (autoSaved.current) return;
-    if (!account?.email) return;
-    autoSaved.current = true;
-    fetch("/api/join-waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: account.email,
-        name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
-        state: stateCode,
-        county: property?.county || null,
-        propertyAddress: property && property.street
-          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
-          : null,
-      }),
-      // Nothing to show them if this fails and nothing they could do about it. The
-      // message below is the same either way; a console line is for us.
-    }).catch((e) => console.error("waitlist save failed:", e));
-  }, [account, property, stateCode]);
-
+  // The headline and body describe what we will do IF we have them. Neither may
+  // assert that we do — that is the notice's job, and only it knows.
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>
-          We&rsquo;ll email you when {stateName} opens
+          We&rsquo;re not filing in {stateName} yet
         </h2>
         <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 20, lineHeight: 1.6 }}>
           {servingFrom
-            ? <>We are not filing in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season &mdash; your property details are saved, and we will email you the day filing opens so you have time to get it in.</>
-            : <>We are not filing in {stateName} yet. Your details are saved, and we will email you the day we open there.</>}
+            ? <>We are not filing in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season, and we will email you the day filing opens so you have time to get it in.</>
+            : <>We are not filing in {stateName} yet, and we will email you the day we open there.</>}
         </p>
-        <div style={{ padding: 18, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8, textAlign: "left" }}>
-          <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Saved</div>
-          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
-            We&rsquo;ll write to <strong style={{ color: C.darkNavy }}>{account?.email || "you"}</strong>
-            {property?.street ? <> about <strong style={{ color: C.darkNavy }}>{property.street}</strong></> : null}
-            {servingFrom ? <> when {stateName} filing opens in {servingFrom}.</> : <> when we open in {stateName}.</>}
-            {" "}Nothing else &mdash; no marketing.
-          </div>
-        </div>
+        <LeadCaptureNotice
+          status={capture.status}
+          email={account?.email}
+          street={property?.street}
+          promise={servingFrom ? `when ${stateName} filing opens in ${servingFrom}.` : `when we open in ${stateName}.`}
+          onRetry={capture.retry}
+        />
         <div style={{ marginTop: 16 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button></div>
       </div>
     </div>
@@ -427,29 +534,17 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
  * has not, and that email is exactly the promise we are not in a position to keep.
  */
 function FloridaCountyUnavailable({ county, reason, onBack, account, property }) {
-  const autoSaved = useRef(false);
   const countyName = county || "This";
-
-  useEffect(() => {
-    if (autoSaved.current) return;
-    if (!account?.email) return;
-    autoSaved.current = true;
-    fetch("/api/join-waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: account.email,
-        name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
-        state: "FL",
-        county: county || null,
-        propertyAddress: property && property.street
-          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
-          : null,
-        blockedReason: "fl_county_unconfirmed",
-      }),
-      // Nothing to show them if this fails and nothing they could do about it.
-    }).catch((e) => console.error("waitlist save failed:", e));
-  }, [account, property, county]);
+  const capture = useLeadCapture(account?.email ? {
+    email: account.email,
+    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+    state: "FL",
+    county: county || null,
+    propertyAddress: property && property.street
+      ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+      : null,
+    blockedReason: "fl_county_unconfirmed",
+  } : null);
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
@@ -479,16 +574,13 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
           it after the deadline.
         </p>
 
-        <div style={{ padding: 18, background: "#E6F4ED", border: "1px solid #B7DEC8", borderRadius: 8, textAlign: "left" }}>
-          <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Saved &mdash; nothing charged</div>
-          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>
-            We&rsquo;ll write to <strong style={{ color: C.darkNavy }}>{account?.email || "you"}</strong>
-            {property?.street ? <> about <strong style={{ color: C.darkNavy }}>{property.street}</strong></> : null}
-            {" "}as soon as {countyName} County is confirmed, so you can file. We will only send that email
-            if there is still enough time left to get your petition delivered before your deadline &mdash;
-            we won&rsquo;t point you at a window you cannot make. Nothing else &mdash; no marketing.
-          </div>
-        </div>
+        <LeadCaptureNotice
+          status={capture.status}
+          email={account?.email}
+          street={property?.street}
+          promise={`as soon as ${countyName} County is confirmed, so you can file — and only if there is still enough time to get your petition delivered before your deadline.`}
+          onRetry={capture.retry}
+        />
 
         <div style={{ marginTop: 16 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button>
@@ -519,28 +611,17 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
  * failed to load rather than that the properties do not exist.
  */
 function NoParcelRecord({ property, account, detail, onBack }) {
-  const autoSaved = useRef(false);
   const outsideCoverage = detail?.reason === 'outside_coverage';
-
-  useEffect(() => {
-    if (autoSaved.current) return;
-    if (!account?.email) return;
-    autoSaved.current = true;
-    fetch('/api/join-waitlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: account.email,
-        name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
-        state: 'FL',
-        county: property?.county || null,
-        propertyAddress: property && property.street
-          ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
-          : null,
-        blockedReason: 'fl_no_parcel_record',
-      }),
-    }).catch((e) => console.error('waitlist save failed:', e));
-  }, [account, property]);
+  const capture = useLeadCapture(account?.email ? {
+    email: account.email,
+    name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
+    state: 'FL',
+    county: property?.county || null,
+    propertyAddress: property && property.street
+      ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
+      : null,
+    blockedReason: 'fl_no_parcel_record',
+  } : null);
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '56px 24px' }}>
@@ -575,6 +656,23 @@ function NoParcelRecord({ property, account, detail, onBack }) {
           suite number. That fixes most of these.
         </p>
 
+        {/* THE ONE SCREEN THAT DELIBERATELY DOES NOT RENDER LeadCaptureNotice.
+
+            The other four promise an email: when the county confirms, when the
+            window opens, when the state opens. This one cannot. cron/notify-waitlist
+            skips every blocked_reason as a catch-all, and unlike fl_county_unconfirmed
+            there is no branch that ever clears fl_no_parcel_record — so nothing is
+            scheduled to contact these people, ever.
+
+            We still WRITE the row, because the count is worth seeing on /admin and a
+            cluster of them in one county is a signal the roll load is wrong. But
+            showing "✓ Saved — we'll write to you" here would be a fresh instance of
+            exactly the defect this whole change removes: a promise with nothing
+            behind it. So the panel says only what is unconditionally true — you were
+            not billed — and points at a human who will actually answer.
+
+            If a job is ever built that revisits these, this comment is the thing to
+            delete, and the notice can go in. */}
         <div style={{ padding: 18, background: '#E6F4ED', border: '1px solid #B7DEC8', borderRadius: 8, textAlign: 'left' }}>
           <div style={{ fontSize: 13, color: C.green, fontWeight: 700, marginBottom: 8 }}>&#10003; Nothing charged</div>
           <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7 }}>

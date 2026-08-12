@@ -92,6 +92,144 @@ function StripeBadge({ stripe }) {
   );
 }
 
+const REASON_LABELS = {
+  fl_county_unconfirmed: 'FL county not confirmed',
+  fl_no_parcel_record: 'FL no parcel record',
+  window_or_state_not_open: 'Window closed / state not open',
+};
+
+/**
+ * CAPTURED LEADS — the people the funnel refused.
+ *
+ * The county demand table is the point of this whole view. The call sheet ranks
+ * Florida counties by population, which is a guess at demand; this ranks them by
+ * homeowners who actually reached checkout and were turned away, which is demand
+ * itself. Confirming a county both opens it for sale AND fires the "your county is
+ * confirmed" email to everyone listed against it, so the number in that column is
+ * exactly what the phone call is worth.
+ */
+function WaitlistView({ data, loading, error, onRetry }) {
+  if (loading) {
+    return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading captured leads…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{error}</div>
+        <button onClick={() => onRetry()} style={{ background: C.navy, color: C.white, border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 };
+  const th = { textAlign: "left", padding: "9px 12px", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, fontWeight: 500 };
+  const td = { padding: "9px 12px", fontSize: 13, borderTop: `1px solid ${C.border}` };
+
+  return (
+    <>
+      {data.truncated && (
+        <div style={{ background: "#FEE8E7", border: "1.5px solid #F5C6C0", borderRadius: 12, padding: "14px 20px", marginBottom: 20, fontSize: 13, color: "#7f1d1d", lineHeight: 1.7 }}>
+          <strong>These totals are understated.</strong> The read hit its {data.rowCap.toLocaleString()}-row ceiling, so
+          everything below counts only the most recent {data.rowCap.toLocaleString()} entries. Raise <code>ROW_CAP</code> in{' '}
+          <code>/api/waitlist-roster</code> before reading any of it as a total.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        {[['Captured, all time', data.totals.all], ['Last 7 days', data.totals.last7], ['Last 30 days', data.totals.last30]].map(([label, n]) => (
+          <div key={label} style={{ ...card, flex: "1 1 180px", marginBottom: 0 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy }}>{n.toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+          Florida counties by homeowners waiting
+        </div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 14 }}>
+          Only counties blocked on an unconfirmed fee or address — the ones a phone call fixes. Confirming a county
+          opens it for sale <em>and</em> emails everyone listed here. Ring them in this order, not by population.
+        </div>
+        {data.flDemand.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.mutedGray }}>Nobody has been turned away on an unconfirmed county yet.</div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>County</th><th style={th}>Waiting</th><th style={th}>Added last 7 days</th></tr></thead>
+            <tbody>
+              {data.flDemand.map((c) => (
+                <tr key={c.name}>
+                  <td style={{ ...td, fontWeight: 600 }}>{c.name}</td>
+                  <td style={{ ...td, fontWeight: 600, color: C.navy }}>{c.count}</td>
+                  <td style={td}>{c.last7 > 0 ? `+${c.last7}` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {(data.deadEnds.noParcelRecord > 0 || data.deadEnds.orphanedStates > 0) && (
+        <div style={{ ...card, background: "#FFF8E6", border: "1.5px solid #E5C76B" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy, marginBottom: 6 }}>
+            {(data.deadEnds.noParcelRecord + data.deadEnds.orphanedStates).toLocaleString()} captured that nothing will ever contact
+          </div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.8 }}>
+            <strong>{data.deadEnds.noParcelRecord}</strong> with no parcel record. The notify cron skips every blocked
+            reason as a catch-all and, unlike the county case, no branch ever clears this one — so these sit forever.
+            <br />
+            <strong>{data.deadEnds.orphanedStates}</strong> outside Texas, Georgia, Florida, Arkansas and Alabama
+            {data.deadEnds.orphanedList.length > 0 && ` (${data.deadEnds.orphanedList.map((s) => `${s.name} ${s.count}`).join(', ')})`}.
+            They have no filing window on file, so the cron skips them every run, and they carry the current filing year
+            with no rollover. Both need a decision, not a log line.
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        {[['Why they were refused', data.byReason.map((r) => ({ ...r, name: REASON_LABELS[r.name] || r.name }))],
+          ['By state', data.byState],
+          ['By filing year', data.byYear]].map(([label, list]) => (
+          <div key={label} style={{ ...card, flex: "1 1 260px", marginBottom: 0 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 10 }}>{label}</div>
+            {list.length === 0 ? <div style={{ fontSize: 13, color: C.mutedGray }}>None</div> : list.map((r) => (
+              <div key={r.name} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}>
+                <span style={{ color: C.bodyGray }}>{r.name}</span>
+                <span style={{ fontWeight: 600, color: C.darkNavy }}>{r.count}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 14 }}>
+          Most recent {data.recent.length}
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>When</th><th style={th}>Email</th><th style={th}>Property</th><th style={th}>County</th><th style={th}>Reason</th><th style={th}>Year</th></tr></thead>
+            <tbody>
+              {data.recent.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ ...td, whiteSpace: "nowrap", color: C.mutedGray }}>{formatDate(r.createdAt)}</td>
+                  <td style={td}><a href={`mailto:${r.email}`} style={{ color: C.navy }}>{r.email}</a></td>
+                  <td style={{ ...td, fontSize: 12, color: C.bodyGray }}>{r.propertyAddress || '—'}</td>
+                  <td style={td}>{r.county ? `${r.county}, ${r.state}` : r.state}</td>
+                  <td style={{ ...td, fontSize: 12 }}>{REASON_LABELS[r.reason] || (r.reason ? r.reason : 'Window / state not open')}</td>
+                  <td style={td}>{r.filingYear}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PartnersView({ data, loading, error, onRetry }) {
   if (loading) {
     return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading partners…</div>;
@@ -249,6 +387,9 @@ export default function Admin() {
   const [partnerData, setPartnerData] = useState(null);
   const [partnersLoading, setPartnersLoading] = useState(false);
   const [partnersError, setPartnersError] = useState('');
+  const [waitlistData, setWaitlistData] = useState(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistError, setWaitlistError] = useState('');
 
   const fetchOrders = async (pw) => {
     setLoading(true);
@@ -297,6 +438,29 @@ export default function Admin() {
   const showPartners = () => {
     setView('partners');
     if (!partnerData && !partnersLoading) fetchPartners();
+  };
+
+  const fetchWaitlist = async (pw) => {
+    setWaitlistLoading(true);
+    setWaitlistError('');
+    try {
+      const res = await fetch('/api/waitlist-roster', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || password }),
+      });
+      const data = await res.json();
+      if (data.error) setWaitlistError(data.error);
+      else setWaitlistData(data);
+    } catch (e) {
+      setWaitlistError('Failed to connect');
+    }
+    setWaitlistLoading(false);
+  };
+
+  const showWaitlist = () => {
+    setView('waitlist');
+    if (!waitlistData && !waitlistLoading) fetchWaitlist();
   };
 
   const handleLogin = () => {
@@ -399,7 +563,7 @@ export default function Admin() {
         </div>
         {authenticated && (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => (view === 'partners' ? fetchPartners() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
+            <button onClick={() => (view === 'partners' ? fetchPartners() : view === 'waitlist' ? fetchWaitlist() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
             <a href="/" style={{ fontSize: 12, color: C.mutedGray, textDecoration: "none" }}>← Back to site</a>
           </div>
         )}
@@ -431,8 +595,8 @@ export default function Admin() {
           {/* View switch. Partners were previously visible only by curling
               /api/referral-stats or opening the Supabase table editor. */}
           <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
-            {[['orders', '📦 Orders'], ['partners', '🤝 Partners']].map(([key, label]) => (
-              <button key={key} onClick={() => (key === 'partners' ? showPartners() : setView('orders'))}
+            {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads']].map(([key, label]) => (
+              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : setView('orders'))}
                 style={{ background: view === key ? C.navy : C.white, color: view === key ? C.white : C.bodyGray, border: `1.5px solid ${view === key ? C.navy : C.border}`, borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                 {label}
               </button>
@@ -688,6 +852,10 @@ export default function Admin() {
 
           {view === 'partners' && (
             <PartnersView data={partnerData} loading={partnersLoading} error={partnersError} onRetry={fetchPartners} />
+          )}
+
+          {view === 'waitlist' && (
+            <WaitlistView data={waitlistData} loading={waitlistLoading} error={waitlistError} onRetry={fetchWaitlist} />
           )}
         </div>
       )}

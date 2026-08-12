@@ -158,6 +158,20 @@ for (const [file, src] of sources) {
   }
 }
 
+// ── 4b. The admin guard is not inverted ───────────────────────────────────────
+// requireAdmin / requireCronSecret return TRUE when they have REJECTED the request
+// and already sent a response. That reads backwards, and negating it inverts the
+// route completely: a valid admin gets an empty reply, and an INVALID one falls
+// through and runs the query. That is exactly how /api/waitlist-roster was first
+// written here — caught only because verify-routes reached the database with no
+// password set. It is silent in review because the guard IS present and the call
+// looks right.
+for (const [file, src] of sources) {
+  if (/if\s*\(\s*!\s*\(?\s*await\s+require(Admin|CronSecret|WebhookSecret)\s*\(/.test(src)) {
+    fail(file, 'negates an await require*() guard. These return TRUE when they have REJECTED and already responded, so `if (!await requireAdmin(...)) return` serves an unauthorised caller and starves an authorised one. Drop the `!`.');
+  }
+}
+
 // ── 5. No credential read from the query string ───────────────────────────────
 // Query strings are written in plaintext to Vercel logs, proxy logs, browser
 // history, and the Referer header of every outbound link.

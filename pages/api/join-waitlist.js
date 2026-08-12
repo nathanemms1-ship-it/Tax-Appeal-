@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from './supabase';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { alertOps } from '../../lib/alertOps';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -102,8 +103,39 @@ export default async function handler(req, res) {
       .select()
       .single();
 
+    /**
+     * A FAILED CAPTURE IS A LOST CUSTOMER, AND IT USED TO BE SILENT.
+     *
+     * This route is only ever called from a screen that has just REFUSED someone a
+     * sale. The row is the entire remaining value of that visit: their email, their
+     * property address, and the reason we could not serve them. If the insert fails
+     * there is no order, no retry queue and no second chance — the person leaves and
+     * we never learn they came.
+     *
+     * It was `console.error` and a 500: the same shape as the dispatch bug found on
+     * 11 Aug, a real failure written to a log nobody reads. Now it pages.
+     *
+     * Keyed per state so a Florida outage cannot suppress the alert for Texas, and
+     * the body deliberately carries the address and reason — enough to re-enter the
+     * lead by hand from the alert itself if it comes to that.
+     */
     if (error) {
       console.error('Waitlist insert error:', error);
+      await alertOps(
+        `Waitlist capture FAILED for ${stateUpper}`,
+        'A homeowner was refused a sale and we could not save them.\n\n' +
+        `Email:    ${email}\n` +
+        `State:    ${stateUpper}\n` +
+        `County:   ${county || '—'}\n` +
+        `Property: ${propertyAddress || '—'}\n` +
+        `Reason:   ${reason || 'window/state not open'}\n` +
+        `Year:     ${filingYear}\n\n` +
+        `Supabase said: ${error.message}\n\n` +
+        'They saw a "we could not save your details" message with a retry button, so ' +
+        'they may resolve it themselves. If they do not, the details above are enough ' +
+        'to add them by hand.',
+        { key: `waitlist-insert-fail-${stateUpper}` },
+      ).catch((e) => console.error('alertOps failed during waitlist failure:', e));
       return res.status(500).json({ error: error.message });
     }
 
@@ -111,6 +143,13 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, id: data.id });
   } catch (err) {
     console.error('Join waitlist error:', err);
+    await alertOps(
+      'Waitlist capture threw',
+      'POST /api/join-waitlist threw before it could save a refused homeowner.\n\n' +
+      `Email: ${req.body?.email || '—'}\nState: ${req.body?.state || '—'}\n\n` +
+      `${err.stack || err.message}`,
+      { key: 'waitlist-threw' },
+    ).catch((e) => console.error('alertOps failed during waitlist throw:', e));
     return res.status(500).json({ error: err.message });
   }
 }

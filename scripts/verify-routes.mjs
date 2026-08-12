@@ -50,6 +50,11 @@ const ROUTES = [
   { name: 'autocomplete',     body: { query: '1130 glenwood' } },
   { name: 'resolve-county',   body: { street: FL.street, city: FL.city, state: 'FL', zip: FL.zip } },
   { name: 'join-waitlist',    body: { email: 'smoke@example.com', state: 'FL' } },
+  // The operator view of everyone the funnel refused. Invoked with no password, so
+  // the expected answer is the auth rejection — what is proven is that the module
+  // imports and the handler executes, which is the failure mode that took the
+  // Florida petition route down (a destructure in the wrong function scope).
+  { name: 'waitlist-roster',  body: {} },
   { name: 'health',           body: {}, method: 'GET' },
   {
     // The route that broke. Every field the funnel sends, so a field that stops
