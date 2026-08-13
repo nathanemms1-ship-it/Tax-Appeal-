@@ -429,6 +429,52 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
     /charge nothing/.test(line) && /email them the moment their county opens/.test(line),
     'that is the part that stops a bounced referral looking like a broken product');
 
+  /**
+   * THE DASHBOARD MUST NOT GIVE SEASONAL ADVICE OUT OF SEASON.
+   *
+   * Both prompts read "Florida's filing season opens August 24 — a great time to
+   * reach out", unconditionally. On 19 September, the day after the deadline, a
+   * partner logging in was told to go and call clients about a window that had shut.
+   * Same defect as the hardcoded "August 11" this file's own header describes: copy
+   * stating a fact about time without asking what time it is.
+   *
+   * Tested by driving flSeasonPrompt with each window state rather than waiting for
+   * the calendar. The function is extracted from source and given a stubbed status,
+   * so this exercises the real branching, not a copy of it.
+   */
+  {
+    const dashSrc = read('pages/partners/dashboard.js');
+    const body = dashSrc.match(/function flSeasonPrompt[\s\S]*?\n\}/)[0];
+    const make = (status) =>
+      new Function('getFilingWindowStatus', 'FL_OPEN_LABEL', `${body}; return flSeasonPrompt;`)(
+        () => status, 'August 24');
+
+    const NOW = new Date('2026-09-19T12:00:00Z');
+    const openNow = make({ canFile: true, canPreOrder: false, isOpen: true })(NOW);
+    const preOrder = make({ canFile: false, canPreOrder: true, isOpen: false, openDate: new Date('2026-08-24') })(NOW);
+    const early = make({ canFile: false, canPreOrder: false, isOpen: false, openDate: new Date('2026-10-10') })(NOW);
+    const closed = make({ canFile: false, canPreOrder: false, isOpen: false, openDate: new Date('2027-08-24') })(NOW);
+
+    t('an open window says file now, not "a great time to reach out"',
+      /OPEN/.test(openNow) && /unfiled/.test(openNow));
+    t('the pre-order window is the one that says reach out',
+      /good time to reach out/.test(preOrder) && /file it the day the window opens/.test(preOrder));
+    t('before pre-order we tell them to wait, not to call',
+      /not taking orders yet/.test(early) && !/good time to reach out/.test(early));
+    t('a closed season says so, and never invites outreach',
+      /closed for this year/.test(closed) && !/good time to reach out/.test(closed) && /2027/.test(closed),
+      'this is the sentence a partner saw on 19 September telling them to go and call clients');
+
+    t('both prompts on the page read from the same derived sentence',
+      (dashSrc.match(/\{seasonPrompt\}/g) || []).length === 2 &&
+      !/a great time to reach out/.test(dashSrc));
+
+    // Pre-rendered page: a date-dependent sentence computed at module scope would be
+    // baked in at build time and served stale from the CDN.
+    t('the season sentence is computed after mount, not at build',
+      /useEffect\(\(\) => \{ setSeasonPrompt\(flSeasonPrompt\(\)\); \}, \[\]\);/.test(dashSrc));
+  }
+
   t('the dashboard link says plainly that it is personal',
     /treat it like a password/.test(registerApi),
     'a partner who forwards it hands over their earnings view');

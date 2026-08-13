@@ -3,7 +3,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FILING_WINDOWS } from '../../lib/filingWindows';
+import { FILING_WINDOWS, getFilingWindowStatus } from '../../lib/filingWindows';
 import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 /**
@@ -21,6 +21,42 @@ const FL_OPEN_LABEL = (() => {
   return new Date(2000, fw.openMonth - 1, fw.openDay)
     .toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 })();
+
+/**
+ * WHAT TO TELL A PARTNER *TODAY* — NOT THE SAME SENTENCE ALL YEAR.
+ *
+ * Both prompts on this page read "Florida's filing season opens August 24 — a great
+ * time to reach out", unconditionally. On 19 September, the day after the deadline,
+ * a partner logging in is still told to go and call their clients about a window
+ * that shut. On 1 December, likewise. The advice is only true for about six weeks a
+ * year and the page gives it for fifty-two.
+ *
+ * It is the same defect as the hardcoded "August 11" this file's header describes:
+ * copy that states a fact about time without asking what time it is. The fix is the
+ * same too — read lib/filingWindows.js rather than write the sentence down.
+ *
+ * Four states, because they call for four different actions:
+ *   too early   — nothing to do yet, and saying "reach out" wastes their goodwill
+ *   pre-order   — the money window: notices are landing and we can take orders
+ *   open        — urgency, and the deadline is the thing to say
+ *   closed      — say so plainly, and name when it reopens
+ */
+function flSeasonPrompt(now = new Date()) {
+  const w = getFilingWindowStatus('FL');
+  if (!w) return `Florida's filing season opens ${FL_OPEN_LABEL}.`;
+  if (w.canFile) {
+    return `Florida's filing window is OPEN. Clients must have their petition received by the county deadline — later is not late, it is unfiled, so anyone still deciding should be moving now.`;
+  }
+  if (w.canPreOrder) {
+    return `Florida's filing window opens ${FL_OPEN_LABEL}. Now is a good time to reach out — homeowners are getting their TRIM notices, and we can take their order today and file it the day the window opens.`;
+  }
+  const opens = w.openDate ? new Date(w.openDate) : null;
+  const sameSeason = opens && (opens.getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
+  if (sameSeason) {
+    return `Florida's filing season opens ${FL_OPEN_LABEL}. We are not taking orders yet — we will email you the day the window opens so you can share your link then.`;
+  }
+  return `Florida's filing season is closed for this year. It reopens ${FL_OPEN_LABEL}${opens ? ` ${opens.getFullYear()}` : ''} — there is nothing to chase until then, and your referrals stay credited to you.`;
+}
 
 const C = {
   navy: '#1B3A6B', gold: '#FFC940', darkNavy: '#0F1F3D', bg: '#F4F7FC',
@@ -145,6 +181,15 @@ function formatMonth(iso) {
 }
 
 export default function PartnerDashboard() {
+  /**
+   * Computed AFTER mount, deliberately. This page is pre-rendered, so a date-dependent
+   * sentence evaluated at build time would be baked into the HTML and could contradict
+   * the client — a hydration mismatch, and worse, stale advice served from the CDN.
+   * The fallback is the date-only sentence, which is true in every season.
+   */
+  const [seasonPrompt, setSeasonPrompt] = useState(`Florida's filing season opens ${FL_OPEN_LABEL}.`);
+  useEffect(() => { setSeasonPrompt(flSeasonPrompt()); }, []);
+
   const router = useRouter();
   const [status, setStatus] = useState('loading'); // loading | auth | ready | error
   const [data, setData] = useState(null);
@@ -419,7 +464,7 @@ export default function PartnerDashboard() {
                     <div style={{ fontSize: 28, marginBottom: 10 }}>📬</div>
                     <div style={{ fontSize: 14, color: C.bodyGray, marginBottom: 6 }}>No referrals yet</div>
                     <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
-                      Share your referral link with homeowners in your network. Florida&apos;s filing season opens {FL_OPEN_LABEL} — a great time to reach out.
+                      Share your referral link with homeowners in your network. {seasonPrompt}
                     </div>
                   </div>
                 ) : (
@@ -482,7 +527,7 @@ export default function PartnerDashboard() {
                 {data.thisMonth.referrals === 0 ? (
                   <>
                     <p style={{ fontSize: 13, color: '#8596AF', lineHeight: 1.7, marginBottom: 14 }}>
-                      Florida&apos;s filing window opens <strong style={{ color: C.white }}>{FL_OPEN_LABEL}</strong>. Now is a good time to reach out — homeowners are getting their TRIM notices.
+                      {seasonPrompt}
                     </p>
                     <div style={{ background: '#0F1F3D', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#8596AF', lineHeight: 1.7, fontStyle: 'italic' }}>
                       {/* "$89 flat" is true in Texas and Georgia and FALSE in Florida,
