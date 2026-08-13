@@ -7,6 +7,7 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { escapeHtml } from '../../lib/webhookAuth';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { BUSINESS_NAME, LEGAL_ENTITY, BUSINESS_ADDRESS, SUPPORT_EMAIL } from '../../lib/businessInfo';
+import { coverageSentence } from '../../lib/serviceCoverage';
 import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -68,6 +69,29 @@ const dashboardBlock = (code, email) => `
 <div style="font-size:13px;color:#0F1F3D;line-height:1.6;"><strong>Track your referrals.</strong><br>
 <a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/dashboard?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;token=${partnerToken(code, email)}" style="color:#1B3A6B;font-weight:600;">Open my partner dashboard &rarr;</a><br>
 <span style="font-size:12px;color:#64748b;">This link is personal to you &mdash; it opens your earnings, so treat it like a password. It stays valid for 30 days; after that, request a fresh one from the partners page.</span></div>
+</div>`;
+
+/**
+ * WHERE WE CAN ACTUALLY FILE — IN THE EMAIL, NOT ONLY ON THE PAGE.
+ *
+ * /partners has rendered coverageSentence() since 9 Aug. The partner EMAILS did
+ * not, and the email is the artefact an agent keeps and refers back to weeks later
+ * when they are deciding who to send.
+ *
+ * Eleven Florida counties are not sellable today — the VAB has not published the
+ * mailing address or the filing fee we need, so apply.js refuses the order, takes
+ * the homeowner's email and writes to them when the county confirms. That is the
+ * right behaviour and it still reads as a broken product to an agent who was not
+ * told. A realtor's FIRST referral bouncing is how you lose them permanently, and
+ * they will not send a second one to find out whether it was a fluke.
+ *
+ * Derived, not written. It corrects itself the next time Nathan confirms a county
+ * by phone, and collapses to "all 67" on its own when the last one lands — no copy
+ * edit, and no chance of the email promising coverage the funnel refuses.
+ */
+const coverageBlock = () => `
+<div style="background:#FFF8E6;border:1px solid #E5C76B;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+<div style="font-size:13px;color:#1B2A4A;line-height:1.7;"><strong>Before you send anyone:</strong> ${escapeHtml(coverageSentence())}</div>
 </div>`;
 
 const partnerScriptBlock = (referralLink) => `
@@ -170,6 +194,7 @@ html: `<!DOCTYPE html>
 </div>
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}&amp;token=${partnerToken(code, email)}`)}
 ${dashboardBlock(code, email)}
+${coverageBlock()}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Didn't request this? You can ignore this email, or reply to <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a> with questions.</p>
@@ -305,6 +330,7 @@ html: `<!DOCTYPE html>
 </div>
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}&amp;token=${partnerToken(code, normalizedEmail)}`)}
 ${dashboardBlock(code, normalizedEmail)}
+${coverageBlock()}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Questions? Reply to this email or contact <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a></p>

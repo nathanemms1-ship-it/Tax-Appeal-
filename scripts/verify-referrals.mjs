@@ -404,6 +404,31 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
   t('the page no longer claims the link is below',
     !/Your link is below/.test(partnersPage));
 
+  /**
+   * A PARTNER MUST NOT LEARN ABOUT THE ELEVEN COUNTIES FROM A BOUNCED REFERRAL.
+   *
+   * /partners has rendered coverageSentence() since 9 Aug; the emails did not. The
+   * email is what an agent keeps. Eleven Florida counties are refused by apply.js
+   * today — correctly, with the homeowner captured and notified — but an agent who
+   * was not warned reads their first bounced referral as a broken product, and does
+   * not send a second one to check.
+   */
+  t('both partner emails state where we can actually file',
+    (registerApi.match(/\$\{coverageBlock\(\)\}/g) || []).length === 2,
+    'the welcome and the re-send each need it — the re-send is what a lapsed partner reads');
+
+  t('the coverage line is derived, not typed',
+    /coverageSentence\(\)/.test(registerApi) && !/56 of Florida/.test(registerApi),
+    'a hardcoded count goes stale the next time a county is confirmed by phone');
+
+  // The sentence itself must keep naming both halves: what we serve, and what we do
+  // when we cannot. Losing the second half turns a promise into a coverage boast.
+  const { coverageSentence: sentence } = await import('../lib/serviceCoverage.js');
+  const line = sentence();
+  t('the coverage sentence says what happens to a client we cannot serve',
+    /charge nothing/.test(line) && /email them the moment their county opens/.test(line),
+    'that is the part that stops a bounced referral looking like a broken product');
+
   t('the dashboard link says plainly that it is personal',
     /treat it like a password/.test(registerApi),
     'a partner who forwards it hands over their earnings view');
