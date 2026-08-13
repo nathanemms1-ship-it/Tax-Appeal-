@@ -85,7 +85,35 @@ const BANNED = [
   // flags its own safety language teaches people to delete safety language.
   { re: /(?<!cannot )(?<!can not )(?<!can't )(?<!do not )(?<!does not )(?<!don't )(?<!never )(?<!no )(?<!without a )\bguarantee[sd]?\s+(a\s+)?(reduction|savings?\b|win\b)/i,
     why: 'no outcome may be guaranteed — we are a preparer, not a representative' },
+
+  // ==========================================================================
+  // ADDED 13 Aug 2026 — COVERAGE IS COUNTED, NEVER ASSERTED
+  // ==========================================================================
+  // "All counties covered" sat in the CTA card of all 192 blog posts, directly
+  // above the Start My Dispute button. The funnel accepts 56 of Florida's 67 and
+  // refuses Arkansas and Alabama entirely, and /partners has published the honest
+  // figure from lib/serviceCoverage.js since 11 Aug — so the site contradicted
+  // itself, on the money card, on the pages paid traffic lands on.
+  //
+  // Unqualified is the whole problem. "All 254 Texas counties" is true and is what
+  // the page renders now, because it is COUNTED. This bans the claim with no
+  // number in it, which is the one nobody can check.
+  { re: /All\s+counties\s+covered/i, why: 'unqualified coverage claim — render it from getServiceCoverage() so it counts both filing gates' },
 ];
+
+/**
+ * NOT in BANNED, deliberately. "All 67 Alabama counties covered" is live on
+ * /alabama today, and /arkansas and index.js sell both states the same way —
+ * that is the "Homepage sells Arkansas and Alabama" item already in the queue,
+ * awaiting Nathan's decision on whether those pages go to waitlist copy or come
+ * down. Putting it in BANNED makes the build red on a defect nobody has agreed
+ * how to fix, and a red build people learn to ignore stops working entirely.
+ *
+ * So: a WARNING everywhere, matching how the AR/AL schema exposure is already
+ * handled below — and a hard FAILURE on blog posts, where it was fixed today and
+ * must not creep back.
+ */
+const AR_AL_COVERAGE = /\b(AR|AL|Arkansas|Alabama)\s+counties\s+covered/i;
 
 function findHtml(name) {
   for (const p of [path.join(DIR, name + '.html'), path.join(DIR, name, 'index.html')]) {
@@ -1128,6 +1156,119 @@ const t2 = (label, ok, detail) => {
   if (built.length < 900) {
     failures++;
     console.error(`  FAIL  site-wide schema sweep walked only ${built.length} built pages — expected 900+`);
+  }
+}
+
+/**
+ * ============================================================================
+ * NO STICKY SIDEBAR SURVIVES THE MOBILE BREAKPOINT
+ * ============================================================================
+ * Nathan, 13 Aug 2026, on a Florida blog post on his phone: "the text starts to
+ * scroll behind boxes, the page is broken, you can[not] read the text."
+ *
+ * Cause, MEASURED in headless Chromium at 393px rather than reasoned about:
+ * Chrome constrains a `position: sticky` GRID ITEM to the grid CONTAINER, not
+ * to its own grid area. `.sidebar` carried `order: -1` below 768px, so it was
+ * row 1 of a 6,100px single-column grid, and it tracked the scroll the entire
+ * height of the article — three opaque cards dragged over the body text from
+ * the first scroll to the last. Every post rendered by pages/blog/[slug].js was
+ * affected, and those pages exist to receive mobile search traffic.
+ *
+ * Measured before: sidebar top moved 702 → 5991 as the page scrolled, and the
+ * sidebar box intersected the article box at every scroll position past 900px,
+ * at 320px, 393px and 768px wide. After: zero intersections at any of them, and
+ * the 769/1024/1440 screenshots are pixel-identical to before, which is how the
+ * desktop layout was shown to be untouched.
+ *
+ * WHAT THIS CHECK IS AND IS NOT. It reads the served HTML, so it sees the real
+ * CSS the browser will get — but it does not run layout, so it cannot re-derive
+ * the overlap. It asserts (a) the sidebar is still sticky somewhere, which is
+ * the premise the fix exists for, and (b) the mobile block still neutralises it.
+ * (a) is there so that this cannot quietly become a check that guards nothing:
+ * if sticky is dropped from the desktop layout one day, this fails loudly and
+ * tells whoever did it to delete the guard deliberately rather than inherit a
+ * green check over an assertion that no longer means anything.
+ */
+{
+  const blogDir = path.join(DIR, 'blog');
+  const posts = fs.existsSync(blogDir)
+    ? fs.readdirSync(blogDir).filter((f) => f.endsWith('.html'))
+    : [];
+
+  t2('the blog template built its posts',
+    posts.length >= 30,
+    `found ${posts.length} built blog posts in ${blogDir} — the sticky check below has nothing to read`);
+
+  const broken = [];
+  let stickyDeclared = 0;
+  for (const f of posts) {
+    const html = fs.readFileSync(path.join(blogDir, f), 'utf8');
+
+    // The template's own <style> — identified by a rule only it defines.
+    const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    const css = styles.find((s) => s.includes('.related-link')) || '';
+    const mobile = css.slice(css.indexOf('@media (max-width: 768px)'));
+
+    const isSticky = /class="sidebar"[^>]*style="[^"]*position:\s*sticky/.test(html)
+      || /\.sidebar\s*\{[^}]*position:\s*sticky/.test(css);
+    if (isSticky) stickyDeclared++;
+
+    // display:contents removes the box entirely, which is what this template does;
+    // position:static is the direct override. Either one ends the overlap.
+    const neutralised = /\.sidebar\s*\{[^}]*(position:\s*static|display:\s*contents)/.test(mobile);
+
+    if (!css || !mobile) broken.push(`${f}: no <=768px block found in the template stylesheet`);
+    else if (isSticky && !neutralised) broken.push(`${f}: .sidebar is sticky and the <=768px block does not neutralise it`);
+  }
+
+  t2('the sidebar is still the sticky element this guard was written for',
+    stickyDeclared === posts.length && posts.length > 0,
+    `${stickyDeclared} of ${posts.length} posts declare a sticky sidebar — if sticky was removed on purpose, delete this guard on purpose too`);
+
+  t2('no blog post carries a sticky sidebar into the mobile breakpoint',
+    broken.length === 0,
+    broken.slice(0, 4).join(' | ') + (broken.length > 4 ? ` … +${broken.length - 4} more` : ''));
+
+  /**
+   * The banned patterns above prove the false claim is GONE. They cannot prove the
+   * true one arrived — a card rendering nothing at all passes every one of them.
+   * This asserts the number the funnel would actually honour is on the page.
+   */
+  const { getServiceCoverage } = await import('../lib/serviceCoverage.js');
+  const cov = getServiceCoverage();
+  const flBullet = cov.florida.complete
+    ? `All ${cov.florida.total} Florida counties`
+    : `${cov.florida.served} of ${cov.florida.total} Florida counties`;
+
+  const flPosts = posts.filter((f) => {
+    const t = decodeEntities(visibleText(fs.readFileSync(path.join(blogDir, f), 'utf8')));
+    return /View full state guide/.test(t) && /Florida/.test(t) && t.includes('FL counties covered');
+  });
+  const missing = flPosts.filter((f) => {
+    const t = decodeEntities(visibleText(fs.readFileSync(path.join(blogDir, f), 'utf8')));
+    return !t.includes(flBullet);
+  });
+
+  const arAlPosts = posts.filter((f) =>
+    AR_AL_COVERAGE.test(decodeEntities(visibleText(fs.readFileSync(path.join(blogDir, f), 'utf8')))));
+  t2('no blog post claims Arkansas or Alabama county coverage',
+    arAlPosts.length === 0,
+    `${arAlPosts.length} posts claim a state apply.js refuses: ${arAlPosts.slice(0, 3).join(', ')}`);
+
+  t2(`${flPosts.length} Florida blog posts state the coverage the funnel actually honours`,
+    flPosts.length >= 20 && missing.length === 0,
+    flPosts.length < 20
+      ? `only ${flPosts.length} Florida posts matched — this check has stopped finding pages, which is not the same as passing`
+      : `${missing.length} posts do not carry "${flBullet}": ${missing.slice(0, 3).join(', ')}`);
+
+  // The rest of the site, reported and not enforced — see the note on AR_AL_COVERAGE.
+  const arAlPages = walk(DIR)
+    .filter((f) => AR_AL_COVERAGE.test(decodeEntities(visibleText(fs.readFileSync(f, 'utf8')))))
+    .map((f) => path.relative(DIR, f));
+  if (arAlPages.length) {
+    warnings++;
+    console.error(`  WARN  ${arAlPages.length} page(s) claim county coverage in a state apply.js refuses: ${arAlPages.slice(0, 5).join(', ')}`);
+    console.error(`          part of "Homepage sells Arkansas and Alabama" in the open items queue — not failed here`);
   }
 }
 

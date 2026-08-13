@@ -20,13 +20,65 @@ export async function getStaticPaths() {
   };
 }
 
+/**
+ * ============================================================================
+ * WHAT THIS PAGE IS ALLOWED TO SAY IT COVERS — COUNTED, NEVER TYPED
+ * ============================================================================
+ * Until 13 Aug 2026 the CTA card on all 192 blog posts carried the bullet
+ * "All counties covered", and the trust panel below it read "67 FL counties
+ * covered" from a hardcoded ternary. Both were false in the same direction.
+ *
+ *   - FLORIDA. applyResolvedCounty refuses eleven counties outright — no
+ *     confirmed VAB address, or a fee we have only guessed. The funnel accepts
+ *     56 of 67. /partners has said "56 of Florida's 67" since 11 Aug, from this
+ *     same helper, so the site was contradicting itself on the money card.
+ *   - ARKANSAS AND ALABAMA. The ternary claimed "75 AR counties covered" and
+ *     "67 AL counties covered" on posts for two states apply.js blocks at the
+ *     state selector. Same defect lib/serviceCoverage.js was written to end.
+ *   - And unqualified, on a Texas or Georgia post, "All counties covered" reads
+ *     as nationwide.
+ *
+ * The figures now come from getServiceCoverage(), which counts BOTH gates out of
+ * flVabAddresses.js and flCountyFees.js. Confirm a county on the call sheet,
+ * deploy, and every one of these pages is correct with no copy edit.
+ *
+ * IMPORTED HERE AND NOWHERE ELSE IN THIS FILE. lib/serviceCoverage.js pulls in
+ * the whole 67-entry Florida address table and says in its own header not to
+ * import it into a component body — doing so would ship every VAB street
+ * address and source URL to the browser to display one integer. It is resolved
+ * at build time and passed down as two finished strings.
+ */
 export async function getStaticProps({ params }) {
   const post = getPostBySlug(params.slug);
   if (!post) return { notFound: true };
-  return { props: { post } };
+
+  const { getServiceCoverage } = await import('../../lib/serviceCoverage');
+  const c = getServiceCoverage();
+
+  // Keyed off the post's own state. A post with no stateSlug (and a post about a
+  // state we do not serve) falls back to naming the states we DO serve, which is
+  // the only claim that is true on every one of those pages.
+  const byState = {
+    '/florida': {
+      bullet: c.florida.complete
+        ? `All ${c.florida.total} Florida counties`
+        : `${c.florida.served} of ${c.florida.total} Florida counties`,
+      stat: String(c.florida.served),
+      statLabel: c.florida.complete ? 'FL counties covered' : `of ${c.florida.total} FL counties covered`,
+    },
+    '/texas':   { bullet: `All ${c.texas.served} Texas counties`,     stat: String(c.texas.served),   statLabel: 'TX counties covered' },
+    '/georgia': { bullet: `All ${c.georgia.served} Georgia counties`, stat: String(c.georgia.served), statLabel: 'GA counties covered' },
+  };
+  const fallback = {
+    bullet: c.servingStates.join(' · '),
+    stat: String(c.servingStates.length),
+    statLabel: 'states we file in',
+  };
+
+  return { props: { post, coverage: byState[post.stateSlug] || fallback } };
 }
 
-export default function BlogPost({ post }) {
+export default function BlogPost({ post, coverage }) {
   const router = useRouter();
 
   const articleSchema = {
@@ -83,8 +135,22 @@ export default function BlogPost({ post }) {
         .related-link { display: block; padding: 10px 14px; background: ${C.white}; border: 1.5px solid ${C.border}; border-radius: 8px; text-decoration: none; color: ${C.navy}; font-size: 13px; font-weight: 500; margin-bottom: 8px; transition: border-color 0.2s; }
         .related-link:hover { border-color: ${C.navy}; }
         @media (max-width: 768px) {
-          .layout { grid-template-columns: 1fr !important; }
-          .sidebar { order: -1; }
+          /* One column. The sidebar's own box is dissolved with display:contents so
+             its three cards become grid items in their own right and can be ordered
+             independently of each other.
+
+             position:static is load-bearing, not tidying. Chrome constrains a sticky
+             GRID ITEM to the grid CONTAINER, not to its own grid area — so at 768px
+             and below the sidebar (order:-1, therefore row 1) tracked the scroll the
+             full 6,100px height of the article and painted its cards over the body
+             text the whole way down. Reported by Nathan 13 Aug; every blog post used
+             this template, so every one of them was unreadable on a phone. If sticky
+             is ever restored here, restore it on the CTA card alone AND give that
+             card its own containing block. */
+          .layout { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .sidebar { display: contents; position: static !important; }
+          .side-cta { order: -1; }     /* the money box stays above the article */
+          .side-extra { order: 1; }    /* related guides + trust drop below it */
         }
       `}</style>
 
@@ -186,7 +252,7 @@ export default function BlogPost({ post }) {
             <div className="sidebar" style={{ position: "sticky", top: 24 }}>
 
               {/* CTA Box */}
-              <div style={{ background: C.navy, borderRadius: 14, padding: 24, marginBottom: 20, color: C.white }}>
+              <div className="side-cta" style={{ background: C.navy, borderRadius: 14, padding: 24, marginBottom: 20, color: C.white }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, marginBottom: 10, lineHeight: 1.3 }}>
                   File your protest for $89 flat
                 </div>
@@ -194,7 +260,7 @@ export default function BlogPost({ post }) {
                   We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
                 </p>
                 <div style={{ marginBottom: 16 }}>
-                  {["No contingency fees", "Certified mail with tracking", "Flat $89 — you keep your savings", "All counties covered"].map(f => (
+                  {["No contingency fees", "Certified mail with tracking", "Flat $89 — you keep your savings", coverage.bullet].map(f => (
                     <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: C.gold, marginBottom: 6 }}>
                       <span>✓</span> {f}
                     </div>
@@ -208,6 +274,10 @@ export default function BlogPost({ post }) {
                   Start My Dispute — $89 →
                 </button>
               </div>
+
+              {/* Related links + trust signals. Grouped so that on mobile they move
+                  below the article as one block while the CTA card stays on top. */}
+              <div className="side-extra">
 
               {/* Related Links */}
               <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 20 }}>
@@ -235,18 +305,10 @@ export default function BlogPost({ post }) {
                   ["$89", "flat fee, any outcome"],
                   ["$1,840", "average savings"],
                   ["$89", "flat fee, no % cut"],
-                  [
-                    post.stateSlug === "/texas" ? "254" :
-                    post.stateSlug === "/florida" ? "67" :
-                    post.stateSlug === "/georgia" ? "159" :
-                    post.stateSlug === "/arkansas" ? "75" :
-                    post.stateSlug === "/alabama" ? "67" : "5",
-                    post.stateSlug === "/texas" ? "TX counties covered" :
-                    post.stateSlug === "/florida" ? "FL counties covered" :
-                    post.stateSlug === "/georgia" ? "GA counties covered" :
-                    post.stateSlug === "/arkansas" ? "AR counties covered" :
-                    post.stateSlug === "/alabama" ? "AL counties covered" : "states covered"
-                  ]
+                  // Counted at build time, not typed. The ternary that used to sit
+                  // here claimed 67 Florida counties (the funnel accepts 56) and
+                  // claimed Arkansas and Alabama, which apply.js refuses outright.
+                  [coverage.stat, coverage.statLabel]
                 ].map(([n, l]) => (
                   <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ fontSize: 12, color: C.bodyGray }}>{l}</span>
@@ -254,6 +316,8 @@ export default function BlogPost({ post }) {
                   </div>
                 ))}
               </div>
+
+              </div>{/* /.side-extra */}
             </div>
           </div>
         </div>
