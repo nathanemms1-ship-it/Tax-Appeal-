@@ -273,7 +273,34 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                 <div style={{background:C.white,border:`0.5px solid ${C.border}`,borderRadius:16,padding:'32px 28px'}}>
                   <div style={{width:52,height:52,background:C.lightGreen,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,margin:'0 auto 16px'}}>✅</div>
                   <h3 style={{fontFamily:"'DM Serif Display',serif",fontSize:24,textAlign:'center',marginBottom:8}}>{result.duplicate?'Welcome back!':"You're in!"}</h3>
-                  <p style={{fontSize:14,color:C.bodyGray,textAlign:'center',lineHeight:1.6,marginBottom:24}}>{result.duplicate?'You already have a referral code. Your link is below.':"Your referral link is ready. We've emailed it to you too."}</p>
+                  <p style={{fontSize:14,color:C.bodyGray,textAlign:'center',lineHeight:1.6,marginBottom:24}}>{result.duplicate?'You already have a referral code — we\u2019ve emailed it to you.':"Your referral link is ready. We've emailed it to you too."}</p>
+                  {/* RETURNING PARTNER — WE CANNOT SHOW THE CODE, SO WE DO NOT PRETEND TO.
+
+                      /api/register-referrer deliberately withholds the code on this path.
+                      The endpoint is unauthenticated, so returning it would make it an
+                      "email in, referral code out" lookup for anyone who guessed an
+                      address. It emails the code, the payout link and the dashboard link
+                      to the address on file instead — the only party entitled to them.
+
+                      The page did not know that. It rendered the new-signup panel against
+                      that response, so a returning partner saw an empty code box, an empty
+                      link box, a copy button that copied nothing, a dashboard link with no
+                      token, and a Stripe button posting refCode: undefined. Five dead
+                      controls, and the page told them their link was "below". */}
+                  {result.duplicate ? (
+                    <div style={{background:C.lightBlue,border:'1px solid #B5D4F4',borderRadius:10,padding:'18px 22px',marginBottom:12}}>
+                      <div style={{fontSize:14,color:C.darkNavy,lineHeight:1.7}}>
+                        We&rsquo;ve emailed your referral link, your payout setup link and your dashboard
+                        link to <strong>{form.email}</strong>. Everything you need is in that message.
+                      </div>
+                      <div style={{fontSize:12,color:C.mutedGray,lineHeight:1.6,marginTop:10}}>
+                        We send these by email rather than showing them here, because anyone could type
+                        your address into this page. If it has not arrived in a few minutes, check your
+                        spam folder.
+                      </div>
+                    </div>
+                  ) : (
+                  <>
                   <div style={{background:C.lightBlue,border:'1px solid #B5D4F4',borderRadius:10,padding:'16px 20px',marginBottom:16}}>
                     <div style={{fontSize:11,fontWeight:500,color:'#0C447C',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Your code</div>
                     <div style={{fontSize:20,fontWeight:500,color:C.navy,letterSpacing:1}}>{result.code}</div>
@@ -288,6 +315,8 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
                   </div>
                   <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $20.</p>
+                  </>
+                  )}
                 </div>
               ) : (
                 <div style={{background:C.white,border:`0.5px solid ${C.border}`,borderRadius:16,padding:'32px 28px'}}>

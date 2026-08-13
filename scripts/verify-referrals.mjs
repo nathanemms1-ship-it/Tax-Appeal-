@@ -372,6 +372,38 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
   t('each email builds the dashboard link with its own email variable',
     /dashboardBlock\(code, email\)/.test(registerApi) && /dashboardBlock\(code, normalizedEmail\)/.test(registerApi),
     'the reminder and the welcome path normalise the address differently; a token signed over the wrong one verifies against nothing');
+  /**
+   * THE RETURNING-PARTNER PAGE MUST NOT PROMISE WHAT THE API WITHHOLDS.
+   *
+   * register-referrer refuses to return the code on the duplicate path — the endpoint
+   * is unauthenticated, so returning it makes it an "email in, code out" lookup. The
+   * page rendered the new-signup panel against that response anyway: an empty code
+   * box, an empty link box, a copy button that copied nothing, a dashboard link with
+   * an empty token, and a Stripe button posting refCode: undefined. Five dead
+   * controls under the words "Your link is below."
+   *
+   * Reported by Nathan on 13 Aug from the live page. No check saw it, because every
+   * check reads the API and the API was correct.
+   */
+  const partnersPage = read('pages/partners.js');
+  t('a returning partner is told the link was emailed, not shown a dead one',
+    /result\.duplicate \?/.test(partnersPage) && /emailed your referral link/.test(partnersPage));
+  /**
+   * Anchored to the BUTTON, not the identifier. The first version compared against
+   * indexOf('copyLink'), which finds the function DECLARATION near the top of the
+   * file — so the comparison was always false regardless of where the button sits.
+   * The same shape of mistake as matching a component's declaration rather than its
+   * mount, which this project has now made four times.
+   */
+  const dupBranch = partnersPage.indexOf('result.duplicate ? (');
+  const copyButton = partnersPage.indexOf('onClick={copyLink}');
+  t('the code, copy button and Stripe button render only for a fresh signup',
+    dupBranch !== -1 && copyButton !== -1 && dupBranch < copyButton &&
+    /\) : \(\n\s*<>/.test(partnersPage),
+    'they all read result.code, which the duplicate path deliberately does not send');
+  t('the page no longer claims the link is below',
+    !/Your link is below/.test(partnersPage));
+
   t('the dashboard link says plainly that it is personal',
     /treat it like a password/.test(registerApi),
     'a partner who forwards it hands over their earnings view');
