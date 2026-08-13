@@ -11,6 +11,10 @@ import { MIN_ORDER_AGE_DAYS } from '../../lib/referralSettlement';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Signed partner links. See lib/partnerToken.js — a forwarded URL must not be a
+// credential, and the payout-binding link is the one that moves money.
+import { partnerToken } from '../../lib/partnerToken';
+
 /**
  * ============================================================================
  * THE SHARED BLOCKS BELOW EXIST BECAUSE THE SAME CLAIM WAS WRONG TWICE
@@ -145,7 +149,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
-${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}`)}
+${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}&amp;token=${partnerToken(code, email)}`)}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Didn't request this? You can ignore this email, or reply to <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a> with questions.</p>
@@ -279,7 +283,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
-${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}`)}
+${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}&amp;token=${partnerToken(code, normalizedEmail)}`)}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Questions? Reply to this email or contact <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a></p>
@@ -295,7 +299,14 @@ console.error('Welcome email failed:', emailErr.message);
 }
 
 console.log('Referral created:', data.id, code, email);
-return res.status(200).json({ success: true, code, referralLink, name: data.name });
+// dashboardToken lets /partners build a working dashboard link straight after
+// signup. The dashboard now refuses an unsigned request — see lib/partnerToken.js.
+// The sharing link (referralLink) carries NO token: it is public by design and is
+// meant to be handed to strangers.
+return res.status(200).json({
+  success: true, code, referralLink, name: data.name,
+  dashboardToken: partnerToken(code, normalizedEmail),
+});
 
 } catch (err) {
 console.error('Register referrer error:', err);

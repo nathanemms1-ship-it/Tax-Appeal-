@@ -271,6 +271,92 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
 }
 
 /**
+ * A PARTNER LINK MUST NOT BE A BEARER CREDENTIAL.
+ *
+ * /partners/connect binds a Stripe payout destination to a referral code, and
+ * /partners/dashboard shows a partner's earnings. Both authenticated on
+ * ?ref=CODE&email=EMAIL and nothing else. create-connect-account.js says why that
+ * is not a secret: "codes are FIRSTNAME-LASTNAME and appear in public links". A
+ * realtor's work email is on every listing they have.
+ *
+ * That endpoint refuses to REBIND once stripe_account_id is set, so an onboarded
+ * partner is safe. An un-onboarded one is not: anyone holding the pair binds their
+ * own bank first and collects that partner's fees, while the partner sees an
+ * account that looks connected and no money arriving. Every partner is in that
+ * state between signing up and finishing Stripe — which is the state a recruitment
+ * campaign puts a whole list into at once.
+ *
+ * Tokens are verified BEHAVIOURALLY below rather than by grepping for `token`,
+ * because the failure that matters is a signature that does not actually check.
+ */
+{
+  const realSecret = process.env.INTERNAL_API_SECRET;
+  process.env.INTERNAL_API_SECRET = 'verify-referrals-fixture';
+  const { partnerToken, verifyPartnerToken, PARTNER_TOKEN_TTL_MS } = await import('../lib/partnerToken.js');
+
+  const good = partnerToken('JANE-SMITH', 'jane@example.com');
+  t('a token we issued verifies', verifyPartnerToken('JANE-SMITH', 'jane@example.com', good).ok === true);
+  t('case differences in code or email do not break a real link',
+    verifyPartnerToken('jane-smith', 'JANE@EXAMPLE.COM', good).ok === true,
+    'partners retype their email with different capitalisation constantly');
+
+  t('a token for one partner does not work for another',
+    verifyPartnerToken('BOB-JONES', 'jane@example.com', good).ok === false &&
+    verifyPartnerToken('JANE-SMITH', 'bob@example.com', good).ok === false,
+    'this is the whole attack: bind your own bank to someone else\'s code');
+
+  t('no token at all is refused', verifyPartnerToken('JANE-SMITH', 'jane@example.com', '').ok === false);
+  t('a forged signature is refused',
+    verifyPartnerToken('JANE-SMITH', 'jane@example.com', `${Date.now() + 1000}.${'0'.repeat(32)}`).ok === false);
+
+  // The expiry is inside the signed payload. Editing it must break the signature,
+  // or the TTL is decoration.
+  t('the expiry cannot be extended by editing the link',
+    verifyPartnerToken('JANE-SMITH', 'jane@example.com', `${Date.now() + 9e12}.${good.split('.')[1]}`).ok === false);
+
+  const stale = partnerToken('JANE-SMITH', 'jane@example.com', Date.now() - PARTNER_TOKEN_TTL_MS - 1000);
+  t('an expired link stops working', verifyPartnerToken('JANE-SMITH', 'jane@example.com', stale).reason === 'expired');
+
+  if (realSecret === undefined) delete process.env.INTERNAL_API_SECRET;
+  else process.env.INTERNAL_API_SECRET = realSecret;
+
+  // Wiring: both routes must actually call it, and the sharing link must NOT be
+  // signed — /apply?ref=CODE is public by design and is handed to strangers.
+  const connectApi = read('pages/api/create-connect-account.js');
+  const statsApi = read('pages/api/partner-stats.js');
+  /**
+   * ORDER MATTERS, AND THE FIRST VERSION OF THIS CHECK DID NOT TEST IT.
+   *
+   * It asserted the token was verified before `accounts.create`, which is true even
+   * if the verification sits after the partner-row lookup — and an injection moving
+   * it there passed. But a route that reads the row first answers "no such partner"
+   * to an unsigned caller, which turns it back into the oracle the token exists to
+   * close: a stranger can still confirm a (code, email) pair is real.
+   *
+   * Assert against the thing the comment in that file actually promises: the
+   * signature is checked before ANY database read.
+   */
+  const before = (src, first, second) => {
+    const a = src.indexOf(first);
+    const b = src.indexOf(second);
+    return a !== -1 && b !== -1 && a < b;
+  };
+  t('the payout-binding route verifies the token before it reads the partner row',
+    before(connectApi, 'verifyPartnerToken(code, partnerEmail, token)', ".from('referrals')"),
+    'reading first tells an unsigned caller whether the pair exists');
+  t('the dashboard route verifies before it reads the partner row',
+    before(statsApi, 'verifyPartnerToken(codeUpper, emailLower, token)', ".from('referrals')"));
+
+  const registerApi = read('pages/api/register-referrer.js');
+  t('emailed payout links are signed',
+    (registerApi.match(/token=\$\{partnerToken\(/g) || []).length === 2,
+    'both the welcome email and the re-send carry a connect link');
+  t('the sharing link is deliberately NOT signed',
+    /\/apply\?ref=\$\{code\}`/.test(registerApi) && !/\/apply\?ref=[^`]*token=/.test(registerApi),
+    'that link is public by design — signing it would break every referral');
+}
+
+/**
  * A PARTNER WHO CANNOT FINISH ONBOARDING CANNOT BE PAID.
  *
  * Every guard in this file protects money that only moves if the connected account

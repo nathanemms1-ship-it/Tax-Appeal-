@@ -3,6 +3,7 @@
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from './supabase';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { verifyPartnerToken } from '../../lib/partnerToken';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   if (await enforceRateLimit(req, res, 'connect-account', 5, 60)) return;
   if (await enforceRateLimit(req, res, 'connect-account', 20, 3600)) return;
 
-  const { refCode, email } = req.body || {};
+  const { refCode, email, token } = req.body || {};
 
   // A referral code is a PUBLIC identifier — it is in every link a partner shares,
   // and codes are FIRSTNAME-LASTNAME. Treating it as a credential let anyone bind
@@ -38,6 +39,32 @@ export default async function handler(req, res) {
   // orphan accounts accumulate on the platform and are invisible to us.
   const code = String(refCode).trim().toUpperCase();
   const partnerEmail = String(email).trim().toLowerCase();
+
+  /**
+   * THE PAIR IS NOT A CREDENTIAL — THE SIGNATURE IS.
+   *
+   * The note above is right that (code, email) is guessable: codes are
+   * FIRSTNAME-LASTNAME and a realtor's email is on every listing they have. The rate
+   * limiter slows a stranger guessing; it does nothing about one who simply holds a
+   * forwarded link. And the prize is real — while `stripe_account_id` is null, binding
+   * succeeds and the attacker receives that partner's referral fees thereafter.
+   *
+   * So the caller must now present a token we signed. See lib/partnerToken.js.
+   *
+   * The row match below still runs. This proves the link came from us; that proves
+   * the partner exists. Neither replaces the other.
+   *
+   * The response deliberately does not distinguish an expired token from a forged
+   * one: saying "expired" confirms the code and email were correct, which is half of
+   * what the token is protecting.
+   */
+  const tokenCheck = verifyPartnerToken(code, partnerEmail, token);
+  if (!tokenCheck.ok) {
+    console.warn(`[connect] rejected token for ${code}: ${tokenCheck.reason}`);
+    return res.status(403).json({
+      error: 'This payout setup link is not valid or has expired. Request a fresh link from the partners page.',
+    });
+  }
 
   try {
     // Check if this partner already has a Stripe account

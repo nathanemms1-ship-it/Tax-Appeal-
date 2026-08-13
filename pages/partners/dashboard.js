@@ -1,5 +1,5 @@
 // pages/partners/dashboard.js
-// Partner-facing dashboard — auth via ?ref=CODE&email=EMAIL in URL
+// Partner-facing dashboard — auth via ?ref=CODE&email=EMAIL&token=SIGNED in URL
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -167,7 +167,10 @@ export default function PartnerDashboard() {
   async function loadStats(ref, email) {
     setStatus('loading');
     try {
-      const res = await fetch(`/api/partner-stats?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}`);
+      // Signed link token — /api/partner-stats refuses without it. A dashboard URL
+      // used to be readable by anyone who had it; see lib/partnerToken.js.
+      const token = new URLSearchParams(window.location.search).get('token') || '';
+      const res = await fetch(`/api/partner-stats?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`);
       const json = await res.json();
       if (!res.ok) {
         setErrorMsg(json.error || 'Could not load dashboard.');

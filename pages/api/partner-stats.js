@@ -38,6 +38,7 @@
 import { getSupabaseAdmin } from './supabase';
 import Stripe from 'stripe';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { verifyPartnerToken } from '../../lib/partnerToken';
 import { settle, REFERRAL_PAYOUT_CENTS } from '../../lib/referralSettlement';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -54,8 +55,33 @@ export default async function handler(req, res) {
   if (await enforceRateLimit(req, res, 'partner-stats', 15, 60)) return;
   if (await enforceRateLimit(req, res, 'partner-stats', 100, 3600)) return;
 
-  const { ref, email } = req.query;
+  const { ref, email, token } = req.query;
   if (!ref || !email) return res.status(400).json({ error: 'Missing ref or email' });
+
+  /**
+   * A DASHBOARD URL WAS A BEARER CREDENTIAL.
+   *
+   * The note above already calls the pair "the credential" and a code "public by
+   * design" — which is the contradiction. /partners/dashboard authenticated on
+   * ?ref=CODE&email=EMAIL alone, so the URL in a partner's address bar was enough to
+   * read their earnings: browser history, a screenshot, a forwarded message, a
+   * Referer header on any outbound link.
+   *
+   * The rate limiter makes this a slow oracle rather than a fast one. It does nothing
+   * about someone who holds the link.
+   *
+   * Signature checked BEFORE the row is read, so an unsigned caller cannot use the
+   * response to learn whether a (code, email) pair exists at all.
+   */
+  const codeUpper = String(ref).trim().toUpperCase();
+  const emailLower = String(email).trim().toLowerCase();
+  const linkCheck = verifyPartnerToken(codeUpper, emailLower, token);
+  if (!linkCheck.ok) {
+    console.warn(`[partner-stats] rejected token for ${codeUpper}: ${linkCheck.reason}`);
+    return res.status(403).json({
+      error: 'This dashboard link is not valid or has expired. Request a fresh link from the partners page.',
+    });
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });

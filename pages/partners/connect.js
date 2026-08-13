@@ -1,6 +1,6 @@
 // pages/partners/connect.js
 // Auto-redirect page called from welcome email "Connect Bank Account" link
-// URL: /partners/connect?ref=AGENT-CODE&email=agent@email.com
+// URL: /partners/connect?ref=AGENT-CODE&email=agent@email.com&token=SIGNED
 // Immediately calls /api/create-connect-account and redirects to Stripe
 
 import { useEffect, useState } from 'react';
@@ -25,7 +25,9 @@ export default function PartnersConnect() {
     fetch('/api/create-connect-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refCode: ref, email, name }),
+      // The signed token from the emailed link. Without it the API refuses —
+      // see lib/partnerToken.js for why the (code, email) pair is not a credential.
+      body: JSON.stringify({ refCode: ref, email, name, token: params.get('token') || '' }),
     })
       .then(r => r.json())
       .then(data => {
