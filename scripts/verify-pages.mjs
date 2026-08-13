@@ -1027,9 +1027,25 @@ const t2 = (label, ok, detail) => {
     failures++;
     console.error(`  FAIL  FL city price check inspected only ${checked} pages — expected 120+. Did the build or the slug path change?`);
   }
-  if (!confirmedPages || !unconfirmedPages) {
+  // The two branches are NOT symmetrical, and treating them as one assertion made this
+  // fail for the best possible reason on 13 Aug 2026: Nathan got Nassau's and Columbia's
+  // fees confirmed by phone, every remaining FL city landed in a confirmed-fee county,
+  // and a green business outcome turned the build red.
+  //
+  // `confirmedPages` at zero is still a hard failure — that is the branch that prints a
+  // price, and if it stops being exercised the price assertions are testing nothing.
+  //
+  // `unconfirmedPages` at zero means something different: no city page currently sits in
+  // a county with a guessed fee, which is the state we are working towards. The branch is
+  // untested because the case does not exist, not because the check broke. That is a
+  // WARNING — it still needs saying out loud, because if a county ever regresses to
+  // `estimated` this is the code that must catch it and nobody will have run it in months.
+  if (!confirmedPages) {
     failures++;
-    console.error(`  FAIL  FL city price check saw ${confirmedPages} confirmed-fee and ${unconfirmedPages} unconfirmed-fee pages — it must exercise both branches`);
+    console.error(`  FAIL  FL city price check saw ${confirmedPages} confirmed-fee pages — the priced branch is not being exercised at all`);
+  } else if (!unconfirmedPages) {
+    warnings++;
+    console.error(`  WARN  FL city price check found no unconfirmed-fee city pages — every FL city is now in a confirmed-fee county, so the "fee not set" branch is untested until one regresses`);
   }
 
   const report = (list, label) => {

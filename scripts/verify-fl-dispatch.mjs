@@ -237,10 +237,30 @@ async function call(body, { authed = true } = {}) {
 {
   // Fee estimated, address confirmed. Guessing costs either a rejected petition
   // (underpaid) or refund friction (overpaid).
-  const { res, sent } = await call(flBody({ county: 'Nassau', parcelId: '11223344' }));
-  t('Nassau (fee unconfirmed) is refused', res.statusCode === 400, res.statusCode);
-  t('Nassau refusal names the fee gate', res.payload?.code === 'FL_FEE_UNCONFIRMED', res.payload?.code);
-  t('Nassau reaches no cheque', sent === null);
+  //
+  // THE COUNTY IS CHOSEN AT RUN TIME, NOT TYPED. This was hardcoded to Nassau, and on
+  // 13 Aug 2026 Nathan got Nassau's fee confirmed on the phone — which is the outcome
+  // the whole call sheet exists to produce — and three tests went red for the best
+  // possible reason. A fixture that breaks every time the business succeeds trains
+  // people to edit the test, and the edit they reach for first is deleting it.
+  //
+  // If NO county is left in this state, the gate cannot be exercised at all. That must
+  // fail loudly: a suite that quietly stops testing a refusal path looks identical to a
+  // suite where the refusal path works.
+  const { FL_COUNTY_NAMES } = await import('../lib/flVabAddresses.js');
+  const feeUnconfirmed = FL_COUNTY_NAMES.find(
+    (c) => getFlVabAddress(c) && getFlVabFee(c)?.confidence !== 'confirmed'
+  );
+  t('a county with a confirmed address and an unguessed fee still exists to test with',
+    !!feeUnconfirmed,
+    feeUnconfirmed || 'none — every county with an address now has a confirmed fee, so this gate is untested');
+
+  if (feeUnconfirmed) {
+    const { res, sent } = await call(flBody({ county: feeUnconfirmed, parcelId: '11223344' }));
+    t(`${feeUnconfirmed} (fee unconfirmed) is refused`, res.statusCode === 400, res.statusCode);
+    t(`${feeUnconfirmed} refusal names the fee gate`, res.payload?.code === 'FL_FEE_UNCONFIRMED', res.payload?.code);
+    t(`${feeUnconfirmed} reaches no cheque`, sent === null);
+  }
 }
 {
   // Address unconfirmed. getFlVabAddress returns null for these, which is the check
