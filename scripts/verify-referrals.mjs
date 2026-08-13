@@ -348,9 +348,33 @@ const { getFlVabFee } = await import('../lib/flCountyFees.js');
     before(statsApi, 'verifyPartnerToken(codeUpper, emailLower, token)', ".from('referrals')"));
 
   const registerApi = read('pages/api/register-referrer.js');
+  // Three call sites: a connect link inlined in each of the two emails, plus the one
+  // inside dashboardBlock, which is defined once and mounted twice. I asserted 4 from
+  // memory and it was wrong in both directions — count the file, don't guess it.
   t('emailed payout links are signed',
-    (registerApi.match(/token=\$\{partnerToken\(/g) || []).length === 2,
-    'both the welcome email and the re-send carry a connect link');
+    (registerApi.match(/token=\$\{partnerToken\(/g) || []).length === 3,
+    'a connect link in each email, plus the shared dashboard block');
+
+  /**
+   * SIGNING THE DASHBOARD LINK TOOK AWAY THE ONLY WAY BACK IN.
+   *
+   * Partners used to reach their dashboard by retyping ?ref=CODE&email=EMAIL — which
+   * was the hole. Once signed, the only signed link lived on the page shown right
+   * after signup, so a partner who closed it could never see their earnings again.
+   * Caught while verifying the deploy, before the campaign email that tells them to
+   * go and look.
+   */
+  // Two MOUNTS. The definition is an arrow function, `const dashboardBlock = (code,
+  // email) =>`, so it does not match `dashboardBlock(`.
+  t('both partner emails carry a dashboard link, not just a payout link',
+    (registerApi.match(/\$\{dashboardBlock\(/g) || []).length === 2,
+    'closing the signup page must not lock a partner out of their own earnings');
+  t('each email builds the dashboard link with its own email variable',
+    /dashboardBlock\(code, email\)/.test(registerApi) && /dashboardBlock\(code, normalizedEmail\)/.test(registerApi),
+    'the reminder and the welcome path normalise the address differently; a token signed over the wrong one verifies against nothing');
+  t('the dashboard link says plainly that it is personal',
+    /treat it like a password/.test(registerApi),
+    'a partner who forwards it hands over their earnings view');
   t('the sharing link is deliberately NOT signed',
     /\/apply\?ref=\$\{code\}`/.test(registerApi) && !/\/apply\?ref=[^`]*token=/.test(registerApi),
     'that link is public by design — signing it would break every referral');

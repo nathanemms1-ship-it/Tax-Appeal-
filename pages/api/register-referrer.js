@@ -51,6 +51,25 @@ import { partnerToken } from '../../lib/partnerToken';
  */
 
 /** The line a partner sends to their own client. The highest-risk string we ship. */
+/**
+ * THE ONLY WAY BACK INTO A DASHBOARD.
+ *
+ * Signing the dashboard link closed a real hole — anyone holding ?ref=CODE&email=EMAIL
+ * could read a partner's earnings. It also removed the way partners got back in: they
+ * used to be able to retype the URL from memory, which was precisely the problem.
+ *
+ * So the signed link has to live somewhere durable, and email is the only place a
+ * partner reliably still has it weeks later. Without this, a partner who closes the
+ * post-signup page can never see their dashboard again — and the campaign email tells
+ * them to go and look at it.
+ */
+const dashboardBlock = (code, email) => `
+<div style="background:#F4F7FC;border:1px solid #D7E3F4;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
+<div style="font-size:13px;color:#0F1F3D;line-height:1.6;"><strong>Track your referrals.</strong><br>
+<a href="${process.env.NEXT_PUBLIC_BASE_URL}/partners/dashboard?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;token=${partnerToken(code, email)}" style="color:#1B3A6B;font-weight:600;">Open my partner dashboard &rarr;</a><br>
+<span style="font-size:12px;color:#64748b;">This link is personal to you &mdash; it opens your earnings, so treat it like a password. It stays valid for 30 days; after that, request a fresh one from the partners page.</span></div>
+</div>`;
+
 const partnerScriptBlock = (referralLink) => `
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
 <div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare your property tax appeal, you sign it, and they mail it for you. $89 plus your county's filing fee, and no percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
@@ -150,6 +169,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}&amp;token=${partnerToken(code, email)}`)}
+${dashboardBlock(code, email)}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Didn't request this? You can ignore this email, or reply to <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a> with questions.</p>
@@ -284,6 +304,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}&amp;token=${partnerToken(code, normalizedEmail)}`)}
+${dashboardBlock(code, normalizedEmail)}
 ${partnerScriptBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Questions? Reply to this email or contact <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a></p>
