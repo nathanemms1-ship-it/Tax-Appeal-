@@ -286,6 +286,60 @@ export default async function handler(req, res) {
        * silence, because they acted on it. Hence the early `continue` on every path
        * out of this block.
        */
+      /**
+       * ==================================================================
+       * ROWS THE REMINDER TRACK MUST NEVER EMAIL
+       * ==================================================================
+       * Both of these were reachable by the normal branch until 14 Aug 2026, and
+       * both would have received "🎉 Your Florida filing window just opened — file
+       * today!" with a $89 buy button on 24 August.
+       *
+       * fl_no_parcel_record — refused at the funnel because their property is not
+       *   on the current DOR roll. Clicking that button gets them refused again.
+       *   It was an accepted reason in join-waitlist.js with no branch here, which
+       *   is the whole argument for lib/waitlistReasons.js and the build guard on
+       *   it: the file that WRITES a reason and the file that READS it disagreed,
+       *   and nothing said so.
+       *
+       * fl_not_eligible — NOT refused. /check told them truthfully that an appeal
+       *   would not lower their bill, because Save Our Homes has capped their
+       *   assessment below market. They asked to hear when THAT changes, which is
+       *   their just value falling toward the capped one — not the filing window
+       *   opening, which is the only thing this track knows how to say. Emailing
+       *   them "file today" sells a filing that saves them nothing, which is the
+       *   outcome pages/check.js exists to prevent.
+       *
+       * Neither is dead. Both need a trigger nobody has written yet, and silence
+       * keeps the promise that was actually made until someone does.
+       */
+      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible') {
+        totalSkipped++;
+        console.log(`[notify-waitlist] skipping ${email} — ${blocked_reason} is not on the reminder track`);
+        continue;
+      }
+
+      /**
+       * The same rows, before they carried a reason.
+       *
+       * pages/check.js posted `county: String(parcel.coNo)` — the DOR county
+       * NUMBER, "29" rather than "Hillsborough" — and no blockedReason at all, so
+       * every ineligible-homeowner signup landed as an ordinary null-reason row.
+       * The tagging fix only marks rows created from now on; these are already in
+       * the table and are indistinguishable except by that numeric county, which
+       * no other writer produces. A Florida row whose county is all digits came
+       * from /check, and /check only offers that box on the "an appeal would NOT
+       * lower your bill" result.
+       *
+       * Deliberately narrow: FL only, digits only. A row that reaches this and is
+       * genuinely something else loses one reminder; the alternative is telling
+       * someone we already told "no" to go and pay $89.
+       */
+      if (stateUpper === 'FL' && /^\d+$/.test(String(county || '').trim())) {
+        totalSkipped++;
+        console.log(`[notify-waitlist] skipping ${email} — numeric county ${county} means a pre-fix /check signup`);
+        continue;
+      }
+
       if (blocked_reason === 'fl_county_unconfirmed') {
         // canFile, not isOpen: it goes false at minDays before the hard deadline,
         // which is the last date a petition can still physically arrive in time.

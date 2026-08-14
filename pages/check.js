@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LOADED_COUNTIES } from '../lib/dor/coverage';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -148,11 +149,33 @@ export default function CheckPage() {
       const r = await fetch('/api/join-waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        /*
+         * Two fields here were wrong in ways that only show up 24 August.
+         *
+         * `county` sent the DOR county NUMBER as a string — "29", not
+         * "Hillsborough". Everything downstream expects a name:
+         * getFilingWindowStatus() looks the value up in FL_COUNTY_DATES, misses,
+         * and falls back to the statewide 5 September rather than that county's
+         * real deadline. LOADED_COUNTIES is the number -> name table the roll
+         * loader already maintains.
+         *
+         * `blockedReason` was absent, so these rows stored blocked_reason = null
+         * and were indistinguishable from someone who asked to be told when
+         * Florida opens. They are the opposite: /check has just told them, truly,
+         * that an appeal would NOT lower their bill, because their Save Our Homes
+         * capped assessment already sits below market value. The reminder cron
+         * only knows how to say "your window is open, file today, $89" — which
+         * would point them at a purchase that saves them nothing, which is the
+         * exact outcome this page exists to prevent. Tagged so the cron skips
+         * them until something computes the trigger they were actually promised:
+         * their just value falling toward the capped one.
+         */
         body: JSON.stringify({
           email: email.trim(),
           state: 'FL',
-          county: state.data?.parcel?.coNo ? String(state.data.parcel.coNo) : '',
+          county: LOADED_COUNTIES[Number(state.data?.parcel?.coNo)] || '',
           propertyAddress: state.data?.parcel?.address || `${form.street}, ${form.zip}`,
+          blockedReason: 'fl_not_eligible',
         }),
       });
       setEmailState(r.ok ? 'done' : 'error');

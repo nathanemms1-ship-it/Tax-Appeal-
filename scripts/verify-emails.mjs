@@ -275,6 +275,37 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   }
 }
 
+/**
+ * ============================================================================
+ * EVERY WAITLIST REASON MUST HAVE A BRANCH IN THE CRON THAT EMAILS THEM
+ * ============================================================================
+ * A row in `waitlist` is a promise to email somebody, and blocked_reason decides
+ * WHICH promise. join-waitlist.js writes it; cron/notify-waitlist.js reads it. The
+ * two disagreed: `fl_no_parcel_record` was an accepted reason with no branch in the
+ * cron, so those rows — people the funnel had already refused because their
+ * property is not on the DOR roll — fell through to the ordinary "🎉 your filing
+ * window just opened, file today" email with a $89 buy button. Clicking it gets
+ * them refused a second time.
+ *
+ * That is silent by construction: the writer looks right on its own, the reader
+ * looks right on its own, and nothing reads both. A reason with no branch is not a
+ * missing feature, it is the wrong email to a real person.
+ *
+ * The check is deliberately crude — the reason string must appear in the cron's
+ * source. A branch that merely mentions it and does nothing would pass. It costs
+ * one line to satisfy honestly and it makes adding a reason a two-file change,
+ * which is the property that was missing.
+ */
+{
+  const { WAITLIST_BLOCKED_REASONS } = await import('../lib/waitlistReasons.js');
+  const cron = read('pages/api/cron/notify-waitlist.js');
+  t('there is at least one waitlist reason to check', WAITLIST_BLOCKED_REASONS.length > 0);
+  for (const reason of WAITLIST_BLOCKED_REASONS) {
+    t(`notify-waitlist branches on "${reason}" instead of letting it reach the generic reminder`,
+      new RegExp(`blocked_reason\\s*===\\s*['"]${reason}['"]`).test(cron));
+  }
+}
+
 if (failures.length) {
   console.error(`verify-emails: ${failures.length} FAILED, ${pass} passed`);
   failures.forEach((f) => console.error(`  ✗ ${f}`));

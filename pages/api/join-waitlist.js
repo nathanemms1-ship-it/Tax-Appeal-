@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from './supabase';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { alertOps } from '../../lib/alertOps';
+import { WAITLIST_BLOCKED_REASONS } from '../../lib/waitlistReasons';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -21,8 +22,7 @@ export default async function handler(req, res) {
    * through to the normal branch and send exactly the wrong email, so anything we
    * do not recognise is stored as null and treated as a plain waitlist row.
    */
-  const BLOCKED_REASONS = ['fl_county_unconfirmed', 'fl_no_parcel_record'];
-  const reason = BLOCKED_REASONS.includes(blockedReason) ? blockedReason : null;
+  const reason = WAITLIST_BLOCKED_REASONS.includes(blockedReason) ? blockedReason : null;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return res.status(500).json({ error: 'Database unavailable' });
