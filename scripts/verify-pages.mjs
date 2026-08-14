@@ -331,8 +331,20 @@ for (const [hub, code] of [['florida', 'FL'], ['texas', 'TX'], ['georgia', 'GA']
     console.error('  FAIL  no built homepage to check for outbound links');
   } else {
     const html = fs.readFileSync(file, 'utf8');
-    const REQUIRED = ['/florida', '/texas', '/georgia', '/blog', '/check'];
-    const missing = REQUIRED.filter((href) => !new RegExp(`href="${href}"`).test(html));
+    // Scoped to the footer nav, NOT the whole page, and that distinction is load
+    // bearing. The homepage's other href="/apply" comes from WaitlistBanner, which
+    // renders only when NEXT_PUBLIC_SALES_ENABLED !== 'true'. That variable is set
+    // in production and usually unset locally, so a whole-page check passes on a
+    // developer's machine using a link production never serves. Everything inside
+    // this <nav> is unconditional.
+    const nav = html.match(/<nav[^>]*aria-label="Site"[\s\S]*?<\/nav>/)?.[0];
+    if (!nav) {
+      failures++;
+      console.error('  FAIL  the homepage has no <nav aria-label="Site"> — the footer link block is gone');
+    }
+    const scope = nav || '';
+    const REQUIRED = ['/florida', '/texas', '/georgia', '/blog', '/check', '/apply'];
+    const missing = REQUIRED.filter((href) => !new RegExp(`href="${href}"`).test(scope));
     if (missing.length) {
       failures++;
       console.error(`  FAIL  the homepage does not link ${missing.join(', ')}`);

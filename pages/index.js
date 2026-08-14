@@ -764,6 +764,17 @@ export default function Landing() {
           <div className="footer-col">
             <h3>Before you file</h3>
             <a href="/check">Check your property — free</a>
+            {/* The only crawlable link to /apply on this page. Every CTA above is a
+                <button onClick={go}> calling router.push, which a crawler cannot
+                follow, and the one real href="/apply" comes from WaitlistBanner —
+                which renders ONLY when NEXT_PUBLIC_SALES_ENABLED !== 'true'. Sales
+                are enabled in production, so the banner returns null there and the
+                link does not exist. It DOES exist in a local build, where the
+                variable is usually unset, so the built HTML on a developer's
+                machine disagrees with the HTML Google is served. /apply is in the
+                sitemap at priority 0.95 and is found, but no internal link
+                authority reached the page the whole funnel depends on. */}
+            <a href="/apply">Start your property tax appeal</a>
             <a href="/blog">County filing guides</a>
             <a href="/why-certified-mail-matters">Why certified mail matters</a>
           </div>
