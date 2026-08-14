@@ -73,7 +73,11 @@ const BANNED = [
   // So the guard now bans the SHAPE of the claim, not the specific wording. A
   // number that survives these patterns has to come from lib/stats.js with a
   // source and a url, which is the rule that was supposed to apply all along.
-  { re: /save[sd]?\s+an\s+average\s+of\s+\$/i, why: 'invented average-savings figure — no source publishes a per-customer average for us' },
+  // "saving" was missing from this alternation, which is how the Texas city pages
+  // shipped the claim. It was not the only reason they passed — see visibleText —
+  // but a rule that matches save/saves/saved and not the present participle is a
+  // rule that catches every phrasing except the natural one.
+  { re: /sav(?:e[sd]?|ing)\s+an\s+average\s+of\s+\$/i, why: 'invented average-savings figure — no source publishes a per-customer average for us' },
   { re: /average\s+of\s+\$[\d,]+\s*(\/|per\s+)ye?a?r/i, why: 'invented average-savings figure' },
   { re: /\bour\s+(filing\s+)?success\s+rate\b/i, why: 'a first-person success rate — we have never filed a petition' },
   { re: /TaxAppeal\s+USA'?s?\s+(filing\s+)?success\s+rate/i, why: 'a first-person success rate — we have never filed a petition' },
@@ -122,11 +126,38 @@ function findHtml(name) {
   return null;
 }
 
-// Crude but dependency-free: strip script/style, then tags.
+/**
+ * Crude but dependency-free: strip script/style, then comment markers, then tags.
+ *
+ * THE COMMENT STRIP IS NOT COSMETIC — IT IS WHY THIS FILE MISSED 69 LIVE PAGES.
+ *
+ * React SSR wraps every interpolated value in comment markers so it can find the
+ * boundary again when hydrating:
+ *
+ *   JSX   {city} homeowners saving an average of ${avg}/year
+ *   HTML  Plano homeowners saving an average of $<!-- -->740<!-- -->/year
+ *
+ * The old version replaced EVERY tag — comments included — with a space, giving
+ * "saving an average of $ 740 /year". BANNED[1] is
+ * /average\s+of\s+\$[\d,]+\s*(\/|per\s+)ye?a?r/i, and `\$[\d,]+` needs the digits
+ * hard against the dollar sign. They were not, so it did not match, and this file
+ * reported green while 69 Texas city pages carried the exact claim it exists to
+ * block.
+ *
+ * The general form is worse than the instance: ANY banned claim whose number comes
+ * from a variable was invisible to EVERY rule here — and a claim with a number in
+ * it is most of what is worth banning. A guard that only catches hardcoded text
+ * catches the version nobody writes.
+ *
+ * Order matters. Comments must go before tags, and must be replaced with NOTHING
+ * rather than a space, so the two halves of an interpolated value are rejoined
+ * exactly as a reader sees them.
+ */
 function visibleText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ');
 }

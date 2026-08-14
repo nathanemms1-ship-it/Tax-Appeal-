@@ -339,7 +339,20 @@ export default function TexasCityPage({ city }) {
           Ready to protest your {city.name} property taxes?
         </h2>
         <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>
-          Join {city.name} homeowners saving an average of ${formattedSavings}/year. $89 flat — no hidden fees, no percentage cuts.
+          {/* Was: "Join {city.name} homeowners saving an average of ${formattedSavings}/year."
+              Two separate problems in one sentence. `city.avgSavings` is a hardcoded
+              per-city number in lib/texasCities.js with no source behind it, and no
+              source could exist — nobody publishes a per-customer average for us. And
+              "Join {city} homeowners saving" asserts that our customers are already
+              achieving it, which is a results claim we cannot substantiate.
+
+              The replacement keeps the differentiator, which was never the invented
+              number: the fee does not scale with the outcome. Both halves are true
+              regardless of what any district decides. avgSavings still appears in the
+              FAQ and the comparison table on this page, but framed as an explicit
+              hypothetical ("on a $X reduction, a contingency firm charges $Y") rather
+              than as something anyone has earned. */}
+          Protest your {city.name} assessment for $89 flat — no hidden fees, no percentage cuts. If the district lowers your value, you keep 100% of the savings.
         </p>
         <Link href="/apply">
           <button className="btn-gold">Start My {city.name} Protest — $89 →</button>
