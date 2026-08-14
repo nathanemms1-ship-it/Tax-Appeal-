@@ -314,7 +314,7 @@ export default async function handler(req, res) {
       const expected = lobData.expected_delivery_date;
       if (expected) {
         try {
-          const ws = getFilingWindowStatus('FL', county);
+          const ws = getFilingWindowStatus('FL', county, { strict: true });
           const expectedDate = new Date(`${expected}T00:00:00`);
           if (ws?.hardDeadline && !Number.isNaN(expectedDate.getTime()) && expectedDate > ws.hardDeadline) {
             await alertOps(

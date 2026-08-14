@@ -123,6 +123,81 @@ for (const [variant, expected] of [
     }
   }
 
+  // 5. A MONEY GATE MUST NEVER ASK WITHOUT A COUNTY.
+  //    Florida has no statewide deadline. getFilingWindowStatus with no county
+  //    returns the statewide 18 September, which is Miami-Dade's date and later than
+  //    every other county we have dated. Two callers did exactly that and it was
+  //    invisible: lib/fulfillOrder.js gated the physical mailing on bare stateCode,
+  //    and pages/apply.js resolved the county for Georgia only. A Hillsborough order
+  //    bought on 1 Sept was measured against 18 Sept when that board closes on the
+  //    7th, and Florida is satisfied by RECEIPT.
+  //
+  //    The old defence was a comment asking callers to pass the county. This is the
+  //    same request with a build behind it.
+  const MONEY_GATES = [
+    'lib/fulfillOrder.js',
+    'lib/healthChecks.js',
+    'pages/api/send-letter.js',
+    'pages/api/cron/process-queued-orders.js',
+    'pages/api/cron/notify-waitlist.js',
+  ];
+  const { readFileSync } = await import('node:fs');
+  const CALL = /getFilingWindowStatus\s*\(([^;]*?)\)\s*;/gs;
+  for (const rel of MONEY_GATES) {
+    let src;
+    try { src = readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'); }
+    catch { errors.push(`${rel}: money-gating file is missing — update MONEY_GATES or restore the file`); continue; }
+
+    const calls = [...src.matchAll(CALL)].filter(m => !m[1].includes('//'));
+    if (!calls.length) {
+      errors.push(`${rel}: no getFilingWindowStatus call found — this file is listed as a money gate, so either it stopped gating (drop it from MONEY_GATES) or the call was renamed`);
+      continue;
+    }
+    for (const c of calls) {
+      const args = c[1];
+      if (!/strict\s*:\s*true/.test(args)) {
+        errors.push(`${rel}: getFilingWindowStatus(${args.trim().slice(0, 60)}) gates money without { strict: true } — with no county Florida silently returns 18 Sept, the latest date in the state`);
+      }
+    }
+  }
+
+  // apply.js is split: :256 drives "N days left" copy and is deliberately loose,
+  // the two that decide whether we take the money must be strict. Assert the counts
+  // rather than the line numbers, which move.
+  {
+    const src = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+    const all = [...src.matchAll(CALL)].filter(m => !m[1].includes('//'));
+    const strict = all.filter(c => /strict\s*:\s*true/.test(c[1]));
+    if (all.length !== 3 || strict.length !== 2) {
+      errors.push(`pages/apply.js: expected 3 getFilingWindowStatus calls of which 2 strict (the sale gate and the review screen), found ${all.length} of which ${strict.length} strict`);
+    }
+  }
+
+  // 6. strict WITH NO COUNTY MUST BE THE CONSERVATIVE ANSWER, NOT THE GENEROUS ONE.
+  //    This is the property the whole option exists for.
+  {
+    const loose  = getFilingWindowStatus('FL');
+    const tight  = getFilingWindowStatus('FL', null, { strict: true });
+    const fallbk = flPetitionDeadline('Notarealcounty', Y);
+    if (iso(tight.hardDeadline) !== iso(fallbk)) {
+      errors.push(`strict FL with no county gives ${iso(tight.hardDeadline)}, expected the unknown-county fallback ${iso(fallbk)}`);
+    }
+    if (tight.hardDeadline >= loose.hardDeadline) {
+      errors.push(`strict (${iso(tight.hardDeadline)}) is not earlier than loose (${iso(loose.hardDeadline)}) — strict is not doing anything`);
+    }
+    // And it must not quietly change the copy path.
+    if (iso(loose.hardDeadline) !== `${Y}-09-18`) {
+      errors.push(`non-strict FL with no county moved to ${iso(loose.hardDeadline)}; apply.js:256 copy depends on the statewide 18 Sept`);
+    }
+    // A named county must win over both, in strict and loose alike.
+    for (const mode of [undefined, { strict: true }]) {
+      const w = getFilingWindowStatus('FL', 'Hillsborough', mode);
+      if (iso(w.hardDeadline) !== `${Y}-09-07`) {
+        errors.push(`Hillsborough (strict=${!!mode?.strict}) gives ${iso(w.hardDeadline)}, expected ${Y}-09-07`);
+      }
+    }
+  }
+
   const known = Object.keys(FL_COUNTY_DATES).length;
   console.log(`  FL deadlines:        ${known} counties dated; the other ${names.length - known} fall back to ${iso(fallback)}`);
   console.log(`                       earliest is ${iso(flPetitionDeadline('Hillsborough', Y))} (Hillsborough), not the 2026-09-18 we used to apply statewide`);

@@ -808,20 +808,38 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
     // Checked BEFORE the filing-window test on purpose: AR and AL windows are open
     // today, so a window check would wave them straight through to checkout.
     if (SUPPORTED_STATES[sc].servingFrom) { onUnsupportedState(sc); return; }
+    // FLORIDA NEEDS THE COUNTY HERE TOO, AND USED NOT TO GET IT.
+    // This branch was GA-only. Georgia's county windows differ by weeks; Florida's
+    // differ by up to thirteen days and this is the gate that decides whether we
+    // take the money. With no county, Florida fell back to the statewide 18 Sept —
+    // Miami-Dade's date — so a Hillsborough buyer on 1 September was told they had
+    // 17 days when their board closes on the 7th.
+    //
+    // /api/resolve-county rather than a second inline Census call: it is cached and
+    // rate-limited, it retries, and it returns the Census BASENAME ("St. Johns",
+    // "Miami-Dade") which is the exact key shape FL_COUNTY_DATES uses. The inline
+    // version below reads NAME and strips " County", which produces "Saint Johns"
+    // and misses the table.
     let countyName = null;
-    if (sc === "GA") {
+    if (sc === "GA" || sc === "FL") {
       setChecking(true);
       try {
-        const censusRes = await fetch(`https://geocoding.geo.census.gov/geocoder/geographies/address?street=${encodeURIComponent(data.street)}&city=${encodeURIComponent(data.city)}&state=${encodeURIComponent(data.state)}&zip=${encodeURIComponent(data.zip)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`);
-        if (censusRes.ok) {
-          const censusData = await censusRes.json();
-          const countyGeo = censusData?.result?.addressMatches?.[0]?.geographies?.Counties?.[0];
-          if (countyGeo?.NAME) countyName = countyGeo.NAME.replace(/ County$/i, "").trim();
-        }
+        const r = await fetch("/api/resolve-county", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ street: data.street, city: data.city, state: data.state, zip: data.zip }),
+        });
+        const j = await r.json();
+        if (j?.found && j?.county) countyName = j.county;
       } catch (e) { console.log("County check failed:", e.message); }
       setChecking(false);
     }
-    const ws = getFilingWindowStatus(sc, countyName);
+    // strict:true — if the geocoder could not place the address we gate on the
+    // earliest Florida deadline rather than the latest. The customer is not blocked:
+    // an unplaceable address already gets the "pick your county" screen at the fee
+    // step, and being asked to confirm a county beats being sold a filing that
+    // cannot arrive in time.
+    const ws = getFilingWindowStatus(sc, countyName, { strict: true });
     if (ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(sc, ws); return; }
     if (ws && ws.canPreOrder) { setErr(""); onNext(); return; }
     if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
@@ -1735,7 +1753,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const pd = propData || {};
   const stateCode = property.state.trim().toUpperCase();
   const stateInfo = SUPPORTED_STATES[stateCode] || {};
-  const filingWindow = getFilingWindowStatus(stateCode, pd.county);
+  const filingWindow = getFilingWindowStatus(stateCode, pd.county, { strict: true });
   const requiresAuth = ["AR","AL"].includes(stateCode);
   const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
   const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });

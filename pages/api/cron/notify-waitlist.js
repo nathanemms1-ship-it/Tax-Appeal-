@@ -260,7 +260,7 @@ export default async function handler(req, res) {
 
       // Check if this state/county window is currently open
       const stateUpper = (state || '').toUpperCase().trim();
-      const windowStatus = getFilingWindowStatus(stateUpper, county);
+      const windowStatus = getFilingWindowStatus(stateUpper, county, { strict: true });
 
       console.log(`[notify-waitlist] Checking ${email}: state=${stateUpper} county=${county} blocked=${blocked_reason || 'no'} windowOpen=${windowStatus?.isOpen} daysLeft=${windowStatus?.daysUntilClose}`);
 

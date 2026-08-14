@@ -155,7 +155,7 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const windowStatus = getFilingWindowStatus(stateCode, order.county);
+      const windowStatus = getFilingWindowStatus(stateCode, order.county, { strict: true });
       // Gate on canFile, not isOpen. canFile also honours the minDays receipt
       // buffer. Florida requires physical RECEIPT by the deadline, so dispatching
       // on Sept 17 produces a petition that arrives after Sept 18 — rejected as
