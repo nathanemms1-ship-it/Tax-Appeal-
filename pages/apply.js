@@ -800,6 +800,9 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
   const [showPopup, setShowPopup] = useState(false);
   const [checkedState, setCheckedState] = useState(null);
   const [checking, setChecking] = useState(false);
+  // Drives the manual-override labelling below. Florida's TRIM notice prints three
+  // values and only one of them is the one a DR-486 disputes.
+  const isFL = (data.state || "").trim().toUpperCase() === "FL";
 
   const go = async () => {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
@@ -880,9 +883,33 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
                 <span style={{ fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>(Optional)</span>
               </div>
             </div>
-            <p style={{ fontSize: 12, color: C.bodyGray, marginBottom: 14, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>Enter the values from your bill to override our lookup. Leave blank and we'll pull everything from public records automatically.</p>
+            {/*
+              FLORIDA GETS A DIFFERENT LABEL, AND IT IS NOT COSMETIC.
+              A DR-486 disputes JUST (market) value — Fla. Stat. § 193.011. A Florida
+              TRIM notice prints THREE values, and the line headed "Assessed Value" is
+              the Save Our Homes CAPPED figure, which on a long-held homestead sits far
+              below just value. Hillsborough example from lib/dor: just $608,998,
+              capped $459,927.
+
+              This field said "Assessed Value" in every state and told the owner to
+              "enter the values from your bill". A Florida owner reading their notice
+              correctly typed the capped number, /api/lookup took it in preference to
+              the roll's just value, and the petition then asked the Board to cut a
+              number that appears on no just-value line — beneath a pre-checked
+              "assessed exceeds market" box and above a Part 3 declaration signed under
+              penalty of perjury.
+
+              Labelling makes the mistake unlikely; /api/lookup's manualValueLooksCapped
+              check catches it when it happens anyway. Both, because neither is
+              sufficient alone.
+            */}
+            <p style={{ fontSize: 12, color: C.bodyGray, marginBottom: 14, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+              {isFL
+                ? <>Enter the values from your TRIM notice to override our lookup. Leave blank and we'll pull everything from public records automatically. <strong>Use the <em>Just (Market) Value</em> line — not <em>Assessed Value</em>,</strong> which is your capped Save Our Homes figure and is not what a VAB petition disputes.</>
+                : <>Enter the values from your bill to override our lookup. Leave blank and we'll pull everything from public records automatically.</>}
+            </p>
             <div className="two-col">
-              <Field label="Assessed Value" id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
+              <Field label={isFL ? "Just (Market) Value" : "Assessed Value"} id="av" value={data.manualAssessedValue} onChange={e => onChange("manualAssessedValue", e.target.value)} placeholder="$425,000" />
               <Field label="Square Footage" id="sf" value={data.manualSqft} onChange={e => onChange("manualSqft", e.target.value)} placeholder="2,150" />
             </div>
             <div className="three-col-equal">
@@ -2128,6 +2155,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // Non-null when the county's own figures show an appeal cannot reduce this
   // owner's tax. See the block in run() for why this stops the sale outright.
   const [noSavings, setNoSavings] = useState(null);
+  // Non-null when the owner's manual entry matches their capped assessed value
+  // rather than just value. Blocks the step until they pick which they meant.
+  const [valueConflict, setValueConflict] = useState(null);
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const ran = useRef(false);
@@ -2153,6 +2183,23 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
       const bdJson = await res.json();
+
+      // THE OWNER TYPED THEIR CAPPED VALUE INTO THE JUST-VALUE BOX.
+      //
+      // /api/lookup sets this when the manual entry matches the Save Our Homes
+      // capped figure and sits well below the roll's just value. Stop here rather
+      // than proceeding, because everything after this point treats the number as
+      // just value: the comps are selected against it, the requested value is
+      // derived from it, and the DR-486 is signed under penalty of perjury.
+      //
+      // We do NOT silently substitute the roll's figure. The owner is the one
+      // attesting, so they choose — but they choose knowing which line they read.
+      if (bdJson?.manualValueLooksCapped) {
+        const v = bdJson.manualValueLooksCapped;
+        setLoading(false);
+        setValueConflict(v);
+        return;
+      }
 
       // ── THE SAVINGS GATE ────────────────────────────────────────────────
       //
@@ -2551,6 +2598,65 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 20, textAlign: "left" }}>{errMsg}</div>
           <button style={primaryBtn} onClick={() => { ran.current = false; run(); ran.current = true; }}>Try Again</button>
           <div style={{ marginTop: 12 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Start over</button></div>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+    THE VALUE THE OWNER TYPED LOOKS LIKE THEIR CAPPED ASSESSED VALUE.
+
+    Not an error screen and not a refusal — a fork. A Florida TRIM notice prints
+    Just, Assessed and Taxable; only Just is what a DR-486 disputes, and the line
+    headed "Assessed Value" is the Save Our Homes capped figure. An owner who reads
+    their own notice correctly and types the number under that heading produces a
+    petition asking the Board to cut a figure that appears on no just-value line.
+
+    Both numbers are shown with their source named, because the whole failure was
+    that two different numbers looked interchangeable. Choosing the roll clears the
+    override and re-runs; keeping their own figure is allowed, because they are the
+    one signing and there are legitimate reasons the roll is wrong — but it is now
+    a decision rather than an accident.
+  */
+  if (valueConflict) {
+    const money = (n) => `$${Number(n).toLocaleString()}`;
+    return (
+      <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+        <div style={cardStyle}>
+          <div style={{ fontSize: 40, marginBottom: 16, textAlign: "center" }}>🧾</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10, textAlign: "center" }}>Which value did you mean?</h2>
+          <p style={{ fontSize: 14, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
+            {/* Says "at or below", not "matches". The trigger is at-or-below the cap, so the
+                typed figure is often the Assessed or Taxable line from LAST year's column of a
+                two-year TRIM notice rather than an exact match on this year's. Claiming a match
+                on a number the customer can see is different would read as a bug. */}
+            You entered <strong>{money(valueConflict.typed)}</strong>. That is at or below the <strong>Assessed Value</strong> your county has on file — your <em>Save Our Homes capped</em> figure, which is not what a petition disputes.
+          </p>
+          <p style={{ fontSize: 14, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
+            A VAB petition disputes <strong>Just (Market) Value</strong>, which your county reports as <strong>{money(valueConflict.justValue)}</strong>. Those are different lines on your TRIM notice and only the second one is what the Board rules on.
+          </p>
+          <div style={{ background: "#F0F7FF", border: "1px solid #C5D9F0", borderRadius: 8, padding: "12px 16px", marginBottom: 22, fontSize: 13, color: "#1B4D8E", fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ marginBottom: 4 }}><strong>Just (market) value</strong> — county roll: {money(valueConflict.justValue)}</div>
+            <div><strong>Assessed value</strong> — after the Save Our Homes cap: {money(valueConflict.cappedAssessedValue)}</div>
+          </div>
+          <button
+            style={primaryBtn}
+            onClick={() => {
+              formData.property.manualAssessedValue = "";
+              setValueConflict(null);
+              ran.current = false; run(); ran.current = true;
+            }}
+          >
+            Use the county's just value — {money(valueConflict.justValue)}
+          </button>
+          <div style={{ marginTop: 12 }}>
+            <button
+              style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }}
+              onClick={() => { setValueConflict(null); setLoading(false); onRestart(); }}
+            >
+              ← Go back and re-enter it
+            </button>
+          </div>
         </div>
       </div>
     );

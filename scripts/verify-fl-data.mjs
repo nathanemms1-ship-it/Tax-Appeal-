@@ -198,6 +198,37 @@ for (const [variant, expected] of [
     }
   }
 
+  // 7. THE CAPPED-VALUE TRAP MUST STAY WIRED.
+  //    Florida's TRIM notice prints Just, Assessed and Taxable. Only Just is what a
+  //    DR-486 disputes; the line headed "Assessed Value" is the Save Our Homes capped
+  //    figure. The manual-override field said "Assessed Value" in every state and
+  //    told the owner to copy it off their bill, /api/lookup preferred it over the
+  //    roll, and /api/check never saw it at all — so the screen that cleared the
+  //    customer and the document they swore to ran on different numbers.
+  //
+  //    Three parts, and the defect returns if any one of them is removed.
+  {
+    const files = {
+      'pages/api/lookup.js': [
+        [/manualValueLooksCapped\s*=\s*\{/, 'lookup.js no longer SETS manualValueLooksCapped — the capped-value trap is not detected'],
+        [/cappedAssessedValue, taxableValue, landValue, manualValueLooksCapped/, 'lookup.js no longer RETURNS manualValueLooksCapped — it is computed and thrown away'],
+        [/typed <= cappedAssessedValue \* 1\.015/, 'the capped-value test is no longer at-or-below the cap. A band centred on this year\'s capped figure misses last year\'s Assessed column (~3% lower on a homestead), which is the misread a two-column TRIM notice invites most'],
+      ],
+      'pages/apply.js': [
+        [/if \(bdJson\?\.manualValueLooksCapped\)/, 'apply.js no longer READS manualValueLooksCapped — the funnel proceeds on a capped figure'],
+        [/setValueConflict\(v\)/, 'apply.js no longer BLOCKS on the conflict'],
+        [/isFL \? "Just \(Market\) Value" : "Assessed Value"/, 'the FL manual-override field is labelled "Assessed Value" again — that label is what invites the wrong number'],
+      ],
+    };
+    const { readFileSync: rf } = await import('node:fs');
+    for (const [rel, checks] of Object.entries(files)) {
+      let src = '';
+      try { src = rf(new URL(`../${rel}`, import.meta.url), 'utf8'); }
+      catch { errors.push(`${rel}: missing`); continue; }
+      for (const [re, why] of checks) if (!re.test(src)) errors.push(why);
+    }
+  }
+
   const known = Object.keys(FL_COUNTY_DATES).length;
   console.log(`  FL deadlines:        ${known} counties dated; the other ${names.length - known} fall back to ${iso(fallback)}`);
   console.log(`                       earliest is ${iso(flPetitionDeadline('Hillsborough', Y))} (Hillsborough), not the 2026-09-18 we used to apply statewide`);

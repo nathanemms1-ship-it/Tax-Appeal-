@@ -184,6 +184,10 @@ export default async function handler(req, res) {
 
     // Florida only. Null for every other state until their adapters exist.
     let cappedAssessedValue = null;
+    // Set only when the owner's manual entry matches their capped assessed value.
+    // Read by pages/apply.js, which blocks the step until they choose. See the long
+    // note at the DOR branch below.
+    let manualValueLooksCapped = null;
     let taxableValue = null;
     let savings = null;
     // Florida only. Feeds the finish-level multiplier in lib/costToCure.js —
@@ -283,6 +287,57 @@ export default async function handler(req, res) {
           if (!county && p.coNo) county = null;
           lookupStatus = 'ok';
           console.log('DOR PARCEL:', p.parcelId, 'jv', p.justValue, 'av', cappedAssessedValue);
+          // DID THE OWNER TYPE THEIR CAPPED VALUE INTO THE JUST-VALUE BOX?
+          //
+          // A Florida TRIM notice prints Just, Assessed and Taxable. Only Just is what
+          // a DR-486 disputes. The line headed "Assessed Value" is the Save Our Homes
+          // capped figure, and on a long-held homestead it is far below just value —
+          // Hillsborough: just $608,998, capped $459,927, a 24% gap.
+          //
+          // The manual override above wins outright, by design: someone holding their
+          // notice is a better source than any aggregator. That is right for the just
+          // value and catastrophic for the capped one, because nothing downstream can
+          // tell the two apart. The eligibility gate in /api/check never sees the
+          // manual entry at all — it runs on the roll — so the screen that clears the
+          // customer and the document they swear to would be computed from different
+          // numbers, and the petition would ask the Board for a reduction the comps
+          // were never built to support.
+          //
+          // We already hold both figures at this point and threw the comparison away.
+          //
+          // The test is at-or-below the cap, not near it. A band around the capped
+          // figure catches an exact transcription and a typo, but misses the reading
+          // this form invites most: a TRIM notice prints last year and this year side
+          // by side, and last year's Assessed column on a homestead sits ~3% low, so a
+          // band centred on this year's number lets it through. Below the cap is the
+          // right line anyway — lib/dor/qualify.js:23 — a VAB reduction saves the owner
+          // nothing until just value falls below the capped assessment, so any figure
+          // in this range is either a misread or a petition not worth filing. There is
+          // no honest entry we are stealing by asking. 1.5% of headroom covers rounding
+          // up. wellBelowJust keeps this quiet for parcels with no cap benefit, where
+          // capped and just are the same number.
+          if (manualAssessedValue !== null && manualAssessedValue !== undefined
+              && cappedAssessedValue && p.justValue) {
+            const typed = Number(manualAssessedValue);
+            // No cap benefit on the roll means no trap: the notice's Assessed line
+            // equals its Just line, so copying it gives the right answer. Without this
+            // gate we would stop an uncapped owner from asserting a market value below
+            // the roll's, which is a real petition and the whole product.
+            const hasCapBenefit = cappedAssessedValue < p.justValue * 0.985;
+            const atOrBelowCap = typed <= cappedAssessedValue * 1.015;
+            const wellBelowJust = typed < p.justValue * 0.985;
+            if (Number.isFinite(typed) && hasCapBenefit && atOrBelowCap && wellBelowJust) {
+              // Do NOT silently substitute. The owner may have a real reason to
+              // dispute a lower figure, and quietly overwriting a number someone is
+              // about to attest to is its own defect. Surface both and let them pick.
+              manualValueLooksCapped = {
+                typed,
+                cappedAssessedValue,
+                justValue: p.justValue,
+              };
+              console.log('MANUAL VALUE LOOKS CAPPED:', typed, 'capped', cappedAssessedValue, 'just', p.justValue);
+            }
+          }
         } else {
           // Not an error. New construction and recently split parcels legitimately
           // are not on the current roll. All 67 counties are loaded as of 2026-08-02.
@@ -527,7 +582,7 @@ Return ONLY this JSON, with null for anything you cannot verify from an official
         assessedValue, marketValue, sqft, yearBuilt, beds, baths,
         annualTax, county, taxYear, parcelId,
         // Florida only, from the county roll. Null elsewhere.
-        cappedAssessedValue, taxableValue, landValue,
+        cappedAssessedValue, taxableValue, landValue, manualValueLooksCapped,
       },
       // The savings gate. `savings.eligible === false` means an appeal cannot
       // lower this owner's bill and the funnel MUST NOT sell them a filing —
