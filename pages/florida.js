@@ -120,11 +120,11 @@ return (
 <Head>
 <title>Florida Property Tax Appeal Service | $89 + County Fee | TaxAppeal USA</title>
 <meta name="description" content="Appeal your Florida TRIM notice for $89 plus your county's mandatory VAB filing fee (set by each county, typically $15–$50). We draft your VAB petition, pay the county fee, and mail it to your county VAB 7+ days before your deadline. Florida counties statewide." />
-<link rel="canonical" href="https://www.taxappealusa.com/florida" />
-<meta property="og:title" content="Florida Property Tax Appeal — $89 + County Fee | TaxAppeal USA" />
-<meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). You sign your petition; we pay the county fee and mail it. Counties statewide." />
-<meta property="og:url" content="https://www.taxappealusa.com/florida" />
-<meta property="og:type" content="website" />
+<link rel="canonical" href="https://www.taxappealusa.com/florida" key="canonical" />
+<meta property="og:title" content="Florida Property Tax Appeal — $89 + County Fee | TaxAppeal USA" key="og:title" />
+<meta property="og:description" content="Stop overpaying on Florida property taxes. $89 service fee plus your county's mandatory VAB filing fee (varies by county, typically $15–$50). You sign your petition; we pay the county fee and mail it. Counties statewide." key="og:description" />
+<meta property="og:url" content="https://www.taxappealusa.com/florida" key="og:url" />
+<meta property="og:type" content="website" key="og:type" />
 {/* FAQPage removed 10 Aug 2026 — Google: "As of May 7, 2026, FAQ rich results are
 no longer appearing in Google Search". Docs withdrawn 15 June 2026. The visible FAQ
 section below stays; only the inert markup went. BreadcrumbList replaces it because it

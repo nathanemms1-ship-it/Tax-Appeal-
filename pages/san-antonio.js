@@ -23,11 +23,11 @@ export default function SanAntonio() {
       <Head>
         <title>San Antonio Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
         <meta name="description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." />
-        <link rel="canonical" href="https://www.taxappealusa.com/san-antonio" />
-        <meta property="og:title" content="San Antonio Property Tax Protest — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." />
-        <meta property="og:url" content="https://www.taxappealusa.com/san-antonio" />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://www.taxappealusa.com/san-antonio" key="canonical" />
+        <meta property="og:title" content="San Antonio Property Tax Protest — $89 Flat Fee | TaxAppeal USA" key="og:title" />
+        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/san-antonio" key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context":"https://schema.org","@type":"FAQPage",
           "mainEntity": faqs.map(([q,a]) => ({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))

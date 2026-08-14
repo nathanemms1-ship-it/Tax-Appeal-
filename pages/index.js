@@ -49,20 +49,20 @@ export default function Landing() {
         <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
         <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute with comparable sales data and mail it for you, with tracking. Flat fee, no percentage of your savings. Available in TX, GA, FL, AR, and AL." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
-        <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We mail it for you, with tracking. TX, GA, FL, AR, AL." />
-        <meta property="og:url" content="https://www.taxappealusa.com" />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="TaxAppeal USA" />
+        <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" key="og:title" />
+        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We mail it for you, with tracking. TX, GA, FL, AR, AL." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com" key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
+        <meta property="og:site_name" content="TaxAppeal USA" key="og:site_name" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
         <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. We mail it for you, with tracking. TX, GA, FL, AR, AL." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="canonical" href="https://www.taxappealusa.com" />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft your property tax protest and mail it for you, with tracking. TX, GA, FL, AR, AL." />
-        <meta property="og:url" content="https://www.taxappealusa.com" />
+        <link rel="canonical" href="https://www.taxappealusa.com" key="canonical" />
+        <meta property="og:type" content="website" key="og:type" />
+        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." key="og:title" />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft your property tax protest and mail it for you, with tracking. TX, GA, FL, AR, AL." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -74,7 +74,7 @@ export default function Landing() {
             { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
           ]
         })}} />
-        <link rel="canonical" href="https://www.taxappealusa.com" />
+        <link rel="canonical" href="https://www.taxappealusa.com" key="canonical" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",

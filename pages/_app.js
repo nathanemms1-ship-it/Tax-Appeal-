@@ -55,8 +55,17 @@ export function gtag(...args) {
   }
 }
 
+const SITE_ORIGIN = 'https://www.taxappealusa.com'
+
 export default function App({ Component, pageProps }) {
   const router = useRouter()
+
+  // Route-derived canonical. Query and hash are stripped: ?ref=PARTNER is captured
+  // on every page for attribution, and a canonical that changes per visitor is
+  // worse than none. A trailing slash is removed so /florida/ and /florida do not
+  // declare two different canonical URLs for one document.
+  const cleanPath = router.asPath.split(/[?#]/)[0].replace(/\/+$/, '')
+  const canonicalUrl = SITE_ORIGIN + cleanPath
 
   // Capture partner referral code from ?ref= on ANY page (last-touch attribution).
   //
@@ -108,19 +117,51 @@ export default function App({ Component, pageProps }) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <title>TaxAppeal — Property Tax Dispute Service | $89 Flat Fee</title>
         <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it for you. Takes 4 minutes. TX, GA, FL, AR, AL." />
-        {/* Open Graph */}
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="TaxAppeal USA" />
-        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it for you, with tracking. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." />
-        <meta property="og:url" content="https://www.taxappealusa.com" />
-        <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" />
+        {/*
+          KEYS AND `canonicalUrl` ARE BOTH LOAD BEARING — see scripts/verify-pages.mjs.
+
+          next/head de-duplicates <title> and any <meta> carrying `name`, because
+          METATYPES is ['name','httpEquiv','charSet','itemProp']. `property` is not
+          in that list and <link> is not de-duplicated at all unless the tag carries
+          an explicit `key`. So these tags used to be emitted IN ADDITION TO the
+          page's own, and every page shipped two canonicals and two of each og tag.
+
+          Measured on the built output before this change: 1,068 pages carried two
+          <link rel="canonical">, the homepage carried three, and exactly ZERO of
+          1,081 pages had a single self-referential canonical. Google's documented
+          behaviour with conflicting canonicals is to ignore all of them, so the
+          self-canonical was inert site-wide — including on the 131 near-duplicate
+          Florida city pages, where it was the only thing standing between us and a
+          duplicate-content problem.
+
+          Worse were the pages with no canonical of their own. /check and /apply
+          each carried exactly one canonical in production and it pointed at the
+          homepage, which tells Google those two pages ARE the homepage and should
+          not be indexed as themselves. /check is the top of the funnel.
+
+          Two changes. The value is now derived from the route rather than fixed at
+          the homepage, so a page that declares nothing still gets a correct
+          self-referential canonical. And every tag carries a `key`, so a page that
+          DOES declare its own replaces this one instead of appending to it. Page
+          files carry the matching keys; the build fails if any page ends up with a
+          count other than one.
+
+          asPath, not route: `route` is the template (/counties/[slug]). Query and
+          hash are stripped because ?ref=… and #faq are the same document, and a
+          canonical that varies per visitor is worse than none.
+        */}
+        <meta property="og:type" content="website" key="og:type" />
+        <meta property="og:site_name" content="TaxAppeal USA" key="og:site_name" />
+        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." key="og:title" />
+        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it for you, with tracking. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." key="og:description" />
+        <meta property="og:url" content={canonicalUrl} key="og:url" />
+        <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" key="og:image" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
         <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it for you. $89 flat — no percentage cuts." />
         {/* Canonical */}
-        <link rel="canonical" href="https://www.taxappealusa.com" />
+        <link rel="canonical" href={canonicalUrl} key="canonical" />
         {/* Favicon */}
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
         {/* Structured Data — Organization */}

@@ -89,11 +89,11 @@ export default function TexasCityPage({ city }) {
             served `Midland<!-- --> Property Tax Protest Service | ...`. */}
         <title>{`${city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA`}</title>
         <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with ${city.district} via certified mail. No percentage cuts.`} />
-        <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} />
-        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Certified mail filing. No percentage cuts — you keep every dollar of any reduction.`} />
-        <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} key="canonical" />
+        <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} key="og:title" />
+        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Certified mail filing. No percentage cuts — you keep every dollar of any reduction.`} key="og:description" />
+        <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
       </Head>

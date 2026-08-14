@@ -102,7 +102,7 @@ export default function WaitlistForm() {
         <title>Join the Waitlist | TaxAppeal USA</title>
         <meta name="description" content="TaxAppeal USA is not filing yet. Join the waitlist and we will email you the moment filing opens in your state. Flat $89 service fee plus your county's filing fee when we launch — no percentage of your savings, ever." />
         <meta name="robots" content="noindex, follow" />
-        <link rel="canonical" href="https://www.taxappealusa.com/apply" />
+        <link rel="canonical" href="https://www.taxappealusa.com/apply" key="canonical" />
       </Head>
 
       {/* dangerouslySetInnerHTML, not a text child.

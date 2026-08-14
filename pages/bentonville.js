@@ -25,11 +25,11 @@ export default function Bentonville() {
       <Head>
         <title>Bentonville Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
         <meta name="description" content="Appeal your Bentonville property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." />
-        <link rel="canonical" href="https://www.taxappealusa.com/bentonville" />
-        <meta property="og:title" content="Bentonville Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:description" content="Appeal your Bentonville property taxes for $89 flat. Benton County Board of Equalization deadline: August 17, 2026." />
-        <meta property="og:url" content="https://www.taxappealusa.com/bentonville" />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://www.taxappealusa.com/bentonville" key="canonical" />
+        <meta property="og:title" content="Bentonville Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" key="og:title" />
+        <meta property="og:description" content="Appeal your Bentonville property taxes for $89 flat. Benton County Board of Equalization deadline: August 17, 2026." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/bentonville" key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>( {"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Bentonville Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Bentonville"},"offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} />
       </Head>

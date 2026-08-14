@@ -64,10 +64,10 @@ export default function Arkansas() {
       <Head>
         <title>Arkansas Property Tax Appeal Service | File for $89 — TaxAppeal</title>
         <meta name="description" content="Appeal your Arkansas property taxes for a flat $89 fee. We draft your protest letter with comparable sales data and file via certified mail before the August 17 deadline. All 75 Arkansas counties." />
-        <link rel="canonical" href="https://www.taxappealusa.com/arkansas" />
-        <meta property="og:title" content="Arkansas Property Tax Appeal — $89 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $89 flat. Deadline: August 17, 2026." />
-        <meta property="og:url" content="https://www.taxappealusa.com/arkansas" />
+        <link rel="canonical" href="https://www.taxappealusa.com/arkansas" key="canonical" />
+        <meta property="og:title" content="Arkansas Property Tax Appeal — $89 Flat Fee | TaxAppeal" key="og:title" />
+        <meta property="og:description" content="Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $89 flat. Deadline: August 17, 2026." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/arkansas" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",

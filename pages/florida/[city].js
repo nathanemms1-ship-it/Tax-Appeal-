@@ -184,11 +184,11 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
         <title>{`${city.name} Property Tax Appeal | ${feeCta} | TaxAppeal USA`}</title>
         <meta name="description" content={`Appeal your ${city.name} property tax bill for ${priceLine}. We prepare your ${city.county} County VAB petition, you sign it, and we mail it 7+ days before your deadline — we pay the county's filing fee to the VAB for you. No percentage of your savings, ever.`} />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Appeal | ${feeCta} | TaxAppeal USA`} />
-        <meta property="og:description" content={`Appeal your ${city.name} property taxes for ${priceLine}. No percentage of your savings, ever. We prepare the petition, you sign it, we mail it on time.`} />
-        <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} key="canonical" />
+        <meta property="og:title" content={`${city.name} Property Tax Appeal | ${feeCta} | TaxAppeal USA`} key="og:title" />
+        <meta property="og:description" content={`Appeal your ${city.name} property taxes for ${priceLine}. No percentage of your savings, ever. We prepare the petition, you sign it, we mail it on time.`} key="og:description" />
+        <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema(trail, `https://www.taxappealusa.com/florida/${city.slug}`)) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
       </Head>

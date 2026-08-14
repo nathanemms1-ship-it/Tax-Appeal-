@@ -13,7 +13,7 @@ export default function Alabama(){
     <Head>
       <title>Alabama Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
       <meta name="description" content="Appeal your Alabama property taxes for $89 flat. We prepare your appeal and file it via USPS certified mail with your county Board of Equalization. All 67 Alabama counties." />
-      <link rel="canonical" href="https://www.taxappealusa.com/alabama" />
+      <link rel="canonical" href="https://www.taxappealusa.com/alabama" key="canonical" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Alabama Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"State","name":"Alabama"},"description":"Property tax BOE appeal letter preparation and USPS certified mail filing. All 67 Alabama counties.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} />
     </Head>

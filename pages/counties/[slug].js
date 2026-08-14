@@ -274,12 +274,12 @@ export default function CountyPage({ county, fl, contentRevised }) {
       <Head>
         <title>{title}</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://www.taxappealusa.com/og-image.jpg" />
+        <link rel="canonical" href={canonicalUrl} key="canonical" />
+        <meta property="og:title" content={title} key="og:title" />
+        <meta property="og:description" content={description} key="og:description" />
+        <meta property="og:url" content={canonicalUrl} key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
+        <meta property="og:image" content="https://www.taxappealusa.com/og-image.jpg" key="og:image" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />

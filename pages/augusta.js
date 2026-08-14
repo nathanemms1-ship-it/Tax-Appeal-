@@ -12,7 +12,7 @@ export default function Augusta(){
     <Head>
       <title>Augusta Georgia Property Tax Appeal | $89 Flat | TaxAppeal USA</title>
       <meta name="description" content="Appeal your Augusta Georgia property taxes for $89 flat. Richmond County homeowners: challenge your assessment before the 45-day deadline. O.C.G.A. §48-5-311. TaxAppeal USA." />
-      <link rel="canonical" href="https://www.taxappealusa.com/augusta" />
+      <link rel="canonical" href="https://www.taxappealusa.com/augusta" key="canonical" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Augusta Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Augusta"},"description":"Property tax appeal preparation and certified mail filing for Augusta, Georgia homeowners.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} />
     </Head>

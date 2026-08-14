@@ -113,11 +113,11 @@ export default function BlogPost({ post, coverage }) {
       <Head>
         <title>{post.metaTitle}</title>
         <meta name="description" content={post.metaDescription} />
-        <link rel="canonical" href={`https://www.taxappealusa.com/blog/${post.slug}`} />
-        <meta property="og:title" content={post.metaTitle} />
-        <meta property="og:description" content={post.metaDescription} />
-        <meta property="og:url" content={`https://www.taxappealusa.com/blog/${post.slug}`} />
-        <meta property="og:type" content="article" />
+        <link rel="canonical" href={`https://www.taxappealusa.com/blog/${post.slug}`} key="canonical" />
+        <meta property="og:title" content={post.metaTitle} key="og:title" />
+        <meta property="og:description" content={post.metaDescription} key="og:description" />
+        <meta property="og:url" content={`https://www.taxappealusa.com/blog/${post.slug}`} key="og:url" />
+        <meta property="og:type" content="article" key="og:type" />
         <meta property="article:published_time" content={post.publishDate} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />

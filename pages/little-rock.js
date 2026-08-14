@@ -21,10 +21,10 @@ export default function LittleRock() {
       <Head>
         <title>Little Rock Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
         <meta name="description" content="Appeal your Little Rock property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." />
-        <link rel="canonical" href="https://www.taxappealusa.com/little-rock" />
-        <meta property="og:title" content="Little Rock Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" />
-        <meta property="og:url" content="https://www.taxappealusa.com/little-rock" />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://www.taxappealusa.com/little-rock" key="canonical" />
+        <meta property="og:title" content="Little Rock Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" key="og:title" />
+        <meta property="og:url" content="https://www.taxappealusa.com/little-rock" key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>( {"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
       </Head>
       <style>{`@import url('${FONT}');*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;}.btn:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:26px!important;}}`}</style>

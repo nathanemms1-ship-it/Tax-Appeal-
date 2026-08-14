@@ -83,10 +83,10 @@ export default function Texas() {
       <Head>
         <title>Texas Property Tax Protest Service | File for $89 — TaxAppeal</title>
         <meta name="description" content="Protest your Texas property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. All 254 Texas counties." />
-        <link rel="canonical" href="https://www.taxappealusa.com/texas" />
-        <meta property="og:title" content="Texas Property Tax Protest — $89 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Texas property taxes. We prepare and mail your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." />
-        <meta property="og:url" content="https://www.taxappealusa.com/texas" />
+        <link rel="canonical" href="https://www.taxappealusa.com/texas" key="canonical" />
+        <meta property="og:title" content="Texas Property Tax Protest — $89 Flat Fee | TaxAppeal" key="og:title" />
+        <meta property="og:description" content="Stop overpaying on Texas property taxes. We prepare and mail your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/texas" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",

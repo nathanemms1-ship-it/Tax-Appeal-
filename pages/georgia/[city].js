@@ -31,9 +31,9 @@ export default function GeorgiaCityPage({ city }) {
             served `Rome<!-- --> Property Tax Appeal | ...`. */}
         <title>{`${city.name} Property Tax Appeal | $89 Flat Fee | TaxAppeal USA`}</title>
         <meta name="description" content={`Appeal your ${city.name} property taxes for $89 flat. ${city.county} County homeowners save $${fSavings}/year on average. Certified mail filing. 45-day deadline.`} />
-        <link rel="canonical" href={`https://www.taxappealusa.com/georgia/${city.slug}`} />
-        <meta property="og:title" content={`${city.name} Property Tax Appeal — $89 | TaxAppeal USA`} />
-        <meta property="og:url" content={`https://www.taxappealusa.com/georgia/${city.slug}`} />
+        <link rel="canonical" href={`https://www.taxappealusa.com/georgia/${city.slug}`} key="canonical" />
+        <meta property="og:title" content={`${city.name} Property Tax Appeal — $89 | TaxAppeal USA`} key="og:title" />
+        <meta property="og:url" content={`https://www.taxappealusa.com/georgia/${city.slug}`} key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(lbSchema) }} />
       </Head>

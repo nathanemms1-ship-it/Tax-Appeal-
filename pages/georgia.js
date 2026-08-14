@@ -64,11 +64,11 @@ export default function Georgia() {
       <Head>
         <title>Georgia Property Tax Appeal Service | File for $89 | TaxAppeal</title>
         <meta name="description" content="Appeal your Georgia property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. All 159 Georgia counties." />
-        <link rel="canonical" href="https://www.taxappealusa.com/georgia" />
-        <meta property="og:title" content="Georgia Property Tax Appeal — $89 Flat Fee | TaxAppeal" />
-        <meta property="og:description" content="Stop overpaying on Georgia property taxes. We file your appeal via certified mail for $89 flat. No contingency fees. Keep 100% of your savings. All 159 counties." />
-        <meta property="og:url" content="https://www.taxappealusa.com/georgia" />
-        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://www.taxappealusa.com/georgia" key="canonical" />
+        <meta property="og:title" content="Georgia Property Tax Appeal — $89 Flat Fee | TaxAppeal" key="og:title" />
+        <meta property="og:description" content="Stop overpaying on Georgia property taxes. We file your appeal via certified mail for $89 flat. No contingency fees. Keep 100% of your savings. All 159 counties." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/georgia" key="og:url" />
+        <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",

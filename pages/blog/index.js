@@ -27,10 +27,10 @@ export default function BlogIndex() {
       <Head>
         <title>Property Tax Protest Guides & Resources | TaxAppeal Blog</title>
         <meta name="description" content="Expert guides on protesting property taxes in Texas, Georgia, and Florida. County-specific guides, deadline information, and tips to lower your property tax bill." />
-        <link rel="canonical" href="https://www.taxappealusa.com/blog" />
-        <meta property="og:title" content="Property Tax Protest Guides | TaxAppeal Blog" />
-        <meta property="og:description" content="Expert guides on protesting property taxes in Texas, Georgia, and Florida. Save money on your property tax bill." />
-        <meta property="og:url" content="https://www.taxappealusa.com/blog" />
+        <link rel="canonical" href="https://www.taxappealusa.com/blog" key="canonical" />
+        <meta property="og:title" content="Property Tax Protest Guides | TaxAppeal Blog" key="og:title" />
+        <meta property="og:description" content="Expert guides on protesting property taxes in Texas, Georgia, and Florida. Save money on your property tax bill." key="og:description" />
+        <meta property="og:url" content="https://www.taxappealusa.com/blog" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Blog",

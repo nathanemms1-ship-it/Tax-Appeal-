@@ -380,6 +380,98 @@ for (const [hub, metros] of [
 
 /**
  * ============================================================================
+ * EXACTLY ONE CANONICAL PER PAGE, POINTING AT ITSELF
+ * ============================================================================
+ * next/head de-duplicates <title> and any <meta> carrying `name` — METATYPES is
+ * ['name','httpEquiv','charSet','itemProp']. It does NOT de-duplicate `property`,
+ * and it does not de-duplicate <link> at all unless the tag carries a `key`. The
+ * site-wide canonical and og tags in _app.js had neither, so they were emitted in
+ * ADDITION to whatever the page declared.
+ *
+ * Measured before the fix: 1,068 pages shipped two <link rel="canonical">, the
+ * homepage shipped three, and ZERO of 1,081 pages had a single self-referential
+ * canonical. Google ignores conflicting canonicals, so the self-canonical was
+ * inert everywhere, including on the 131 near-duplicate Florida city pages where
+ * it was the only thing preventing a duplicate-content problem.
+ *
+ * The worst case was the pages with no canonical of their own. In production
+ * /check and /apply each carried exactly ONE canonical and it named the homepage —
+ * telling Google the free-check tool and the funnel are the homepage and should
+ * not be indexed as themselves.
+ *
+ * Two counts are checked because they fail differently. A count other than one
+ * means the keys came off and the tags are stacking again. A count of one that
+ * points somewhere else means a page is handing its indexing to another URL — an
+ * easy typo to make and impossible to notice by looking at the page.
+ *
+ * NO_CANONICAL is deliberately short. A page that renders is a page Google can be
+ * shown; error pages are the exception because they are not documents.
+ */
+{
+  const NO_CANONICAL = new Set(['/404', '/500']);
+  const ORIGIN = 'https://www.taxappealusa.com';
+  const walkHtml = (dir, out = []) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walkHtml(p, out);
+      else if (e.name.endsWith('.html')) out.push(p);
+    }
+    return out;
+  };
+  const routeOf = (f) => {
+    const r = '/' + path.relative(DIR, f).replace(/\.html$/, '');
+    return r === '/index' ? '/' : r.replace(/\/index$/, '');
+  };
+
+  let dupes = 0, mismatched = 0, missing = 0, ok = 0;
+  const SHOW = 5;
+  for (const f of walkHtml(DIR)) {
+    const route = routeOf(f);
+    const html = fs.readFileSync(f, 'utf8');
+    const found = [...html.matchAll(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+    const want = ORIGIN + (route === '/' ? '' : route);
+
+    if (NO_CANONICAL.has(route)) continue;
+    if (found.length === 0) {
+      if (missing++ < SHOW) console.error(`  FAIL  ${route} has no canonical`);
+    } else if (found.length > 1) {
+      if (dupes++ < SHOW) console.error(`  FAIL  ${route} ships ${found.length} canonicals — the de-dupe key came off`);
+    } else if (found[0] !== want) {
+      if (mismatched++ < SHOW) console.error(`  FAIL  ${route} canonicalises to ${found[0]} — it is telling Google it is a different page`);
+    } else ok++;
+  }
+  const broken = dupes + mismatched + missing;
+  if (broken) {
+    failures++;
+    console.error(`          ${broken} page(s) total: ${dupes} duplicated, ${mismatched} pointing elsewhere, ${missing} absent`);
+  } else {
+    console.log(`  ${ok} pages carry exactly one canonical and it points at themselves`);
+  }
+
+  // Same defect, same cause: `property` is not de-duplicated, so a page declaring
+  // its own og:title stacked it on top of the homepage's. Open Graph consumers
+  // take the FIRST value for a single-valued property, so every page shared to
+  // social rendered the homepage's card no matter what the page said.
+  let ogDupes = 0;
+  for (const f of walkHtml(DIR)) {
+    const html = fs.readFileSync(f, 'utf8');
+    for (const prop of ['og:url', 'og:title', 'og:description', 'og:image', 'og:type']) {
+      const n = (html.match(new RegExp(`property="${prop}"`, 'g')) || []).length;
+      if (n > 1) {
+        if (ogDupes++ < SHOW) console.error(`  FAIL  ${routeOf(f)} ships ${n} ${prop} tags — the first one wins, and it is the homepage's`);
+      }
+    }
+  }
+  if (ogDupes) {
+    failures++;
+    console.error(`          ${ogDupes} duplicated Open Graph tag(s)`);
+  } else {
+    console.log('  no page stacks a second Open Graph tag on top of its own');
+  }
+}
+
+/**
+ * ============================================================================
  * FLORIDA COUNTY PAGES: THE PETITION MUST BE ADDRESSED TO THE VAB CLERK
  * ============================================================================
  * Until 10 Aug 2026 every one of the 67 FL county pages told the homeowner we mail

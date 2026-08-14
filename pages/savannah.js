@@ -14,7 +14,7 @@ export default function Savannah(){
     <Head>
       <title>Savannah Property Tax Appeal | $89 Flat Fee | TaxAppeal USA</title>
       <meta name="description" content="Appeal your Savannah Georgia property taxes for $89 flat. Chatham County: challenge your assessment before the 45-day deadline. TaxAppeal USA." />
-      <link rel="canonical" href="https://www.taxappealusa.com/savannah" />
+      <link rel="canonical" href="https://www.taxappealusa.com/savannah" key="canonical" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Savannah Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Savannah"},"description":"Property tax appeal preparation and certified mail filing for Savannah, Georgia homeowners.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} />
     </Head>

@@ -72,11 +72,11 @@ return (
 <Head>
 <title>Miami Property Tax Appeal Service | $104 All-In | TaxAppeal USA</title>
 <meta name="description" content="Appeal your Miami property taxes for $104 all-in ($89 service + $15 Miami-Dade VAB fee).Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the county fee. No percentage cuts." />
-<link rel="canonical" href="https://www.taxappealusa.com/miami" />
-<meta property="og:title" content="Miami Property Tax Appeal — $104 All-In | TaxAppeal USA" />
-<meta property="og:description" content="Appeal your Miami property taxes for $104 all-in.Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." />
-<meta property="og:url" content="https://www.taxappealusa.com/miami" />
-<meta property="og:type" content="website" />
+<link rel="canonical" href="https://www.taxappealusa.com/miami" key="canonical" />
+<meta property="og:title" content="Miami Property Tax Appeal — $104 All-In | TaxAppeal USA" key="og:title" />
+<meta property="og:description" content="Appeal your Miami property taxes for $104 all-in.Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." key="og:description" />
+<meta property="og:url" content="https://www.taxappealusa.com/miami" key="og:url" />
+<meta property="og:type" content="website" key="og:type" />
 <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Miami-Dade County',href:'/counties/miami-dade-county-fl'},{name:'Miami'}],'https://www.taxappealusa.com/miami'))}} />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
 "@context":"https://schema.org","@type":"Service",

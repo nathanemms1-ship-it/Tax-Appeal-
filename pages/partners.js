@@ -88,7 +88,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
       <Head>
         <title>Partner Program — Earn $20 Per Referral | TaxAppeal USA</title>
         <meta name="description" content="Real estate agents and HOA managers: earn $20 for every homeowner you refer to TaxAppeal USA. Share your unique link, we handle the rest. Paid monthly." />
-        <link rel="canonical" href="https://www.taxappealusa.com/partners" />
+        <link rel="canonical" href="https://www.taxappealusa.com/partners" key="canonical" />
       </Head>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');

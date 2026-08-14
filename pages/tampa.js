@@ -72,11 +72,11 @@ return (
 <Head>
 <title>Tampa Property Tax Appeal Service | $139 All-In | TaxAppeal USA</title>
 <meta name="description" content="Appeal your Tampa property taxes for $139 all-in ($89 service + $50 Hillsborough County VAB fee). We check whether a protest can actually lower your bill before you pay. We file your VAB petition and pay the county fee. No percentage cuts." />
-<link rel="canonical" href="https://www.taxappealusa.com/tampa" />
-<meta property="og:title" content="Tampa Property Tax Appeal — $139 All-In | TaxAppeal USA" />
-<meta property="og:description" content="Appeal your Tampa property taxes for $139 all-in. We check whether a protest can actually lower your bill before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." />
-<meta property="og:url" content="https://www.taxappealusa.com/tampa" />
-<meta property="og:type" content="website" />
+<link rel="canonical" href="https://www.taxappealusa.com/tampa" key="canonical" />
+<meta property="og:title" content="Tampa Property Tax Appeal — $139 All-In | TaxAppeal USA" key="og:title" />
+<meta property="og:description" content="Appeal your Tampa property taxes for $139 all-in. We check whether a protest can actually lower your bill before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." key="og:description" />
+<meta property="og:url" content="https://www.taxappealusa.com/tampa" key="og:url" />
+<meta property="og:type" content="website" key="og:type" />
 <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Hillsborough County',href:'/counties/hillsborough-county-fl'},{name:'Tampa'}],'https://www.taxappealusa.com/tampa'))}} />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
 "@context":"https://schema.org","@type":"Service",
