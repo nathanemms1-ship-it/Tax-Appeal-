@@ -431,7 +431,17 @@ for (const [hub, metros] of [
     const found = [...html.matchAll(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
     const want = ORIGIN + (route === '/' ? '' : route);
 
-    if (NO_CANONICAL.has(route)) continue;
+    // Not merely exempt — forbidden. A canonical is a page asserting it should be
+    // indexed as something, and a 404 asserts the opposite. Next serves pages/404.js
+    // for every unmatched URL, so one stray tag here answers every dead link on the
+    // internet that points at this domain.
+    if (NO_CANONICAL.has(route)) {
+      if (found.length) {
+        failures++;
+        console.error(`  FAIL  ${route} declares a canonical (${found[0]}) — an error response must not`);
+      }
+      continue;
+    }
     if (found.length === 0) {
       if (missing++ < SHOW) console.error(`  FAIL  ${route} has no canonical`);
     } else if (found.length > 1) {

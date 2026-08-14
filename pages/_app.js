@@ -67,6 +67,22 @@ export default function App({ Component, pageProps }) {
   const cleanPath = router.asPath.split(/[?#]/)[0].replace(/\/+$/, '')
   const canonicalUrl = SITE_ORIGIN + cleanPath
 
+  // A 404 is a response, not a document, and must not declare a canonical. Next
+  // renders pages/404.js for every unmatched URL with router.pathname === '/404',
+  // so before this check every dead link on the internet pointing anywhere at this
+  // domain answered with <link rel="canonical" href=".../404">. The 404 status is
+  // what Google actually acts on, so this was untidy rather than damaging — but a
+  // page that names a canonical is a page asserting it should be indexed as
+  // something, and a 404 is asserting the opposite.
+  //
+  // Tested against router.pathname first, which reads as the obvious check and is
+  // wrong: during prerendering the build emitted the canonical anyway, so pathname
+  // is not '/404' in that pass. cleanPath is, in both passes — 404.html is
+  // prerendered once and every unmatched URL is served that one file, so whatever
+  // is baked in here is what every dead link gets. Both are checked because the
+  // runtime router is the one that would change first.
+  const isErrorPage = ['/404', '/500'].includes(cleanPath) || ['/404', '/500'].includes(router.pathname)
+
   // Capture partner referral code from ?ref= on ANY page (last-touch attribution).
   //
   // Stored with a timestamp so pages/apply.js can enforce a 90-day attribution
@@ -154,14 +170,14 @@ export default function App({ Component, pageProps }) {
         <meta property="og:site_name" content="TaxAppeal USA" key="og:site_name" />
         <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." key="og:title" />
         <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it for you, with tracking. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." key="og:description" />
-        <meta property="og:url" content={canonicalUrl} key="og:url" />
+        {!isErrorPage && <meta property="og:url" content={canonicalUrl} key="og:url" />}
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" key="og:image" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
         <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it for you. $89 flat — no percentage cuts." />
         {/* Canonical */}
-        <link rel="canonical" href={canonicalUrl} key="canonical" />
+        {!isErrorPage && <link rel="canonical" href={canonicalUrl} key="canonical" />}
         {/* Favicon */}
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
         {/* Structured Data — Organization */}
