@@ -172,6 +172,25 @@ for (const [file, src] of sources) {
   }
 }
 
+// ── 4c. ADMIN_PASSWORD is compared in exactly one place ───────────────────────
+// /api/process-order-now authenticated inline — `password !== process.env.ADMIN_PASSWORD`
+// — and was the ONLY admin route doing so. It was also the route that mails a
+// certified petition and cuts a county filing-fee cheque, and the one that bypasses
+// the filing-window check. That single comparison carried no rate limit (every other
+// admin route is capped), was not constant time, and answered 401 for a MISSING
+// ADMIN_PASSWORD, so an unconfigured deployment was indistinguishable from a typo.
+//
+// The rule is not "call requireAdmin" — a route can call it and still compare the
+// password itself. The rule is that lib/adminAuth.js is the only file that ever
+// reads the variable, because that is where the rate limit, the constant-time
+// compare and the query-string refusal live.
+for (const [file, src] of sources) {
+  if (file.endsWith('lib/adminAuth.js')) continue;
+  if (/process\.env\.ADMIN_PASSWORD/.test(src)) {
+    fail(file, 'reads process.env.ADMIN_PASSWORD directly. Only lib/adminAuth.js may — everywhere else loses the rate limit, the constant-time compare, and the 503-vs-401 distinction for an unset variable. Use `if (await requireAdmin(req, res, "<route>")) return;`');
+  }
+}
+
 // ── 5. No credential read from the query string ───────────────────────────────
 // Query strings are written in plaintext to Vercel logs, proxy logs, browser
 // history, and the Referer header of every outbound link.

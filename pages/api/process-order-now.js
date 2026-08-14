@@ -6,15 +6,43 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { dispatchQueuedOrder } from '../../lib/processOrder';
+import { requireAdmin } from '../../lib/adminAuth';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password, orderId } = req.body;
+  /**
+   * This route was the only admin endpoint still authenticating inline, and it is
+   * the one that spends money: every success mails a certified petition and cuts a
+   * real county filing-fee cheque, and it deliberately bypasses the filing-window
+   * check the cron applies. The line it replaces was:
+   *
+   *   if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD)
+   *
+   * Three defects in one comparison. No rate limit, so a single shared password
+   * could be guessed as fast as requests could be sent — `get-orders` is capped at
+   * 10/min, `admin-health` at 12/min, and this one, alone, was uncapped. `!==` is
+   * not constant time, so it returns fractionally sooner on an early wrong
+   * character and leaks the password one character at a time under measurement.
+   * And a missing ADMIN_PASSWORD answered 401 "Unauthorized" — indistinguishable
+   * from a wrong password, so a deployment with the variable absent looked like an
+   * operator typo instead of a broken configuration.
+   *
+   * requireAdmin fixes all three and additionally refuses a password in the query
+   * string, which would otherwise be written in plaintext to Vercel's request logs.
+   *
+   * What this does NOT fix: an authenticated endpoint necessarily behaves
+   * differently once auth passes, so a correct password is still distinguishable
+   * from a wrong one by the response. That is inherent, not a bug here. The rate
+   * limit is what makes it unusable — 10 tries a minute against a shared password,
+   * rather than as many as the attacker's connection allows.
+   *
+   * The admin UI (pages/admin.js:543) POSTs { password, orderId } as JSON, which
+   * requireAdmin reads via presented(req). No client change is needed.
+   */
+  if (await requireAdmin(req, res, 'process-order-now')) return;
 
-  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const { orderId } = req.body;
   if (!orderId) {
     return res.status(400).json({ error: 'Missing orderId' });
   }

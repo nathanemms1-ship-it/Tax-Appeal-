@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { adminPasswordMatches } from '../../lib/adminAuth';
 import { runAllChecks } from '../../lib/healthChecks';
 import { enforceRateLimit } from '../../lib/rateLimit';
 
@@ -33,15 +33,6 @@ import { enforceRateLimit } from '../../lib/rateLimit';
  * charges nothing. See the header of lib/healthChecks.js.
  */
 
-/** Constant-time compare via fixed-length digests, matching pages/api/get-orders.js. */
-function passwordMatches(supplied) {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected) return false;
-  const a = crypto.createHash('sha256').update(String(supplied ?? '')).digest();
-  const b = crypto.createHash('sha256').update(String(expected)).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -52,7 +43,7 @@ export default async function handler(req, res) {
   if (await enforceRateLimit(req, res, 'admin-health', 120, 3600)) return;
 
   const { password } = req.body || {};
-  if (!passwordMatches(password)) return res.status(401).json({ error: 'Unauthorized' });
+  if (!adminPasswordMatches(password)) return res.status(401).json({ error: 'Unauthorized' });
 
   res.setHeader('Cache-Control', 'no-store');
 

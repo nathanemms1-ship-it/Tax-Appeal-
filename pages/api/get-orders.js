@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { adminPasswordMatches } from '../../lib/adminAuth';
 import { getSupabaseAdmin } from './supabase';
 import { enforceRateLimit } from '../../lib/rateLimit';
 
@@ -25,15 +25,6 @@ const ADMIN_FIELDS = [
   'scheduled_file_date',
 ].join(', ');
 
-/** Constant-time password compare, so response timing does not reveal a prefix. */
-function passwordMatches(supplied) {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected) return false;
-  const a = crypto.createHash('sha256').update(String(supplied ?? '')).digest();
-  const b = crypto.createHash('sha256').update(String(expected)).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -43,7 +34,7 @@ export default async function handler(req, res) {
 
   const { password } = req.body || {};
 
-  if (!passwordMatches(password)) {
+  if (!adminPasswordMatches(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
