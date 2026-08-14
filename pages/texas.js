@@ -329,7 +329,7 @@ export default function Texas() {
         </div>
         <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
           <span style={{ color: "#3A4F6A", fontSize: 11 }}>Texas cities:</span>
-          {[["Houston", "/houston"], ["Dallas", "/dallas"], ["Fort Worth", "/fort-worth"], ["Austin", "/austin"]].map(([name, href]) => (
+          {[["Houston", "/houston"], ["Dallas", "/dallas"], ["Fort Worth", "/fort-worth"], ["Austin", "/austin"], ["San Antonio", "/san-antonio"], ["El Paso", "/el-paso"]].map(([name, href]) => (
             <a key={href} href={href} style={{ color: "#3A4F6A", fontSize: 11, textDecoration: "none" }}>{name}</a>
           ))}
         </div>

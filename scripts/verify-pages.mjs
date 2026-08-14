@@ -315,6 +315,57 @@ for (const [hub, code] of [['florida', 'FL'], ['texas', 'TX'], ['georgia', 'GA']
   }
 }
 
+// The hub check above proves the hubs link DOWN to the counties. It says nothing
+// about whether anything links to the hubs, and for most of this build's life
+// nothing did: the homepage's only outbound links were /apply, /privacy and
+// /terms, and the last two are noindex. So the entire 1,080-page graph hung off
+// the sitemap alone — no homepage authority reached any of it, and Search Console
+// had discovered 879 of 1,071.
+//
+// One removed link puts it back. This is exactly the kind of edit that looks
+// cosmetic in review.
+{
+  const file = findHtml('index');
+  if (!file) {
+    failures++;
+    console.error('  FAIL  no built homepage to check for outbound links');
+  } else {
+    const html = fs.readFileSync(file, 'utf8');
+    const REQUIRED = ['/florida', '/texas', '/georgia', '/blog', '/check'];
+    const missing = REQUIRED.filter((href) => !new RegExp(`href="${href}"`).test(html));
+    if (missing.length) {
+      failures++;
+      console.error(`  FAIL  the homepage does not link ${missing.join(', ')}`);
+      console.error('          the state hubs are the only route from the root into 1,068 county, city and blog');
+      console.error('          pages; without them the whole set is sitemap-only again');
+    } else {
+      console.log(`  the homepage links all ${REQUIRED.length} hub pages — the county and city graph is crawlable from the root`);
+    }
+  }
+}
+
+// Metro landing pages are a DIFFERENT route from /[state]/[city], so the city grid
+// on a hub does not link them. Measuring reachability after the homepage fix showed
+// six of them orphaned in states we actually serve: /augusta, /savannah, /el-paso,
+// /orlando, /jacksonville, /fort-lauderdale. Nothing on the site pointed at any of
+// them. AR/AL metros are deliberately excluded — apply.js refuses those states.
+for (const [hub, metros] of [
+  ['florida', ['/miami', '/tampa', '/orlando', '/jacksonville', '/fort-lauderdale']],
+  ['texas', ['/houston', '/dallas', '/fort-worth', '/austin', '/san-antonio', '/el-paso']],
+  ['georgia', ['/atlanta', '/augusta', '/savannah']],
+]) {
+  const file = findHtml(hub);
+  if (!file) continue;
+  const html = fs.readFileSync(file, 'utf8');
+  const missing = metros.filter((href) => !new RegExp(`href="${href}"`).test(html));
+  if (missing.length) {
+    failures++;
+    console.error(`  FAIL  /${hub} does not link ${missing.join(', ')} — those metro pages go orphan`);
+  } else {
+    console.log(`  /${hub} links all ${metros.length} of its metro pages`);
+  }
+}
+
 /**
  * ============================================================================
  * FLORIDA COUNTY PAGES: THE PETITION MUST BE ADDRESSED TO THE VAB CLERK

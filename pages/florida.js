@@ -410,6 +410,17 @@ Start My Florida Appeal — $89 + County Fee →
 <a href="/terms" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Terms</a>
 <a href="/privacy" style={{ color: C.mutedGray, fontSize: 12, textDecoration: "none" }}>Privacy</a>
 </div>
+{/* Matches the metro rows on /texas and /georgia. Orlando, Jacksonville and
+    Fort Lauderdale were reachable from nowhere on the site — the city grid above
+    links /florida/[city], which is a different route from these metro landing
+    pages. Miami and Tampa happened to be linked from elsewhere; these three were
+    not, so they were sitemap-only. */}
+<div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 12, display: "flex", gap: 16, flexWrap: "wrap", width: "100%" }}>
+<span style={{ color: "#3A4F6A", fontSize: 11 }}>Florida cities:</span>
+{[["Miami", "/miami"], ["Tampa", "/tampa"], ["Orlando", "/orlando"], ["Jacksonville", "/jacksonville"], ["Fort Lauderdale", "/fort-lauderdale"]].map(([name, href]) => (
+<a key={href} href={href} style={{ color: "#3A4F6A", fontSize: 11, textDecoration: "none" }}>{name}</a>
+))}
+</div>
 </footer>
 </>
 );

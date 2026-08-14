@@ -353,6 +353,36 @@ export default function Landing() {
         }
         .footer-cta-btn:hover { opacity: 0.88; }
 
+        /* FOOTER LINKS — see the comment above the markup for why this exists */
+        .footer-links {
+          background: ${C.darkNavy};
+          padding: 40px 40px 0;
+        }
+        .footer-links-inner {
+          max-width: 1080px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 32px;
+        }
+        .footer-col h3 {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: ${C.white};
+          margin-bottom: 14px;
+        }
+        .footer-col a {
+          display: block;
+          font-size: 13px;
+          line-height: 1.5;
+          color: ${C.mutedGray};
+          text-decoration: none;
+          margin-bottom: 9px;
+        }
+        .footer-col a:hover { color: ${C.gold}; }
+
         /* FOOTER */
         .footer {
           background: ${C.darkNavy};
@@ -384,6 +414,8 @@ export default function Landing() {
           .price-divider { width: 100%; height: 1.5px; }
           .trust-row { gap: 14px; }
           .footer { padding: 20px 16px; flex-direction: column; text-align: center; }
+          .footer-links { padding: 32px 16px 0; }
+          .footer-links-inner { grid-template-columns: 1fr; gap: 24px; text-align: center; }
           .footer-cta { padding: 40px 16px; }
           .footer-cta h2 { font-size: 26px; }
           .ann-bar { font-size: 11px; padding: 8px 12px; }
@@ -697,14 +729,57 @@ export default function Landing() {
         </div>
       </div>
 
+      {/*
+        SITE NAVIGATION — the homepage's only outbound links used to be /apply,
+        /privacy and /terms, and the last two are noindex. So the homepage linked to
+        the funnel and two pages it tells Google to ignore, and not one of the 1,068
+        state, county, city or blog pages was reachable by crawling from it. Every
+        one of them depended entirely on the sitemap for discovery, which is the
+        mechanical explanation for the 879-of-1,071 figure recorded in
+        lib/sitemapUrls.js:108-110.
+
+        The graph below the hubs was already sound — verify-pages asserts /florida
+        links all 67 FL county pages, /texas all 254 and /georgia all 159, that FL
+        city pages link up to their county, and that county pages link back down.
+        The single break in the chain was the homepage. Three links close it and
+        the whole 1,080-page graph becomes crawlable from the root.
+
+        Arkansas and Alabama are deliberately absent. SUPPORTED_STATES in apply.js
+        marks both `servingFrom: 2027`, so StepProperty refuses them before
+        checkout — linking those hubs from the homepage would spend crawl budget
+        and homepage authority advertising two states the funnel turns away. The
+        AR/AL copy in the bar below is a separate open item; this comment is not
+        licence to add more of it.
+
+        scripts/verify-pages.mjs fails the build if any of these links go missing.
+      */}
+      <nav className="footer-links" aria-label="Site">
+        <div className="footer-links-inner">
+          <div className="footer-col">
+            <h3>Where we file</h3>
+            <a href="/florida">Florida property tax appeals</a>
+            <a href="/texas">Texas property tax protests</a>
+            <a href="/georgia">Georgia property tax appeals</a>
+          </div>
+          <div className="footer-col">
+            <h3>Before you file</h3>
+            <a href="/check">Check your property — free</a>
+            <a href="/blog">County filing guides</a>
+            <a href="/why-certified-mail-matters">Why certified mail matters</a>
+          </div>
+          <div className="footer-col">
+            <h3>Company</h3>
+            <a href="/partners">Partner program</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/privacy">Privacy Policy</a>
+          </div>
+        </div>
+      </nav>
+
       {/* Footer */}
       <footer className="footer">
      <p>© 2026 TaxAppeal USA · Support: <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
         <p>Available in TX · GA · FL · AR · AL · More states coming soon</p>
-        <p>
-          <a href="/terms" style={{ marginRight: 16 }}>Terms of Service</a>
-          <a href="/privacy">Privacy Policy</a>
-        </p>
       </footer>
     </>
   );
