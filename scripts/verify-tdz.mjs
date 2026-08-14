@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * USE BEFORE DECLARATION. Runs from `npm run build`.
+ * USE BEFORE DECLARATION, AND NEVER DECLARED AT ALL. Runs from `npm run build`.
  *
  * ============================================================================
  * WHY THIS EXISTS
@@ -32,6 +32,36 @@
  * references in the SAME function body as the declaration are flagged — a
  * reference from inside a nested function is skipped, because when it runs is
  * not something a static position can tell you.
+ *
+ * ============================================================================
+ * SECOND CHECK: IDENTIFIERS WITH NO DECLARATION ANYWHERE (added 14 Aug 2026)
+ * ============================================================================
+ * The check above finds a name declared in the wrong ORDER. It says nothing
+ * about a name that was never declared at all, and the repo had shipped two:
+ *
+ *   pages/check.js — `stashProperty(...)` on the "Get started" CTA. Never
+ *       written. Every click on the highest-intent button on the site threw
+ *       ReferenceError, so the address was never handed to /apply and next/link's
+ *       client navigation was cancelled into a full page reload.
+ *   pages/api/cron/notify-waitlist.js — `entry.email` inside buildEmail(), whose
+ *       caller's loop variable is not in its scope. buildEmail() is called
+ *       outside the per-row try/catch, so the throw escaped to the handler's
+ *       outer catch and returned 500 on the FIRST waitlist row. Not one filing
+ *       reminder had ever been sent, and it looked like a server error.
+ *
+ * Both are invisible to every other guard here for the same reason the TDZ bugs
+ * were: renderToString does not run click handlers, and no test calls that cron.
+ * Both are trivially visible to a scope walk.
+ *
+ * The allowlist is DERIVED, not hand-written: anything that really is a property
+ * of globalThis under Node counts as resolved, plus an explicit list of browser
+ * globals Node does not have. Hand-maintained lists rot — the first file to use
+ * a built-in nobody thought of fails a build for no reason.
+ *
+ * Third-party injected globals (gtag, fbq, Stripe, dataLayer) are deliberately
+ * NOT allowlisted. They are absent until their script loads, so reading one bare
+ * is the same class of defect this check exists to catch; read them off `window.`
+ * behind a guard and this stays quiet.
  */
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -60,8 +90,25 @@ function jsFiles(dir) {
   return out;
 }
 
+// Everything Node itself exposes: JSON, Math, Date, fetch, URL, Buffer, process,
+// setTimeout, AbortController and so on. Derived so it cannot fall behind.
+const NODE_GLOBALS = new Set(Object.getOwnPropertyNames(globalThis));
+
+// Browser globals Node has no equivalent for. This list is short on purpose.
+const BROWSER_GLOBALS = new Set([
+  'window', 'document', 'navigator', 'location', 'history', 'screen',
+  'localStorage', 'sessionStorage', 'alert', 'confirm', 'prompt',
+  'requestAnimationFrame', 'cancelAnimationFrame', 'matchMedia', 'getComputedStyle',
+  'Image', 'Element', 'HTMLElement', 'Node', 'NodeList', 'XMLHttpRequest',
+  'IntersectionObserver', 'ResizeObserver', 'MutationObserver',
+]);
+
+const isGlobal = (n) =>
+  NODE_GLOBALS.has(n) || BROWSER_GLOBALS.has(n) || n === 'undefined' || n === 'globalThis';
+
 let failures = 0;
 let scanned = 0;
+let unresolved = 0;
 
 for (const dir of DIRS) {
   for (const file of jsFiles(join(ROOT, dir))) {
@@ -81,7 +128,20 @@ for (const dir of DIRS) {
     traverse(ast, {
       ReferencedIdentifier(path) {
         const binding = path.scope.getBinding(path.node.name);
-        if (!binding) return;
+
+        if (!binding) {
+          const name = path.node.name;
+          // A lowercase JSX tag (<div>) is a host element, not a variable.
+          if (path.node.type === 'JSXIdentifier') return;
+          if (isGlobal(name)) return;
+          unresolved++;
+          console.error(
+            `  ✗ ${relative(ROOT, file)}:${path.node.loc?.start.line} — "${name}" is used here but is not declared, imported, or a global.\n` +
+            `      This throws "${name} is not defined" the moment the line runs.`
+          );
+          return;
+        }
+
         // const and let only. var hoists; function declarations hoist.
         if (binding.kind !== 'const' && binding.kind !== 'let') return;
         if (!binding.path.node.loc || !path.node.loc) return;
@@ -111,8 +171,9 @@ for (const dir of DIRS) {
 }
 
 console.log('');
-if (failures) {
-  console.error(`✗ ${failures} use-before-declaration ${failures === 1 ? 'error' : 'errors'} across ${scanned} files.`);
+if (failures || unresolved) {
+  if (failures) console.error(`✗ ${failures} use-before-declaration ${failures === 1 ? 'error' : 'errors'} across ${scanned} files.`);
+  if (unresolved) console.error(`✗ ${unresolved} undeclared ${unresolved === 1 ? 'identifier' : 'identifiers'} across ${scanned} files.`);
   process.exit(1);
 }
-console.log(`✓ ${scanned} files scanned — no identifier is read before the declaration that binds it`);
+console.log(`✓ ${scanned} files scanned — no identifier is read before the declaration that binds it, and none is read that was never declared`);

@@ -35,7 +35,14 @@ function clients() {
   return { supabase: _supabase, resend: _resend };
 }
 
-function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay, filingUrl }) {
+// `email` is a parameter because the unsubscribe link needs it. It used to read
+// `entry.email` from the caller's loop variable, which is not in scope here — so
+// every call threw ReferenceError while building the footer, before Resend was
+// ever reached. buildEmail() is called outside the per-entry try/catch, so the
+// throw escaped to the handler's outer catch and returned 500 on the FIRST
+// waitlist row: not one reminder had ever been sent, and the failure looked like
+// a generic server error rather than a missing variable.
+function buildEmail({ email, name, state, county, propertyAddress, daysLeft, isFirstDay, filingUrl }) {
   const firstName = name ? name.split(' ')[0] : 'there';
   const stateNames = { TX: 'Texas', GA: 'Georgia', FL: 'Florida' };
   const stateName = stateNames[state] || state;
@@ -138,7 +145,7 @@ function buildEmail({ name, state, county, propertyAddress, daysLeft, isFirstDay
         <p style="font-size:12px;color:#94a3b8;margin:0;">
           Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;text-decoration:none;">customerservice@taxappealusa.com</a>
           <br><br>
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(entry.email)}&token=${unsubToken(entry.email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${unsubToken(email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
         </p>
       </div>
     </div>
@@ -431,6 +438,7 @@ export default async function handler(req, res) {
       // Window is open, not yet filed, not notified today — send email!
       const filingUrl = `https://taxappealusa.com/apply`;
       const emailContent = buildEmail({
+        email,
         name,
         state,
         county,

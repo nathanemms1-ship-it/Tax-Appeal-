@@ -55,6 +55,46 @@ const C = {
 
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
+/**
+ * The middle third of a property handoff that shipped with its middle missing.
+ *
+ * The other two thirds were already built and built carefully. /api/check returns
+ * `parcel.situs` — street/city/state/zip already split apart, with a comment in
+ * lib/dor/parcels.js:355 saying it exists precisely so the next page does not make
+ * the customer type the address twice. pages/apply.js:2764 reads sessionStorage
+ * 'ta_property', prefills every field, and removes the key immediately so someone
+ * appealing a second house cannot inherit the first one's address onto a sworn
+ * petition. Only the function that writes the key was never defined.
+ *
+ * So `onClick={() => stashProperty(...)}` threw ReferenceError on the single
+ * highest-intent click on the site — the "Get started" button shown to a customer
+ * we have just told their property is worth appealing. Two consequences: nothing
+ * was ever stored, so the apply form opened blank and asked for the address they
+ * had typed a screen earlier; and because the throw happened inside the handler,
+ * next/link's client-side navigation was cancelled and the browser fell back to a
+ * full document load.
+ *
+ * Never throws. sessionStorage.setItem raises in private-mode Safari and when the
+ * quota is full, and a prefill is not worth blocking a purchase over — failing
+ * quietly here costs exactly what the bug already cost, which is retyping.
+ */
+function stashProperty(parcel) {
+  try {
+    const s = parcel?.situs;
+    // apply.js bails unless `street` is present, so writing a partial record here
+    // would only put a value in storage that the reader discards.
+    if (!s?.street) return;
+    sessionStorage.setItem('ta_property', JSON.stringify({
+      street: s.street,
+      city: s.city || '',
+      state: s.state || 'FL',
+      zip: s.zip || '',
+    }));
+  } catch {
+    // Storage unavailable. The customer types the address again, as before.
+  }
+}
+
 export default function CheckPage() {
   const [form, setForm] = useState({ street: '', zip: '' });
 
