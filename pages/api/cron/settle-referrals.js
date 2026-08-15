@@ -153,6 +153,50 @@ async function existingTransferFor(stripe, orderId) {
   }
 }
 
+/**
+ * ============================================================================
+ * EVERY LEDGER READ IS PAGED, BECAUSE A SHORT READ IS A SILENT LIE
+ * ============================================================================
+ * None of the three reads below had a .range() or a .limit(). PostgREST applies its
+ * own db-max-rows ceiling — commonly 1000 — and returns the first N rows with a
+ * 200 and no indication that anything was left behind.
+ *
+ * For the orders and partners reads that means missed payouts, which is annoying
+ * and self-correcting: the next run picks them up.
+ *
+ * For referral_payouts it is the opposite of self-correcting. That table is read as
+ * "every row ever written" and turned into settledOrderIds — the set of orders that
+ * must NOT be paid again. A truncated read shrinks that set, and every order it
+ * dropped looks unpaid. The guards that are supposed to prevent double payment all
+ * read from the same short list, so they fail open together, and the failure grows
+ * with the table: the more you have paid, the more you pay again.
+ *
+ * Paging with an explicit .order() is what makes this correct. Without a stable
+ * sort PostgREST may return rows in any order between requests, so a page boundary
+ * can drop a row and repeat another.
+ *
+ * The cap is a backstop against an infinite loop, not a size limit — it throws
+ * rather than truncating, because throwing is recoverable and a short ledger is not.
+ */
+const PAGE_SIZE = 1000;
+const MAX_ROWS = 500000;
+
+async function fetchAllRows(buildQuery, label) {
+  const rows = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    // buildQuery() must return a FRESH builder each call — a PostgREST query builder
+    // cannot be re-executed once awaited.
+    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
+    if (rows.length > MAX_ROWS) {
+      throw new Error(`${label}: exceeded ${MAX_ROWS} rows while paging — refusing to settle on a partial read`);
+    }
+  }
+}
+
 export default async function handler(req, res) {
   if (requireCronSecret(req, res)) return;
 
@@ -168,29 +212,42 @@ export default async function handler(req, res) {
     // the age check last month are reconsidered this month. See CATCHUP_DAYS above.
     const catchupFrom = new Date(start.getTime() - CATCHUP_DAYS * 24 * 60 * 60 * 1000);
 
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id, ref_code, customer_email, payment_status, amount_paid, created_at')
-      .not('ref_code', 'is', null)
-      .gte('created_at', catchupFrom.toISOString())
-      .lt('created_at', end.toISOString());
-    if (ordersError) throw ordersError;
+    const orders = await fetchAllRows(
+      () => supabase
+        .from('orders')
+        .select('id, ref_code, customer_email, payment_status, amount_paid, created_at')
+        .not('ref_code', 'is', null)
+        .gte('created_at', catchupFrom.toISOString())
+        .lt('created_at', end.toISOString())
+        .order('id', { ascending: true }),
+      'orders',
+    );
 
-    const { data: partners, error: partnersError } = await supabase
-      .from('referrals')
-      .select('id, code, name, first_name, email, stripe_account_id, active');
-    if (partnersError) throw partnersError;
+    const partners = await fetchAllRows(
+      () => supabase
+        .from('referrals')
+        .select('id, code, name, first_name, email, stripe_account_id, active')
+        .order('id', { ascending: true }),
+      'referrals',
+    );
 
     // Every ledger row ever written, not just this period's. An order created in
     // August and paid in a September catch-up run must not be paid again by an
     // October run scoped to August. Period bounds the ORDERS; the ledger is global.
-    const { data: ledger, error: ledgerError } = await supabase
-      .from('referral_payouts')
-      .select('order_id, ref_code, status, stripe_transfer_id');
-    if (ledgerError) {
+    let ledger;
+    try {
+      ledger = await fetchAllRows(
+        () => supabase
+          .from('referral_payouts')
+          .select('order_id, ref_code, status, stripe_transfer_id')
+          .order('order_id', { ascending: true }),
+        'referral_payouts',
+      );
+    } catch (ledgerError) {
       // This is the one error we refuse to work around. An empty settledOrderIds set
       // means "nothing has ever been paid", and acting on that belief pays everyone
-      // again from the beginning of time.
+      // again from the beginning of time. A TRUNCATED ledger is the same lie told
+      // quietly, which is why fetchAllRows throws rather than returning a short list.
       throw new Error(
         `referral_payouts is unreadable (${ledgerError.message}). Refusing to settle — ` +
         `without the ledger this run cannot tell paid orders from unpaid ones. ` +
@@ -326,8 +383,42 @@ export default async function handler(req, res) {
       for (let i = 0; i < withheld.length; i++) {
         const held = withheld[i];
         const debt = debts[i];
+        /**
+         * BOTH WRITES ARE CHECKED, AND THE ORDER OF THEM IS A DELIBERATE CHOICE.
+         *
+         * supabase-js does NOT throw on a query error — it resolves with
+         * { data: null, error }. Neither of these two writes destructured `error`,
+         * so the try/catch below could not fire for a database failure, and the
+         * comment inside it ("Do not fall through to paying") described something
+         * that could not happen. A failed clawback was silent, pushed onto
+         * clawedBack as if it had worked, and the debt came back next month.
+         *
+         * There is no transaction across these two statements, so one can land
+         * without the other. Which one goes first decides who absorbs that:
+         *
+         *   debt row first  — if the second write fails, the debt is discharged and
+         *                     the withheld order is simply paid next month. We
+         *                     recover nothing and absorb $20.
+         *   withheld first  — if the second write fails, the withheld order is
+         *                     marked clawed_back (never paid) AND the debt is still
+         *                     outstanding, so next month withholds a SECOND order.
+         *                     The partner is docked $40 for one $20 reversal, and
+         *                     nothing in the output says so.
+         *
+         * Debt first. A partner silently docked twice for one reversal is a worse
+         * failure than the company eating $20, and it is much harder to notice.
+         */
         try {
-          await supabase.from('referral_payouts').upsert({
+          const { error: debtError } = await supabase
+            .from('referral_payouts')
+            .update({
+              status: 'clawed_back',
+              failure_reason: `order ${debt.nowStatus}; recovered by withholding order ${held.id}`,
+            })
+            .eq('order_id', debt.orderId);
+          if (debtError) throw new Error(`could not mark reversed order ${debt.orderId}: ${debtError.message}`);
+
+          const { error: heldError } = await supabase.from('referral_payouts').upsert({
             order_id: held.id,
             ref_code: group.code,
             partner_email: group.partner.email || null,
@@ -337,14 +428,15 @@ export default async function handler(req, res) {
             payout_month: period.month,
             failure_reason: `withheld to offset reversed order ${debt.orderId} (${debt.nowStatus})`,
           }, { onConflict: 'order_id' });
-
-          await supabase
-            .from('referral_payouts')
-            .update({
-              status: 'clawed_back',
-              failure_reason: `order ${debt.nowStatus}; recovered by withholding order ${held.id}`,
-            })
-            .eq('order_id', debt.orderId);
+          if (heldError) {
+            // The debt IS discharged at this point. Say so plainly: the recovery did
+            // not happen, and no later run will retry it, because the debt no longer
+            // looks reversed. This is the $20 we chose to absorb above.
+            throw new Error(
+              `debt ${debt.orderId} was discharged but the offsetting withhold on ${held.id} was not recorded ` +
+              `— $${REFERRAL_PAYOUT_CENTS / 100} will not be recovered: ${heldError.message}`
+            );
+          }
 
           clawedBack.push({ code: group.code, reversedOrder: debt.orderId, offsetByOrder: held.id, reason: debt.nowStatus });
         } catch (e) {
@@ -364,24 +456,78 @@ export default async function handler(req, res) {
 
       for (const order of transfer) {
         try {
-          // 1. CLAIM. Unique on order_id, so if a concurrent run got here first this
-          //    insert fails and we skip — which is exactly the desired outcome.
-          const { error: claimError } = await supabase
-            .from('referral_payouts')
-            .upsert({
-              order_id: order.id,
-              ref_code: group.code,
-              partner_email: group.partner.email || null,
-              amount_cents: REFERRAL_PAYOUT_CENTS,
-              status: 'pending',
-              stripe_account_id: destination,
-              payout_month: period.month,
-              failure_reason: null,
-            }, { onConflict: 'order_id' });
+          /**
+           * 1. CLAIM — and this is now an actual claim.
+           *
+           * It used to be .upsert(..., { onConflict: 'order_id' }), described in the
+           * comment here and in three other places as failing when a concurrent run
+           * got there first. ON CONFLICT DO UPDATE does not fail. It overwrites. Two
+           * overlapping runs both "claimed" the same order and both proceeded, and
+           * the only thing that actually stopped a second $20 was the 24-hour Stripe
+           * idempotency key — which is a backstop with an expiry, not a guard.
+           *
+           * The UNIQUE index on order_id (scripts/sql/referral_payouts.sql) is the
+           * one guard that cannot race. Using it means splitting the two cases:
+           *
+           *   no prior row  — INSERT. A duplicate-key error (23505) means another run
+           *                   claimed it in the gap. Skip; it is theirs.
+           *   prior attempt — a pending or failed row from an earlier run, which must
+           *                   stay retryable. Claim it with an UPDATE scoped to those
+           *                   two statuses and ask for the affected rows back. Zero
+           *                   rows means someone else finished it, or it is already
+           *                   paid or clawed_back. Skip.
+           *
+           * Both branches leave the same outcome as before for the normal path, and
+           * make the racing path deterministic instead of dependent on Stripe.
+           */
+          if (priorAttempt.has(order.id)) {
+            const { data: reclaimed, error: reclaimError } = await supabase
+              .from('referral_payouts')
+              .update({
+                ref_code: group.code,
+                partner_email: group.partner.email || null,
+                amount_cents: REFERRAL_PAYOUT_CENTS,
+                status: 'pending',
+                stripe_account_id: destination,
+                payout_month: period.month,
+                failure_reason: null,
+              })
+              .eq('order_id', order.id)
+              .in('status', ['pending', 'failed'])
+              .select('order_id');
 
-          if (claimError) {
-            failed.push({ orderId: order.id, code: group.code, reason: `claim_failed: ${claimError.message}` });
-            continue;
+            if (reclaimError) {
+              failed.push({ orderId: order.id, code: group.code, reason: `claim_failed: ${reclaimError.message}` });
+              continue;
+            }
+            if (!reclaimed || reclaimed.length === 0) {
+              console.log(`[settle-referrals] order=${order.id} not claimable — already settled or claimed by a concurrent run`);
+              continue;
+            }
+          } else {
+            const { error: claimError } = await supabase
+              .from('referral_payouts')
+              .insert({
+                order_id: order.id,
+                ref_code: group.code,
+                partner_email: group.partner.email || null,
+                amount_cents: REFERRAL_PAYOUT_CENTS,
+                status: 'pending',
+                stripe_account_id: destination,
+                payout_month: period.month,
+                failure_reason: null,
+              });
+
+            if (claimError) {
+              // 23505 is the UNIQUE index doing its job. That error IS the guard
+              // working — see the header of scripts/sql/referral_payouts.sql.
+              if (claimError.code === '23505') {
+                console.log(`[settle-referrals] order=${order.id} claimed by a concurrent run — skipping`);
+                continue;
+              }
+              failed.push({ orderId: order.id, code: group.code, reason: `claim_failed: ${claimError.message}` });
+              continue;
+            }
           }
 
           // 2. TRANSFER. Adopt an existing one if a previous run already created it.
@@ -435,10 +581,20 @@ export default async function handler(req, res) {
           const reason = e?.raw?.code || e?.code || e?.message || 'unknown_error';
           console.error(`[settle-referrals] order=${order.id} code=${group.code} failed: ${reason}`);
 
-          await supabase
+          // Checked too, though this one is already the failure path. Leaving the row
+          // 'pending' instead of 'failed' is not dangerous — both are retryable and
+          // the next run reclaims either — but a write that never lands means the
+          // reason never reaches a human, and the row looks in-flight forever.
+          const { error: markFailedError } = await supabase
             .from('referral_payouts')
             .update({ status: 'failed', failure_reason: String(reason).slice(0, 500) })
             .eq('order_id', order.id);
+          if (markFailedError) {
+            console.error(
+              `[settle-referrals] could not even record the failure for order=${order.id}: ` +
+              `${markFailedError.message} — the row stays 'pending' and will be retried`
+            );
+          }
 
           failed.push({ orderId: order.id, code: group.code, reason: String(reason) });
         }

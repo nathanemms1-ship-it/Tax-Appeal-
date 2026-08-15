@@ -761,7 +761,59 @@ for (const [name, src] of [['/partners', partners], ['dashboard', dashboard], ['
 }
 
 // ============================================================================
+/**
+ * ============================================================================
+ * SETTLEMENT: NO SILENT WRITE, NO FAKE CLAIM, NO UNBOUNDED READ
+ * ============================================================================
+ * Three defects found on 11 Aug and fixed on 15 Aug, all in the one file that moves
+ * money. Each is invisible in review because the code reads as though it already
+ * does the thing.
+ *
+ * 1. supabase-js does NOT throw on a query error — it resolves with { error }. Two
+ *    writes in the clawback block never destructured it, so the try/catch around
+ *    them could not fire for a database failure and the comment inside it described
+ *    something impossible. A failed clawback was recorded as a success.
+ *
+ * 2. .upsert(..., { onConflict: 'order_id' }) is ON CONFLICT DO UPDATE. It was
+ *    described in four places as failing when a concurrent run claimed the order
+ *    first. It does not fail; it overwrites. Only the 24-hour Stripe idempotency
+ *    key actually prevented a second transfer.
+ *
+ * 3. Not one read had .range() or .limit(). PostgREST truncates at db-max-rows and
+ *    returns 200. On referral_payouts — read as "every row ever paid" — a short read
+ *    makes settled orders look unpaid, and every guard downstream reads the same
+ *    short list, so they fail open together.
+ */
+{
+  const src = read('pages/api/cron/settle-referrals.js');
+
+  // 1. Every supabase call must capture `error`. A bare `await supabase...` is a
+  //    write whose failure nothing can see.
+  const calls = src.split('await supabase').length - 1;
+  const captured = (src.match(/const \{[^}]*error[^}]*\}\s*=\s*await supabase/g) || []).length;
+  t(`all ${calls} supabase calls in settle-referrals capture their error (found ${captured})`, calls > 0 && captured === calls);
+
+  // 2. The claim must not be an upsert on the payout row. INSERT relies on the
+  //    UNIQUE index, which is the only guard that cannot race.
+  t('the payout claim uses .insert(), not an upsert that silently overwrites',
+    /\.insert\(\{\s*\n?\s*order_id: order\.id/.test(src));
+  t('a duplicate key on claim is treated as "another run has it", not an error',
+    /claimError\.code === '23505'/.test(src));
+  t('a retry re-claims only rows still pending or failed',
+    /\.in\('status', \['pending', 'failed'\]\)/.test(src));
+
+  // 3. Reads are paged, with a stable sort — without .order() a page boundary can
+  //    drop one row and repeat another.
+  t('ledger reads are paged through fetchAllRows', /async function fetchAllRows/.test(src));
+  t('fetchAllRows pages with .range()', /\.range\(from, from \+ PAGE_SIZE - 1\)/.test(src));
+  t('paging throws rather than returning a partial ledger', /refusing to settle on a partial read/.test(src));
+  const unpaged = (src.match(/\.from\('(orders|referrals|referral_payouts)'\)\s*\n?\s*\.select\(/g) || []).length;
+  const inHelper = (src.match(/fetchAllRows\(/g) || []).length;
+  t(`every table read goes through fetchAllRows (${inHelper} paged reads, ${unpaged} raw selects)`, unpaged <= inHelper);
+}
+
 console.log(`\nreferrals: ${pass} passed, ${failures.length} failed`);
+
 if (failures.length) {
   for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
