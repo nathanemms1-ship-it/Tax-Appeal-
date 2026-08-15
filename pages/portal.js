@@ -190,9 +190,29 @@ export default function Portal() {
 
   if (view === 'loading') {
     return (
-      <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#334155' }}>Loading…</div>
-      </div>
+      <>
+        {/*
+          This branch is what the SERVER renders, and it used to carry no <Head> at
+          all. Two consequences, both invisible in the browser because the client
+          then swaps to the real view.
+
+          The noindex below the loading branch never reached the served HTML, so
+          /portal was the one page of seven "intentionally unlisted" pages with no
+          noindex in its built output — robots.txt Disallow was the only thing
+          protecting it, and that does not stop indexing of a URL Google finds
+          another way.
+
+          And with no <title>, the page fell through to the _app default, which it
+          then SHARED with /apply. Two pages, one title.
+        */}
+        <Head>
+          <title>My Appeal Portal | TaxAppeal USA</title>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#334155' }}>Loading…</div>
+        </div>
+      </>
     );
   }
 

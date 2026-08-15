@@ -197,7 +197,29 @@ export default function CountyPage({ county, fl, contentRevised }) {
   const t = termsFor(county);
   const action = county.code === "TX" ? "Protest" : "Appeal";
   const target = filingTargetFor(county, fl);
-  const title = `${county.name} County Property Tax ${action} 2026 | TaxAppeal USA`;
+  /**
+   * THE STATE IS IN THE TITLE BECAUSE COUNTY NAMES ARE NOT UNIQUE ACROSS STATES.
+   *
+   * Without it, `Jefferson County Property Tax Appeal 2026 | TaxAppeal USA` was the
+   * title of FOUR pages — the Alabama, Arkansas, Florida and Georgia ones — and
+   * `Washington County` likewise. Measured on the built output: 50 titles shared by
+   * 115 pages.
+   *
+   * This was invisible while it mattered least and became live the moment it
+   * mattered most. Every page on the site shipped two competing canonicals until
+   * 17953d9, so Google was ignoring all of them and the pages were already being
+   * treated as an undifferentiated set. Now that each page self-canonicalises
+   * correctly, the titles are the remaining signal telling Google these are four
+   * different documents — and they were identical.
+   *
+   * The description already carried the state. Only the title did not.
+   *
+   * Length: this pushes the longest titles to ~69 characters, past the ~60 Google
+   * renders. What gets truncated is the trailing brand, not the county or the
+   * state, so the differentiating words stay visible. Truncation affects display,
+   * not parsing.
+   */
+  const title = `${county.name} County, ${county.state} Property Tax ${action} 2026 | TaxAppeal USA`;
   const description = county.code === "FL" && fl
     ? `${county.name} County, Florida VAB petition for 2026 — deadline ${fl.deadlineText}, county filing fee ${fl.feeText}. TaxAppeal USA prepares your DR-486, pays the fee and mails it to the Clerk of the Value Adjustment Board for $89 flat.`
     : `${county.name} County, ${county.state} property tax ${t.verb} for 2026 — deadline ${county.deadline}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`;

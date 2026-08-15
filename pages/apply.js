@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import WaitlistForm from '../components/WaitlistForm';
+import ApplyHead from '../components/ApplyHead';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
@@ -3059,5 +3060,16 @@ function ApplyFunnel() {
  */
 export default function App() {
   if (process.env.NEXT_PUBLIC_SALES_ENABLED !== 'true') return <WaitlistForm />;
-  return <ApplyFunnel />;
+  /*
+   * /apply had NO title of its own when sales are enabled — this file never
+   * imported next/head, so the funnel rendered under the _app default and shared
+   * it with /portal. It is sitemap priority 0.95 and the page every ad and every
+   * CTA points at.
+   *
+   * Only visible with NEXT_PUBLIC_SALES_ENABLED=true. With sales off, WaitlistForm
+   * supplies its own title, so a local build without the variable set looks
+   * correct. That divergence is why the duplicate survived: production and a
+   * developer's build were rendering different documents.
+   */
+  return <><ApplyHead /><ApplyFunnel /></>;
 }

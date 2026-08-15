@@ -409,6 +409,71 @@ for (const [hub, metros] of [
   }
 }
 
+/**
+ * ============================================================================
+ * NO TWO PAGES MAY SHARE A <title>
+ * ============================================================================
+ * County names are not unique across states. `pages/counties/[slug].js` built its
+ * title from the county name alone, so `Jefferson County Property Tax Appeal 2026`
+ * titled FOUR pages — Alabama, Arkansas, Florida and Georgia — and `Washington
+ * County` likewise. Measured on the built output: 50 titles shared by 115 pages.
+ *
+ * This was masked while it mattered least. Until 17953d9 every page shipped two
+ * competing canonicals, so Google ignored all of them and the set was already
+ * undifferentiated. Now that each page self-canonicalises, the title is the
+ * remaining signal saying "these are four different documents" — and it was
+ * identical on all four. Fixing canonicals without fixing titles would have made
+ * the duplication visible rather than fixed.
+ *
+ * KNOWN is not a snooze list. Each entry is a pair of pages whose CONTENT is
+ * near-identical, which a title cannot fix — they need a cross-canonical or a
+ * merge, and they are tracked as their own open item. Anything not listed here is
+ * a regression and fails.
+ */
+{
+  const KNOWN = new Map([
+    ['Houston County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'houston-county-al vs -al-dothan: same county, two URLs, ~12 differing lines'],
+    ['Shelby County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'shelby-county-al vs -al-hoover: same county, two URLs'],
+    ['Tuscaloosa County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'tuscaloosa-county-al vs -al-northport: same county, two URLs'],
+    ['Savannah Property Tax Appeal | $89 Flat Fee | TaxAppeal USA', '/savannah and /georgia/savannah-ga are two pages about one city'],
+  ]);
+
+  const walkT = (dir, out = []) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walkT(p, out);
+      else if (e.name.endsWith('.html')) out.push(p);
+    }
+    return out;
+  };
+
+  const byTitle = new Map();
+  for (const f of walkT(DIR)) {
+    const t = (fs.readFileSync(f, 'utf8').match(/<title>([^<]*)<\/title>/) || [])[1];
+    if (!t) continue;
+    if (!byTitle.has(t)) byTitle.set(t, []);
+    byTitle.get(t).push(path.relative(DIR, f));
+  }
+
+  const shared = [...byTitle.entries()].filter(([, v]) => v.length > 1);
+  const unexpected = shared.filter(([t]) => !KNOWN.has(t));
+  const stale = [...KNOWN.keys()].filter((t) => !byTitle.has(t) || byTitle.get(t).length < 2);
+
+  if (unexpected.length) {
+    failures++;
+    console.error(`  FAIL  ${unexpected.length} title(s) are shared by more than one page and are not a known content duplicate:`);
+    unexpected.slice(0, 6).forEach(([t, v]) => console.error(`          "${t}"\n            ${v.join(', ')}`));
+  } else if (stale.length) {
+    // A KNOWN entry that no longer duplicates means the underlying pages were fixed.
+    // Leaving it listed would hide the next real one behind an exemption nobody reads.
+    failures++;
+    console.error(`  FAIL  ${stale.length} entr(y/ies) in the known-duplicate list no longer duplicate — remove them:`);
+    stale.forEach((t) => console.error(`          "${t}"`));
+  } else {
+    console.log(`  ${byTitle.size} distinct titles across ${walkT(DIR).length} pages — ${shared.length} known content duplicates, no new ones`);
+  }
+}
+
 // ── /terms must not promise a state or a service we do not provide ───────────
 // The contract said three things the code did not do, all found on 15 Aug 2026:
 // it named Arkansas and Alabama as supported when StepProperty refuses both, and
