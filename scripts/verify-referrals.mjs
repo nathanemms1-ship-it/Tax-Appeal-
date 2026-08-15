@@ -802,6 +802,55 @@ for (const [name, src] of [['/partners', partners], ['dashboard', dashboard], ['
   t('a retry re-claims only rows still pending or failed',
     /\.in\('status', \['pending', 'failed'\]\)/.test(src));
 
+  // 5. ONE CLAWBACK WRITES TWO ROWS; ONLY ONE OF THEM IS AN ADJUSTMENT.
+  //    A $20 recovery marks both the REVERSED order and the WITHHELD one
+  //    `clawed_back`. Summing the status reported $40 and understated pending by
+  //    $20. They are told apart by stripe_transfer_id: the reversed one was paid, so
+  //    it has one; the withheld one never was.
+  //
+  //    The select assertion is the important one. Drop stripe_transfer_id from the
+  //    query and every row reads undefined, `!undefined` is true, every row counts
+  //    again — and the double-count returns with the filter still sitting there
+  //    looking correct.
+  {
+    const stats = read('pages/api/partner-stats.js');
+    const sheet = read('pages/api/referral-stats.js');
+    t('the cron writes stripe_transfer_id: null on the withheld row, so the discriminator is guaranteed',
+      /stripe_transfer_id: null,\n\s*failure_reason: `withheld to offset/.test(src));
+    t('partner-stats SELECTS stripe_transfer_id — without it the filter silently matches everything',
+      /\.select\('order_id, amount_cents, status, paid_at, stripe_transfer_id'\)/.test(stats));
+    t('partner-stats counts only withheld rows as adjustments',
+      /const withheldRows = clawedBackRows\.filter\(r => !r\.stripe_transfer_id\)/.test(stats));
+    t('partner-stats deducts only the withheld amount from pending',
+      /earnedCents - paidCents - withheldCents/.test(stats));
+    t('the payout sheet counts only withheld rows too',
+      /periodOrderIds\.has\(r\.order_id\) && !r\.stripe_transfer_id/.test(sheet));
+    t('both kinds still count as settled, so neither is paid again',
+      /settledOrderIds = new Set\(\[\.\.\.paidOrderIds, \.\.\.clawedBackRows\.map/.test(stats));
+  }
+
+  // 4. The clawback horizon must actually cover the chargeback window. This is
+  //    DERIVED from the run rules rather than asserted as a number, so it stays
+  //    true if the period logic changes. A run in month R covers
+  //    [ (R-1 month start) - CATCHUP_DAYS , R start ).
+  {
+    const CATCH = Number((src.match(/const CATCHUP_DAYS = (\d+)/) || [])[1]);
+    t('CATCHUP_DAYS is readable', Number.isFinite(CATCH) && CATCH > 0);
+    let worst = Infinity;
+    for (const [mo, d] of [[7, 1], [7, 15], [7, 31], [8, 1], [8, 30]]) {
+      const created = new Date(Date.UTC(2026, mo, d));
+      let last = null;
+      for (let k = 0; k < 24; k++) {
+        const runStart = new Date(Date.UTC(2026, mo + k, 1));
+        const periodStart = new Date(Date.UTC(2026, mo + k - 1, 1));
+        const catchupFrom = new Date(periodStart.getTime() - CATCH * 864e5);
+        if (created >= catchupFrom && created < runStart) last = runStart;
+      }
+      if (last) worst = Math.min(worst, Math.round((last - created) / 864e5));
+    }
+    t(`a reversed order stays detectable for ${worst} days, covering the ~120-day chargeback window`, worst >= 120);
+  }
+
   // 3. Reads are paged, with a stable sort — without .order() a page boundary can
   //    drop one row and repeat another.
   t('ledger reads are paged through fetchAllRows', /async function fetchAllRows/.test(src));

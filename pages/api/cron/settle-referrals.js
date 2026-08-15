@@ -84,10 +84,31 @@ export const config = { maxDuration: 300 };
  * already-paid orders is free and safe: `already_settled` skips them, and the UNIQUE
  * constraint on referral_payouts.order_id is underneath that.
  *
- * 45 days is six times the holdback — wide enough to absorb a skipped or failed run,
- * narrow enough that the query stays bounded as volume grows.
+ * IT ALSO SETS THE CLAWBACK DETECTION HORIZON, WHICH IS THE REASON IT CHANGED.
+ *
+ * A reversed order can only be clawed back if this run still looks at it, because
+ * orderStatusById is built from this same query. So the window does double duty: it
+ * decides who gets paid late, and it decides how long a refund or chargeback can
+ * still be recovered.
+ *
+ * A run in month R covers  [ (R-1 month start) - CATCHUP_DAYS , R start ).
+ * Solving that for the last run that still sees an order created on day D:
+ *
+ *   CATCHUP_DAYS =  45  ->  an order stays checkable for  47-62 days
+ *   CATCHUP_DAYS = 150  ->                                152-170 days
+ *
+ * At 45 the file contradicted itself. The clawback comment below states that card
+ * networks allow chargebacks "for roughly 120 days" — and detection stopped at 62.
+ * A chargeback arriving on day 70 was never seen, the $20 was never recovered, and
+ * nothing reported it: the order simply fell out of the window and the ledger row
+ * stayed 'paid' forever.
+ *
+ * 150 clears 120 with a month of margin for a skipped or failed run. The cost is a
+ * wider orders query, which is affordable now that every read is paged — before
+ * that, widening this would have made a silent PostgREST truncation more likely,
+ * not less.
  */
-const CATCHUP_DAYS = 45;
+const CATCHUP_DAYS = 150;
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check — same
 // reasoning as pages/api/cron/notify-waitlist.js. A module-scope throw on a missing
@@ -426,6 +447,11 @@ export default async function handler(req, res) {
             status: 'clawed_back',
             stripe_account_id: destination,
             payout_month: period.month,
+            // Explicitly null, so "clawed_back with no transfer id" is a guarantee
+            // rather than a coincidence. partner-stats and referral-stats use exactly
+            // that to tell a WITHHELD order from the REVERSED one it offsets — one
+            // clawback writes two rows, and counting both reports double.
+            stripe_transfer_id: null,
             failure_reason: `withheld to offset reversed order ${debt.orderId} (${debt.nowStatus})`,
           }, { onConflict: 'order_id' });
           if (heldError) {

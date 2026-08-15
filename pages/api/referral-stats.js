@@ -127,7 +127,9 @@ export default async function handler(req, res) {
     const periodOrderIds = new Set((orders || []).map(o => o.id));
     const alreadyPaid = paidRows.filter(r => periodOrderIds.has(r.order_id));
     const alreadyPaidCents = alreadyPaid.reduce((s, r) => s + (r.amount_cents || 0), 0);
-    const clawedBack = clawedBackRows.filter(r => periodOrderIds.has(r.order_id));
+    // Withheld rows only — see the note in pages/api/partner-stats.js. One $20
+    // recovery writes two clawed_back rows, and counting both reported $40.
+    const clawedBack = clawedBackRows.filter(r => periodOrderIds.has(r.order_id) && !r.stripe_transfer_id);
 
     return res.status(200).json({
       period: { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] },

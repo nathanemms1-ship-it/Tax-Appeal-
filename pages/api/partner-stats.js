@@ -119,7 +119,7 @@ export default async function handler(req, res) {
     // rather than overstates, and is the safe direction to be wrong in.
     const { data: ledger, error: ledgerError } = await supabase
       .from('referral_payouts')
-      .select('order_id, amount_cents, status, paid_at')
+      .select('order_id, amount_cents, status, paid_at, stripe_transfer_id')
       .eq('ref_code', partner.code);
     if (ledgerError) console.error('partner-stats: referral_payouts unreadable:', ledgerError.message);
 
@@ -130,7 +130,34 @@ export default async function handler(req, res) {
     // /api/cron/settle-referrals. They are settled: not paid, and never pending.
     // Counting them as pending would leave a permanent phantom balance on the
     // dashboard for money the partner is never going to receive.
+/**
+ * ============================================================================
+ * ONE CLAWBACK WRITES TWO ROWS. COUNTING BOTH DOUBLES IT.
+ * ============================================================================
+ * A single $20 recovery marks TWO rows `clawed_back` in
+ * /api/cron/settle-referrals: the REVERSED order that was already paid, and the
+ * WITHHELD order taken to offset it. Summing the status counted $40 for one $20
+ * event, and the partner's dashboard read "$40 adjustment (2 referrals withheld)"
+ * when one referral was withheld.
+ *
+ * The two rows are told apart structurally, not by parsing failure_reason:
+ *
+ *   reversed  — was `paid`, so it carries a stripe_transfer_id
+ *   withheld  — never paid, so it does not
+ *
+ * That holds because status only becomes `paid` after a transfer id is written,
+ * and a paid order is in settledOrderIds so it can never be chosen for withholding.
+ * The cron also writes stripe_transfer_id: null on the withheld row explicitly, so
+ * the discriminator is asserted rather than incidental.
+ *
+ * WHICH ONE IS THE ADJUSTMENT: the withheld order. That is the $20 taken off what
+ * this partner is about to receive. The reversed order's $20 was paid in an earlier
+ * period and is already out of `paid` — counting it here would deduct it a second
+ * time from money that was never in this balance.
+ */
     const clawedBackRows = (ledger || []).filter(r => r.status === 'clawed_back');
+    const withheldRows = clawedBackRows.filter(r => !r.stripe_transfer_id);
+    // Both kinds are SETTLED — neither is owed — so both belong in this set.
     const settledOrderIds = new Set([...paidOrderIds, ...clawedBackRows.map(r => r.order_id)]);
 
     // settledOrderIds is EMPTY on purpose. We want the full picture of what this
@@ -169,12 +196,12 @@ export default async function handler(req, res) {
     const lastMonthOrders = eligible.filter(o => inRange(o, lastMonthStart, monthStart));
 
     const paidCents = paidRows.reduce((s, r) => s + (r.amount_cents || 0), 0);
-    const clawedBackCents = clawedBackRows.reduce((s, r) => s + (r.amount_cents || 0), 0);
+    const withheldCents = withheldRows.reduce((s, r) => s + (r.amount_cents || 0), 0);
     const earnedCents = eligible.length * REFERRAL_PAYOUT_CENTS;
     // Clamped at zero: a manual out-of-band transfer could in principle exceed what
     // the rules say is earned, and "-$20 pending" on a partner's dashboard is worse
     // than $0. Clawed-back orders come out here too — they are settled, not owed.
-    const pendingCents = Math.max(0, earnedCents - paidCents - clawedBackCents);
+    const pendingCents = Math.max(0, earnedCents - paidCents - withheldCents);
 
     // State breakdown counts ELIGIBLE orders only, so the bars add up to the
     // headline referral count. They used to be computed over every row, which is
@@ -235,7 +262,7 @@ export default async function handler(req, res) {
       // Referrals withheld to offset an earlier one that was refunded or charged
       // back. Shown rather than silently netted, because a partner watching their
       // pending total drop with no explanation will — reasonably — ask why.
-      adjustments: { orders: clawedBackRows.length, amount: clawedBackCents / 100 },
+      adjustments: { orders: withheldRows.length, amount: withheldCents / 100 },
       thisMonth: {
         referrals: thisMonthOrders.length,
         earnings: thisMonthOrders.length * RATE,
