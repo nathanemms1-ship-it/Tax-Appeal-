@@ -395,7 +395,10 @@ for (const [hub, code] of [['florida', 'FL'], ['texas', 'TX'], ['georgia', 'GA']
 for (const [hub, metros] of [
   ['florida', ['/miami', '/tampa', '/orlando', '/jacksonville', '/fort-lauderdale']],
   ['texas', ['/houston', '/dallas', '/fort-worth', '/austin', '/san-antonio', '/el-paso']],
-  ['georgia', ['/atlanta', '/augusta', '/savannah']],
+  // Savannah's metro page was a 385-word duplicate of the 970-word city page and
+  // now 301s to it, so the hub links the survivor. Atlanta and Augusta have no city
+  // twin, which is why only Savannah moved.
+  ['georgia', ['/atlanta', '/augusta', '/georgia/savannah-ga']],
 ]) {
   const file = findHtml(hub);
   if (!file) continue;
@@ -432,10 +435,6 @@ for (const [hub, metros] of [
  */
 {
   const KNOWN = new Map([
-    ['Houston County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'houston-county-al vs -al-dothan: same county, two URLs, ~12 differing lines'],
-    ['Shelby County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'shelby-county-al vs -al-hoover: same county, two URLs'],
-    ['Tuscaloosa County, Alabama Property Tax Appeal 2026 | TaxAppeal USA', 'tuscaloosa-county-al vs -al-northport: same county, two URLs'],
-    ['Savannah Property Tax Appeal | $89 Flat Fee | TaxAppeal USA', '/savannah and /georgia/savannah-ga are two pages about one city'],
   ]);
 
   const walkT = (dir, out = []) => {

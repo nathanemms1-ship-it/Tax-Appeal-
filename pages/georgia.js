@@ -332,7 +332,7 @@ export default function Georgia() {
         </div>
         <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, paddingTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
           <span style={{ color: "#3A4F6A", fontSize: 11 }}>Georgia cities:</span>
-          {[["Atlanta", "/atlanta"], ["Augusta", "/augusta"], ["Savannah", "/savannah"]].map(([name, href]) => (
+          {[["Atlanta", "/atlanta"], ["Augusta", "/augusta"], ["Savannah", "/georgia/savannah-ga"]].map(([name, href]) => (
             <a key={href} href={href} style={{ color: "#3A4F6A", fontSize: 11, textDecoration: "none" }}>{name}</a>
           ))}
         </div>

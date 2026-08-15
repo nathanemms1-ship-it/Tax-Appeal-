@@ -70,6 +70,20 @@ const nextConfig = {
       { source: '/florida/davie-fl', destination: '/florida/davie', permanent: true },
       { source: '/florida/plantation-fl', destination: '/florida/plantation', permanent: true },
       { source: '/florida/pinecrest-fl', destination: '/florida/pinecrest', permanent: true },
+      // Three Alabama slugs that served a page byte-for-byte identical to the county
+      // page they duplicated — the `city` field that supposedly distinguished them is
+      // never rendered. Their rows now carry Colbert, Franklin and Lauderdale, the
+      // three real Alabama counties that were missing entirely, so the state is
+      // complete at 67 for the first time. 301 rather than 404: the old URLs are in
+      // the sitemap and may be indexed, and the county page is where they belong.
+      { source: '/counties/houston-county-al-dothan', destination: '/counties/houston-county-al', permanent: true },
+      { source: '/counties/shelby-county-al-hoover', destination: '/counties/shelby-county-al', permanent: true },
+      { source: '/counties/tuscaloosa-county-al-northport', destination: '/counties/tuscaloosa-county-al', permanent: true },
+      // Two pages competed for "savannah property tax appeal": a 385-word metro page
+      // and a 970-word city page carrying the mass-appraisal explanation, the median
+      // value and the Board of Equalization escalation path. The longer one wins.
+      // Atlanta and Augusta have no city twin, so Savannah was the only overlap.
+      { source: '/savannah', destination: '/georgia/savannah-ga', permanent: true },
     ];
   },
 };
