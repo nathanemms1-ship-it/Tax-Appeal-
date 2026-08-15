@@ -11,9 +11,9 @@
 -- -----------------------------------
 -- lib/referralSettlement.js groups orders by referral code. It used to key those
 -- groups with `byCode[code] = partner` — last writer wins — so if two partners
--- held the same code, ONE of them collected every order attributed to it and the
--- other silently got nothing. Which one depended on the order the database
--- happened to return rows in.
+-- held the same NORMALISED code, ONE of them collected every order attributed to
+-- it and the other silently got nothing. Which one depended on the order the
+-- database happened to return rows in.
 --
 -- That is not recoverable after the fact. A referral payout is a Stripe transfer
 -- into a real person's bank account; paying the wrong partner cannot be undone by
@@ -21,9 +21,23 @@
 -- pages/api/register-referrer.js claims a code by INSERTING it rather than by
 -- asking whether it is free first.
 --
--- Neither of those helps without this index. register-referrer relies on the
--- database rejecting a duplicate with SQLSTATE 23505; with no unique index there
--- is nothing to reject it, and the read-then-write race is back.
+-- CORRECTION, 15 Aug 2026, after running this against the live database.
+--
+-- The open-items note said there was no unique index on referrals.code. There was:
+-- `referrals_code_key`, a plain UNIQUE on (code), present all along. So an EXACT
+-- duplicate was already impossible, and the "two partners share JSMITH" scenario
+-- was not reachable through the app.
+--
+-- What that index does not cover is what settle() actually compares. norm() is
+-- trim + uppercase, so 'jsmith', ' JSMITH' and 'JSMITH' are ONE code to the payout
+-- logic and THREE distinct values to referrals_code_key. generateCode() always
+-- uppercases, so the app cannot produce those variants itself — but a hand-edited
+-- row, a CSV import, or any future code path that skips generateCode() can, and
+-- then last-writer-wins decides whose money it is.
+--
+-- This index closes exactly that gap: it enforces uniqueness on the same
+-- normalisation the money uses. Narrower than first described, and still worth
+-- having, because the failure it prevents is unrecoverable.
 --
 --
 -- ORDER OF OPERATIONS

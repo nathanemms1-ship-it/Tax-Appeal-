@@ -275,14 +275,19 @@ return res.status(200).json({ success: true, duplicate: true, message });
  * "free" and both inserted JSMITH, because nothing between the read and the write
  * stopped them — the same shape as the settlement claim fixed in b1475da.
  *
- * A duplicated code is not cosmetic. lib/referralSettlement.js keyed partners by code
- * and last writer won, so one of the two collected every order attributed to it and
- * the other silently got nothing. That function now refuses to pay a duplicated code
- * at all, and this makes the collision nearly impossible in the first place.
+ * WHAT THAT RACE ACTUALLY COST, corrected 15 Aug after checking pg_indexes rather
+ * than trusting the note that sent me here. `referrals_code_key` — a UNIQUE index on
+ * (code) — was already present, so the second insert did not create a duplicate. It
+ * failed with 23505, and the old code had no branch for it: `if (error) return 500`.
  *
- * Needs the UNIQUE index from scripts/sql/referrals_code_unique.sql. Without it 23505
- * never fires and this degrades to the old behaviour — which is why the retry loop
- * still generates a distinct candidate each pass rather than relying on the error.
+ * So the real defect was not a duplicated code. It was that the SECOND John Smith to
+ * sign up in the same second got a 500 and a raw Postgres error message, instead of
+ * the JSMITH-2 the retry loop was written to give him. A partner lost at the door,
+ * and the response leaked a database error to the browser.
+ *
+ * Claiming by insert fixes that: 23505 now means "taken", and the next candidate is
+ * tried. scripts/sql/referrals_code_unique.sql adds a second index on
+ * upper(btrim(code)), because that is what settle() compares — see its header.
  */
 let code = null;
 let data = null;
