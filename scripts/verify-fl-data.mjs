@@ -135,6 +135,14 @@ for (const [variant, expected] of [
   //    The old defence was a comment asking callers to pass the county. This is the
   //    same request with a build behind it.
   const MONEY_GATES = [
+    // The route that charges the card. /terms section 5 states as a TERM of the
+    // agreement that the cut-off "is enforced automatically at checkout: if it has
+    // passed for your county, we will not take your money." Until 15 Aug 2026 this
+    // file contained no filing-window check at all — the funnel gated correctly, but
+    // the funnel is a browser, so a tab left open across the cut-off or a direct POST
+    // reached Stripe. A contract describing a control that does not exist is worse
+    // than one that promises nothing.
+    'pages/api/checkout.js',
     'lib/fulfillOrder.js',
     'lib/healthChecks.js',
     'pages/api/send-letter.js',

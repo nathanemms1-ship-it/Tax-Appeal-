@@ -409,6 +409,35 @@ for (const [hub, metros] of [
   }
 }
 
+// ── /terms must not promise a state or a service we do not provide ───────────
+// The contract said three things the code did not do, all found on 15 Aug 2026:
+// it named Arkansas and Alabama as supported when StepProperty refuses both, and
+// it promised to "prepare your petition by hand" for unconfirmed counties when the
+// shipped behaviour — and Nathan's 11 Aug decision — is to decline the order and
+// take nothing. Marketing copy drifting is a mistake; the agreement drifting is a
+// different category, because a customer can rely on it.
+{
+  const file = findHtml('terms');
+  if (!file) {
+    failures++;
+    console.error('  FAIL  /terms did not build');
+  } else {
+    const text = visibleText(fs.readFileSync(file, 'utf8'));
+    const FORBIDDEN = [
+      [/supports properties in[^.]*\bArkansas\b/i, '/terms names Arkansas as supported — apply.js refuses it until 2027'],
+      [/supports properties in[^.]*\bAlabama\b/i, '/terms names Alabama as supported — apply.js refuses it until 2027'],
+      [/prepare your petition by hand/i, '/terms promises hand-filing — we decline the order instead (decision, 11 Aug 2026)'],
+    ];
+    const hits = FORBIDDEN.filter(([re]) => re.test(text));
+    if (hits.length) {
+      failures++;
+      hits.forEach(([, why]) => console.error(`  FAIL  ${why}`));
+    } else {
+      console.log('  /terms claims no state and no service the funnel does not actually provide');
+    }
+  }
+}
+
 /**
  * ============================================================================
  * EXACTLY ONE CANONICAL PER PAGE, POINTING AT ITSELF
