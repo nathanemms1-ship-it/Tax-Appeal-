@@ -829,6 +829,48 @@ for (const [name, src] of [['/partners', partners], ['dashboard', dashboard], ['
       /settledOrderIds = new Set\(\[\.\.\.paidOrderIds, \.\.\.clawedBackRows\.map/.test(stats));
   }
 
+  // 6. A DUPLICATED REFERRAL CODE MUST PAY NOBODY.
+  //    settle() keyed partners with byCode[code] = partner — last writer wins — so
+  //    two partners holding one code meant one collected everything and the other
+  //    silently got nothing, decided by row order. A referral payout is a Stripe
+  //    transfer into a real bank account; paying the wrong partner is not
+  //    recoverable by a later run, so the safe answer is to pay neither and say so.
+  //
+  //    Driven through settle() rather than pattern-matched, because what matters is
+  //    the money, not the shape of the code.
+  {
+    const dupPartners = [
+      { id: 1, code: 'JSMITH', email: 'a@example.com', stripe_account_id: 'acct_a', active: true },
+      { id: 2, code: 'jsmith', email: 'b@example.com', stripe_account_id: 'acct_b', active: true },
+      { id: 3, code: 'MJONES', email: 'c@example.com', stripe_account_id: 'acct_c', active: true },
+    ];
+    const dupOrders = [
+      { id: 'o1', ref_code: 'JSMITH', customer_email: 'buyer1@example.com', payment_status: 'paid', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'o2', ref_code: 'MJONES', customer_email: 'buyer2@example.com', payment_status: 'paid', created_at: '2026-01-01T00:00:00Z' },
+    ];
+    const r = settleFn({ orders: dupOrders, partners: dupPartners, settledOrderIds: new Set(), requirePayoutAccount: true, minAgeDays: 0 });
+    const payableCodes = r.payable.map((g) => g.code);
+    t('a duplicated code is not paid to either partner', !payableCodes.includes('JSMITH'));
+    t('the duplicate is reported by name, not dropped in silence',
+      r.excluded.some((e) => e.orderId === 'o1' && e.reason === 'duplicate_partner_code'));
+    t('an unaffected code is still paid normally', payableCodes.includes('MJONES'));
+    t('case and whitespace count as the same code, matching norm()',
+      r.excluded.filter((e) => e.reason === 'duplicate_partner_code').length === 1);
+  }
+
+  // 7. The code is CLAIMED by inserting it. A read-then-insert is the same race the
+  //    settlement claim had, and the database is the only thing that can settle it.
+  {
+    const reg = read('pages/api/register-referrer.js');
+    t('register-referrer claims the code by inserting it', /const inserted = await supabase\n\.from\('referrals'\)\n\.insert\(\{\n\s*code: candidate,/.test(reg));
+    t('a duplicate key retries with the next candidate rather than failing the signup',
+      /inserted\.error\.code === '23505'/.test(reg));
+    t('the migration that makes 23505 possible is in the repo',
+      /CREATE UNIQUE INDEX referrals_code_unique_ci/.test(read('scripts/sql/referrals_code_unique.sql')));
+    t('the index is case-insensitive, matching how settle() normalises a code',
+      /upper\(btrim\(code\)\)/.test(read('scripts/sql/referrals_code_unique.sql')));
+  }
+
   // 4. The clawback horizon must actually cover the chargeback window. This is
   //    DERIVED from the run rules rather than asserted as a number, so it stays
   //    true if the period logic changes. A run in month R covers

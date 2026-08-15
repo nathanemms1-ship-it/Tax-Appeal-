@@ -267,20 +267,36 @@ const message = alreadySentRecently ? 'You already have a referral code — here
 return res.status(200).json({ success: true, duplicate: true, message });
 }
 
-// Generate unique code — check for conflicts
-let code = generateCode(firstName, lastName);
-let attempts = 0;
-while (attempts < 5) {
-const { data: conflict } = await supabase.from('referrals').select('id').eq('code', code).single();
-if (!conflict) break;
-code = `${generateCode(firstName, lastName)}-${attempts + 2}`;
-attempts++;
-}
+/**
+ * THE CODE IS CLAIMED BY INSERTING IT, NOT BY ASKING FIRST.
+ *
+ * This was a read-then-insert: SELECT to see whether the code was taken, then INSERT
+ * if it was not. Two people named John Smith registering in the same second both read
+ * "free" and both inserted JSMITH, because nothing between the read and the write
+ * stopped them — the same shape as the settlement claim fixed in b1475da.
+ *
+ * A duplicated code is not cosmetic. lib/referralSettlement.js keyed partners by code
+ * and last writer won, so one of the two collected every order attributed to it and
+ * the other silently got nothing. That function now refuses to pay a duplicated code
+ * at all, and this makes the collision nearly impossible in the first place.
+ *
+ * Needs the UNIQUE index from scripts/sql/referrals_code_unique.sql. Without it 23505
+ * never fires and this degrades to the old behaviour — which is why the retry loop
+ * still generates a distinct candidate each pass rather than relying on the error.
+ */
+let code = null;
+let data = null;
+let error = null;
 
-const { data, error } = await supabase
+for (let attempt = 0; attempt < 5; attempt++) {
+const candidate = attempt === 0
+? generateCode(firstName, lastName)
+: `${generateCode(firstName, lastName)}-${attempt + 1}`;
+
+const inserted = await supabase
 .from('referrals')
 .insert({
-code,
+code: candidate,
 first_name: firstName.trim(),
 last_name: lastName.trim(),
 name: `${firstName.trim()} ${lastName.trim()}`,
@@ -295,6 +311,21 @@ total_paid: 0,
 })
 .select()
 .single();
+
+// 23505 is the UNIQUE index rejecting a code someone else already holds. That is
+// the guard working — take the next candidate. Any other error is real.
+if (inserted.error && inserted.error.code === '23505') { error = inserted.error; continue; }
+
+data = inserted.data;
+error = inserted.error;
+code = candidate;
+break;
+}
+
+if (!code && error) {
+console.error('Referral insert error: could not allocate a unique code:', error);
+return res.status(500).json({ error: 'Could not allocate a referral code. Please try again.' });
+}
 
 if (error) {
 console.error('Referral insert error:', error);
