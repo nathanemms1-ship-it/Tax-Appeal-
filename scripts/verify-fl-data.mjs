@@ -134,6 +134,28 @@ for (const [variant, expected] of [
   //
   //    The old defence was a comment asking callers to pass the county. This is the
   //    same request with a build behind it.
+  // 5b. CHECKOUT MUST NOT SELL A COUNTY DISPATCH WILL REFUSE.
+  //     getFlVabFee() does not fail on an unknown county — it returns a DEFAULT
+  //     {vabFee: 5000, confidence: 'estimated'}. So checkout priced $89 + a guessed
+  //     $50 for a county that does not exist, and for the six with no verified VAB
+  //     address. Both gates already lived in send-letter.js, which refuses AFTER the
+  //     card is charged. /terms section 6 says "we decline the order rather than take
+  //     your money" — this is the check that makes that true.
+  {
+    const { readFileSync: rf } = await import('node:fs');
+    let src = '';
+    try { src = rf(new URL('../pages/api/checkout.js', import.meta.url), 'utf8'); }
+    catch { errors.push('pages/api/checkout.js is missing'); }
+    if (src) {
+      if (!/isFlCountySupported\s*\(/.test(src)) {
+        errors.push('pages/api/checkout.js no longer checks isFlCountySupported — it will sell a Florida county with no verified VAB address, and send-letter will refuse to mail it after the card is charged');
+      }
+      if (!/confidence\s*!==\s*'confirmed'/.test(src)) {
+        errors.push("pages/api/checkout.js no longer checks the VAB fee confidence — getFlVabFee returns an ESTIMATED $50 default for any unknown county, so checkout would charge a guessed fee");
+      }
+    }
+  }
+
   const MONEY_GATES = [
     // The route that charges the card. /terms section 5 states as a TERM of the
     // agreement that the cut-off "is enforced automatically at checkout: if it has

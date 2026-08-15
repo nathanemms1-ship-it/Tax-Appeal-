@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import bcrypt from 'bcryptjs';
 import { getFlVabFee } from '../../lib/flCountyFees';
+import { isFlCountySupported } from '../../lib/flVabAddresses';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { blockIfSalesPaused } from '../../lib/salesGate';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
@@ -68,12 +69,60 @@ refCode,
  */
 const windowStatus = getFilingWindowStatus((stateCode || '').trim().toUpperCase(), county, { strict: true });
 if (!windowStatus || (!windowStatus.canFile && !windowStatus.canPreOrder)) {
+  const sc = (stateCode || '').trim().toUpperCase();
   const where = county ? `${county} County` : (stateCode || 'that state');
+  const isReceiptState = sc === 'FL';
   console.warn('[checkout] refusing — filing window closed:', { stateCode, county, canFile: windowStatus?.canFile, canPreOrder: windowStatus?.canPreOrder });
   return res.status(409).json({
-    error: `We are no longer accepting orders for ${where} this season. A petition filed now would not arrive before the deadline, and Florida counts a petition as filed only when it is physically received — so we will not take your money for a filing we cannot deliver.`,
+    // State-aware. The first version of this said "Florida counts a petition as
+    // filed only when it is physically received" to a TEXAS customer, because the
+    // receipt rule was written into a message used by every state. Texas and
+    // Arkansas are postmark states; telling their customers otherwise is both wrong
+    // and the kind of detail a homeowner would act on.
+    error: isReceiptState
+      ? `We are no longer accepting orders for ${where} this season. Florida counts a petition as filed only when it is physically received, not postmarked, and there is no longer enough mail time — so we will not take your money for a filing we cannot deliver.`
+      : `We are no longer accepting orders for ${where} this season. The filing window has closed, so we will not take your money for a protest that cannot be filed.`,
     code: 'FILING_WINDOW_CLOSED',
   });
+}
+
+/**
+ * ==========================================================================
+ * AND THE COUNTY MUST BE ONE WE CAN ACTUALLY FILE IN
+ * ==========================================================================
+ * Found 15 Aug 2026 while verifying the filing-window gate above, by POSTing a
+ * Florida order for a county that does not exist. It returned 200 and created a
+ * Stripe session.
+ *
+ * getFlVabFee() does not fail on an unknown county — it returns a DEFAULT
+ * {vabFee: 5000, confidence: 'estimated'}. So checkout happily priced $89 plus a
+ * guessed $50 for "Notarealcounty", and would do the same for the six counties
+ * with no verified VAB address (Dixie, Franklin, Gadsden, Gilchrist, Madison,
+ * Union) and for Levy, whose fee is still a guess.
+ *
+ * Both gates already existed — in pages/api/send-letter.js, which refuses AFTER
+ * the card has been charged, and in apply.js, which diverts to
+ * FloridaCountyUnavailable before checkout. Same shape as the filing-window bug
+ * directly above: the funnel gates, the browser can be bypassed, and the route
+ * that takes the money did not check.
+ *
+ * /terms section 6 now states: "Where a county has not done so, we decline the
+ * order rather than take your money. Nothing is charged." This is the code that
+ * makes that sentence true.
+ *
+ * Deliberately the same two conditions send-letter uses, in the same order. If
+ * these ever drift apart, checkout sells what dispatch will refuse to mail.
+ */
+if ((stateCode || '').trim().toUpperCase() === 'FL') {
+  const feeCheck = getFlVabFee(county);
+  const addressOk = isFlCountySupported(county);
+  if (!addressOk || !feeCheck || feeCheck.confidence !== 'confirmed') {
+    console.warn('[checkout] refusing — county not filable:', { county, addressOk, feeConfidence: feeCheck?.confidence });
+    return res.status(409).json({
+      error: `We have not yet confirmed the Value Adjustment Board mailing address and filing fee for ${county ? `${county} County` : 'that county'}. Florida counts a petition as filed only when it is physically received with the correct fee, so a guessed address or a short cheque is no filing at all — we decline the order rather than take your money. Leave your email and we will write the moment that county is confirmed.`,
+      code: 'FL_COUNTY_UNCONFIRMED',
+    });
+  }
 }
 
 try {
