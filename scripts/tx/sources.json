@@ -14,28 +14,31 @@
     "",
     "A GUESSED URL IS WORSE THAN A MISSING ONE, because a scraper gets built",
     "against it. Nothing in `files` was constructed by pattern; every entry was",
-    "read from a page. HEAD-check before wiring a downloader anyway — see",
+    "read from a page. HEAD-check before wiring a downloader anyway \u2014 see",
     "scripts/tx/fetch.sh, which does exactly that and refuses on a redirect to",
     "an HTML error page.",
     "",
+    "",
     "cad_id is the Comptroller's 3-digit county code (001 Anderson .. 254 Zavala),",
-    "which is also the prefix of an EARS filename. It is null wherever it has not",
-    "been confirmed against the Comptroller's county directory — a wrong county",
-    "code silently mis-files an entire district, so null is the safer placeholder.",
-    "Populated by the directory scrape in Phase 1 of the plan.",
+    "which is also the prefix of an EARS filename. Backfilled 16 Aug from",
+    "comptroller.texas.gov/taxes/resources/county-codes.php and cross-checked against",
+    "Travis CAD's own EARS filename (227EARS...). It is NOT derived by alphabetising",
+    "county names: the Comptroller sorts 'El Paso' as if the space were absent, so",
+    "Ellis is 070 and El Paso is 071, and a naive sort reverses them.",
+    "cad_id sits in the tx_parcels PRIMARY KEY. A wrong code does not error \u2014 it",
+    "silently files a whole district's parcels under another county.",
+    "Canonical copy: lib/tx/counties.js.",
     "",
     "FILENAME STABILITY. Only El Paso and Grayson use paths that do not change",
     "between rolls, so only those two can be polled on a schedule by URL. Everywhere",
     "else the filename embeds a date or supplement number and the listing page must",
     "be re-parsed each run."
   ],
-
   "catalogued_at": "2026-08-15",
   "districts_reviewed": 45,
   "free_download_confirmed": 24,
   "needs_public_information_request": 9,
   "needs_browser_to_resolve": 11,
-
   "formats": {
     "PACS": "Harris Govern / True Automation. Fixed-width, ~19 files, versioned layout 8.0.x (current 8.0.33/8.0.34). Roughly two-thirds of Texas. ONE PARSER COVERS ALL OF THESE.",
     "HCAD": "Harris County's own schema. Tab-delimited ASCII, zipped. Fully documented codebook.",
@@ -45,12 +48,17 @@
     "ECTOR": "Ector's own comma-delimited format.",
     "EARS": "The Comptroller submission format itself. Only Travis publishes it. Documented in Form 96-1051."
   },
-
   "districts": [
     {
-      "county": "Travis", "cad_id": 227, "cad_name": "Travis Central Appraisal District",
-      "site": "https://traviscad.org", "data_page": "https://traviscad.org/publicinformation/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Travis",
+      "cad_id": 227,
+      "cad_name": "Travis Central Appraisal District",
+      "site": "https://traviscad.org",
+      "data_page": "https://traviscad.org/publicinformation/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://traviscad.org/wp-content/largefiles/Website_Legacy8.0.33-AppraisalExportLayout_06182026.zip",
       "publishes_ears": true,
       "files": {
@@ -63,9 +71,15 @@
       "notes": "Best-documented large district, and the ONLY one publishing raw EARS. Its public posting of EARS is the precedent cited in our request to the Comptroller. Also publishes JSON, which is the cheapest possible parser validation target."
     },
     {
-      "county": "El Paso", "cad_id": null, "cad_name": "El Paso Central Appraisal District",
-      "site": "https://epcad.org", "data_page": "https://epcad.org/OpenGovernment",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "El Paso",
+      "cad_id": 71,
+      "cad_name": "El Paso Central Appraisal District",
+      "site": "https://epcad.org",
+      "data_page": "https://epcad.org/OpenGovernment",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://export.epcad.org/datasets/Appraisal%20Export%20Layout%20-%208.0.34.zip",
       "stable_filenames": true,
       "files": {
@@ -75,12 +89,18 @@
         "real_estate": "https://export.epcad.org/datasets/REAL_ESTATE.zip",
         "schemas": "https://propertysearch.blob.core.windows.net/abepublicfiles/Schemas.txt"
       },
-      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most — validate the parser against both."
+      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most \u2014 validate the parser against both."
     },
     {
-      "county": "Nueces", "cad_id": null, "cad_name": "Nueces County Appraisal District",
-      "site": "https://nuecescad.net", "data_page": "https://nuecescad.net/downloads-reports/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Nueces",
+      "cad_id": 178,
+      "cad_name": "Nueces County Appraisal District",
+      "site": "https://nuecescad.net",
+      "data_page": "https://nuecescad.net/downloads-reports/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://nuecescad.net/wp-content/uploads/2026/04/Export-Layout-Files-8.0.33.zip",
       "files": {
         "certified_2026": "https://nuecescad.net/wp-content/uploads/2026/08/Certified-Public-Export-2026.zip",
@@ -89,9 +109,15 @@
       "notes": "PARSER VALIDATION TARGET #1. Publishes the 8.0.33 layout AND the data, so every field offset can be checked against the spec rather than inferred. Also publishes residential class-code guides."
     },
     {
-      "county": "Bell", "cad_id": null, "cad_name": "Bell County Appraisal District",
-      "site": "https://bellcad.org", "data_page": "https://bellcad.org/data-portal/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Bell",
+      "cad_id": 14,
+      "cad_name": "Bell County Appraisal District",
+      "site": "https://bellcad.org",
+      "data_page": "https://bellcad.org/data-portal/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://bellcad.org/wp-content/uploads/2026/02/Appraisal-Export-Layout-8.0.33.xlsx",
       "files": {
         "certified_2026": "https://bellcad.org/wp-content/uploads/2019/06/2026-Bell-County-Certified-Export-1.zip",
@@ -100,9 +126,15 @@
       "notes": "PARSER VALIDATION TARGET #2. Also publishes a condensed one-row-per-account XLSX, ideal for eyeballing expected values before trusting the parser. Note the 2025 file is .7z, which needs p7zip rather than unzip."
     },
     {
-      "county": "Cameron", "cad_id": null, "cad_name": "Cameron Appraisal District",
-      "site": "https://www.cameroncad.org", "data_page": "https://www.cameroncad.org/Pages/Data",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Cameron",
+      "cad_id": 31,
+      "cad_name": "Cameron Appraisal District",
+      "site": "https://www.cameroncad.org",
+      "data_page": "https://www.cameroncad.org/Pages/Data",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "bundled inside the export zip",
       "files": {
         "certified_2026": "https://www.cameroncad.org/cad/exports/certified/2026/cameron-2026-certified-appraisal-export-20260723.zip",
@@ -113,9 +145,15 @@
       "notes": "Best-structured offering in the state: full export, JSON, a simplified one-row-per-account file, and GIS parcels with appraisal attributes already joined. Terms state the data is 'considered in the public domain and is distributed without warranty of any kind'. Full export unzips to ~6.8 GB."
     },
     {
-      "county": "Hays", "cad_id": null, "cad_name": "Hays Central Appraisal District",
-      "site": "https://hayscad.com", "data_page": "https://hayscad.com/data-downloads/",
-      "format": "ORION", "access": "free", "login": false, "confidence": "verified",
+      "county": "Hays",
+      "cad_id": 105,
+      "cad_name": "Hays Central Appraisal District",
+      "site": "https://hayscad.com",
+      "data_page": "https://hayscad.com/data-downloads/",
+      "format": "ORION",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://hayscad.com/wp-content/uploads/2018/08/Copy-of-PropertyDataExport-CSV-Layout.pdf",
       "publishes_hearing_outcomes": true,
       "files": {
@@ -124,12 +162,18 @@
         "arb_decisions_2025": "https://hayscad.com/wp-content/uploads/2025/09/2025-ARB-PROTEST-DECISION-DATA-ALL.xlsx",
         "arb_decisions_2024": "https://hayscad.com/wp-content/uploads/2024/10/2024-ARB-PROTEST-DECISION-DATA-ALL.xlsx"
       },
-      "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris."
+      "notes": "FIRST PILOT. The CSV property data export is self-describing \u2014 the header row names the fields \u2014 so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris."
     },
     {
-      "county": "Harris", "cad_id": null, "cad_name": "Harris Central Appraisal District",
-      "site": "https://hcad.org", "data_page": "https://hcad.org/pdata/pdata-property-downloads.html",
-      "format": "HCAD", "access": "free", "login": false, "confidence": "verified_page_only",
+      "county": "Harris",
+      "cad_id": 101,
+      "cad_name": "Harris Central Appraisal District",
+      "site": "https://hcad.org",
+      "data_page": "https://hcad.org/pdata/pdata-property-downloads.html",
+      "format": "HCAD",
+      "access": "free",
+      "login": false,
+      "confidence": "verified_page_only",
       "layout": "https://hcad.org/assets/uploads/pdf/pdataCodebook.pdf",
       "layout_extra": [
         "https://hcad.org/assets/uploads/pdf/Definition_help.pdf",
@@ -137,33 +181,51 @@
       ],
       "publishes_hearing_outcomes": true,
       "files": {},
-      "notes": "BIGGEST SINGLE MARKET, ~1.7M accounts. Download links render via JavaScript so the file URLs are NOT captured here — open the page in a browser and copy them. Files of interest: Real_acct_owner.zip (real_acct.txt: tot_appr_val, tot_mkt_val, Neighborhood_Code, state_class, bld_ar, yr_impr), Real_building_land.zip (building_res.txt: heat_ar, date_erected, qa_cd), Real_jur_exempt.zip, and Hearing_files.zip (arb_hearings_real.txt — initial vs final appraised AND market value per account, tagged with Agent_Code). Refreshes weekly May-Aug, certified mid-Aug."
+      "notes": "BIGGEST SINGLE MARKET, ~1.7M accounts. Download links render via JavaScript so the file URLs are NOT captured here \u2014 open the page in a browser and copy them. Files of interest: Real_acct_owner.zip (real_acct.txt: tot_appr_val, tot_mkt_val, Neighborhood_Code, state_class, bld_ar, yr_impr), Real_building_land.zip (building_res.txt: heat_ar, date_erected, qa_cd), Real_jur_exempt.zip, and Hearing_files.zip (arb_hearings_real.txt \u2014 initial vs final appraised AND market value per account, tagged with Agent_Code). Refreshes weekly May-Aug, certified mid-Aug."
     },
     {
-      "county": "Galveston", "cad_id": null, "cad_name": "Galveston Central Appraisal District",
-      "site": "https://galvestoncad.org", "data_page": "https://galvestoncad.org/current-and-historical-supplement-roll-export-data/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Galveston",
+      "cad_id": 84,
+      "cad_name": "Galveston Central Appraisal District",
+      "site": "https://galvestoncad.org",
+      "data_page": "https://galvestoncad.org/current-and-historical-supplement-roll-export-data/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://galvestoncad.org/wp-content/uploads/2026/06/2026-June-Layout-Changes-8_0_34.zip",
       "files": {
         "roll_2025_supp11": "https://galvestoncad.org/wp-content/uploads/2026/07/2025_AS_OF_SUPP11_APPRAISAL_W_OWNER_EXP3408.zip",
         "roll_2024_supp23": "https://galvestoncad.org/wp-content/uploads/2026/07/2024_AS_OF_SUPP23_APPRAISAL_W_OWNER_EXP3411.zip"
       },
-      "notes": "Deepest history of any district — certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql."
+      "notes": "Deepest history of any district \u2014 certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql."
     },
     {
-      "county": "Jefferson", "cad_id": null, "cad_name": "Jefferson Central Appraisal District",
-      "site": "https://jcad.org", "data_page": "https://jcad.org/data-download/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Jefferson",
+      "cad_id": 123,
+      "cad_name": "Jefferson Central Appraisal District",
+      "site": "https://jcad.org",
+      "data_page": "https://jcad.org/data-download/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_2026": "https://jcad.org/wp-content/uploads/2026/07/CERTIFIED-2026_0_PUBLIC.zip",
         "certified_2025": "https://jcad.org/wp-content/uploads/2025/10/2025-CERTIFIED_2025_0_PUBLIC.zip"
       },
-      "notes": "Filenames end _PUBLIC and follow a clean pattern — among the easiest to automate once the listing page is parsed."
+      "notes": "Filenames end _PUBLIC and follow a clean pattern \u2014 among the easiest to automate once the listing page is parsed."
     },
     {
-      "county": "Brazos", "cad_id": null, "cad_name": "Brazos Central Appraisal District",
-      "site": "https://brazoscad.org", "data_page": "https://brazoscad.org/certified-data-downloads/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Brazos",
+      "cad_id": 21,
+      "cad_name": "Brazos Central Appraisal District",
+      "site": "https://brazoscad.org",
+      "data_page": "https://brazoscad.org/certified-data-downloads/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://brazoscad.org/wp-content/uploads/2026/08/2026-Export-Layout-as-of-7.-2026.zip",
       "files": {
         "certified_2025": "https://brazoscad.org/wp-content/uploads/2025/08/2025-CERTIFIED-EXPORT.zip",
@@ -171,9 +233,15 @@
       }
     },
     {
-      "county": "Kaufman", "cad_id": null, "cad_name": "Kaufman County Appraisal District",
-      "site": "https://kaufman-cad.org", "data_page": "https://kaufman-cad.org/public-info/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Kaufman",
+      "cad_id": 129,
+      "cad_name": "Kaufman County Appraisal District",
+      "site": "https://kaufman-cad.org",
+      "data_page": "https://kaufman-cad.org/public-info/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://kaufman-cad.org/wp-content/uploads/2026/04/Appraisal-Export-Layout-8.0.33-2026.xlsx",
       "files": {
         "certified_2026": "https://kaufman-cad.org/wp-content/uploads/2026/07/2026-Certified-Export-Files.zip",
@@ -181,112 +249,183 @@
       }
     },
     {
-      "county": "Wichita", "cad_id": null, "cad_name": "Wichita Appraisal District",
-      "site": "https://wadtx.com", "data_page": "https://wadtx.com/reports/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Wichita",
+      "cad_id": 243,
+      "cad_name": "Wichita Appraisal District",
+      "site": "https://wadtx.com",
+      "data_page": "https://wadtx.com/reports/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://wadtx.com/wp-content/uploads/2023/08/Appraisal-Export-Layout-8.0.25.pdf",
       "files": {
         "certified_real_2026": "https://wadtx.com/wp-content/uploads/2026/07/2026-CERTIFIED-REAL-ROLL.zip"
       },
-      "notes": "Layout published is 8.0.25 — older than Bell/Nueces at 8.0.33. Good regression target: the parser must handle more than one layout version."
+      "notes": "Layout published is 8.0.25 \u2014 older than Bell/Nueces at 8.0.33. Good regression target: the parser must handle more than one layout version."
     },
     {
-      "county": "Taylor", "cad_id": null, "cad_name": "Taylor Central Appraisal District",
-      "site": "https://taylor-cad.org", "data_page": "https://taylor-cad.org/data-downloads/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Taylor",
+      "cad_id": 221,
+      "cad_name": "Taylor Central Appraisal District",
+      "site": "https://taylor-cad.org",
+      "data_page": "https://taylor-cad.org/data-downloads/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://taylor-cad.org/wp-content/uploads/2026/06/TaylorCAD_AppraisalData_Export_Layout_files_04Jun26.zip",
       "files": {
         "certified_2026": "https://taylor-cad.org/wp-content/uploads/2026/07/TaylorCAD_2026_Certified_Appr_Roll_as_of_Certification_31Jul26.zip"
       }
     },
     {
-      "county": "Grayson", "cad_id": null, "cad_name": "Grayson Central Appraisal District",
-      "site": "https://graysonappraisal.org", "data_page": "https://graysonappraisal.org/public-information/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Grayson",
+      "cad_id": 91,
+      "cad_name": "Grayson Central Appraisal District",
+      "site": "https://graysonappraisal.org",
+      "data_page": "https://graysonappraisal.org/public-information/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "stable_filenames": true,
       "files": {
         "export_current": "https://maps.graysonappraisal.org/ORR_Export/GCAD_Export.zip",
         "preliminary": "https://maps.graysonappraisal.org/export/Preliminary_Export.zip"
       },
-      "notes": "Stable path — pollable on a schedule. Layout ships inside the zip."
+      "notes": "Stable path \u2014 pollable on a schedule. Layout ships inside the zip."
     },
     {
-      "county": "Angelina", "cad_id": null, "cad_name": "Angelina County Appraisal District",
-      "site": "https://www.angelinacad.org", "data_page": "https://www.angelinacad.org/open-records",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Angelina",
+      "cad_id": 3,
+      "cad_name": "Angelina County Appraisal District",
+      "site": "https://www.angelinacad.org",
+      "data_page": "https://www.angelinacad.org/open-records",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://www.angelinacad.org/media-records/Appraisal_Export_Layout_-_8.0.33.zip",
       "files": {
         "certified_2026": "https://www.angelinacad.org/media-records/2026_Certified_Roll_Export.zip"
       }
     },
     {
-      "county": "Guadalupe", "cad_id": null, "cad_name": "Guadalupe Appraisal District",
-      "site": "https://guadalupead.org", "data_page": "https://guadalupead.org/certified-appraisal-roll/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Guadalupe",
+      "cad_id": 94,
+      "cad_name": "Guadalupe Appraisal District",
+      "site": "https://guadalupead.org",
+      "data_page": "https://guadalupead.org/certified-appraisal-roll/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_2026": "https://guadalupead.org/wp-content/uploads/2026/07/2026-GCO-Certified-Appraisal-Roll-Supp-0.zip"
       }
     },
     {
-      "county": "Johnson", "cad_id": null, "cad_name": "Johnson County Appraisal District",
-      "site": "https://johnsoncad.com", "data_page": "https://johnsoncad.com/downloads/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Johnson",
+      "cad_id": 126,
+      "cad_name": "Johnson County Appraisal District",
+      "site": "https://johnsoncad.com",
+      "data_page": "https://johnsoncad.com/downloads/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_2026": "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
         "preliminary_2026": "https://johnsoncad.com/wp-content/uploads/2026/06/2026-Preliminary-Data-06-16-26-1.zip"
       },
-      "notes": "Certified filename is an opaque batch number — the listing page must be parsed, the URL cannot be constructed."
+      "notes": "Certified filename is an opaque batch number \u2014 the listing page must be parsed, the URL cannot be constructed."
     },
     {
-      "county": "Victoria", "cad_id": null, "cad_name": "Victoria Central Appraisal District",
-      "site": "https://victoriacad.org", "data_page": "https://victoriacad.org/downloads/",
-      "format": "PACS", "access": "free", "login": false, "confidence": "verified",
+      "county": "Victoria",
+      "cad_id": 235,
+      "cad_name": "Victoria Central Appraisal District",
+      "site": "https://victoriacad.org",
+      "data_page": "https://victoriacad.org/downloads/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_2026": "https://victoriacad.org/wp-content/uploads/2026/07/VCAD-2026-CERTIFIED-ROLL-1.zip"
       }
     },
     {
-      "county": "Midland", "cad_id": null, "cad_name": "Midland Central Appraisal District",
-      "site": "https://midcad.org", "data_page": "https://midcad.org/open-records/",
-      "format": "ISW", "access": "free", "login": false, "confidence": "verified",
+      "county": "Midland",
+      "cad_id": 165,
+      "cad_name": "Midland Central Appraisal District",
+      "site": "https://midcad.org",
+      "data_page": "https://midcad.org/open-records/",
+      "format": "ISW",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_real_2025": "https://midcad.org/wp-content/uploads/2025/08/2025-Certified-Real-Property-Roll.zip"
       }
     },
     {
-      "county": "Ector", "cad_id": null, "cad_name": "Ector County Appraisal District",
-      "site": "https://www.ectorcad.org", "data_page": "https://www.ectorcad.org/home/downloads",
-      "format": "ECTOR", "access": "free", "login": false, "confidence": "verified",
+      "county": "Ector",
+      "cad_id": 68,
+      "cad_name": "Ector County Appraisal District",
+      "site": "https://www.ectorcad.org",
+      "data_page": "https://www.ectorcad.org/home/downloads",
+      "format": "ECTOR",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_real_2026": "https://www.ectorcad.org/downloads/car/2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP"
       },
-      "notes": "Own comma-delimited format, not PACS. Low priority — small market, bespoke parser."
+      "notes": "Own comma-delimited format, not PACS. Low priority \u2014 small market, bespoke parser."
     },
     {
-      "county": "Brazoria", "cad_id": null, "cad_name": "Brazoria County Appraisal District",
-      "site": "https://brazoriacad.org", "data_page": "https://brazoriacad.org/public-gis-and-property-data-downloads/",
-      "format": "PROTAX", "access": "free", "login": false, "confidence": "verified",
+      "county": "Brazoria",
+      "cad_id": 20,
+      "cad_name": "Brazoria County Appraisal District",
+      "site": "https://brazoriacad.org",
+      "data_page": "https://brazoriacad.org/public-gis-and-property-data-downloads/",
+      "format": "PROTAX",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "protax_export": "https://brazoriacad.org/wp-content/uploads/2026/07/Protax_07242026.zip"
       },
       "notes": "The certified and preliminary rolls sit behind pCloud share links rather than plain HTTP, so they cannot be curl'd directly. Historic data back to 1998."
     },
     {
-      "county": "Collin", "cad_id": null, "cad_name": "Collin Central Appraisal District",
-      "site": "https://collincad.org", "data_page": "https://collincad.org/open-data-portal/",
-      "format": "ACCESS_MDB", "access": "free", "login": "full export requires open-records; Lite export is a public folder",
+      "county": "Collin",
+      "cad_id": 43,
+      "cad_name": "Collin Central Appraisal District",
+      "site": "https://collincad.org",
+      "data_page": "https://collincad.org/open-data-portal/",
+      "format": "ACCESS_MDB",
+      "access": "free",
+      "login": "full export requires open-records; Lite export is a public folder",
       "confidence": "verified",
       "layout": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabase_FileLayout.pdf",
       "files": {
         "lite_database": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabaseCurrent.zip",
         "code_lists": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/CodeFileLists.xls"
       },
-      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain."
+      "notes": "Lite export is a zipped MS Access .mdb \u2014 needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain."
     },
     {
-      "county": "Williamson", "cad_id": null, "cad_name": "Williamson Central Appraisal District",
-      "site": "https://www.wcad.org", "data_page": "https://www.wcad.org/data-downloads/",
-      "format": "CSV", "access": "free", "login": false, "confidence": "verified",
+      "county": "Williamson",
+      "cad_id": 246,
+      "cad_name": "Williamson Central Appraisal District",
+      "site": "https://www.wcad.org",
+      "data_page": "https://www.wcad.org/data-downloads/",
+      "format": "CSV",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "layout": "https://documents.wcad.org/DataDownloads/PropertyDataExportFileLayout.pdf",
       "layout_extra": [
         "https://documents.wcad.org/DataDownloads/CertifiedSupplementRollFileLayout.pdf",
@@ -294,53 +433,278 @@
         "https://documents.wcad.org/DataDownloads/DailyUpdatedTables.pdf"
       ],
       "files": {},
-      "notes": "Four published layout PDFs — the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction."
+      "notes": "Four published layout PDFs \u2014 the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction."
     },
     {
-      "county": "Fort Bend", "cad_id": null, "cad_name": "Fort Bend Central Appraisal District",
-      "site": "https://www.fbcad.org", "data_page": "https://www.fbcad.org/data-files/",
-      "format": "ORION", "access": "free", "login": false, "confidence": "verified",
+      "county": "Fort Bend",
+      "cad_id": 79,
+      "cad_name": "Fort Bend Central Appraisal District",
+      "site": "https://www.fbcad.org",
+      "data_page": "https://www.fbcad.org/data-files/",
+      "format": "ORION",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
       "files": {
         "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
       },
-      "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either."
+      "notes": "STALE \u2014 the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either."
     },
-
-    { "county": "Dallas", "cad_id": null, "cad_name": "Dallas Central Appraisal District", "site": "https://www.dallascad.org", "data_page": "https://www.dallascad.org/DataProducts.aspx", "format": "unknown", "access": "likely paid", "confidence": "indexed", "files": {}, "notes": "Historically sells 'Data Products' rather than posting them. The likeliest place in Texas for a restrictive commercial licence. Blocked automated fetch twice — check pricing and terms manually. Second-biggest market, so this matters." },
-    { "county": "Tarrant", "cad_id": null, "cad_name": "Tarrant Appraisal District", "site": "https://www.tad.org", "data_page": "https://www.tad.org/resources/data-downloads.php", "format": "PACS", "access": "likely free", "confidence": "indexed", "layout": "https://www.tad.org/content/forms/PropertyData&PropertyLocationLayouts.pdf", "files": {}, "notes": "403s to automated fetch. Terms of service contain NO data-reuse or commercial restriction — the §1.111 language there governs the agent portal, not the downloads. Also publishes 'Res Comp Attribute Data' and 'Res Features Value Data' — the guts of their residential model, public. Third-biggest market." },
-    { "county": "Denton", "cad_id": null, "cad_name": "Denton Central Appraisal District", "site": "https://www.dentoncad.com", "data_page": "https://denton.prodigycad.com/data-downloads", "format": "PACS", "access": "likely free", "confidence": "indexed", "layout": "https://www.dentoncad.com/wp-content/uploads/2023/10/Appraisal-Export-Layout-8.0.26.xlsx", "files": {} },
-    { "county": "Montgomery", "cad_id": null, "cad_name": "Montgomery Central Appraisal District", "site": "https://mcad-tx.org", "data_page": "https://mcad-tx.org/appraisal-data-exports", "format": "PACS", "access": "likely free", "confidence": "indexed", "files": {} },
-    { "county": "Hidalgo", "cad_id": null, "cad_name": "Hidalgo County Appraisal District", "site": "https://www.hidalgoad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "not_found", "files": {} },
-    { "county": "McLennan", "cad_id": null, "cad_name": "McLennan County Appraisal District", "site": "https://www.mclennancad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "not_found", "files": {} },
-    { "county": "Ellis", "cad_id": null, "cad_name": "Ellis Appraisal District", "site": "https://www.elliscad.com", "data_page": "https://www.elliscad.com/gis-data/", "format": "PACS", "access": "unknown", "confidence": "indexed", "files": {} },
-    { "county": "Rockwall", "cad_id": null, "cad_name": "Rockwall Central Appraisal District", "site": "https://www.rockwallcad.com", "data_page": "https://www.rockwallcad.com/gis-data", "format": "PACS", "access": "unknown", "confidence": "indexed", "files": {} },
-    { "county": "Hunt", "cad_id": null, "cad_name": "Hunt County Appraisal District", "site": "https://hunt-cad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "indexed", "files": {} },
-    { "county": "Bowie", "cad_id": null, "cad_name": "Bowie Central Appraisal District", "site": "https://bowieappraisal.com", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "indexed", "files": {} },
-    { "county": "Potter", "cad_id": null, "cad_name": "Potter-Randall Appraisal District", "site": "https://prad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "not_found", "files": {}, "notes": "One district serving two counties — Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this." },
-    { "county": "Randall", "cad_id": null, "cad_name": "Potter-Randall Appraisal District", "site": "https://prad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "not_found", "files": {} },
-    { "county": "Webb", "cad_id": null, "cad_name": "Webb County Appraisal District", "site": "https://webbcad.org", "data_page": null, "format": "PACS", "access": "unknown", "confidence": "not_found", "files": {} },
-
-    { "county": "Bexar", "cad_id": null, "cad_name": "Bexar Appraisal District", "site": "https://bcad.org", "data_page": null, "format": "PACS", "access": "public_information_request", "confidence": "verified", "files": {}, "notes": "No public bulk download; reports page carries PDFs only. Runs PACS (confirmed in their 2025-26 Reappraisal Plan), so request the appraisal export BY NAME. Fourth-biggest market." },
-    { "county": "Lubbock", "cad_id": null, "cad_name": "Lubbock Central Appraisal District", "site": "https://lubbockcad.org", "data_page": null, "format": "unknown", "access": "public_information_request", "confidence": "verified", "publishes_hearing_outcomes": true, "files": { "protest_db_2025": "https://lubbockcad.org/Portals/0/2025.xlsx" }, "notes": "No bulk roll, but DOES publish a protest hearing database xlsx per year." },
-    { "county": "Smith", "cad_id": null, "cad_name": "Smith County Appraisal District", "site": "https://www.smithcad.org", "data_page": "https://www.smithcad.org/downloads.html", "format": "unknown", "access": "public_information_request", "confidence": "verified", "files": {}, "notes": "Downloads page is GIS only. Property search requires a login." },
-    { "county": "Comal", "cad_id": null, "cad_name": "Comal Appraisal District", "site": "https://comalad.org", "data_page": null, "format": "unknown", "access": "public_information_request", "confidence": "verified", "files": {} },
-    { "county": "Henderson", "cad_id": null, "cad_name": "Henderson County Appraisal District", "site": "https://henderson-cad.org", "data_page": "https://henderson-cad.org/reports/", "format": "ISW", "access": "public_information_request", "confidence": "verified", "files": {} },
-    { "county": "Gregg", "cad_id": null, "cad_name": "Gregg County Appraisal District", "site": "https://gcad.org", "data_page": "https://gcad.org/downloads/", "format": "unknown", "access": "public_information_request", "confidence": "verified", "files": {}, "notes": "Downloads page carries forms and PDFs only." },
-    { "county": "Parker", "cad_id": null, "cad_name": "Parker County Appraisal District", "site": "https://parkercad.org", "data_page": null, "format": "ISW", "access": "public_information_request", "confidence": "not_found", "files": {} },
-    { "county": "Tom Green", "cad_id": null, "cad_name": "Tom Green County Appraisal District", "site": null, "data_page": null, "format": "ISW", "access": "public_information_request", "confidence": "not_found", "files": {}, "notes": "No own domain — hosted on iswdataclient.azurewebsites.net." }
+    {
+      "county": "Dallas",
+      "cad_id": 57,
+      "cad_name": "Dallas Central Appraisal District",
+      "site": "https://www.dallascad.org",
+      "data_page": "https://www.dallascad.org/DataProducts.aspx",
+      "format": "unknown",
+      "access": "likely paid",
+      "confidence": "indexed",
+      "files": {},
+      "notes": "Historically sells 'Data Products' rather than posting them. The likeliest place in Texas for a restrictive commercial licence. Blocked automated fetch twice \u2014 check pricing and terms manually. Second-biggest market, so this matters."
+    },
+    {
+      "county": "Tarrant",
+      "cad_id": 220,
+      "cad_name": "Tarrant Appraisal District",
+      "site": "https://www.tad.org",
+      "data_page": "https://www.tad.org/resources/data-downloads.php",
+      "format": "PACS",
+      "access": "likely free",
+      "confidence": "indexed",
+      "layout": "https://www.tad.org/content/forms/PropertyData&PropertyLocationLayouts.pdf",
+      "files": {},
+      "notes": "403s to automated fetch. Terms of service contain NO data-reuse or commercial restriction \u2014 the \u00a71.111 language there governs the agent portal, not the downloads. Also publishes 'Res Comp Attribute Data' and 'Res Features Value Data' \u2014 the guts of their residential model, public. Third-biggest market."
+    },
+    {
+      "county": "Denton",
+      "cad_id": 61,
+      "cad_name": "Denton Central Appraisal District",
+      "site": "https://www.dentoncad.com",
+      "data_page": "https://denton.prodigycad.com/data-downloads",
+      "format": "PACS",
+      "access": "likely free",
+      "confidence": "indexed",
+      "layout": "https://www.dentoncad.com/wp-content/uploads/2023/10/Appraisal-Export-Layout-8.0.26.xlsx",
+      "files": {}
+    },
+    {
+      "county": "Montgomery",
+      "cad_id": 170,
+      "cad_name": "Montgomery Central Appraisal District",
+      "site": "https://mcad-tx.org",
+      "data_page": "https://mcad-tx.org/appraisal-data-exports",
+      "format": "PACS",
+      "access": "likely free",
+      "confidence": "indexed",
+      "files": {}
+    },
+    {
+      "county": "Hidalgo",
+      "cad_id": 108,
+      "cad_name": "Hidalgo County Appraisal District",
+      "site": "https://www.hidalgoad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "not_found",
+      "files": {}
+    },
+    {
+      "county": "McLennan",
+      "cad_id": 161,
+      "cad_name": "McLennan County Appraisal District",
+      "site": "https://www.mclennancad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "not_found",
+      "files": {}
+    },
+    {
+      "county": "Ellis",
+      "cad_id": 70,
+      "cad_name": "Ellis Appraisal District",
+      "site": "https://www.elliscad.com",
+      "data_page": "https://www.elliscad.com/gis-data/",
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "indexed",
+      "files": {}
+    },
+    {
+      "county": "Rockwall",
+      "cad_id": 199,
+      "cad_name": "Rockwall Central Appraisal District",
+      "site": "https://www.rockwallcad.com",
+      "data_page": "https://www.rockwallcad.com/gis-data",
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "indexed",
+      "files": {}
+    },
+    {
+      "county": "Hunt",
+      "cad_id": 116,
+      "cad_name": "Hunt County Appraisal District",
+      "site": "https://hunt-cad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "indexed",
+      "files": {}
+    },
+    {
+      "county": "Bowie",
+      "cad_id": 19,
+      "cad_name": "Bowie Central Appraisal District",
+      "site": "https://bowieappraisal.com",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "indexed",
+      "files": {}
+    },
+    {
+      "county": "Potter",
+      "cad_id": 188,
+      "cad_name": "Potter-Randall Appraisal District",
+      "site": "https://prad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "not_found",
+      "files": {},
+      "notes": "One district serving two counties \u2014 Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this."
+    },
+    {
+      "county": "Randall",
+      "cad_id": 191,
+      "cad_name": "Potter-Randall Appraisal District",
+      "site": "https://prad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "not_found",
+      "files": {}
+    },
+    {
+      "county": "Webb",
+      "cad_id": 240,
+      "cad_name": "Webb County Appraisal District",
+      "site": "https://webbcad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "unknown",
+      "confidence": "not_found",
+      "files": {}
+    },
+    {
+      "county": "Bexar",
+      "cad_id": 15,
+      "cad_name": "Bexar Appraisal District",
+      "site": "https://bcad.org",
+      "data_page": null,
+      "format": "PACS",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "files": {},
+      "notes": "No public bulk download; reports page carries PDFs only. Runs PACS (confirmed in their 2025-26 Reappraisal Plan), so request the appraisal export BY NAME. Fourth-biggest market."
+    },
+    {
+      "county": "Lubbock",
+      "cad_id": 152,
+      "cad_name": "Lubbock Central Appraisal District",
+      "site": "https://lubbockcad.org",
+      "data_page": null,
+      "format": "unknown",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "publishes_hearing_outcomes": true,
+      "files": {
+        "protest_db_2025": "https://lubbockcad.org/Portals/0/2025.xlsx"
+      },
+      "notes": "No bulk roll, but DOES publish a protest hearing database xlsx per year."
+    },
+    {
+      "county": "Smith",
+      "cad_id": 212,
+      "cad_name": "Smith County Appraisal District",
+      "site": "https://www.smithcad.org",
+      "data_page": "https://www.smithcad.org/downloads.html",
+      "format": "unknown",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "files": {},
+      "notes": "Downloads page is GIS only. Property search requires a login."
+    },
+    {
+      "county": "Comal",
+      "cad_id": 46,
+      "cad_name": "Comal Appraisal District",
+      "site": "https://comalad.org",
+      "data_page": null,
+      "format": "unknown",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "files": {}
+    },
+    {
+      "county": "Henderson",
+      "cad_id": 107,
+      "cad_name": "Henderson County Appraisal District",
+      "site": "https://henderson-cad.org",
+      "data_page": "https://henderson-cad.org/reports/",
+      "format": "ISW",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "files": {}
+    },
+    {
+      "county": "Gregg",
+      "cad_id": 92,
+      "cad_name": "Gregg County Appraisal District",
+      "site": "https://gcad.org",
+      "data_page": "https://gcad.org/downloads/",
+      "format": "unknown",
+      "access": "public_information_request",
+      "confidence": "verified",
+      "files": {},
+      "notes": "Downloads page carries forms and PDFs only."
+    },
+    {
+      "county": "Parker",
+      "cad_id": 184,
+      "cad_name": "Parker County Appraisal District",
+      "site": "https://parkercad.org",
+      "data_page": null,
+      "format": "ISW",
+      "access": "public_information_request",
+      "confidence": "not_found",
+      "files": {}
+    },
+    {
+      "county": "Tom Green",
+      "cad_id": 226,
+      "cad_name": "Tom Green County Appraisal District",
+      "site": null,
+      "data_page": null,
+      "format": "ISW",
+      "access": "public_information_request",
+      "confidence": "not_found",
+      "files": {},
+      "notes": "No own domain \u2014 hosted on iswdataclient.azurewebsites.net."
+    }
   ],
-
   "hearing_outcome_publishers": {
-    "$comment": "Free, account-level, historical OUTCOMES data — initial vs final value per account. This is how the expected-reduction model gets built, and how the invented avgSavings numbers on 69 city pages get replaced with sourced ones. Harris additionally tags each row with Agent_Code, which identifies the firm, so competitor performance is measurable from public data.",
-    "Harris": "Hearing_files.zip — arb_hearings_real.txt, arb_hearings_pp.txt, arb_protest_real.txt, arb_protest_pp.txt",
+    "$comment": "Free, account-level, historical OUTCOMES data \u2014 initial vs final value per account. This is how the expected-reduction model gets built, and how the invented avgSavings numbers on 69 city pages get replaced with sourced ones. Harris additionally tags each row with Agent_Code, which identifies the firm, so competitor performance is measurable from public data.",
+    "Harris": "Hearing_files.zip \u2014 arb_hearings_real.txt, arb_hearings_pp.txt, arb_protest_real.txt, arb_protest_pp.txt",
     "Hays": "https://hayscad.com/wp-content/uploads/2025/09/2025-ARB-PROTEST-DECISION-DATA-ALL.xlsx",
     "Lubbock": "https://lubbockcad.org/Portals/0/2025.xlsx",
     "Collin": "data.texas.gov dataset xmrt-bxjr"
   },
-
   "next": [
     "Scrape the Comptroller county directory (254 pages) to populate cad_id and tx_cad_addresses.",
-    "Resolve the 11 JavaScript-portal districts with a real browser — all are PACS shops and almost certainly do publish exports.",
+    "Resolve the 11 JavaScript-portal districts with a real browser \u2014 all are PACS shops and almost certainly do publish exports.",
     "Phone Fort Bend about the missing 2025/2026 exports.",
     "Check Dallas CAD pricing and terms manually.",
     "Extend the catalogue from 45 districts to 254."

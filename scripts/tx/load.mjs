@@ -36,6 +36,7 @@ import {
   APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, HEADER, LIVING_AREA_CODES,
   parseProperty, checkInvariant, accumulateLand, text, num,
 } from '../../lib/tx/pacs.js';
+import { countyCode, CODE_TO_COUNTY } from '../../lib/tx/counties.js';
 
 const VALIDATED_EXPORT_VERSIONS = new Set(['8.0.0.34', '8.0.0.33']);
 
@@ -58,14 +59,19 @@ function arg(name, fallback = null) {
 const has = (n) => process.argv.includes(`--${n}`);
 
 const zip = arg('zip');
-const cadId = arg('cad');
 const county = arg('county', '');
+// --cad wins if given; otherwise resolve the county name against the
+// Comptroller's numbering. Never guess: an unresolvable name is a hard stop,
+// because cad_id sits in the primary key and a wrong one silently files a whole
+// district's parcels under a different county.
+const cadId = arg('cad') || (county ? countyCode(county) : null);
 const outPath = arg('out', 'tx_parcels.csv');
 const limit = Number(arg('limit', '0')) || 0;
 const residentialOnly = !has('all');
 
 if (!zip || !cadId) {
-  console.error('usage: node scripts/tx/load.mjs --zip <export.zip> --cad <county code> [--county <name>] [--out <file>] [--limit N] [--all]');
+  console.error('usage: node scripts/tx/load.mjs --zip <export.zip> --county <name> [--cad <code>] [--out <file>] [--limit N] [--all]');
+  if (county && !cadId) console.error(`\n✗ "${county}" is not a Texas county name I can resolve. Pass --cad explicitly.`);
   process.exit(2);
 }
 
@@ -94,6 +100,7 @@ function csvCell(v) {
   const version = text(header, HEADER.export_version);
   const year = num(header, HEADER.appraisal_year);
   console.log(`${basename(zip)}`);
+  console.log(`  ${CODE_TO_COUNTY[Number(cadId)] || county || '?'} County — cad_id ${cadId}`);
   console.log(`  export layout ${version}, appraisal year ${year}`);
   if (!VALIDATED_EXPORT_VERSIONS.has(version)) {
     // Offsets are version-specific. A near-miss version silently shifts every
