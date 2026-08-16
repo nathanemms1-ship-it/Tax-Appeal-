@@ -40,3 +40,12 @@ setkey.sh
 
 _to_delete/
 .env*
+
+# Texas appraisal roll downloads — scripts/tx/fetch.mjs writes here.
+# These are public data, re-downloadable at any time from the URLs in
+# scripts/tx/sources.json, and they are HUGE: one Nueces certified export is
+# 161 MB zipped and 7.08 GB unpacked. GitHub refuses any file over 100 MB, so a
+# stray `git add .` would either fail the push or, worse, succeed on the smaller
+# ones and bloat the repo history permanently. The manifest belongs in git; the
+# payload does not.
+tx-data/
