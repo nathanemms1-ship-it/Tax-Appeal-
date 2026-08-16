@@ -33,7 +33,7 @@ import { createWriteStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { basename } from 'node:path';
 import {
-  APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, HEADER, LIVING_AREA_CODES,
+  APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, HEADER, isLivingArea,
   parseProperty, checkInvariant, accumulateLand, text, num,
 } from '../../lib/tx/pacs.js';
 import { countyCode, CODE_TO_COUNTY } from '../../lib/tx/counties.js';
@@ -125,9 +125,15 @@ const unmatchedCodes = new Map();
     if (line.length < IMPROVEMENT_DETAIL.recordLength - 1) continue;
     const id = text(line, IMPROVEMENT_DETAIL.prop_id);
     const type = (text(line, IMPROVEMENT_DETAIL.imprv_det_type_cd) || '').toUpperCase();
+    const desc = text(line, IMPROVEMENT_DETAIL.imprv_det_type_desc) || '';
     const area = num(line, IMPROVEMENT_DETAIL.imprv_det_area) ?? 0;
-    if (!LIVING_AREA_CODES.has(type)) {
-      if (area > 400) unmatchedCodes.set(type, (unmatchedCodes.get(type) || 0) + 1);
+    if (!isLivingArea(type, desc)) {
+      // Report by DESCRIPTION, because the description is what a human can judge.
+      // A bare code tells you nothing about whether it should have counted.
+      if (area > 400) {
+        const k = `${type} "${desc}"`;
+        unmatchedCodes.set(k, (unmatchedCodes.get(k) || 0) + 1);
+      }
       continue;
     }
     const cur = imprv.get(id) || { living_area: 0, year_built: null, quality_class: null, main: 0 };
@@ -236,10 +242,10 @@ console.log(`    CAPPED EITHER WAY           ${capped.toLocaleString().padStart(
 console.log(`    no living area on file      ${noLivingArea.toLocaleString().padStart(8)}  ${pct(noLivingArea, written)}%  <- cannot be size-adjusted as a comp`);
 
 if (unmatchedCodes.size) {
-  const top = [...unmatchedCodes].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  console.log(`\n  improvement codes with area >400 sqft that are NOT counted as living area:`);
-  console.log(`    ${top.map(([c, n]) => `${c}(${n})`).join(' ')}`);
-  console.log(`    Confirm none of these is a dwelling for this district before trusting comps.`);
+  const top = [...unmatchedCodes].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  console.log(`\n  improvement types with area >400 sqft NOT counted as living area:`);
+  for (const [k, n] of top) console.log(`    ${String(n).padStart(7)}  ${k}`);
+  console.log(`    If any of those is a dwelling for this district, lib/tx/pacs.js needs the pattern.`);
 }
 
 if (invariantFailed) {
@@ -250,6 +256,16 @@ if (invariantFailed) {
   console.error(`  Refusing to present this as a successful load.`);
   process.exit(1);
 }
+const pctNoArea = written ? noLivingArea * 100 / written : 0;
+if (pctNoArea > 60) {
+  console.error(`\n✗ ${pctNoArea.toFixed(1)}% of parcels have NO living area.`);
+  console.error(`  That is not a data gap, it is an unrecognised improvement type. Wichita`);
+  console.error(`  produced exactly this (100%) because it calls the dwelling LV "LIVING AREA"`);
+  console.error(`  while Nueces calls it MA "MAIN AREA". Check the unmatched list above and`);
+  console.error(`  extend LIVING_INCLUDE in lib/tx/pacs.js. Parcels without size cannot be comped.`);
+  process.exit(1);
+}
+
 console.log(`\n  invariant   held on ${invariantChecked.toLocaleString()} sampled rows`);
 
 const pctSkipped = read ? skipped * 100 / read : 0;

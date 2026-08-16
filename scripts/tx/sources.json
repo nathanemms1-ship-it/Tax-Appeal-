@@ -46,7 +46,8 @@
     "ISW": "Interactive Software / Southwest Data Solutions. Parker, Midland, Tom Green, Henderson.",
     "PROTAX": "Brazoria's own export.",
     "ECTOR": "Ector's own comma-delimited format.",
-    "EARS": "The Comptroller submission format itself. Only Travis publishes it. Documented in Form 96-1051."
+    "EARS": "The Comptroller submission format itself. Only Travis publishes it. Documented in Form 96-1051.",
+    "TAB_DELIM": "Tab-delimited .tab files with header rows on most members (externalnal.tab, externalbld.tab, externalland.tab). Bell. NOT PACS despite Bell publishing a PACS layout document \u2014 verified by opening the archive 16 Aug. Needs its own parser; the header rows make it self-describing, so it is easier than PACS, just different."
   },
   "districts": [
     {
@@ -106,7 +107,8 @@
         "certified_2026": "https://nuecescad.net/wp-content/uploads/2026/08/Certified-Public-Export-2026.zip",
         "certified_2025": "https://nuecescad.net/wp-content/uploads/2025/09/2025-Certified-Public-Export.zip"
       },
-      "notes": "PARSER VALIDATION TARGET #1. Publishes the 8.0.33 layout AND the data, so every field offset can be checked against the spec rather than inferred. Also publishes residential class-code guides."
+      "notes": "LOADED 16 Aug: 209,481 read -> 115,001 residential. Export header says 8.0.0.34 while the layout Nueces publishes is 8.0.33. Living area = MA \"MAIN AREA\".",
+      "loaded": true
     },
     {
       "county": "Bell",
@@ -114,7 +116,7 @@
       "cad_name": "Bell County Appraisal District",
       "site": "https://bellcad.org",
       "data_page": "https://bellcad.org/data-portal/",
-      "format": "PACS",
+      "format": "TAB_DELIM",
       "access": "free",
       "login": false,
       "confidence": "verified",
@@ -123,7 +125,8 @@
         "certified_2026": "https://bellcad.org/wp-content/uploads/2019/06/2026-Bell-County-Certified-Export-1.zip",
         "certified_2025": "https://bellcad.org/wp-content/uploads/2025/07/2025-Bell-County-Certified-Export.7z"
       },
-      "notes": "PARSER VALIDATION TARGET #2. Also publishes a condensed one-row-per-account XLSX, ideal for eyeballing expected values before trusting the parser. Note the 2025 file is .7z, which needs p7zip rather than unzip."
+      "notes": "NOT PACS. Bell publishes an 'Appraisal Export Layout 8.0.33.xlsx' on its data page, but the actual export is 12 tab-delimited .tab files \u2014 externalnal, externalbld, externalland, externalsale, externalexemptions and others \u2014 most carrying a header row. Confirmed by opening the archive. The published layout document describes a format this district does not ship. Second district found doing this; treat every published layout as a hint, not a contract.",
+      "verified_format_at": "2026-08-16"
     },
     {
       "county": "Cameron",
@@ -214,7 +217,8 @@
         "certified_2026": "https://jcad.org/wp-content/uploads/2026/07/CERTIFIED-2026_0_PUBLIC.zip",
         "certified_2025": "https://jcad.org/wp-content/uploads/2025/10/2025-CERTIFIED_2025_0_PUBLIC.zip"
       },
-      "notes": "Filenames end _PUBLIC and follow a clean pattern \u2014 among the easiest to automate once the listing page is parsed."
+      "notes": "LOADED 16 Aug from the 2026 file: 154,028 read -> 80,553 residential. THE 2025 FILE IS LAYOUT 8.0.0.30 AND IS CORRECTLY REFUSED by the version guard \u2014 do not \"fix\" that by widening the accepted set without diffing the offsets first. Living area = HSE \"HOUSE\" plus SEC \"SECOND STORY\".",
+      "loaded": true
     },
     {
       "county": "Brazos",
@@ -246,7 +250,9 @@
       "files": {
         "certified_2026": "https://kaufman-cad.org/wp-content/uploads/2026/07/2026-Certified-Export-Files.zip",
         "preliminary_2026": "https://kaufman-cad.org/wp-content/uploads/2026/05/2026-Preliminary-Full-Roll-Export.zip"
-      }
+      },
+      "loaded": true,
+      "notes": "LOADED 16 Aug: 108,592 read -> 65,012 residential. Living area = LA \"LIVING AREA\". 11 ragged records, well under threshold."
     },
     {
       "county": "Wichita",
@@ -262,7 +268,8 @@
       "files": {
         "certified_real_2026": "https://wadtx.com/wp-content/uploads/2026/07/2026-CERTIFIED-REAL-ROLL.zip"
       },
-      "notes": "Layout published is 8.0.25 \u2014 older than Bell/Nueces at 8.0.33. Good regression target: the parser must handle more than one layout version."
+      "notes": "LOADED 16 Aug: 60,174 read -> 42,249 residential. Data is 8.0.0.34 despite the published layout being 8.0.25. Living area = LV \"LIVING AREA\", not MA \u2014 this district is why the living-area matcher works on descriptions rather than codes.",
+      "loaded": true
     },
     {
       "county": "Taylor",
@@ -277,7 +284,9 @@
       "layout": "https://taylor-cad.org/wp-content/uploads/2026/06/TaylorCAD_AppraisalData_Export_Layout_files_04Jun26.zip",
       "files": {
         "certified_2026": "https://taylor-cad.org/wp-content/uploads/2026/07/TaylorCAD_2026_Certified_Appr_Roll_as_of_Certification_31Jul26.zip"
-      }
+      },
+      "loaded": true,
+      "notes": "LOADED 16 Aug: 86,008 read -> 45,638 residential. Living area = MA \"MAIN AREA\"."
     },
     {
       "county": "Grayson",
