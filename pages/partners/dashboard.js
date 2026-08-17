@@ -424,6 +424,31 @@ export default function PartnerDashboard() {
             {/* Left column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+              {/* The $20 coupon. Rendered only when one exists — a partner row
+                  predating the migration shows nothing rather than an empty
+                  promise. A spent coupon stays VISIBLE and greyed rather than
+                  disappearing: a partner who gave theirs away needs to see that
+                  it was used, instead of handing out a dead code and finding out
+                  from the person they gave it to. */}
+              {data.partner.perkCode && (
+                <div style={{ background: C.white, border: `1px solid ${data.partner.perkRedeemedAt ? C.border : '#A7DFC0'}`, borderRadius: 14, padding: '24px 26px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, marginBottom: 12 }}>
+                    Your $20 coupon {data.partner.perkRedeemedAt && <span style={{ color: C.mutedGray, fontWeight: 400 }}>— used</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, background: data.partner.perkRedeemedAt ? C.bg : '#F0FBF4', border: `1px solid ${data.partner.perkRedeemedAt ? C.border : '#A7DFC0'}`, borderRadius: 8, padding: '10px 14px', fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', color: data.partner.perkRedeemedAt ? C.mutedGray : '#0F5C40', textDecoration: data.partner.perkRedeemedAt ? 'line-through' : 'none' }}>
+                      {data.partner.perkCode}
+                    </div>
+                    {!data.partner.perkRedeemedAt && <CopyButton text={data.partner.perkCode} />}
+                  </div>
+                  <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
+                    {data.partner.perkRedeemedAt
+                      ? <>This coupon was used on {formatMonth(data.partner.perkRedeemedAt)}. Each partner gets one.</>
+                      : <>$20 off one filing — $69 instead of $89. Use it on your own property, or give it to a client or a friend. It works for anyone, once, and it doesn&rsquo;t expire. Note that an order using this coupon doesn&rsquo;t also earn the ${'$'}20 referral commission — it&rsquo;s one or the other, never both.</>}
+                  </p>
+                </div>
+              )}
+
               {/* Referral link */}
               <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 26px' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, marginBottom: 12 }}>Your referral link</div>

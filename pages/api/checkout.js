@@ -5,6 +5,8 @@ import { isFlCountySupported } from '../../lib/flVabAddresses';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { blockIfSalesPaused } from '../../lib/salesGate';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
+import { getSupabaseAdmin } from './supabase';
+import { normalizePerkCode, applyPerkToLineItems, RPC, PERK_AMOUNT_CENTS } from '../../lib/partnerPerk';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -34,6 +36,7 @@ agentAuthTimestamp,
 isPreOrder,
 scheduledFileDate,
 refCode,
+perkCode,
 } = req.body;
 
 /**
@@ -164,11 +167,64 @@ quantity: 1,
 });
 }
 
+/**
+ * ==========================================================================
+ * THE PARTNER COUPON
+ * ==========================================================================
+ * Reserved BEFORE the Stripe session exists, because the reservation has to be
+ * keyed to something and Stripe has not issued a session id yet. So we mint the
+ * key ourselves, hold the coupon against it, and pass it through metadata for
+ * lib/fulfillOrder.js to confirm against.
+ *
+ * EVERY FAILURE IS SILENT AND THE CUSTOMER PAYS FULL PRICE. Deliberate. A coupon
+ * that cannot be reserved — unknown, spent, held by another checkout, database
+ * unreachable — must never block a sale. $20 of goodwill is recoverable by a
+ * human in two minutes; a lost order is not. Each branch logs, so a partner's
+ * "my code didn't work" is answerable from a log line rather than by re-running
+ * their checkout.
+ */
+const perkKey = `perk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+let perkApplied = null;
+const normalizedPerk = normalizePerkCode(perkCode);
+
+if (perkCode && !normalizedPerk) {
+  console.warn('[checkout] coupon rejected — malformed:', String(perkCode).slice(0, 32));
+} else if (normalizedPerk) {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      console.error('[checkout] coupon skipped — Supabase unavailable');
+    } else {
+      const { data, error: perkErr } = await supabase.rpc(RPC.reserve, {
+        p_code: normalizedPerk, p_session: perkKey,
+      });
+      if (perkErr) {
+        console.error('[checkout] coupon reserve failed:', perkErr.message);
+      } else if (!data || data.length === 0) {
+        // Zero rows is the ONLY signal that the code was unavailable. Do not
+        // follow this with a SELECT to find out why — that is the read-then-write
+        // race the database function exists to eliminate, reintroduced.
+        console.warn('[checkout] coupon unavailable (unknown, spent, or held):', normalizedPerk);
+      } else {
+        perkApplied = normalizedPerk;
+        console.log(`[checkout] coupon ${normalizedPerk} reserved as ${perkKey}`);
+      }
+    }
+  } catch (e) {
+    console.error('[checkout] coupon reserve threw:', e?.message);
+  }
+}
+
+// Applied ONLY off perkApplied, which is set nowhere but inside the successful
+// reserve branch above. So the price the customer sees and the coupon we will
+// burn can never disagree.
+const finalLineItems = perkApplied ? applyPerkToLineItems(lineItems) : lineItems;
+
 const session = await stripe.checkout.sessions.create({
 payment_method_types: ['card'],
 mode: 'payment',
 customer_email: email,
-line_items: lineItems,
+line_items: finalLineItems,
 metadata: {
 customerName: `${firstName} ${lastName}`,
 email,
@@ -209,6 +265,13 @@ agentAuthTimestamp: agentAuthTimestamp || '',
 // listed an 'Unknown' referrer. Length-capped so it can't be used to stuff
 // Stripe metadata or a Supabase filter.
 refCode: String(refCode || '').trim().toUpperCase().slice(0, 64),
+      // The coupon, and the key holding its reservation. lib/fulfillOrder.js
+      // needs BOTH: the code to stamp on the order (which cancels the referral
+      // commission) and the key to confirm the reservation against. Confirming
+      // on the code alone would let one session consume another's hold.
+      perkCode: perkApplied || '',
+      perkKey: perkApplied ? perkKey : '',
+      perkDiscountCents: perkApplied ? String(PERK_AMOUNT_CENTS) : '',
 isPreOrder: isPreOrder ? 'true' : 'false',
 scheduledFileDate: scheduledFileDate || '',
 },

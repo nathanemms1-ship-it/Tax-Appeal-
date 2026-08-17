@@ -2,6 +2,7 @@
 // Handles /partners form submission — creates a referral code and saves to Supabase
 import { getSupabaseAdmin } from './supabase';
 import { Resend } from 'resend';
+import { generatePerkCode } from '../../lib/partnerPerk';
 import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { escapeHtml } from '../../lib/webhookAuth';
@@ -167,7 +168,38 @@ function referralLinkFor(code) {
 return `${process.env.NEXT_PUBLIC_BASE_URL}/apply?ref=${code}`;
 }
 
-async function sendReminderEmail({ email, firstName, code, referralLink }) {
+/**
+ * The $20 coupon block, shared by the welcome email and the "here it is again"
+ * reminder.
+ *
+ * IT APPEARS IN BOTH ON PURPOSE. The migration issues a coupon to every EXISTING
+ * partner, not only to new ones — and existing partners have already had their
+ * welcome email. The reminder is the only push they will ever receive, so a
+ * coupon missing from it is a coupon they never learn they have: a liability on
+ * the books that buys no goodwill and drives no order.
+ *
+ * Returns '' when there is no code, so a partner row predating the migration
+ * renders nothing rather than an empty green box promising a coupon that is not
+ * there.
+ *
+ * The "one or the other, never both" sentence is not fine print and must not be
+ * trimmed for length. A partner who spends their coupon and then finds no
+ * commission on their payout statement will read it as the program shortchanging
+ * them. Said here, in advance, it reads as a choice they made.
+ */
+function couponBlock(perkCode) {
+  if (!perkCode) return '';
+  return `
+<div style="background:#F0FBF4;border:1px solid #A7DFC0;border-radius:10px;padding:20px 24px;margin-bottom:20px;">
+  <div style="font-size:11px;font-weight:700;color:#12694A;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your $20 coupon</div>
+  <div style="font-size:22px;color:#0F5C40;font-weight:700;letter-spacing:0.06em;text-align:center;margin:10px 0 12px;">${escapeHtml(perkCode)}</div>
+  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Filing on your own property? Use it at checkout and pay <strong>$69 instead of $89</strong>.</p>
+  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Not filing this year? Give it to a client or a friend &mdash; it works for anyone, once, and it doesn&rsquo;t expire.</p>
+  <p style="font-size:13px;color:#4B6076;line-height:1.65;margin:0;">One thing to know: an order that uses your coupon doesn&rsquo;t also earn the $20 referral commission. <strong>The coupon is the $20</strong> &mdash; you&rsquo;re choosing to take it as a discount for whoever files instead of as a commission. It&rsquo;s one or the other, never both.</p>
+</div>`;
+}
+
+async function sendReminderEmail({ email, firstName, code, referralLink, perkCode }) {
 try {
 await resend.emails.send({
 from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
@@ -192,6 +224,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
+${couponBlock(perkCode)}
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(email)}&amp;name=${encodeURIComponent(firstName || '')}&amp;token=${partnerToken(code, email)}`)}
 ${dashboardBlock(code, email)}
 ${coverageBlock()}
@@ -243,7 +276,7 @@ try {
 // Check for duplicate email — each email is tied to exactly one referral code
 const { data: existing } = await supabase
 .from('referrals')
-.select('id, code, first_name')
+.select('id, code, first_name, perk_code')
 .eq('email', normalizedEmail)
 .single();
 
@@ -255,6 +288,7 @@ await sendReminderEmail({
 email: normalizedEmail,
 firstName: existing.first_name || firstName,
 code: existing.code,
+perkCode: existing.perk_code || null,
 referralLink,
 });
 await markReminderSent(normalizedEmail);
@@ -290,6 +324,7 @@ return res.status(200).json({ success: true, duplicate: true, message });
  * upper(btrim(code)), because that is what settle() compares — see its header.
  */
 let code = null;
+let perkCodeIssued = null;
 let data = null;
 let error = null;
 
@@ -302,6 +337,13 @@ const inserted = await supabase
 .from('referrals')
 .insert({
 code: candidate,
+// Issued at signup, in the same INSERT as the referral code. Generating it
+// later would leave a window where a partner exists with no coupon and the
+// welcome email has nothing to print. The unique index on perk_code turns a
+// collision into a 23505, which the retry loop below already handles — the
+// same loop, for the same reason, as the referral code itself.
+perk_code: generatePerkCode(),
+perk_issued_at: new Date().toISOString(),
 first_name: firstName.trim(),
 last_name: lastName.trim(),
 name: `${firstName.trim()} ${lastName.trim()}`,
@@ -324,6 +366,7 @@ if (inserted.error && inserted.error.code === '23505') { error = inserted.error;
 data = inserted.data;
 error = inserted.error;
 code = candidate;
+perkCodeIssued = inserted.data?.perk_code || null;
 break;
 }
 
@@ -364,6 +407,7 @@ html: `<!DOCTYPE html>
 <div style="font-size:14px;color:#0C447C;font-weight:600;word-break:break-all;">${escapeHtml(referralLink)}</div>
 <div style="font-size:11px;color:#378ADD;margin-top:6px;">Your code: <strong>${escapeHtml(code)}</strong></div>
 </div>
+${couponBlock(perkCodeIssued)}
 ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${encodeURIComponent(code)}&amp;email=${encodeURIComponent(normalizedEmail)}&amp;name=${encodeURIComponent(firstName.trim() + ' ' + lastName.trim())}&amp;token=${partnerToken(code, normalizedEmail)}`)}
 ${dashboardBlock(code, normalizedEmail)}
 ${coverageBlock()}

@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
     const { data: partners, error: partnersError } = await supabase
       .from('referrals')
-      .select('code, name, first_name, last_name, email, phone, stripe_account_id, active, total_referrals, total_paid');
+      .select('code, name, first_name, last_name, email, phone, stripe_account_id, active, total_referrals, total_paid, perk_code, perk_redeemed_at');
     if (partnersError) throw partnersError;
 
     // The whole ledger, not this period's slice — see the same note in the cron.

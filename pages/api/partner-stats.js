@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     // Authenticate: ref code must belong to this email
     const { data: partner, error: partnerError } = await supabase
       .from('referrals')
-      .select('id, code, name, first_name, email, role, states_active, stripe_account_id, active, created_at')
+      .select('id, code, name, first_name, email, role, states_active, stripe_account_id, active, created_at, perk_code, perk_redeemed_at')
       .eq('code', ref.toUpperCase())
       .eq('email', email.toLowerCase().trim())
       .single();
@@ -247,6 +247,14 @@ export default async function handler(req, res) {
         statesActive: partner.states_active || '',
         memberSince: partner.created_at,
         referralLink,
+        // THE COUPON. Exposed here because an email gets buried and "where is my
+        // code again" is otherwise a support message. This is its permanent home.
+        //
+        // `perkRedeemedAt` is sent alongside it rather than hiding a spent code:
+        // a partner who gave theirs away should be able to see that it was used,
+        // instead of handing out a dead code and being told so by the recipient.
+        perkCode: partner.perk_code || null,
+        perkRedeemedAt: partner.perk_redeemed_at || null,
         // A deactivated partner should not be looking at a page that implies money
         // is on the way. The UI reads this.
         active: partner.active !== false,
