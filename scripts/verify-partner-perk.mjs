@@ -149,6 +149,16 @@ t('checkout discounts only after a successful reservation',
   /perkApplied\s*\?\s*applyPerkToLineItems/.test(checkoutSrc));
 t('checkout sends the reservation key to the webhook', /perkKey:\s*perkApplied\s*\?\s*perkKey/.test(checkoutSrc));
 
+// ── The funnel must actually be able to send a coupon ─────────────────────
+// Everything above can pass while the customer has no way to enter a code. The
+// backend was complete for a day before the field existed, and nothing failed —
+// it just quietly never discounted anything.
+const applySrc = read('pages/apply.js');
+t('the funnel sends perkCode to /api/checkout', /perkCode:\s*perkNormalized/.test(applySrc));
+t('the funnel normalises with the SAME function the server uses',
+  /import \{ normalizePerkCode \} from '\.\.\/lib\/partnerPerk'/.test(applySrc));
+t('checkout reads perkCode off the request body', /\bperkCode,/.test(checkoutSrc));
+
 // The migration must create the order-side columns settlement depends on.
 t('the migration adds orders.perk_code', /alter table orders add column if not exists perk_code/.test(migration));
 t('the migration adds the unique index on referrals.perk_code',

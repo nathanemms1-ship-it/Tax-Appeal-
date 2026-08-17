@@ -4,6 +4,7 @@ import ApplyHead from '../components/ApplyHead';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
+import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
@@ -1756,6 +1757,29 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
   const [checkingOut, setCheckingOut] = useState(false);
 
   /**
+   * THE PARTNER COUPON FIELD.
+   *
+   * `perkInput` is exactly what the customer typed; `perkNormalized` is what we
+   * will send. normalizePerkCode is imported from lib/partnerPerk.js — the SAME
+   * function pages/api/checkout.js validates with — so the field cannot accept a
+   * shape the server will reject, or reject one it would have taken. Two
+   * normalisers would eventually disagree, and the failure would look like a
+   * broken coupon rather than like a bug.
+   *
+   * DELIBERATELY NO LIVE "IS THIS CODE REAL" LOOKUP. An endpoint that answered
+   * that would be an enumeration oracle for a credential worth $20, and it would
+   * also lie: it could say "valid" and then lose the reservation race at
+   * checkout, so the customer would be shown $69 and charged $89. Instead we
+   * validate the SHAPE here, which catches every typo, and Stripe's own payment
+   * page shows the real line item — "(partner coupon applied) $69.00" — before
+   * anyone pays. The customer sees the truth from the system that will charge
+   * them, not a promise from us.
+   */
+  const [perkInput, setPerkInput] = useState('');
+  const perkNormalized = normalizePerkCode(perkInput);
+  const perkLooksWrong = perkInput.trim().length > 0 && !perkNormalized;
+
+  /**
    * OPERATOR PREVIEW UNLOCK — see pages/api/preview-unlock.js for the reasoning.
    *
    * Reading our own petition used to require either buying one or setting
@@ -1886,6 +1910,10 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               return code.trim().toUpperCase();
             } catch (e) { return ''; }
           })(),
+          // Normalised, never raw. checkout.js normalises again — belt and
+          // braces, because this body is also reachable from anything else that
+          // learns to POST it.
+          perkCode: perkNormalized || '',
           isPreOrder: !!(filingWindow && filingWindow.canPreOrder),
           scheduledFileDate: (filingWindow && filingWindow.canPreOrder) ? filingWindow.openDate.toISOString() : '',
         }),
@@ -2110,6 +2138,42 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             It now happens on /success, after payment, on the complete unblurred
             petition - the same post-payment flow TX/GA/AR/AL already used. Nothing
             mails until it is signed. See lib/fulfillOrder.js. */}
+        {/* Partner coupon. Placed directly above the pay button because that is
+            where someone holding a code looks for it, and collapsed by default so
+            the 99% who have none are not prompted to go hunting for one. */}
+        <div style={{ marginTop: 18, marginBottom: 4 }}>
+          <label style={{ display: "block", fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.mutedGray, marginBottom: 6 }}>
+            Have a partner coupon? (optional)
+          </label>
+          <input
+            type="text"
+            value={perkInput}
+            onChange={(e) => setPerkInput(e.target.value)}
+            placeholder="TAP-XXXX-XXXX"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Partner coupon code"
+            style={{
+              width: "100%", boxSizing: "border-box", padding: "10px 14px",
+              fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+              letterSpacing: perkInput ? "0.06em" : "normal",
+              textTransform: perkInput ? "uppercase" : "none",
+              border: `1px solid ${perkLooksWrong ? "#D97706" : perkNormalized ? "#A7DFC0" : C.border}`,
+              background: perkNormalized ? "#F0FBF4" : C.white,
+              borderRadius: 8, outline: "none",
+            }}
+          />
+          {perkLooksWrong && (
+            <p style={{ fontSize: 12, color: "#B45309", margin: "6px 0 0", fontFamily: "'DM Sans', sans-serif" }}>
+              That doesn&rsquo;t look like a coupon code. They look like <strong>TAP-K7M2-QW9F</strong> &mdash; eight letters and numbers. Leave it blank if you don&rsquo;t have one.
+            </p>
+          )}
+          {perkNormalized && (
+            <p style={{ fontSize: 12, color: "#0F5C40", margin: "6px 0 0", fontFamily: "'DM Sans', sans-serif" }}>
+              $20 off will be applied if this coupon is still available. You&rsquo;ll see the final amount on the payment page before you pay.
+            </p>
+          )}
+        </div>
         <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
           <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
           <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : `Continue to payment · ${totalChargeLabel} — you sign your petition next`}</span>
