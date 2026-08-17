@@ -158,14 +158,21 @@ create table if not exists tx_parcels (
   -- Living/heated area, NOT gross or under-roof. HCAD publishes both and they
   -- differ by hundreds of feet on a house with a garage; comping one against
   -- the other manufactures a difference that is not there.
-  living_area           integer,
-  gross_area            integer,
+  -- FRACTIONAL. These are numeric, not integer, and that is not defensive
+  -- over-typing: districts genuinely record half square feet. Wichita line 51
+  -- carries a living area of 3517.5 and Nueces has 1485.8; a 1.5-storey area or
+  -- a measured half-foot produces them routinely. Declared as integer, the COPY
+  -- fails partway through the first county with "invalid input syntax for type
+  -- integer" — found by loading a real county into a throwaway Postgres before
+  -- pointing any of this at production.
+  living_area           numeric(10,1),
+  gross_area            numeric(10,1),
   year_built            smallint,
   effective_year_built  smallint,
   quality_class         text,        -- district's own grade code, e.g. HCAD qa_cd
   condition_code        text,
   land_size_acres       numeric(12,4),
-  land_size_sqft        bigint,
+  land_size_sqft        numeric(14,2),
 
   -- ── The district's own strata. This is what makes a comp set defensible. ──
   --

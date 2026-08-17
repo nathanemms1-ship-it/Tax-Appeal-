@@ -25,44 +25,51 @@ what the districts publish themselves, and no secrets.
 
 ---
 
-## Step 1 — get your connection string
+## Step 1 — install the Postgres driver
+
+`psql` is not on this Mac and neither is Homebrew, so the load runs through Node
+instead. `--no-save` is deliberate: it keeps these out of `package.json` so
+Vercel never installs them and the production build is unchanged.
+
+```
+cd ~/Developer/Tax-Appeal-
+npm install pg pg-copy-streams --no-save
+```
+
+## Step 2 — get your connection string
 
 1. Go to **supabase.com** and open your project.
 2. Click **Connect** at the top of the page.
-3. Choose the **Session pooler** tab (not Transaction pooler — `\copy` needs a
-   session, and the transaction pooler will drop you mid-load).
-4. Click the **copy button** on the connection string. Use Supabase's own copy
-   button — do not select the text by hand, and do not use `pbcopy`, which
-   truncated a 64-character key to 15 on this Mac on 2 August.
+3. Choose the **Session pooler** tab — NOT Transaction pooler. `COPY` needs a
+   session and the transaction pooler will drop you mid-load.
+4. Use Supabase's own **copy button**. Do not select the text by hand, and do not
+   use `pbcopy` — it truncated a 64-character key to 15 on this Mac on 2 August.
+5. Supabase shows the password as `[YOUR-PASSWORD]`. Replace that placeholder
+   with your actual database password. The script checks for this and refuses if
+   the placeholder is still there.
 
-It looks like `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-...pooler.supabase.com:5432/postgres`
+## Step 3 — nothing. There is no step 3.
 
-## Step 2 — put it in your shell without it landing in scrollback
-
-Type this line **on its own** and press Enter. Do not paste it together with the
-next command — a block whose first line is `read` swallows the following line as
-its input, which cost an hour on 1 August.
+The earlier version of this runbook told you to do:
 
 ```
 read -rs PGURL
+export PGURL
 ```
 
-The cursor will sit there with no prompt. Press **⌘V**, then Enter. Nothing
-appears on screen — that is correct, it is hidden deliberately.
+**Do not do that.** Pasted as a block, the shell hands the second line to `read`
+as its input, so `PGURL` becomes the literal string `export PGURL` and the export
+never runs. `START_HERE` records this trap costing an hour once already, and it
+caught us again anyway — a warning in a document does not stop two lines being
+pasted together.
 
-## Step 3 — check psql is installed
-
-```
-psql --version
-```
-
-**If that errors**, install it: `brew install libpq && brew link --force libpq`
+The script now just asks, and hides your typing. Skip to step 4.
 
 ## Step 4 — create the tables
 
 ```
 cd ~/Developer/Tax-Appeal-
-psql "$PGURL" -f scripts/tx/schema.sql
+node scripts/tx/push.mjs --schema
 ```
 
 **Success:** several `CREATE TABLE` lines and no errors.
@@ -74,11 +81,11 @@ exists` throughout and re-running it is safe.
 Run this as one block. Each county takes a few seconds.
 
 ```
-for f in tx-data/*/*_parcels.csv; do
-  echo "== $f"
-  psql "$PGURL" -c "\copy tx_parcels (cad_id,account_number,tax_year,market_value,appraised_value,homestead_cap_loss,nhs_cap_loss,land_value,improvement_value,living_area,year_built,quality_class,land_size_acres,land_size_sqft,neighborhood_code,abs_subdv_cd,state_class_code,situs_street,situs_city,situs_zip,has_homestead,arb_protest_flag,source_format) from '$f' with (format csv, header true)"
-done
+node scripts/tx/push.mjs
 ```
+
+It clears each district before loading it, so re-running is safe and idempotent —
+the primary key is `(cad_id, account_number, tax_year)`.
 
 **Success:** five `COPY nnnnn` lines, summing to 348,453.
 
@@ -87,7 +94,7 @@ is one transaction — so you can fix and re-run just that file. To re-run a cou
 that already loaded, clear it first:
 
 ```
-psql "$PGURL" -c "delete from tx_parcels where cad_id = 178"
+node scripts/tx/push.mjs --county Nueces
 ```
 
 ## Step 6 — build the indexes
@@ -95,7 +102,7 @@ psql "$PGURL" -c "delete from tx_parcels where cad_id = 178"
 Only now.
 
 ```
-psql "$PGURL" -f scripts/tx/indexes.sql
+node scripts/tx/push.mjs --indexes
 ```
 
 **Success:** `CREATE INDEX` × 7 and one `ANALYZE`. This takes a minute or two.
@@ -127,53 +134,22 @@ from tx_parcels group by cad_id order by rows desc"
 The `pct_capped` column is the one to check — those five numbers came out of the
 loader independently, so if the database agrees, the load is faithful.
 
-## Step 8 — prove the comp query works
+## That's it
 
-This is the whole point of the exercise: can we find comparable properties for a
-real parcel using the district's own neighbourhood stratification?
-
-```
-psql "$PGURL" -c "
-with subject as (
-  select * from tx_parcels
-  where cad_id = 178 and neighborhood_code = 'G100' and living_area between 1400 and 1600
-  limit 1
-)
-select s.account_number as subject, s.living_area, s.appraised_value,
-       count(c.*) as comps,
-       round(percentile_cont(0.5) within group (order by c.appraised_value::numeric / nullif(c.living_area,0))) as median_ppsf,
-       round(s.appraised_value::numeric / nullif(s.living_area,0)) as subject_ppsf
-from subject s
-join tx_parcels c
-  on c.cad_id = s.cad_id
- and c.tax_year = s.tax_year
- and c.neighborhood_code = s.neighborhood_code
- and c.state_class_code = s.state_class_code
- and c.account_number <> s.account_number
- and c.living_area between s.living_area * 0.8 and s.living_area * 1.2
- and c.year_built between s.year_built - 10 and s.year_built + 10
-group by s.account_number, s.living_area, s.appraised_value, s.year_built"
-```
-
-**Success:** one row with a comp count of at least 5 and two price-per-square-foot
-figures. If the subject's `subject_ppsf` is above `median_ppsf`, that parcel has a
-§ 41.43(b)(3) equal-and-uniform case — which is the entire product.
-
-## Step 9 — clear the secret
-
-```
-unset PGURL
-```
+`--verify` already runs the comp query, and there is no secret left in your shell
+to clear because the script asked for it rather than making you export it.
 
 ---
 
 ## Notes
 
-- `tx-data/` is gitignored. The CSVs are re-creatable at any time from
-  `scripts/tx/load.mjs`, and one export is 161 MB, so they do not belong in git.
-- Re-loading a county is safe: the primary key is
-  `(cad_id, account_number, tax_year)`, so delete that `cad_id` and `\copy` again.
-- Roll year is in the key deliberately. A 2026 roll is a separate legal snapshot,
-  not a correction of 2025, and the § 23.23 cap ceiling is computed from the
-  prior year's appraised value — so verifying a district applied the cap
+- `tx-data/` is gitignored. The CSVs are re-creatable from `scripts/tx/load.mjs`
+  at any time and one export is 161 MB, so they do not belong in git.
+- Re-loading a county is safe and idempotent: `push.mjs` clears that `cad_id`
+  before copying it back in.
+- `pg` and `pg-copy-streams` were installed with `--no-save`, so `npm ci` will
+  remove them. If the driver goes missing, the script tells you the exact command.
+- Roll year is in the primary key deliberately. A 2026 roll is a separate legal
+  snapshot, not a correction of 2025, and the § 23.23 cap ceiling is computed
+  from the prior year's appraised value — so verifying a district applied the cap
   correctly requires holding both years.
