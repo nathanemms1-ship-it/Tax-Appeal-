@@ -100,6 +100,37 @@ const partnerScriptBlock = (referralLink) => `
 <div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare your property tax appeal, you sign it, and they mail it for you. $89 plus your county's filing fee, and no percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>`;
 
+/**
+ * WHERE TO PUT THE LINK.
+ *
+ * Nathan, 17 Aug 2026 — add guidance on placing the link on social.
+ *
+ * Sent in both partner emails alongside partnerScriptBlock, which covers WHAT to
+ * say. This covers WHERE to say it, which is the question a partner actually gets
+ * stuck on: they have a link, they agree it is a good idea, and it sits in an
+ * inbox because no specific place was named.
+ *
+ * The timing sentence is the highest-value line here and is not padding. A
+ * referral link posted in February is noise; the same link posted the week
+ * assessment notices land is a reminder arriving exactly when someone is annoyed
+ * about their bill. One partner posting at the right moment beats five posting at
+ * random.
+ */
+const whereToShareBlock = (referralLink) => `
+<div style="background:#F7F9FC;border:1px solid #D8E2EF;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+<div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Where to put your link</div>
+<p style="font-size:13px;color:#334155;line-height:1.7;margin:0 0 10px;">Anywhere a link works &mdash; there is nothing to install and no code for anyone to remember:</p>
+<ul style="font-size:13px;color:#334155;line-height:1.8;margin:0 0 10px;padding-left:20px;">
+<li>Your email signature</li>
+<li>A pinned post on Facebook, or your local community and neighbourhood groups</li>
+<li>Your Instagram bio, or a story when notices go out</li>
+<li>An X post, LinkedIn, or Nextdoor</li>
+<li>Your Google Business profile and your website</li>
+<li>A line in your newsletter or your next client email</li>
+</ul>
+<p style="font-size:13px;color:#334155;line-height:1.7;margin:0;"><strong>Timing beats volume.</strong> The week county assessment notices land is when homeowners go looking. A post that week is worth more than five spread across the year.</p>
+</div>`;
+
 const payoutSetupBlock = (connectUrl) => `
 <div style="background:#EEF3FB;border:1px solid #B5D4F4;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
 <div style="font-size:12px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Set up your payout account</div>
@@ -229,6 +260,7 @@ ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${e
 ${dashboardBlock(code, email)}
 ${coverageBlock()}
 ${partnerScriptBlock(referralLink)}
+${whereToShareBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Didn't request this? You can ignore this email, or reply to <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a> with questions.</p>
 </div>
@@ -412,6 +444,7 @@ ${payoutSetupBlock(`${process.env.NEXT_PUBLIC_BASE_URL}/partners/connect?ref=${e
 ${dashboardBlock(code, normalizedEmail)}
 ${coverageBlock()}
 ${partnerScriptBlock(referralLink)}
+${whereToShareBlock(referralLink)}
 ${taxNoteBlock()}
 <p style="font-size:13px;color:#64748b;margin:0;">Questions? Reply to this email or contact <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;">customerservice@taxappealusa.com</a></p>
 </div>

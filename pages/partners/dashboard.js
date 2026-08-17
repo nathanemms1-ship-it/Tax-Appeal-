@@ -444,7 +444,7 @@ export default function PartnerDashboard() {
                   <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
                     {data.partner.perkRedeemedAt
                       ? <>This coupon was used on {formatMonth(data.partner.perkRedeemedAt)}. Each partner gets one.</>
-                      : <>$20 off one filing — $69 instead of $89. Use it on your own property, or give it to a client or a friend. It works for anyone, once, and it doesn&rsquo;t expire. Note that an order using this coupon doesn&rsquo;t also earn the ${'$'}20 referral commission — it&rsquo;s one or the other, never both.</>}
+                      : <>$20 off one filing — $69 instead of $89. Use it on your own property, or give it to a client or a friend. It works for anyone, once, and it doesn&rsquo;t expire. Note that an order using this coupon doesn&rsquo;t also earn the $20 referral commission — it&rsquo;s one or the other, never both.</>}
                   </p>
                 </div>
               )}
@@ -459,8 +459,13 @@ export default function PartnerDashboard() {
                   <CopyButton text={data.partner.referralLink} />
                 </div>
                 <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
-                  Share this link via text, email, or your email signature. Every homeowner who clicks it and completes a paid filing earns you ${data.ratePerReferral ?? 20} — automatically tracked.
+                  <strong>Put it where people already see you.</strong> Your email signature, a pinned post on Facebook, your Instagram bio, an X post when
+                  assessment notices go out, a Nextdoor or neighbourhood group, your Google Business profile, a line in your newsletter. It works anywhere a link
+                  works &mdash; there is nothing to install and no code for anyone to remember.
                 </p>
+                <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 8, lineHeight: 1.6 }}>
+                  Timing beats volume: the week county assessment notices land is when people go looking. Every homeowner who clicks your link and completes a paid
+                  filing earns you $20.</p>
               </div>
 
               {/* Stripe status */}
