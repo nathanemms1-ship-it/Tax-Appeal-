@@ -163,6 +163,23 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 `}</style>
 
 {(() => {
+  /*
+   * THIS BANNER SAID "NOT FILING YET" FOR THE ENTIRE SEASON.
+   *
+   * Both branches below read "TaxAppeal USA is not filing yet — join the
+   * waitlist". For the pre-window branch that was outdated; for the window-open
+   * branch it was FALSE ON EVERY REVENUE DAY — 24 Aug to close — at the top of
+   * the page every paid click lands on, pushing buyers to a mailing list instead
+   * of checkout.
+   *
+   * Nobody had seen it, because the second branch only renders once the window
+   * opens. A defect scheduled to appear on the exact day it would cost the most.
+   * Found 17 Aug 2026 while checking the Google Ads destination, seven days out.
+   *
+   * If we ever need to say we are not selling, enforce it at the checkout gate —
+   * not in a strip of copy above a button that still reads "File My Florida
+   * Appeal".
+   */
   const preOrderOpen = new Date('2026-06-12');
   const windowOpen = new Date(windowOpenISO);
   const windowClose = new Date(windowCloseISO);
@@ -172,14 +189,14 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
     const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
     return (
       <div style={barStyle}>
-        🔒 Florida TRIM notices start arriving in {days} days. TaxAppeal USA is not filing yet — join the waitlist and we&apos;ll email you the moment we go live. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Join the waitlist →</a>
+        🔒 Florida TRIM notices start arriving in {days} days. Start your appeal now — we prepare it and file the day your county&apos;s window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Start my appeal →</a>
       </div>
     );
   }
   if (today >= windowOpen && today <= windowClose) {
     return (
       <div style={barStyle}>
-        🚨 Florida's filing window is open. TaxAppeal USA is not filing yet — join the waitlist and we&apos;ll email you the moment we go live. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Join the waitlist →</a>
+        🚨 Florida&apos;s filing window is open — file today. We prepare your VAB petition, you sign it, and we mail it with your county&apos;s fee 7+ days before the deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>File my appeal →</a>
       </div>
     );
   }
