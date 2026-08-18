@@ -148,20 +148,27 @@ const pctile = (xs, p) => {
 };
 
 /**
- * COEFFICIENT OF DISPERSION — the mass-appraisal industry's own uniformity test.
+ * DISPERSION INSIDE A COMP SET — an internal consistency check, nothing else.
  *
  * COD = 100 × (mean absolute deviation from the median) / the median.
  *
- * This is not a metric I invented for this script; it is the IAAO Standard on
- * Ratio Studies measure, the one appraisal districts are themselves judged by,
- * and the Comptroller's Property Value Study reports it. For single-family
- * residential the IAAO standard is **COD ≤ 15**. Above that, the district's own
- * valuations are not uniform by the profession's own published yardstick — which
- * is an argument about the district's methodology rather than about one house,
- * and a much stronger thing to put in front of an ARB than "my neighbour pays
- * less".
+ * ── THIS IS NOT THE IAAO COD, DESPITE SHARING THE FORMULA ──────────────────
+ * The IAAO Standard on Ratio Studies defines its coefficient of dispersion over
+ * a POPULATION — every residential parcel in the stratum. What this function is
+ * handed is a comp set: eight properties comps.js has already filtered to a
+ * narrow size, age and land-share band around one subject. The filtering is what
+ * makes it tight, so this number is systematically lower than the IAAO one and
+ * comparing it against the residential benchmark of 15 is a category error.
  *
- * IT IS ALSO A CHECK ON US, AND THAT IS WHY IT IS HERE.
+ * Measured over the five loaded counties the gap runs 3–8 points, and in Taylor
+ * it straddles the benchmark: 10.1 here, 15.5 measured properly. Read off this
+ * column, Taylor looks like a district doing fine work. It is not.
+ *
+ * The publishable figure comes from scripts/tx/county-stats.mjs, which computes
+ * dispersion across whole neighbourhoods per the standard, and lands in
+ * lib/tx/countyStats.json. Nothing on a public page may cite this function.
+ *
+ * IT IS A CHECK ON US, AND THAT IS THE ONLY REASON IT IS HERE.
  *
  * The reduction this engine indicates is, by construction, the distance from the
  * subject down to the median of its stratum. For a roughly symmetric spread, the
@@ -262,8 +269,9 @@ try {
       console.log(`     measured reduction on filable cases: median ${(med(reductions) * 100).toFixed(1)}%  ` +
         `p25 ${(pctile(reductions, 0.25) * 100).toFixed(1)}%  p75 ${(pctile(reductions, 0.75) * 100).toFixed(1)}%  ` +
         `| median saving (UPPER BOUND) $${med(savings) ? Math.round(med(savings)).toLocaleString() : '—'}`);
-      console.log(`     district uniformity inside the comp sets: COD ${mc === null ? '—' : mc.toFixed(1)}` +
-        `${mc === null ? '' : mc > 15 ? '  (IAAO standard for residential is 15 or below — this district is outside it)' : '  (within the IAAO standard of 15)'}`);
+      // Deliberately NOT compared against 15. See the note on cod() above: this
+      // is comp-set dispersion and the IAAO benchmark does not apply to it.
+      console.log(`     dispersion inside the comp sets (NOT the IAAO COD): ${mc === null ? '—' : mc.toFixed(1)}`);
     }
   }
 
@@ -296,7 +304,7 @@ try {
   const mc = med(allCods);
   if (m !== null && mc !== null) {
     console.log(`\n── CONSISTENCY CHECK`);
-    console.log(`   Median COD inside our comp sets: ${mc.toFixed(1)}`);
+    console.log(`   Median dispersion inside our comp sets: ${mc.toFixed(1)}  (not the IAAO COD)`);
     console.log(`   Median indicated reduction:      ${(m * 100).toFixed(1)}%`);
     const ratio = (m * 100) / mc;
     if (ratio > 1.6) {
@@ -308,11 +316,13 @@ try {
       console.log(`   Ratio ${ratio.toFixed(2)}x — consistent. The reduction is tracking the district's`);
       console.log(`   own spread rather than an artefact of comp selection.`);
     }
-    if (mc > 15) {
-      console.log(`\n   NOTE: COD above 15 is outside the IAAO residential standard, which the`);
-      console.log(`   Comptroller's Property Value Study also applies. That is an argument about`);
-      console.log(`   the district's methodology, not just about one house — worth raising.`);
-    }
+    // The IAAO comparison used to live here, run against `mc`. It was wrong:
+    // `mc` is comp-set dispersion and the benchmark is defined over a
+    // population. Whether a district clears the standard is answered by
+    // scripts/tx/county-stats.mjs, which measures whole neighbourhoods.
+    console.log(`\n   For whether this district clears the IAAO residential standard of 15,`);
+    console.log(`   see scripts/tx/county-stats.mjs — that is a different measurement and`);
+    console.log(`   it is the only one that may be quoted publicly.`);
   }
 
   console.log(`\n── HONEST CAVEATS`);

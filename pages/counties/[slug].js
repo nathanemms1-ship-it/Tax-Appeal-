@@ -9,6 +9,10 @@ import { breadcrumbSchema } from '../../lib/breadcrumbs';
 // which cannot parse this file's JSX. See that module for what the date means.
 import { COUNTY_CONTENT_REVISED } from '../../lib/contentRevised';
 
+// Renders only for Texas counties whose certified roll we actually hold, and
+// returns null for every other page. See the file header: pages follow data.
+import CountyRollFacts from '../../components/CountyRollFacts';
+
 const C = {
   navy: "#1B2A4A",
   navyLight: "#243454",
@@ -455,6 +459,15 @@ export default function CountyPage({ county, fl, contentRevised }) {
             ))}
           </div>
         </div>
+
+        {/* WHAT THE ROLL SAYS.
+            Texas counties whose certified roll we hold get a block of facts counted
+            straight out of it — parcel count, median value, capped share, and how far
+            the district's own values scatter inside a neighbourhood. Everywhere else
+            this renders nothing at all, which is the point: the differentiation between
+            these 254 pages has to come from data we really have, not from a template
+            with the county name swapped in. */}
+        <CountyRollFacts county={county} />
 
         {/* HOW IT WORKS */}
         <div id="how-it-works" style={{ maxWidth: 860, margin: "0 auto", padding: "64px 32px 48px" }}>
