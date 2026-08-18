@@ -230,6 +230,170 @@ function WaitlistView({ data, loading, error, onRetry }) {
   );
 }
 
+/**
+ * Daily unique visitors.
+ *
+ * The chart is plain divs. A charting library for one bar chart is 40kB in the
+ * admin bundle to draw rectangles, and /admin already renders every other number
+ * in this file with the same table-and-card vocabulary.
+ */
+function TrafficView({ data, loading, error, onRetry }) {
+  if (loading) {
+    return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading traffic…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{error}</div>
+        <button onClick={() => onRetry()} style={{ background: C.navy, color: C.white, border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 };
+  const th = { textAlign: "left", padding: "9px 12px", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, fontWeight: 500 };
+  const td = { padding: "9px 12px", fontSize: 13, borderTop: `1px solid ${C.border}` };
+
+  const series = data.series || [];
+  const peak = series.reduce((m, d) => Math.max(m, d.visitors), 0) || 1;
+  const dayLabel = (iso) => {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return `${m}/${d}`;
+  };
+
+  return (
+    <>
+      {data.daysRecorded === 0 && (
+        <div style={{ background: C.amber, border: "1.5px solid #E5C76B", borderRadius: 12, padding: "14px 20px", marginBottom: 20, fontSize: 13, color: "#7a5b00", lineHeight: 1.7 }}>
+          <strong>Nothing recorded yet.</strong> If the site is live and this stays empty, the likely cause is{' '}
+          <code>VISITOR_HASH_SECRET</code> not being set in this environment — the middleware records nothing without it,
+          on purpose. Check <code>/api/admin-health</code>.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          ['Today so far', data.today, 'partial day'],
+          ['Last 7 days', data.totals.last7, 'sum of daily uniques'],
+          ['Last 30 days', data.totals.last30, 'sum of daily uniques'],
+          ['Busiest day', data.busiestDay ? data.busiestDay.visitors : 0, data.busiestDay ? dayLabel(data.busiestDay.date) : '—'],
+        ].map(([label, n, sub]) => (
+          <div key={label} style={{ ...card, flex: "1 1 180px", marginBottom: 0 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy }}>{Number(n).toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 4 }}>{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+          Unique visitors a day
+        </div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 18 }}>
+          Last {data.chartDays} days, Central time. Declared crawlers are excluded — without that filter this would be
+          mostly Googlebot working through the 1,081 pages, and the crawl of the newly-reachable ones lands in the same
+          fortnight as the ads.
+        </div>
+
+        {series.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.mutedGray }}>No days recorded yet.</div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 180, borderBottom: `1.5px solid ${C.border}`, paddingBottom: 2 }}>
+            {series.map((d) => (
+              <div key={d.date} title={`${d.date} — ${d.visitors} visitors`} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
+                <div style={{ fontSize: 10, color: C.mutedGray, marginBottom: 3 }}>{d.visitors > 0 && d.visitors === peak ? d.visitors : ''}</div>
+                <div style={{
+                  width: "100%",
+                  height: `${Math.max(2, Math.round((d.visitors / peak) * 150))}px`,
+                  background: d.date === data.todayDate ? C.gold : C.navy,
+                  borderRadius: "3px 3px 0 0",
+                }} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {series.length > 0 && (
+          <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
+            {series.map((d, i) => (
+              <div key={d.date} style={{ flex: 1, textAlign: "center", fontSize: 9, color: C.mutedGray }}>
+                {i % 5 === 0 || i === series.length - 1 ? dayLabel(d.date) : ''}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ fontSize: 12, color: C.mutedGray, marginTop: 14, lineHeight: 1.7 }}>
+          Gold is today and is still counting.
+        </div>
+      </div>
+
+      {/* This is not a footnote. It is the difference between a number that helps
+          and a number that gets quoted at somebody. */}
+      <div style={{ ...card, background: C.lightBlue, border: `1.5px solid ${C.border}` }}>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.8 }}>
+          <strong style={{ color: C.darkNavy }}>What this number is, and is not.</strong> A visitor is one IP and browser
+          combination seen on one day. So a brokerage office behind one connection reads as one visitor, and one person
+          moving from wifi to cellular reads as two. It is sound for comparing days and for before-and-after on a
+          campaign. It is <em>not</em> an audience size and should not be quoted as one. The 7 and 30 day figures are
+          sums of daily uniques — somebody who came on five days is counted five times. No cookie is set and no IP
+          address is stored, only a digest that changes daily.
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ ...card, flex: "1 1 340px" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy, marginBottom: 12 }}>
+            Where they came from · last {data.breakdownDays} days
+          </div>
+          {data.byReferrerError ? (
+            <div style={{ fontSize: 13, color: C.red }}>{data.byReferrerError}</div>
+          ) : data.byReferrer.length === 0 ? (
+            <div style={{ fontSize: 13, color: C.mutedGray }}>Nothing recorded yet.</div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Source</th><th style={th}>Visitors</th></tr></thead>
+              <tbody>
+                {data.byReferrer.slice(0, 12).map((r) => (
+                  <tr key={r.host}>
+                    <td style={td}>{r.host === 'direct' ? <span style={{ color: C.mutedGray }}>direct / unknown</span> : r.host}</td>
+                    <td style={{ ...td, fontWeight: 600, color: C.navy }}>{r.visitors.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div style={{ ...card, flex: "1 1 340px" }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy, marginBottom: 12 }}>
+            First page they landed on · last {data.breakdownDays} days
+          </div>
+          {data.byLandingPathError ? (
+            <div style={{ fontSize: 13, color: C.red }}>{data.byLandingPathError}</div>
+          ) : data.byLandingPath.length === 0 ? (
+            <div style={{ fontSize: 13, color: C.mutedGray }}>Nothing recorded yet.</div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Path</th><th style={th}>Visitors</th></tr></thead>
+              <tbody>
+                {data.byLandingPath.slice(0, 12).map((r) => (
+                  <tr key={r.path}>
+                    <td style={{ ...td, fontFamily: "monospace", fontSize: 12 }}>{r.path}</td>
+                    <td style={{ ...td, fontWeight: 600, color: C.navy }}>{r.visitors.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PartnersView({ data, loading, error, onRetry }) {
   if (loading) {
     return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading partners…</div>;
@@ -390,6 +554,9 @@ export default function Admin() {
   const [waitlistData, setWaitlistData] = useState(null);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistError, setWaitlistError] = useState('');
+  const [trafficData, setTrafficData] = useState(null);
+  const [trafficLoading, setTrafficLoading] = useState(false);
+  const [trafficError, setTrafficError] = useState('');
 
   const fetchOrders = async (pw) => {
     setLoading(true);
@@ -461,6 +628,29 @@ export default function Admin() {
   const showWaitlist = () => {
     setView('waitlist');
     if (!waitlistData && !waitlistLoading) fetchWaitlist();
+  };
+
+  const fetchTraffic = async (pw) => {
+    setTrafficLoading(true);
+    setTrafficError('');
+    try {
+      const res = await fetch('/api/traffic-roster', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || password }),
+      });
+      const data = await res.json();
+      if (data.error) setTrafficError(data.hint ? `${data.error} — ${data.hint}` : data.error);
+      else setTrafficData(data);
+    } catch (e) {
+      setTrafficError('Failed to connect');
+    }
+    setTrafficLoading(false);
+  };
+
+  const showTraffic = () => {
+    setView('traffic');
+    if (!trafficData && !trafficLoading) fetchTraffic();
   };
 
   /**
@@ -588,7 +778,7 @@ export default function Admin() {
         </div>
         {authenticated && (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => (view === 'partners' ? fetchPartners() : view === 'waitlist' ? fetchWaitlist() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
+            <button onClick={() => (view === 'partners' ? fetchPartners() : view === 'waitlist' ? fetchWaitlist() : view === 'traffic' ? fetchTraffic() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
             <a href="/" style={{ fontSize: 12, color: C.mutedGray, textDecoration: "none" }}>← Back to site</a>
           </div>
         )}
@@ -620,8 +810,8 @@ export default function Admin() {
           {/* View switch. Partners were previously visible only by curling
               /api/referral-stats or opening the Supabase table editor. */}
           <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
-            {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads']].map(([key, label]) => (
-              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : setView('orders'))}
+            {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads'], ['traffic', '📈 Traffic']].map(([key, label]) => (
+              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : key === 'traffic' ? showTraffic() : setView('orders'))}
                 style={{ background: view === key ? C.navy : C.white, color: view === key ? C.white : C.bodyGray, border: `1.5px solid ${view === key ? C.navy : C.border}`, borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                 {label}
               </button>
@@ -881,6 +1071,10 @@ export default function Admin() {
 
           {view === 'waitlist' && (
             <WaitlistView data={waitlistData} loading={waitlistLoading} error={waitlistError} onRetry={fetchWaitlist} />
+          )}
+
+          {view === 'traffic' && (
+            <TrafficView data={trafficData} loading={trafficLoading} error={trafficError} onRetry={fetchTraffic} />
           )}
 
           {/* Operator tools. Deliberately at the bottom and visually quiet — used

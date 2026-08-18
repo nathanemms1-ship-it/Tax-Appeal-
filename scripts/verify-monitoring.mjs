@@ -448,6 +448,74 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
     /WaitlistView/.test(adminSrc) && /waitlist-roster/.test(adminSrc));
   t('the admin page reports a truncated read instead of showing a short total',
     /These totals are understated/.test(adminSrc));
+
+  // ── Visitor counter ─────────────────────────────────────────────────────────
+  // Every one of these guards something that fails SILENTLY. middleware.js
+  // swallows all errors by design so a counter can never break a page, which means
+  // a regression here produces a plausible-looking chart and no error anywhere.
+  const mw = read('middleware.js');
+
+  // The one that actually matters. An unsalted sha256 of IP + user agent is
+  // brute-forceable offline — the address space is small — so the digest column
+  // would BE a column of IP addresses. The middleware must refuse to write at all
+  // rather than write unsalted, and the refusal must come before the insert.
+  t('the visitor counter refuses to record without a salt',
+    /VISITOR_HASH_SECRET/.test(mw) &&
+    /if \(!salt\)\s*\{[\s\S]{0,400}return;/.test(mw) &&
+    mw.indexOf('if (!salt)') < mw.indexOf('rest/v1/site_visits'));
+
+  // The date inside the hash is what stops the rows being joinable across days
+  // into one person's browsing history. Remove it and this quietly becomes a
+  // tracking system rather than an aggregate counter.
+  t('the visitor hash is scoped to a single day',
+    /sha256Hex\(`\$\{visitDate\}\|/.test(mw));
+
+  // No raw identifier may reach the database. Asserted on the row literal itself
+  // rather than the whole file, so a comment mentioning "ip" cannot satisfy it and
+  // a real column called ip cannot hide behind one.
+  const rowLiteral = /const row = \{([\s\S]*?)\n  \};/.exec(mw);
+  t('the recorded row carries no IP address or user agent',
+    !!rowLiteral &&
+    !/^\s*(ip|ip_address|user_agent|ua|referrer|referer)\s*:/m.test(rowLiteral[1]) &&
+    /visitor_hash:/.test(rowLiteral[1]));
+
+  // Without a bot filter the count is mostly Googlebot working through 1,081
+  // pages — and that crawl lands in the same fortnight as the ads switching on, so
+  // it would read as the ads working.
+  t('declared crawlers are excluded from the visitor count',
+    /BOT_UA/.test(mw) && /BOT_UA\.test\(ua\)/.test(mw) && /googlebot|bot\\b/i.test(mw));
+
+  // An awaited write puts Supabase latency in front of every page on the site.
+  t('the counter never blocks the page render',
+    /event\.waitUntil\(/.test(mw));
+
+  // API routes, static assets and our own admin pages are not visits. /admin
+  // especially: during a working session Nathan would otherwise be the traffic.
+  t('the matcher excludes api, static assets and the admin pages',
+    /matcher/.test(mw) && /api\//.test(mw) && /admin/.test(mw) && /_next\/static/.test(mw));
+
+  t('the visitor counter is a registered health check',
+    /export async function checkTrafficCapture/.test(health) && /checkTrafficCapture\(\),/.test(health));
+  t('the health check would catch a missing site_visits table',
+    /select=visit_date,visitor_hash/.test(health) && /res\.status === 400 \|\| res\.status === 404/.test(health));
+  t('the health check explains a missing salt rather than reporting an empty chart',
+    /VISITOR_HASH_SECRET/.test(health));
+
+  // Counting rows in JS would start understating the day the site outgrows the
+  // cap, with no error — the settle-referrals unbounded-read defect again.
+  const traffic = read('pages/api/traffic-roster.js');
+  t('daily visitor counts are aggregated in SQL, not by counting fetched rows',
+    /rpc\('site_visits_daily'/.test(traffic) && !/from\('site_visits'\)/.test(traffic));
+  t('a missing migration is reported as an error rather than rendered as zero',
+    /daily\.error/.test(traffic) && /site_visits\.sql/.test(traffic));
+
+  t('the admin page surfaces traffic',
+    /TrafficView/.test(adminSrc) && /traffic-roster/.test(adminSrc));
+  // The number is a proxy and gets quoted at people. It has to carry its own
+  // caveat on the page, not in a doc nobody opens.
+  t('the traffic view states what the number undercounts',
+    /not<\/em> an audience size|is <em>not<\/em> an audience size/.test(adminSrc) &&
+    /one IP and browser/.test(adminSrc));
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
