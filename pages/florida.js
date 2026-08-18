@@ -242,15 +242,15 @@ Stop overpaying. We draft a formal VAB petition, you sign it, and we pay your co
 
 {/* Pricing breakdown banner */}
 <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "inline-flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
-<div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ fontSize: 15, color: "#C7D6E8", fontFamily: "'DM Sans', sans-serif" }}>
 <span style={{ color: C.gold, fontWeight: 700 }}>$89</span> TaxAppeal service fee
 </div>
-<div style={{ fontSize: 13, color: "#5A7A9F" }}>+</div>
-<div style={{ fontSize: 13, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ color: C.gold, fontWeight: 700 }}>$15–$50</span> your county&apos;s VAB filing fee <span style={{ fontSize: 11, color: "#5A7A9F" }}>(set by your county, required by state law)</span>
+<div style={{ fontSize: 15, color: "#B4C6DC" }}>+</div>
+<div style={{ fontSize: 15, color: "#C7D6E8", fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ color: C.gold, fontWeight: 700 }}>$15–$50</span> your county&apos;s VAB filing fee <span style={{ fontSize: 13, color: "#B4C6DC" }}>(set by your county, required by state law)</span>
 </div>
-<div style={{ fontSize: 13, color: "#5A7A9F" }}>=</div>
-<div style={{ fontSize: 15, color: C.white, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ fontSize: 15, color: "#B4C6DC" }}>=</div>
+<div style={{ fontSize: 18, color: C.white, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>
 $104–$139 total, depending on your county
 </div>
 </div>
@@ -270,7 +270,7 @@ $104–$139 total, depending on your county
 <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
 File My Florida Appeal — $89 + County Fee →
 </button>
-<div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. $89 service fee + your county&apos;s VAB filing fee (varies by county, typically $15–$50). You sign the petition; we pay the county and mail it.</div>
+<div style={{ fontSize: 15, color: "#C7D6E8", marginTop: 14, lineHeight: 1.6, maxWidth: 620 }}>Takes about 4 minutes. $89 service fee + your county&apos;s VAB filing fee (varies by county, typically $15–$50). You sign the petition; we pay the county and mail it.</div>
 </div>
 </section>
 
