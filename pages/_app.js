@@ -127,10 +127,28 @@ export default function App({ Component, pageProps }) {
       )}
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/*
+          KEYED, BECAUSE next/head DOES NOT DE-DUPLICATE <link> AT ALL.
+
+          See the note below on METATYPES: next/head de-duplicates <title> and <meta>
+          carrying `name`, and nothing else. A second <link rel="icon"> lower in this
+          same <Head> therefore SHIPS ALONGSIDE these, and the last one wins.
+
+          That is exactly what happened. A leftover data-URI favicon holding a ⚖️ emoji
+          sat at the bottom of this Head from before real favicon files existed (they
+          were added 18 Aug 2026). Both rendered. Google Search ads take the brand icon
+          beside the display URL from the site favicon, could not resolve two competing
+          declarations, and served a generic globe placeholder on live ads.
+
+          `key` makes next/head de-duplicate these: it keys on the string after `$` in
+          the React key. It only defends against a repeat of the SAME key, so the real
+          guard is in scripts/verify-pages.mjs, which fails the build if any built page
+          renders more than one rel="icon".
+        */}
+        <link rel="icon" href="/favicon.ico" sizes="any" key="icon-ico" />
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" key="icon-32" />
+        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" key="icon-16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" key="icon-apple" />
         <title>TaxAppeal — Property Tax Dispute Service | $89 Flat Fee</title>
         <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it for you. Takes 4 minutes. TX, GA, FL, AR, AL." />
         {/*
@@ -178,8 +196,7 @@ export default function App({ Component, pageProps }) {
         <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it for you. $89 flat — no percentage cuts." />
         {/* Canonical */}
         {!isErrorPage && <link rel="canonical" href={canonicalUrl} key="canonical" />}
-        {/* Favicon */}
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
+        {/* Favicon is declared ONCE, at the top of this Head. Do not add another here. */}
         {/* Structured Data — Organization */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",

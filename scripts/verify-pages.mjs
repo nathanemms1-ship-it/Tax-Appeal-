@@ -219,6 +219,8 @@ if (fs.existsSync(DIR)) {
   const all = walk(DIR);
   const offenders = new Map();
   const brokenTitles = [];
+  const multiIcon = [];
+  const dataUriIcon = [];
   for (const f of all) {
     const html = fs.readFileSync(f, 'utf8');
     const text = visibleText(html);
@@ -231,6 +233,42 @@ if (fs.existsSync(DIR)) {
     // Fix is always the same: one template literal instead of two children.
     const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     if (title && title[1].includes('<!--')) brokenTitles.push(path.relative(DIR, f));
+
+    /**
+     * EXACTLY ONE FAVICON PER PAGE.
+     *
+     * next/head de-duplicates <title> and <meta> carrying `name` — see METATYPES —
+     * and does NOT de-duplicate <link> at all. So two <link rel="icon"> in the same
+     * <Head> both ship, and the last one wins.
+     *
+     * pages/_app.js carried real favicon files at the top of its Head and a leftover
+     * data-URI ⚖️ emoji at the bottom, from before those files existed. Both rendered
+     * on every page. Google Search ads source the brand icon beside the display URL
+     * from the site favicon, could not resolve the conflict, and served a generic
+     * globe placeholder on live paid traffic. Nothing failed; it just looked wrong to
+     * every person who saw the ad.
+     *
+     * A data: URI icon is called out separately because it is the specific shape of
+     * the defect — a placeholder someone meant to replace.
+     */
+    const icons = [...html.matchAll(/<link[^>]*\brel=["']icon["'][^>]*>/gi)].map((m) => m[0]);
+
+    /**
+     * NOT "more than one icon" — several sized icons is correct practice, and the
+     * first version of this check failed the very fix it was written to protect.
+     * The defect has two specific shapes:
+     *
+     *   1. a data: URI icon — a placeholder somebody meant to replace;
+     *   2. two or more icons with NO `sizes` to tell them apart, which is the
+     *      genuinely ambiguous case a crawler cannot resolve.
+     */
+    const unsized = icons.filter((t) => !/\bsizes=/i.test(t));
+    if (unsized.length > 1) {
+      multiIcon.push(`${path.relative(DIR, f)} (${unsized.length} with no sizes)`);
+    }
+    if (icons.some((t) => /href=["']data:/i.test(t))) {
+      dataUriIcon.push(path.relative(DIR, f));
+    }
 
     for (const b of BANNED) {
       if (b.re.test(text)) {
@@ -257,6 +295,21 @@ if (fs.existsSync(DIR)) {
     }
   } else {
     console.log(`  swept ${all.length} built pages for banned claims — none found`);
+  }
+  if (multiIcon.length || dataUriIcon.length) {
+    failures++;
+    if (multiIcon.length) {
+      console.error(`\n  FAIL  ${multiIcon.length} pages render more than one <link rel="icon">:`);
+      console.error(`          ${multiIcon.slice(0, 6).join(', ')}${multiIcon.length > 6 ? ` … +${multiIcon.length - 6} more` : ''}`);
+      console.error(`          next/head does not de-duplicate <link>; the last one wins, and Google Ads`);
+      console.error(`          takes the brand icon beside the display URL from it`);
+    }
+    if (dataUriIcon.length) {
+      console.error(`\n  FAIL  ${dataUriIcon.length} pages ship a data: URI favicon — that is a placeholder, not a brand icon:`);
+      console.error(`          ${dataUriIcon.slice(0, 6).join(', ')}${dataUriIcon.length > 6 ? ` … +${dataUriIcon.length - 6} more` : ''}`);
+    }
+  } else {
+    console.log(`  swept ${all.length} built pages — exactly one favicon each, none a data: URI`);
   }
 }
 
