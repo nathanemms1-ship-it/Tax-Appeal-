@@ -82,6 +82,47 @@ export const config = {
  */
 const BOT_UA = /bot\b|bots?\/|crawl|spider|slurp|search|scrape|fetcher|archiver|monitor|uptime|pingdom|gtmetrix|lighthouse|pagespeed|headless|phantom|puppeteer|playwright|selenium|curl\/|wget|python-|go-http|java\/|okhttp|axios\/|node-fetch|libwww|httpclient|semrush|ahrefs|mj12|dotbot|petal|bytespider|gptbot|claudebot|ccbot|perplexity|anthropic|openai|applebot|amazonbot|yandex|baidu|sogou|duckduck|facebookexternal|whatsapp|telegram|discord|slackbot|embedly|preview|validator|feed/i;
 
+/**
+ * THE PROBES BOT_UA CANNOT SEE — added 19 Aug 2026.
+ *
+ * The UA filter above is honest about its limit: it "only catches declared bots".
+ * The first 30 days of real data showed exactly what walks past it. Ranked third
+ * in "first page they landed on", above /florida:
+ *
+ *   /wp-admin/install.php          14      /.env                   2
+ *   /.well-known/traffic-advice     5      /&                      4
+ *
+ * Vulnerability scanners send an ordinary Chrome user agent on purpose, so no UA
+ * pattern will ever catch them. What gives them away is WHAT THEY ASK FOR: this
+ * site has no WordPress, no PHP, no .env, and no /& — every one of those is a 404.
+ * They looked like a fifth of the month's traffic and pushed real pages down the
+ * table.
+ *
+ * Matching on the path instead of the agent. Middleware runs before the response
+ * exists, so the status code is not available here; this is the closest honest
+ * proxy for "that was a 404 nobody meant to visit".
+ *
+ * `/.well-known/traffic-advice` is different and worth its own note: it is
+ * Chrome's private-prefetch-proxy probe, entirely legitimate, and still not a
+ * person arriving at a page. The whole `/.well-known/` namespace is machine-facing
+ * by definition (RFC 8615), so all of it is excluded.
+ *
+ * DELIBERATELY NOT AN ALLOWLIST. 1,081 pages, most of them dynamic routes, so an
+ * allowlist would silently drop real pages the day someone adds a route — the
+ * failure that cannot be seen. This can only ever be too narrow, which shows up as
+ * a junk row in /admin that somebody notices, exactly as happened here.
+ */
+const PROBE_PATH = new RegExp(
+  [
+    '^/\\.',                                   // /.env, /.git/config, /.well-known/*
+    '^/wp-|/wp-admin|/wp-includes|/wp-content|/xmlrpc\\.php',
+    '^/(?:vendor|phpmyadmin|pma|administrator|cgi-bin|phpinfo|adminer)\\b',
+    '\\.(?:php|asp|aspx|jsp|cgi|pl|sql|bak|old|swp|ini|yml|yaml|env|log)$',
+    '^/&',                                     // malformed, seen 4x in the first 30 days
+  ].join('|'),
+  'i'
+);
+
 /** Requests a browser makes that are not someone arriving at a page. */
 function isPageView(req) {
   if (req.method !== 'GET') return false;
@@ -176,6 +217,11 @@ async function record(req) {
   const ua = req.headers.get('user-agent') || '';
   if (!ua || BOT_UA.test(ua)) return;
 
+  // Scanner probes announce themselves by what they ask for, not by who they say
+  // they are. See PROBE_PATH.
+  const pathname = new URL(req.url).pathname;
+  if (PROBE_PATH.test(pathname)) return;
+
   const ip = clientIp(req);
   if (!ip) return;
 
@@ -186,7 +232,7 @@ async function record(req) {
     visit_date: visitDate,
     visitor_hash: visitorHash,
     // Path only. The query string can carry an address someone typed into /check.
-    first_path: new URL(req.url).pathname.slice(0, 200),
+    first_path: pathname.slice(0, 200),
     referrer_host: referrerHost(req),
     country: req.geo?.country || null,
     device: /mobile|android|iphone|ipad|ipod/i.test(ua) ? 'mobile' : 'desktop',

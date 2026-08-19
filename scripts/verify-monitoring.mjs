@@ -516,6 +516,58 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   t('the traffic view states what the number undercounts',
     /not<\/em> an audience size|is <em>not<\/em> an audience size/.test(adminSrc) &&
     /one IP and browser/.test(adminSrc));
+
+  /**
+   * THE PROBE FILTER, EXERCISED — not asserted to exist.
+   *
+   * Asserting that middleware.js contains the string PROBE_PATH would pass while
+   * the regex matched nothing, which is the exact failure this file exists to
+   * catch. So the pattern is lifted out of the real source and RUN against the
+   * paths that actually appeared in /admin, plus real pages it must not eat.
+   *
+   * The first four are the ones observed in the first 30 days of live data.
+   * /wp-admin/install.php was the third most common landing page on the site.
+   */
+  const mwSrc = read('middleware.js');
+  const probeSrc = mwSrc.match(/const PROBE_PATH = new RegExp\(\s*\[([\s\S]*?)\]\.join\('\|'\),\s*'i'\s*\)/);
+  t('middleware defines a PROBE_PATH pattern', !!probeSrc);
+  if (probeSrc) {
+    const parts = JSON.parse('[' + probeSrc[1].replace(/\/\/[^\n]*/g, '').replace(/'/g, '"').replace(/,\s*$/, '') + ']');
+    const PROBE = new RegExp(parts.join('|'), 'i');
+    /**
+     * Each clause of PROBE_PATH needs a path ONLY it catches, or removing that
+     * clause leaves the test green. Written the obvious way first and the
+     * injection test proved it useless: every WordPress example ended in `.php`,
+     * so deleting the whole `wp-` clause still passed on the extension rule.
+     *
+     *   /wp-json/wp/v2/users   only the wp- clause
+     *   /.well-known/…, /.env  only the leading-dot clause
+     *   /&                     only the /& clause
+     *   /backup.sql            only the extension clause
+     *   /phpmyadmin/           only the tool-name clause
+     */
+    const mustBlock = ['/wp-admin/install.php', '/.well-known/traffic-advice', '/&', '/.env',
+                       '/wp-json/wp/v2/users', '/xmlrpc.php', '/.git/config', '/backup.sql',
+                       '/phpmyadmin/'];
+    const mustKeep = ['/', '/partners', '/florida', '/apply', '/check', '/terms',
+                      '/blog/when-do-florida-trim-notices-arrive-2026',
+                      '/counties/hillsborough-county-fl', '/florida/miami-beach', '/georgia/tucker-ga'];
+    t('PROBE_PATH filters every scanner path seen in the first 30 days',
+      mustBlock.every((p) => PROBE.test(p)));
+    t('PROBE_PATH does not filter any real page',
+      mustKeep.every((p) => !PROBE.test(p)));
+    t('the probe filter runs before the row is built',
+      mwSrc.includes("PROBE_PATH.test(pathname)") &&
+      mwSrc.indexOf("PROBE_PATH.test(pathname)") < mwSrc.indexOf("const row = {"));
+  }
+
+  // The SQL cleanup and the middleware must agree on what a probe is, or /admin and
+  // the write path disagree about what counts as a visitor.
+  const purge = read('scripts/sql/site_visits_purge_probes.sql');
+  t('the purge script covers the same shapes as PROBE_PATH',
+    /wp-admin/.test(purge) && /xmlrpc/.test(purge) && /\^\/&/.test(purge));
+  t('the purge script shows what it will delete before deleting it',
+    purge.indexOf('rows_to_delete') < purge.indexOf('delete from site_visits'));
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
