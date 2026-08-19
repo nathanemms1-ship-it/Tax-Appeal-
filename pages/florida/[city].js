@@ -37,10 +37,24 @@ export async function getStaticProps({ params }) {
    * Both now derive from FILING_WINDOWS.FL — the same table apply.js gates on — so
    * the page cannot advertise a window the product will not honour.
    */
-  const { FILING_WINDOWS } = await import('../../lib/filingWindows');
+  const { FILING_WINDOWS, flPetitionDeadline } = await import('../../lib/filingWindows');
   const { counties } = await import('../../lib/countyData');
   const w = FILING_WINDOWS.FL;
   const fmt = (m, d) => new Date(2026, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const fmtDate = (d) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  /**
+   * THE CLOSE DATE IS PER COUNTY. THE OPEN DATE IS NOT.
+   *
+   * The comment above says both "derive from FILING_WINDOWS.FL — the same table
+   * apply.js gates on". That was true of the open date and false of the close: the
+   * funnel gates on getFilingWindowStatus(state, county, { strict: true }), which
+   * substitutes flPetitionDeadline(county) for the statewide hardDeadline. So every
+   * one of these 131 pages published 18 September while the product enforced the
+   * county's own date — 7 September in Hillsborough, 8th in Duval, 4th in Indian
+   * River. The fix the comment describes was only ever half applied.
+   */
+  const cityDeadline = flPetitionDeadline(city.county, 2026);
 
   const countySlug = counties.find((c) => c.code === 'FL' && c.name === city.county)?.slug || null;
 
@@ -82,9 +96,9 @@ export async function getStaticProps({ params }) {
       city,
       countySlug,
       windowOpenISO: new Date(Date.UTC(2026, w.openMonth - 1, w.openDay)).toISOString().slice(0, 10),
-      windowCloseISO: new Date(Date.UTC(2026, w.hardMonth - 1, w.hardDay)).toISOString().slice(0, 10),
+      windowCloseISO: new Date(Date.UTC(2026, cityDeadline.getMonth(), cityDeadline.getDate())).toISOString().slice(0, 10),
       trimOpen: fmt(w.openMonth, w.openDay),
-      trimDeadline: fmt(w.hardMonth, w.hardDay),
+      trimDeadline: fmtDate(cityDeadline),
       feeConfirmed,
       feeLabel: feeConfirmed ? formatVabFee(fee.vabFee) : null,
       totalLabel: feeConfirmed ? formatVabFee(8900 + fee.vabFee) : null,

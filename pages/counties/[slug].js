@@ -748,8 +748,14 @@ export async function getStaticPaths() {
  * into a void, and this file's own header says the filing path must not fall back to
  * any other source.
  *
- * The deadline is derived from FILING_WINDOWS.FL, the same window pages/apply.js gates
- * the funnel on, so the date advertised is the date we actually file to.
+ * The deadline is derived from flPetitionDeadline(county) — the SAME per-county date
+ * getFilingWindowStatus(..., { strict: true }) substitutes for hardDeadline, which is what
+ * pages/apply.js and pages/api/checkout.js actually gate the funnel on. So the date
+ * advertised is the date we file to.
+ *
+ * This sentence used to say FILING_WINDOWS.FL and it was wrong in the way that matters:
+ * that constant is the statewide 18 September cliff, and the funnel has never gated on it
+ * for Florida. The comment asserted the guarantee; the code below took the other date.
  *
  * Millage returns null rather than a default for any county not in the table — see the
  * comment on millageForCounty. A page that cannot compute the dollars says so by
@@ -760,16 +766,35 @@ function floridaFacts(county) {
     const { getFlVabAddress, flCountyRequiresReceipt } = await import("../../lib/flVabAddresses");
     const { millageForCounty } = await import("../../lib/dor/millage");
     const { countyNoFromName } = await import("../../lib/dor/coverage");
-    const { FILING_WINDOWS } = await import("../../lib/filingWindows");
+    const { flPetitionDeadline } = await import("../../lib/filingWindows");
     const { floridaCities } = await import("../../lib/floridaCities");
 
     const fee = getFlVabFee(county.name);
     const vab = getFlVabAddress(county.name);
     const m = millageForCounty(countyNoFromName(county.name));
 
-    // FILING_WINDOWS.FL.hardMonth/hardDay is the 2026 VAB deadline the funnel gates on.
-    const w = FILING_WINDOWS.FL;
-    const deadlineDate = new Date(2026, w.hardMonth - 1, w.hardDay);
+    /**
+     * PER COUNTY. Florida has no statewide petition deadline and never did.
+     *
+     * This read `FILING_WINDOWS.FL.hardMonth/hardDay` — the statewide 18 September
+     * constant — and the comment above it claimed that was "the 2026 VAB deadline
+     * the funnel gates on". IT IS NOT. The funnel calls
+     * getFilingWindowStatus(state, county, { strict: true }), which replaces
+     * hardDeadline with flPetitionDeadline(county) for exactly this reason. So the
+     * page published one date while the gate enforced another.
+     *
+     * 67 county pages and 131 city pages carried it. Against the table as of
+     * 19 Aug that is Hillsborough published as 18 Sept when it closes on the 7th —
+     * eleven days late — and Indian River fourteen days late. A homeowner who reads
+     * their own county's page, believes it, and waits, loses the year. That is the
+     * same harm the whole FL_COUNTY_DATES table exists to prevent, published on the
+     * pages the Ads campaign lands on.
+     *
+     * The OPEN date stays statewide. 24 August is a business decision, it is
+     * published on 131 city pages and 6 metro pages, and it is build-checked. Only
+     * the cliff is per-county, because only the cliff can cost someone their appeal.
+     */
+    const deadlineDate = flPetitionDeadline(county.name, 2026);
     const deadlineText = deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const deadlineShort = deadlineDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 

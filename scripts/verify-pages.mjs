@@ -267,6 +267,7 @@ if (fs.existsSync(DIR)) {
 // and FDUTPA covers the second — and both shipped green because no check connected the copy
 // to the table. This asserts the built HTML quotes the fee we will actually charge.
 const { getFlVabFee } = await import('../lib/flCountyFees.js');
+const { flPetitionDeadline } = await import('../lib/filingWindows.js');
 const FEE_PAGES = [
   ['miami', 'Miami-Dade'], ['tampa', 'Hillsborough'], ['orlando', 'Orange'],
   ['jacksonville', 'Duval'], ['fort-lauderdale', 'Broward'],
@@ -699,6 +700,37 @@ for (const c of ALL_COUNTIES.filter((c) => c.code === 'FL')) {
   if (wrong.length) {
     failures++;
     console.error(`  FAIL  /counties/${c.slug} advertises a ${c.name} County fee of $${wrong.join(', $')} — the table says $${dollars}`);
+    continue;
+  }
+
+  /**
+   * THE PUBLISHED DEADLINE MUST BE THE COUNTY'S OWN.
+   *
+   * Florida has no statewide petition deadline. Until 19 Aug 2026 this page derived
+   * its date from FILING_WINDOWS.FL.hardDay — the statewide 18 September constant —
+   * while the funnel gated on flPetitionDeadline(county). 67 county pages and 131
+   * city pages therefore published 18 September for every county in the state:
+   * eleven days late for Hillsborough, fourteen for Indian River. A homeowner who
+   * reads their own county's page and waits loses the appeal year, and no existing
+   * check said a word, because every check here was about money.
+   *
+   * Same shape as the fee check above: any full date within 60 characters of
+   * deadline language must be THIS county's date. Nothing else may appear near the
+   * word — not a neighbouring county's, not the statewide cliff, not last year's.
+   */
+  const deadlineText = flPetitionDeadline(c.name, 2026)
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const DATE = String.raw`(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*\d{4}`;
+  const NEARD = String.raw`[^<>]{0,60}`;
+  const dates = [
+    ...html.matchAll(new RegExp(String.raw`(${DATE})${NEARD}deadline`, 'gi')),
+    ...html.matchAll(new RegExp(String.raw`deadline${NEARD}(${DATE})`, 'gi')),
+  ].map((m) => m[1]);
+  const wrongDates = [...new Set(dates.filter((d) => d !== deadlineText))];
+  if (wrongDates.length) {
+    failures++;
+    console.error(`  FAIL  /counties/${c.slug} publishes a deadline of ${wrongDates.join(' / ')} — ${c.name} County closes ${deadlineText}`);
+    console.error(`          the funnel gates on flPetitionDeadline(county); a page that disagrees tells a homeowner to wait past their own cliff`);
     continue;
   }
   flChecked++;
