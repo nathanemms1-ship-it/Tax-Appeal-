@@ -261,7 +261,17 @@ for (const [variant, expected] of [
 
   const known = Object.keys(FL_COUNTY_DATES).length;
   console.log(`  FL deadlines:        ${known} counties dated; the other ${names.length - known} fall back to ${iso(fallback)}`);
-  console.log(`                       earliest is ${iso(flPetitionDeadline('Hillsborough', Y))} (Hillsborough), not the 2026-09-18 we used to apply statewide`);
+  // DERIVED, NOT HARDCODED. This line named Hillsborough literally, because Hillsborough
+  // was the earliest county on the day it was written. On 19 Aug 2026 Indian River was
+  // confirmed at 4 Sept, and the line went on printing "Hillsborough" — stating something
+  // that had become false while still looking like it had checked. Same shape as the fee
+  // checker that once found zero claims and passed silently.
+  {
+    const earliest = Object.keys(FL_COUNTY_DATES)
+      .map((c) => [c, flPetitionDeadline(c, Y)])
+      .sort((a, b) => a[1] - b[1])[0];
+    console.log(`                       earliest is ${iso(earliest[1])} (${earliest[0]}), not the 2026-09-18 we used to apply statewide`);
+  }
   if (known < 10) {
     errors.push(`only ${known} FL counties carry a date — this table has been emptied, not merely left incomplete`);
   }
