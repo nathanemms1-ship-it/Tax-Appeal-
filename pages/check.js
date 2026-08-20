@@ -157,7 +157,14 @@ export default function CheckPage() {
   // just value down toward the capped assessed value. Florida condo values are
   // doing exactly that right now. Telling them the truth today is how we earn
   // the right to email them when it changes.
-  async function joinList(e) {
+  /**
+   * `reason` defaults to the Save Our Homes case because that is what this form
+   * originally served. It is now passed explicitly as null by the eligible-but-closed
+   * branch, whose row must be an ORDINARY waitlist entry — see the comment there.
+   * A wrong reason here does not error; it sends a specific person a specific email
+   * contradicting what the page just told them.
+   */
+  async function joinList(e, reason = 'fl_not_eligible') {
     e.preventDefault();
     if (!email.trim()) return;
     setEmailState('loading');
@@ -191,7 +198,7 @@ export default function CheckPage() {
           state: 'FL',
           county: LOADED_COUNTIES[Number(state.data?.parcel?.coNo)] || '',
           propertyAddress: state.data?.parcel?.address || `${form.street}, ${form.zip}`,
-          blockedReason: 'fl_not_eligible',
+          blockedReason: reason,
         }),
       });
       setEmailState(r.ok ? 'done' : 'error');
@@ -201,6 +208,28 @@ export default function CheckPage() {
   }
 
   const d = state.data;
+
+  /**
+   * THE COUNTY'S WINDOW, RESOLVED ONCE AND USED BY EVERYTHING BELOW.
+   *
+   * This was computed inside the deadline callout, which meant the callout could say
+   * "Okaloosa County has closed for 2026" while the gold "Get started" button
+   * underneath it stayed exactly where it was. Checkout would then refuse the order
+   * at pages/api/checkout.js — after the customer had committed. Telling somebody it
+   * is closed and then inviting them to buy is worse than either message alone.
+   *
+   * `canOrder` is deliberately false ONLY when we positively know the window is shut.
+   * An unresolved county leaves it true and lets the real gate in checkout decide —
+   * blocking a valid customer on missing data would be the more expensive mistake,
+   * and with no county we render no deadline claim to contradict.
+   */
+  const checkedCounty = d && d.found ? (LOADED_COUNTIES[Number(d.parcel?.coNo)] || '') : '';
+  let win = null;
+  if (checkedCounty) {
+    try { win = getFilingWindowStatus('FL', checkedCounty); } catch { win = null; }
+  }
+  const canOrder = !win || win.canFile || win.canPreOrder;
+  const fmtDay = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
   return (
     <>
@@ -500,65 +529,97 @@ export default function CheckPage() {
                     twelve days that do not exist. getFilingWindowStatus computes it —
                     see lastOrderDate there.
                   */}
-                  {(() => {
-                    const county = LOADED_COUNTIES[Number(d.parcel?.coNo)] || '';
-                    if (!county) return null;
-                    let w;
-                    try { w = getFilingWindowStatus('FL', county); } catch { return null; }
-                    if (!w) return null;
-
-                    const fmt = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-                    const box = (text) => (
-                      <p style={{ background: 'rgba(255,201,64,0.14)', border: `1px solid ${C.gold}`, borderRadius: 8, padding: '11px 14px', margin: '0 0 16px', fontSize: 15, lineHeight: 1.55, color: C.white }}>
-                        {text}
-                      </p>
-                    );
-
-                    // Window open and still safely fileable.
-                    if (w.canFile) {
-                      const n = w.daysUntilLastOrder;
-                      return box(
+                  {win && (
+                    <p style={{ background: 'rgba(255,201,64,0.14)', border: `1px solid ${C.gold}`, borderRadius: 8, padding: '11px 14px', margin: '0 0 16px', fontSize: 15, lineHeight: 1.55, color: C.white }}>
+                      {win.canFile ? (
                         <>
-                          <strong style={{ color: C.gold }}>{county} County closes {fmt(w.lastOrderDate)}.</strong>{' '}
-                          {n <= 1 ? 'That is today — this is the last day we can accept an order for this county.'
-                            : `That is ${n} days from now. After that we cannot get your petition there in time, and Florida counts receipt, not postmark.`}
+                          <strong style={{ color: C.gold }}>{checkedCounty} County closes {fmtDay(win.lastOrderDate)}.</strong>{' '}
+                          {win.daysUntilLastOrder <= 1
+                            ? 'That is today — the last day we can accept an order for this county.'
+                            : `That is ${win.daysUntilLastOrder} days from now. After that we cannot get your petition there in time, and Florida counts receipt, not postmark.`}
                         </>
-                      );
-                    }
-
-                    // Before the window opens — a pre-order files on day one.
-                    if (w.canPreOrder) {
-                      return box(
+                      ) : win.canPreOrder ? (
                         <>
-                          <strong style={{ color: C.gold }}>{county} County opens {fmt(w.openDate)} and closes {fmt(w.lastOrderDate)}.</strong>{' '}
+                          <strong style={{ color: C.gold }}>{checkedCounty} County opens {fmtDay(win.openDate)} and closes {fmtDay(win.lastOrderDate)}.</strong>{' '}
                           Order now and we prepare everything today, then file the morning the window opens.
                         </>
-                      );
-                    }
+                      ) : (
+                        <>
+                          <strong style={{ color: C.gold }}>{checkedCounty} County has closed for 2026.</strong>{' '}
+                          Nothing can be filed there until it reopens {fmtDay(win.openDate)}.
+                        </>
+                      )}
+                    </p>
+                  )}
 
-                    // Shut. Say so here rather than letting them find out at checkout.
-                    return box(
-                      <>
-                        <strong style={{ color: C.gold }}>{county} County has closed for 2026.</strong>{' '}
-                        Filing reopens {fmt(w.openDate)} — we will email you before it does.
-                      </>
-                    );
-                  })()}
+                  {canOrder ? (
+                    <>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                        Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
+                        You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
+                        {/* Fla. Stat. s. 194.014(2). It is on the Brevard guide and was missing
+                            from the one screen where somebody is deciding whether to pay. */}
+                        {' '}If the Board reduces your value, Florida law requires the county to refund that filing fee.
+                      </p>
+                      <Link
+                        href="/apply"
+                        onClick={() => stashProperty(state.data?.parcel)}
+                        style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}
+                      >
+                        Get started →
+                      </Link>
+                    </>
+                  ) : (
+                    /*
+                      ELIGIBLE, BUT THE WINDOW IS SHUT.
+                      The best lead on the site and the one we can do least with today:
+                      the arithmetic says an appeal would work, and there is no lawful way
+                      to file it this year. No buy button — checkout would refuse it, and
+                      being invited to pay after being told it is closed is how a customer
+                      decides you are careless.
 
-                  <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                    Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
-                    You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
-                    {/* Fla. Stat. s. 194.014(2). It is on the Brevard guide and was missing
-                        from the one screen where somebody is deciding whether to pay. */}
-                    {' '}If the Board reduces your value, Florida law requires the county to refund that filing fee.
-                  </p>
-                  <Link
-                    href="/apply"
-                    onClick={() => stashProperty(state.data?.parcel)}
-                    style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}
-                  >
-                    Get started →
-                  </Link>
+                      Captured as an ORDINARY waitlist row, blocked_reason null, on purpose.
+                      The reminder cron's default message — "your filing window just opened,
+                      file today" — is exactly what this person is owed, and it is the only
+                      branch that already sends it. A new blocked_reason would need a branch
+                      in notify-waitlist.js, an entry in lib/waitlistReasons.js and a third
+                      widening of the CHECK constraint, to say something the default already
+                      says correctly.
+                    */
+                    <>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
+                        Your assessment is worth challenging — we just cannot file it until the
+                        window reopens. Leave your email and we will tell you the day it does,
+                        with time to spare before the deadline. Nothing else.
+                      </p>
+                      {emailState === 'done' ? (
+                        <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
+                          Done. We&rsquo;ll email you the day {checkedCounty} County reopens.
+                        </p>
+                      ) : (
+                        <form onSubmit={(e) => joinList(e, null)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            aria-label="Email address"
+                            style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: 'none', borderRadius: 8, fontFamily: 'inherit' }}
+                          />
+                          <button
+                            type="submit"
+                            disabled={emailState === 'loading'}
+                            style={{ flex: '1 1 170px', padding: '13px 20px', fontSize: 16, fontWeight: 700, background: C.gold, color: C.darkNavy, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            {emailState === 'loading' ? 'Saving…' : 'Tell me when it opens'}
+                          </button>
+                        </form>
+                      )}
+                      {emailState === 'error' && (
+                        <p style={{ color: C.gold, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
+                      )}
+                    </>
+                  )}
                 </div>
               ) : (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
