@@ -3,6 +3,8 @@ import { LOADED_COUNTIES } from '../lib/dor/coverage';
 import Head from 'next/head';
 import Link from 'next/link';
 import AddressAutocomplete from '../components/AddressAutocomplete';
+import ContactModal from '../components/ContactModal';
+import { getFilingWindowStatus } from '../lib/filingWindows';
 
 /**
  * THE FREE SAVINGS CHECK — public page.
@@ -116,6 +118,7 @@ export default function CheckPage() {
   const [state, setState] = useState({ status: 'idle', data: null, error: null });
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');
+  const [contactOpen, setContactOpen] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -210,7 +213,35 @@ export default function CheckPage() {
       </Head>
 
       <main style={{ fontFamily: 'DM Sans, sans-serif', background: C.bg, minHeight: '100vh', color: C.darkNavy }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px 80px' }}>
+
+        {/*
+          HEADER. This page is becoming the paid-traffic front door, and it was
+          arriving with no branding at all — a bare headline on a grey field, with
+          nothing telling a stranger whose site they had landed on. Matches the bar
+          on /apply so the funnel does not appear to change hands halfway through.
+        */}
+        <div style={{ background: C.navy, color: C.white, textAlign: 'center', padding: '10px 20px', fontSize: 13 }}>
+          Check your property free — <strong style={{ color: C.gold }}>no account, no card, no phone call.</strong>
+        </div>
+
+        <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🏠</div>
+            <div>
+              <div style={{ fontFamily: '"DM Serif Display", serif', fontSize: 19, color: C.darkNavy, lineHeight: 1 }}>TaxAppeal</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.5px', color: C.muted }}>Property Tax Dispute</div>
+            </div>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, fontFamily: 'inherit', padding: '9px 18px', borderRadius: 8, border: `1.5px solid ${C.navy}`, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Need help? Contact us
+          </button>
+        </div>
+
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px 80px' }}>
 
           <h1 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 40, lineHeight: 1.15, margin: '0 0 16px' }}>
             Will an appeal actually lower your tax bill?
@@ -269,6 +300,25 @@ export default function CheckPage() {
               roll for every one of them.
             </p>
           </form>
+
+          {/*
+            TRUST ROW. Three objections a stranger has before typing an address into a
+            box on a site they reached from an ad: what is this going to cost me, are
+            you about to ask for my details, and where do your numbers come from.
+            Answered before the fold rather than in a FAQ nobody scrolls to.
+          */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
+            {[
+              ['Free', 'No account, no card'],
+              ['County records', "Your county's own tax roll"],
+              ['Straight answer', 'We say no when it is no'],
+            ].map(([head, sub]) => (
+              <div key={head} style={{ flex: '1 1 190px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '13px 15px' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.darkNavy }}>{head}</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
 
           {state.error && (
             <p style={{ color: C.amber, fontSize: 15 }}>{state.error}</p>
@@ -436,9 +486,71 @@ export default function CheckPage() {
               {d.eligible ? (
                 <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
                   <h2 style={{ fontSize: 20, margin: '0 0 8px', color: C.white }}>Your property looks worth appealing</h2>
+
+                  {/*
+                    THE DEADLINE, AT THE MOMENT IT DECIDES SOMETHING.
+                    Someone has just been told their property is worth appealing. Until
+                    now the page did not mention that their county might close within
+                    the week — the strongest reason to act, absent from the one screen
+                    where acting is the ask.
+
+                    SHOWN AS THE LAST ORDER DAY, NEVER THE COUNTY'S DEADLINE. Florida is
+                    satisfied by receipt, so the petition and the cheque need minDays of
+                    travel first; quoting the county's own date would promise up to
+                    twelve days that do not exist. getFilingWindowStatus computes it —
+                    see lastOrderDate there.
+                  */}
+                  {(() => {
+                    const county = LOADED_COUNTIES[Number(d.parcel?.coNo)] || '';
+                    if (!county) return null;
+                    let w;
+                    try { w = getFilingWindowStatus('FL', county); } catch { return null; }
+                    if (!w) return null;
+
+                    const fmt = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+                    const box = (text) => (
+                      <p style={{ background: 'rgba(255,201,64,0.14)', border: `1px solid ${C.gold}`, borderRadius: 8, padding: '11px 14px', margin: '0 0 16px', fontSize: 15, lineHeight: 1.55, color: C.white }}>
+                        {text}
+                      </p>
+                    );
+
+                    // Window open and still safely fileable.
+                    if (w.canFile) {
+                      const n = w.daysUntilLastOrder;
+                      return box(
+                        <>
+                          <strong style={{ color: C.gold }}>{county} County closes {fmt(w.lastOrderDate)}.</strong>{' '}
+                          {n <= 1 ? 'That is today — this is the last day we can accept an order for this county.'
+                            : `That is ${n} days from now. After that we cannot get your petition there in time, and Florida counts receipt, not postmark.`}
+                        </>
+                      );
+                    }
+
+                    // Before the window opens — a pre-order files on day one.
+                    if (w.canPreOrder) {
+                      return box(
+                        <>
+                          <strong style={{ color: C.gold }}>{county} County opens {fmt(w.openDate)} and closes {fmt(w.lastOrderDate)}.</strong>{' '}
+                          Order now and we prepare everything today, then file the morning the window opens.
+                        </>
+                      );
+                    }
+
+                    // Shut. Say so here rather than letting them find out at checkout.
+                    return box(
+                      <>
+                        <strong style={{ color: C.gold }}>{county} County has closed for 2026.</strong>{' '}
+                        Filing reopens {fmt(w.openDate)} — we will email you before it does.
+                      </>
+                    );
+                  })()}
+
                   <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
                     Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
                     You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
+                    {/* Fla. Stat. s. 194.014(2). It is on the Brevard guide and was missing
+                        from the one screen where somebody is deciding whether to pay. */}
+                    {' '}If the Board reduces your value, Florida law requires the county to refund that filing fee.
                   </p>
                   <Link
                     href="/apply"
@@ -493,7 +605,61 @@ export default function CheckPage() {
               </p>
             </>
           )}
+
+          {/*
+            HOW IT WORKS — shown only BEFORE a check has run.
+            Once there is a verdict on screen, the verdict is the page and a generic
+            process block competes with it. This is here for the visitor still
+            deciding whether to type an address at all.
+          */}
+          {!d && (
+            <div style={{ marginTop: 8 }}>
+              <h2 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 26, margin: '0 0 6px' }}>
+                If it turns out you can save
+              </h2>
+              <p style={{ fontSize: 15, color: C.body, lineHeight: 1.6, margin: '0 0 22px' }}>
+                Nothing below happens until you decide to go ahead. The check itself asks
+                for nothing but an address.
+              </p>
+
+              {[
+                ['1', 'We read your county record',
+                  'Your assessed value, your Save Our Homes cap, and comparable sales from the same roll your county assessed you from.'],
+                ['2', 'We draft the petition',
+                  'The DR-486, filled in with the evidence — you read it before anything is filed.'],
+                ['3', 'You sign it, not us',
+                  'Florida law requires the owner to sign. It is filed in your name, and we never appear before the Board as your representative.'],
+                ['4', 'We pay the county and mail it tracked',
+                  'Your county filing fee is paid on your behalf, and the petition goes by tracked mail at least seven days early — Florida counts receipt, not postmark.'],
+              ].map(([n, head, body]) => (
+                <div key={n} style={{ display: 'flex', gap: 14, marginBottom: 18 }}>
+                  <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', background: C.navy, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>{n}</div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: C.darkNavy, marginBottom: 3 }}>{head}</div>
+                    <div style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6 }}>{body}</div>
+                  </div>
+                </div>
+              ))}
+
+              <p style={{ fontSize: 14, color: C.body, lineHeight: 1.6, background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', margin: '22px 0 0' }}>
+                <strong style={{ color: C.darkNavy }}>Flat $89 plus your county&rsquo;s filing fee</strong>{' '}
+                (set by the county, $15–$50). Never a percentage of your savings — and if the
+                Board reduces your value, Florida law requires the county to refund the filing fee.
+              </p>
+            </div>
+          )}
         </div>
+
+        <ContactModal
+          open={contactOpen}
+          onClose={() => setContactOpen(false)}
+          context={{
+            step: 'check',
+            address: [form.street, form.zip].filter(Boolean).join(', '),
+            county: LOADED_COUNTIES[Number(d?.parcel?.coNo)] || '',
+            state: 'FL',
+          }}
+        />
       </main>
     </>
   );
