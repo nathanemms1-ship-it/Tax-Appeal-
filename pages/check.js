@@ -120,7 +120,19 @@ export default function CheckPage() {
 
   async function runCheck(e) {
     e.preventDefault();
-    if (!form.street.trim() || !form.zip.trim()) return;
+    /*
+     * ZIP WAS REQUIRED HERE AND NOTHING SAID SO.
+     *
+     * The field is labelled "ZIP" with no required marker, and this line returned
+     * silently when it was empty — so the button appeared dead. Worse, supplying it
+     * was actively harmful until today: lib/dor/parcels.js filtered the roll on an
+     * exact ZIP match, and a homeowner whose USPS ZIP differs from the county's
+     * recorded one was told we had no record of their property.
+     *
+     * ZIP is now a hint that narrows and never excludes, so the honest requirement
+     * is the street alone.
+     */
+    if (!form.street.trim()) return;
     setState({ status: 'loading', data: null, error: null });
     try {
       const r = await fetch('/api/check', {
@@ -227,10 +239,10 @@ export default function CheckPage() {
               <input
                 value={form.zip}
                 onChange={set('zip')}
-                placeholder="ZIP"
+                placeholder="ZIP (optional)"
                 inputMode="numeric"
-                aria-label="ZIP code"
-                style={{ flex: '1 1 110px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                aria-label="ZIP code, optional"
+                style={{ flex: '1 1 130px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
               />
             </div>
             <button
@@ -297,10 +309,50 @@ export default function CheckPage() {
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t find that property</h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>
+
+              {/*
+                THE SERVER ALREADY KNEW. /api/check returns `candidates` on a miss and
+                this page threw them away, so a near-match was rendered as a dead end.
+                Offering them costs nothing — they are parcels we hold, so clicking one
+                cannot lead anywhere we lack data.
+              */}
+              {Array.isArray(d.candidates) && d.candidates.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px' }}>Did you mean one of these?</p>
+                  {d.candidates.slice(0, 5).map((c, i) => (
+                    <button
+                      key={c.parcelId || i}
+                      type="button"
+                      onClick={() => {
+                        setForm({ street: c.street || c.full || '', zip: c.zip || '' });
+                        setState({ status: 'idle', data: null, error: null });
+                        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', marginBottom: 8,
+                        padding: '11px 14px', fontSize: 15, fontFamily: 'inherit', cursor: 'pointer',
+                        background: C.white, color: C.darkNavy,
+                        border: `1px solid ${C.border}`, borderRadius: 8,
+                      }}
+                    >
+                      {c.full || [c.street, c.city, 'FL', c.zip].filter(Boolean).join(', ')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
-                Check the street number and spelling. We hold the current roll for all 67 Florida
-                counties, so a miss here usually means new construction or a recently split parcel
-                that isn&rsquo;t on this year&rsquo;s roll yet.
+                {/*
+                  This paragraph used to assert new construction or a recent split as the
+                  likely cause. It was confident and, in the case that sent me here, false:
+                  the parcel was on the roll, and an exact-match ZIP filter was hiding it.
+                  ZIP is a hint now, not a gate — so a genuine miss is genuinely rarer, and
+                  the copy no longer diagnoses a cause it cannot know.
+                */}
+                Check the street number and spelling — the ZIP is optional, and leaving it out
+                searches wider. We hold the current roll for all 67 Florida counties, so a real
+                miss is usually a very new build or a parcel split that this year&rsquo;s roll
+                has not caught up with.
               </p>
             </div>
           )}
