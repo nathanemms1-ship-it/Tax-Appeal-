@@ -67,8 +67,29 @@ export default async function handler(req, res) {
   const zip = cap(b.zip, 20);
   const city = cap(b.city, 120);
 
-  if (!street || (!zip && !city)) {
-    return res.status(400).json({ error: 'Street address and either ZIP or city are required.' });
+  /**
+   * STREET ALONE IS ENOUGH.
+   *
+   * This was `!street || (!zip && !city)`, and the client was changed to make ZIP
+   * optional without changing it — so the form let you submit and the server sent
+   * back "Street address and either ZIP or city are required." The two halves have
+   * to agree, and this is the half that decides.
+   *
+   * ZIP became optional because it stopped being a filter: lib/dor/parcels.js now
+   * treats it as a hint that narrows and never excludes, after an exact-match ZIP
+   * filter was found returning "we have no record" for a parcel we hold. Requiring
+   * a value we no longer depend on only blocks people.
+   *
+   * WHAT WE GIVE UP, STATED PLAINLY. The out-of-state branch below keys off the
+   * ZIP, so a zipless query can no longer be answered "your state's window is
+   * closed" before touching the database — it falls through to the roll, misses,
+   * and gets the ordinary not-found copy. That is a worse answer for a Texan on a
+   * page headed "Covering all 67 Florida counties", and a better one for every
+   * Floridian who does not know which ZIP their county wrote down. Given who this
+   * page is advertised to, that is the right way round.
+   */
+  if (!street) {
+    return res.status(400).json({ error: 'Enter a street address to check.' });
   }
 
   try {

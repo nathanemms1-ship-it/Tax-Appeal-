@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LOADED_COUNTIES } from '../lib/dor/coverage';
 import Head from 'next/head';
 import Link from 'next/link';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 /**
  * THE FREE SAVINGS CHECK — public page.
@@ -229,12 +230,19 @@ export default function CheckPage() {
           {/* ── Input ─────────────────────────────────────────────────────── */}
           <form onSubmit={runCheck} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <input
+              {/*
+                Suggestions come from OUR roll, not Google — see the header of
+                components/AddressAutocomplete.js. Picking one writes the roll's own
+                spelling and ZIP back into the form, which is the single query
+                guaranteed to resolve.
+              */}
+              <AddressAutocomplete
                 value={form.street}
-                onChange={set('street')}
-                placeholder="8023 Marbella Creek Ave"
-                aria-label="Street address"
-                style={{ flex: '3 1 260px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                onChange={(v) => setForm((f) => ({ ...f, street: v }))}
+                onSelect={(s) => setForm({ street: s.street || '', zip: s.zip || '' })}
+                zip={form.zip}
+                colors={C}
+                style={{ flex: '3 1 260px' }}
               />
               <input
                 value={form.zip}
