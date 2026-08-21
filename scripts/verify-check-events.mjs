@@ -41,17 +41,26 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { register } from 'node:module';
 
 /**
- * No resolve-extensionless registration here, unlike verify-monitoring.
+ * The resolver hook, registered for ONE reason: lib/recordCheck.js.
  *
- * That hook exists so healthChecks.js can be imported with its extensionless
- * `./spendGuard` requires intact, and it pulls in Next's compiled babel to do
- * it. lib/checkOutcomes.js is deliberately dependency-free — it is a vocabulary
- * and two lookups — so this file imports it directly and stays runnable when
- * node_modules is not installed. Keep it that way: the guard that only runs
- * after a full install is a guard that gets skipped.
+ * This file was written without it, so it would run on a fresh clone with no
+ * node_modules — the reasoning being that a guard which only runs after a full
+ * install is a guard that gets skipped. That was the right instinct and the
+ * wrong trade here. The build-writes-rows defect on 21 Aug got past a purely
+ * textual guard set, and the only assertion that would have caught it is one
+ * that CALLS recordCheckOutcome and watches whether it reaches fetch. Doing that
+ * means importing a module whose own imports are extensionless, which needs this
+ * hook.
+ *
+ * lib/checkOutcomes.js is still dependency-free and imported directly.
+ * `npm run build` installs before it verifies, so nothing is skipped in
+ * practice.
  */
+register('./resolve-extensionless.mjs', import.meta.url);
+
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
@@ -412,7 +421,77 @@ t('the health check would catch a missing check_events table',
 t('a reachable but empty table warns rather than reporting ok',
   /rows\.length === 0/.test(healthSrc.slice(healthSrc.indexOf('checkCheckOutcomeCapture'))));
 
-// ── 9. THE DAY BOUNDARY IS CENTRAL, MATCHING EVERYTHING ELSE ──────────────────
+// ── 9. THE BUILD MUST NOT WRITE INTO THE FUNNEL ───────────────────────────────
+/**
+ * EXERCISED, NOT MATCHED. This is the guard the 21 Aug defect earned.
+ *
+ * scripts/verify-routes.mjs really invokes the /api/check handler during
+ * `npm run build`, and on Vercel the build environment carries production
+ * database credentials — so the feature's very first deploy wrote check_events
+ * id=1: a synthetic Broward `no_cap_differential`, source `unknown`, three
+ * minutes before a human had touched the page. Every textual assertion in this
+ * file passed while that happened, which is the whole argument for calling the
+ * function instead of reading it.
+ *
+ * Both directions are proven, because only one of them is the dangerous one to
+ * get wrong. Suppressed-when-flagged stops the build polluting the data;
+ * RECORDS-WHEN-NOT-FLAGGED is what stops a stray flag silently switching off the
+ * entire feature in production, which would present as an empty Funnel tab and
+ * read as "nobody checked".
+ */
+{
+  const { recordCheckOutcome } = await import('../lib/recordCheck.js');
+
+  const realFetch = globalThis.fetch;
+  const realEnv = { ...process.env };
+  let fetchCalls = 0;
+  globalThis.fetch = async () => { fetchCalls++; return { ok: true, status: 201, text: async () => '' }; };
+
+  // Credentials present, so a `skipped` result can only mean the suppression
+  // branch fired — not that the recorder bailed for want of a URL.
+  process.env.SUPABASE_URL = 'https://verify.example.invalid';
+  process.env.SUPABASE_SERVICE_KEY = 'verify-only-not-a-real-key';
+
+  process.env.SUPPRESS_CHECK_EVENTS = '1';
+  const suppressed = await recordCheckOutcome({ outcome: 'clearable', source: 'check' });
+  const callsWhileSuppressed = fetchCalls;
+
+  delete process.env.SUPPRESS_CHECK_EVENTS;
+  const recorded = await recordCheckOutcome({ outcome: 'clearable', source: 'check' });
+  const callsAfter = fetchCalls;
+
+  globalThis.fetch = realFetch;
+  process.env = realEnv;
+
+  t('SUPPRESS_CHECK_EVENTS stops the row being written at all',
+    suppressed === 'suppressed' && callsWhileSuppressed === 0);
+  t('with the flag absent the recorder still writes — the default is to record',
+    recorded === 'ok' && callsAfter === 1);
+}
+
+/**
+ * And the script that caused it has to set the flag, before it imports anything.
+ * A handler that read the variable at module scope would capture the old value.
+ *
+ * INJECTION: delete the assignment -> FAILS. Move it below the dynamic imports
+ * -> FAILS.
+ */
+{
+  const routesSrc = read('scripts/verify-routes.mjs');
+  t('verify-routes declares itself not a customer',
+    /process\.env\.SUPPRESS_CHECK_EVENTS = '1'/.test(routesSrc));
+  t('the flag is set before any route handler is imported',
+    routesSrc.indexOf("process.env.SUPPRESS_CHECK_EVENTS") < routesSrc.indexOf('await import('));
+  /**
+   * The header claimed "needs no database, no API keys and no network", which was
+   * true of what the script REQUIRES and false of what it TOUCHES on Vercel.
+   * A false claim in a header is how this defect got written in the first place.
+   */
+  t('verify-routes no longer claims it cannot reach the database',
+    /REQUIRES IS NOT THE SAME AS USES/.test(routesSrc));
+}
+
+// ── 10. THE DAY BOUNDARY IS CENTRAL, MATCHING EVERYTHING ELSE ─────────────────
 /**
  * On UTC everything after 7pm Nathan's time lands on tomorrow's row, so an
  * evening ad test splits across two days and neither matches the number he

@@ -23,9 +23,17 @@
  * WHAT THIS DOES AND DOES NOT PROVE
  * ============================================================================
  * It calls each handler with a realistic body and a mock res, and asserts the
- * handler does not THROW. That is a low bar on purpose — it needs no database,
- * no API keys and no network, so it can run on every build including a fresh
- * clone in CI.
+ * handler does not THROW. That is a low bar on purpose — it REQUIRES no
+ * database, no API keys and no network, so it can run on every build including a
+ * fresh clone in CI.
+ *
+ * REQUIRES IS NOT THE SAME AS USES, and the difference cost a bad row on
+ * 21 Aug 2026. This file previously said "needs no database" and was read as
+ * "touches no database". On Vercel the BUILD environment carries SUPABASE_URL
+ * and SUPABASE_SERVICE_KEY, so when these handlers run here they reach the real
+ * production database — and pages/api/check.js, which had just learned to record
+ * every outcome, duly recorded this smoke test as a customer. See
+ * SUPPRESS_CHECK_EVENTS below.
  *
  * It is not a correctness test. A route returning 500 because Supabase is absent
  * is a PASS here: the code ran, reached its own error handling, and answered.
@@ -38,6 +46,25 @@ import { register } from 'node:module';
 // The app imports without file extensions (webpack resolves them, Node does
 // not). Registered before any dynamic import below.
 register('./resolve-extensionless.mjs', import.meta.url);
+
+/**
+ * THIS SMOKE TEST IS NOT A CUSTOMER — set before any handler is imported.
+ *
+ * lib/recordCheck.js writes one check_events row per call to /api/check. On
+ * Vercel this script runs with production database credentials in the
+ * environment, so without this line every deploy writes a synthetic Broward
+ * `no_cap_differential` into the funnel and the refusal rate reads healthier
+ * than it is. It did exactly that on the feature's first deploy.
+ *
+ * Set here rather than in Vercel's environment on purpose: this is a variable on
+ * THIS process only, so it cannot leak into the serverless runtime and quietly
+ * switch off recording in production. The recorder's default, with the variable
+ * absent, is always to record.
+ *
+ * Assigned before the dynamic imports below, because a handler that read it at
+ * module scope would capture the old value.
+ */
+process.env.SUPPRESS_CHECK_EVENTS = '1';
 
 const FL = { street: '1130 GLENWOOD CT', city: 'WESTON', state: 'FL', zip: '33326' };
 
