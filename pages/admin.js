@@ -231,6 +231,242 @@ function WaitlistView({ data, loading, error, onRetry }) {
 }
 
 /**
+ * WHAT THE FREE SAVINGS CHECK TOLD PEOPLE — the middle of the funnel.
+ *
+ * The Traffic tab says how many arrived. Captured leads says how many left an
+ * email. Orders says how many paid. This says what happened in between, which is
+ * where every one of those numbers is actually decided.
+ *
+ * The number to read first is the refusal rate against the roll's prediction.
+ * If they track each other, the funnel is working and the Florida market is the
+ * constraint — most homeowners genuinely cannot benefit and no ad budget changes
+ * that. If the observed rate runs far higher, the ads are reaching the wrong
+ * homeowners, which is a targeting decision rather than a product one.
+ */
+function FunnelView({ data, loading, error, onRetry }) {
+  if (loading) {
+    return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading funnel…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{error}</div>
+        <button onClick={() => onRetry()} style={{ background: C.navy, color: C.white, border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 };
+  const th = { textAlign: "left", padding: "9px 12px", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, fontWeight: 500 };
+  const td = { padding: "9px 12px", fontSize: 13, borderTop: `1px solid ${C.border}` };
+
+  const h = data.headline || {};
+  const series = data.series || [];
+  const peak = series.reduce((m, d) => Math.max(m, d.checks), 0) || 1;
+  const dayLabel = (iso) => {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return `${m}/${d}`;
+  };
+
+  const GROUP_COLOR = { refused: C.red, rescuable: C.gold, eligible: C.green, no_answer: C.mutedGray };
+  const GROUP_LABEL = {
+    refused: 'Refused', rescuable: 'Condition case', eligible: 'Can be helped', no_answer: 'No finding',
+  };
+
+  const rows = [...(data.byOutcome || [])].sort((a, b) => b.checks - a.checks);
+  const unrecognised = rows.filter((r) => r.unrecognised);
+
+  return (
+    <>
+      {data.daysRecorded === 0 && (
+        <div style={{ background: C.amber, border: "1.5px solid #E5C76B", borderRadius: 12, padding: "14px 20px", marginBottom: 20, fontSize: 13, color: "#7a5b00", lineHeight: 1.7 }}>
+          <strong>No checks recorded yet.</strong> If the site is live and this stays empty, the first thing to rule out is{' '}
+          <code>scripts/sql/check_events.sql</code> not having been run on this database — the insert would be rejected on every
+          call and the page would look exactly like this. Check <code>/api/admin-health</code>, which distinguishes the two.
+        </div>
+      )}
+
+      {unrecognised.length > 0 && (
+        <div style={{ background: C.amber, border: "1.5px solid #E5C76B", borderRadius: 12, padding: "14px 20px", marginBottom: 20, fontSize: 13, color: "#7a5b00", lineHeight: 1.7 }}>
+          <strong>{unrecognised.length} outcome{unrecognised.length === 1 ? '' : 's'} not in the vocabulary:</strong>{' '}
+          <code>{unrecognised.map((r) => r.outcome).join(', ')}</code>. These rows were recorded rather than discarded, on
+          purpose — but they are not counted in the refusal rate. Add them to <code>lib/checkOutcomes.js</code>.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          ['Checks run', data.totals.last30, `last ${data.breakdownDays} days`],
+          ['Reached a finding', h.findings || 0, 'refused + condition + eligible'],
+          ['Refused', h.refused || 0, 'an appeal cannot help them'],
+          ['Can be helped', h.eligible || 0, 'the sellable population'],
+        ].map(([label, n, sub]) => (
+          <div key={label} style={{ ...card, flex: "1 1 180px", marginBottom: 0 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy }}>{Number(n).toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: C.mutedGray, marginTop: 4 }}>{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+          Refusal rate
+        </div>
+        {h.refusalRate == null ? (
+          <div style={{ fontSize: 13, color: C.mutedGray, marginTop: 8 }}>
+            No check has reached a finding yet, so there is no rate to state. A rate computed from nothing is worse than a blank.
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 10, marginBottom: 12, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: h.refusalRate > h.rollPredictedRate + 15 ? C.red : C.darkNavy }}>
+                {h.refusalRate}%
+              </div>
+              <div style={{ fontSize: 13, color: C.bodyGray }}>
+                of checks that reached a finding{data.headlineSource === 'check' ? ' on /check' : ''}
+              </div>
+            </div>
+            {/* The comparison is the whole point. A refusal rate on its own is a
+                number; against what the roll predicts it is a diagnosis. */}
+            <div style={{ position: "relative", height: 12, background: C.lightBlue, borderRadius: 6, marginBottom: 10 }}>
+              <div style={{ width: `${Math.min(100, h.refusalRate)}%`, height: "100%", background: C.red, borderRadius: 6 }} />
+              <div title={`County roll predicts ${h.rollPredictedRate}%`}
+                   style={{ position: "absolute", top: -4, left: `${Math.min(100, h.rollPredictedRate)}%`, width: 2, height: 20, background: C.darkNavy }} />
+            </div>
+            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.8 }}>
+              The marker is <strong>{h.rollPredictedRate}%</strong> — what the county roll predicts, from
+              1,995,000 of 5,155,929 residential parcels across the 13 largest counties that cannot benefit from an
+              appeal at all.{' '}
+              {h.refusalRate > h.rollPredictedRate + 15
+                ? 'Running well above it: the ads are likely reaching homeowners the product was always going to refuse. That is a targeting question.'
+                : h.refusalRate < h.rollPredictedRate - 15
+                  ? 'Running well below it: the traffic is better-qualified than a random Florida homeowner, which is what good targeting looks like.'
+                  : 'Tracking the roll. The refusals are the market, not the funnel — no ad budget converts a capped parcel.'}
+            </div>
+          </>
+        )}
+        <div style={{ fontSize: 12, color: C.mutedGray, marginTop: 14, lineHeight: 1.7, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+          <strong>The denominator excludes</strong> checks that reached no finding — outside Florida, no parcel on the roll,
+          an ambiguous address, a failed lookup. Those are coverage and plumbing problems; folding them in would make this
+          number rise when the roll loader breaks and read as the market getting worse.
+          {h.noAnswer > 0 && <> There {h.noAnswer === 1 ? 'was' : 'were'} <strong>{h.noAnswer}</strong> of them.</>}
+        </div>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+          Checks a day
+        </div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 18 }}>
+          Last {data.chartDays} days, Central time. Red is refused, green can be helped, gold is a condition case,
+          grey reached no finding.
+        </div>
+
+        {series.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.mutedGray }}>No days recorded yet.</div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 180, borderBottom: `1.5px solid ${C.border}`, paddingBottom: 2 }}>
+            {series.map((d) => {
+              const other = Math.max(0, d.checks - d.refused - d.eligible - d.rescuable);
+              const px = (n) => Math.round((n / peak) * 150);
+              return (
+                <div key={d.date} title={`${d.date} — ${d.checks} checks: ${d.refused} refused, ${d.eligible} eligible, ${d.rescuable} condition, ${other} no finding`}
+                     style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
+                  <div style={{ fontSize: 10, color: C.mutedGray, marginBottom: 3 }}>{d.checks > 0 && d.checks === peak ? d.checks : ''}</div>
+                  {/* Stacked, so the shape of a day is legible without a legend
+                      lookup. A single total bar would hide the only thing worth
+                      seeing here, which is the ratio. */}
+                  <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                    <div style={{ height: `${px(other)}px`, background: C.mutedGray }} />
+                    <div style={{ height: `${px(d.rescuable)}px`, background: C.gold }} />
+                    <div style={{ height: `${px(d.eligible)}px`, background: C.green }} />
+                    <div style={{ height: `${px(d.refused)}px`, background: C.red, borderRadius: "0 0 3px 3px" }} />
+                  </div>
+                  {d.checks === 0 && <div style={{ width: "100%", height: 2, background: C.border }} />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {series.length > 0 && (
+          <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
+            {series.map((d, i) => (
+              <div key={d.date} style={{ flex: 1, textAlign: "center", fontSize: 9, color: C.mutedGray }}>
+                {i % 5 === 0 || i === series.length - 1 ? dayLabel(d.date) : ''}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+          What we told them
+        </div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 14 }}>
+          Last {data.breakdownDays} days. <strong>&ldquo;Capped below market&rdquo; is the Save Our Homes wall</strong> — the
+          assessed value already sits so far under market that reducing market value changes no tax at all.
+          <em>Typical gap</em> is how far the market value would have to fall before that owner&rsquo;s bill moves: a small
+          number is a household a soft market rescues and worth an email, a large one never converts under any conditions.
+        </div>
+        {rows.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.mutedGray }}>Nothing recorded yet.</div>
+        ) : (
+          <table>
+            <thead><tr>
+              <th style={th}>Outcome</th><th style={th}>Group</th><th style={th}>Page</th>
+              <th style={th}>Checks</th><th style={th}>Typical gap</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={`${r.outcome}-${r.source}-${i}`} style={{ cursor: "default" }}>
+                  <td style={td}>{r.label}</td>
+                  <td style={{ ...td, color: GROUP_COLOR[r.group] || C.bodyGray, fontWeight: 500 }}>{GROUP_LABEL[r.group] || r.group}</td>
+                  <td style={{ ...td, color: C.mutedGray }}>/{r.source}</td>
+                  <td style={td}>{r.checks.toLocaleString()}</td>
+                  <td style={{ ...td, color: C.mutedGray }}>{r.medianCutPct == null ? '—' : `${r.medianCutPct}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {(data.byCounty || []).length > 0 && (
+        <div style={card}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
+            By county
+          </div>
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 14 }}>
+            If refusals concentrate in particular counties, that is an ad geo-targeting decision, not a product one.
+          </div>
+          <table>
+            <thead><tr><th style={th}>County</th><th style={th}>Checks</th><th style={th}>Refused</th><th style={th}>Rate</th></tr></thead>
+            <tbody>
+              {data.byCounty.map((r) => (
+                <tr key={r.county} style={{ cursor: "default" }}>
+                  <td style={td}>{r.county}</td>
+                  <td style={td}>{r.checks.toLocaleString()}</td>
+                  <td style={td}>{r.refused.toLocaleString()}</td>
+                  <td style={{ ...td, color: C.mutedGray }}>{r.checks > 0 ? `${Math.round((r.refused / r.checks) * 100)}%` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.8, marginBottom: 20 }}>
+        {data.totals.note}
+      </div>
+    </>
+  );
+}
+
+/**
  * Daily unique visitors.
  *
  * The chart is plain divs. A charting library for one bar chart is 40kB in the
@@ -557,6 +793,9 @@ export default function Admin() {
   const [trafficData, setTrafficData] = useState(null);
   const [trafficLoading, setTrafficLoading] = useState(false);
   const [trafficError, setTrafficError] = useState('');
+  const [funnelData, setFunnelData] = useState(null);
+  const [funnelLoading, setFunnelLoading] = useState(false);
+  const [funnelError, setFunnelError] = useState('');
 
   const fetchOrders = async (pw) => {
     setLoading(true);
@@ -651,6 +890,32 @@ export default function Admin() {
   const showTraffic = () => {
     setView('traffic');
     if (!trafficData && !trafficLoading) fetchTraffic();
+  };
+
+  const fetchFunnel = async (pw) => {
+    setFunnelLoading(true);
+    setFunnelError('');
+    try {
+      const res = await fetch('/api/check-roster', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || password }),
+      });
+      const data = await res.json();
+      // The hint carries "run scripts/sql/check_events.sql", which is the actual
+      // cause the overwhelming majority of the time. Dropping it would leave an
+      // empty panel that reads as "nobody checked".
+      if (data.error) setFunnelError(data.hint ? `${data.error} — ${data.hint}` : data.error);
+      else setFunnelData(data);
+    } catch (e) {
+      setFunnelError('Failed to connect');
+    }
+    setFunnelLoading(false);
+  };
+
+  const showFunnel = () => {
+    setView('funnel');
+    if (!funnelData && !funnelLoading) fetchFunnel();
   };
 
   /**
@@ -778,7 +1043,7 @@ export default function Admin() {
         </div>
         {authenticated && (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => (view === 'partners' ? fetchPartners() : view === 'waitlist' ? fetchWaitlist() : view === 'traffic' ? fetchTraffic() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
+            <button onClick={() => (view === 'partners' ? fetchPartners() : view === 'waitlist' ? fetchWaitlist() : view === 'traffic' ? fetchTraffic() : view === 'funnel' ? fetchFunnel() : fetchOrders())} style={{ background: "transparent", border: `1px solid #3A4E6A`, borderRadius: 6, padding: "7px 14px", fontSize: 12, color: C.mutedGray, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>↻ Refresh</button>
             <a href="/" style={{ fontSize: 12, color: C.mutedGray, textDecoration: "none" }}>← Back to site</a>
           </div>
         )}
@@ -810,8 +1075,8 @@ export default function Admin() {
           {/* View switch. Partners were previously visible only by curling
               /api/referral-stats or opening the Supabase table editor. */}
           <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
-            {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads'], ['traffic', '📈 Traffic']].map(([key, label]) => (
-              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : key === 'traffic' ? showTraffic() : setView('orders'))}
+            {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads'], ['traffic', '📈 Traffic'], ['funnel', '🔻 Funnel']].map(([key, label]) => (
+              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : key === 'traffic' ? showTraffic() : key === 'funnel' ? showFunnel() : setView('orders'))}
                 style={{ background: view === key ? C.navy : C.white, color: view === key ? C.white : C.bodyGray, border: `1.5px solid ${view === key ? C.navy : C.border}`, borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                 {label}
               </button>
@@ -1075,6 +1340,10 @@ export default function Admin() {
 
           {view === 'traffic' && (
             <TrafficView data={trafficData} loading={trafficLoading} error={trafficError} onRetry={fetchTraffic} />
+          )}
+
+          {view === 'funnel' && (
+            <FunnelView data={funnelData} loading={funnelLoading} error={funnelError} onRetry={fetchFunnel} />
           )}
 
           {/* Operator tools. Deliberately at the bottom and visually quiet — used

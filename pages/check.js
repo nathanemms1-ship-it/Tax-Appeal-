@@ -142,7 +142,11 @@ export default function CheckPage() {
       const r = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ street: form.street.trim(), zip: form.zip.trim() }),
+        // `source` tells check_events which page ran this. /apply runs the SAME
+        // endpoint again at the property step, for somebody already inside the
+        // funnel — blending the two would dilute the top-of-funnel refusal rate
+        // with re-checks from people who had already cleared the gate.
+        body: JSON.stringify({ street: form.street.trim(), zip: form.zip.trim(), source: 'check' }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Something went wrong.');

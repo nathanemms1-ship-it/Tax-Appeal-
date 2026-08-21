@@ -51,7 +51,43 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { lookupAndQualify } from '../../lib/dor/parcels';
 import { DEFAULT_MILLAGE } from '../../lib/dor/qualify';
-import { isFloridaZip, LOADED_COUNTY_NAMES } from '../../lib/dor/coverage';
+import { isFloridaZip, LOADED_COUNTY_NAMES, LOADED_COUNTIES } from '../../lib/dor/coverage';
+import { recordCheckOutcome } from '../../lib/recordCheck';
+
+/**
+ * ============================================================================
+ * EVERY BRANCH BELOW RECORDS ITS OUTCOME. THAT IS NEW, AND HERE IS WHY.
+ * ============================================================================
+ * Until 21 Aug 2026 this endpoint -- described in its own header as the most
+ * important in the product -- wrote nothing on any path. It answered, and the
+ * answer evaporated.
+ *
+ * What that cost: the header above says roughly 39% of Florida residential
+ * parcels cannot benefit from an appeal at all. Nobody could say whether that
+ * was what visitors were actually hitting, because the only trace a refused
+ * homeowner could leave was an email address they chose to type afterwards --
+ * and all-time that had happened zero times. site_visits records the first page
+ * of a visitor's day and nothing after it, so /check -> /apply drop-off was not
+ * measured either. The whole span between "arrived" and "started checkout" was
+ * dark, and /check became the Google Ads final URL on 21 Aug -- so that dark
+ * span is now exactly where the money lands.
+ *
+ * WHAT IS RECORDED IS THE SHAPE OF THE ANSWER, NOT WHO ASKED: the date, which
+ * outcome, which page ran the check, the county, and how far below the cap the
+ * parcel sat. No address, no ZIP, no email, no IP, no parcel ID, no just value,
+ * and no digest of any of them. See scripts/sql/check_events.sql -- the refusal
+ * to store a visitor key there is deliberate and load-bearing, and it is why
+ * repeat checks count as repeat checks.
+ *
+ * RECORDING MUST NEVER CHANGE THE ANSWER. recordCheckOutcome throws nothing,
+ * caps its own latency, and abandons the row rather than delay a response.
+ */
+
+/** County NAME for the log, never the DOR number. See lib/recordCheck.js. */
+function countyName(parcel) {
+  const no = Number(parcel?.coNo);
+  return Number.isFinite(no) ? LOADED_COUNTIES[no] || null : null;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -66,6 +102,20 @@ export default async function handler(req, res) {
   const street = cap(b.street, LIMITS.address);
   const zip = cap(b.zip, 20);
   const city = cap(b.city, 120);
+
+  /**
+   * WHICH PAGE ASKED. 'check' | 'apply' | anything else -> 'unknown'.
+   *
+   * pages/apply.js runs this same endpoint again at the property step, for
+   * somebody who has already cleared the gate on /check. Without this field the
+   * two are indistinguishable and the top-of-funnel refusal rate is diluted by
+   * re-checks from people who were never going to be refused -- which would
+   * understate the exact number check_events was built to measure.
+   *
+   * Sanitised in lib/recordCheck.js rather than trusted here: it arrives in a
+   * request body, so it is a value a caller controls.
+   */
+  const source = b.source;
 
   /**
    * STREET ALONE IS ENOUGH.
@@ -89,6 +139,11 @@ export default async function handler(req, res) {
    * page is advertised to, that is the right way round.
    */
   if (!street) {
+    // Recorded because a spike here means the FORM is broken, not the market.
+    // The client and server disagreed about whether ZIP was required once
+    // already, and the symptom was a button that appeared dead -- invisible from
+    // this side, and it would have been visible from this side with this row.
+    await recordCheckOutcome({ outcome: 'bad_input', source });
     return res.status(400).json({ error: 'Enter a street address to check.' });
   }
 
@@ -101,6 +156,11 @@ export default async function handler(req, res) {
     // not exist", which is both wrong and the fastest way to lose a lead we
     // could have captured.
     if (zip && !isFloridaZip(zip)) {
+      // No county: this branch answers before touching the roll, on the ZIP
+      // alone. Counting these as refusals would blend "we cannot help you" into
+      // "we do not cover your state" -- different problems, different fixes.
+      // check_events groups it under no_answer for that reason.
+      await recordCheckOutcome({ outcome: 'outside_coverage', source });
       return res.status(200).json({
         found: false,
         reason: 'outside_coverage',
@@ -129,6 +189,16 @@ export default async function handler(req, res) {
     );
 
     if (!result.found) {
+      /**
+       * 'no_parcel' or 'ambiguous', from lib/dor/parcels.js.
+       *
+       * Worth separating in the panel: no_parcel is a coverage or data problem
+       * we can fix by loading a roll, and ambiguous is a UI problem -- the
+       * address matched several parcels and the visitor has to pick. A rising
+       * ambiguous count is people being asked a question they may not answer,
+       * which looks identical to disinterest from every other angle.
+       */
+      await recordCheckOutcome({ outcome: result.reason || 'no_parcel', source });
       return res.status(200).json({
         found: false,
         // Inside Florida but no parcel. Could be a county we have not loaded, or
@@ -143,6 +213,28 @@ export default async function handler(req, res) {
     }
 
     const { parcel, savings } = result;
+
+    /**
+     * THE ROW THIS WHOLE TABLE WAS BUILT FOR.
+     *
+     * savings.reason is the finding: 'cap_absorbs_everything' is the Save Our
+     * Homes wall, 'saving_below_cost' is the appeal that wins and still leaves
+     * the owner out of pocket, 'needs_condition_case' is the one that is NOT a
+     * refusal and must not be counted as one, and 'clearable' /
+     * 'no_cap_differential' are the sellable population.
+     *
+     * requiredCutPct is stored because it separates two refused populations that
+     * look identical in a count: one sitting 8% below the cap, who a soft market
+     * rescues and who are worth holding an email address for, and one sitting
+     * 60% below, who never become customers under any conditions. That
+     * distinction is the difference between a waitlist and a dead list.
+     */
+    await recordCheckOutcome({
+      outcome: savings.reason,
+      source,
+      county: countyName(parcel),
+      requiredCutPct: savings.requiredCutPct,
+    });
 
     return res.status(200).json({
       found: true,
@@ -199,6 +291,20 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[check] error:', err);
+    /**
+     * A 500 is a funnel outcome too, and the one most likely to be mistaken for
+     * disinterest. Somebody whose lookup threw sees a generic error and leaves;
+     * from every other vantage point that is indistinguishable from a visitor
+     * who typed nothing. This is also not hypothetical here -- generate-dr486.js
+     * once carried a model ID the account may not have had, which would have
+     * 500'd the Florida funnel at lookup 100% of the time with no counter
+     * anywhere that would have shown it.
+     *
+     * Wrapped rather than awaited bare: if the handler is already failing, a
+     * failure inside the recorder must not replace a 500 with an unhandled
+     * rejection.
+     */
+    try { await recordCheckOutcome({ outcome: 'error', source }); } catch { /* never mask the original */ }
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

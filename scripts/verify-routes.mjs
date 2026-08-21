@@ -58,6 +58,10 @@ const ROUTES = [
   // Daily visitor counts. No password sent, so the expected answer is the auth
   // rejection — what is proven is that the module imports and the handler runs.
   { name: 'traffic-roster',   body: {} },
+  // What the free savings check actually told people. Same reasoning as the two
+  // rosters above; it additionally imports lib/checkOutcomes.js, so a broken
+  // vocabulary module fails here rather than on the first admin page load.
+  { name: 'check-roster',     body: {} },
   // Lifts the preview blur for one operator's browser. No password sent, so the
   // expected answer is the auth rejection — what is proven is that it imports and
   // executes, and verify-security separately proves the guard is not negated.

@@ -1017,7 +1017,13 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         // Issues ride along so the SECOND visit to this screen — after the owner
         // has been asked about condition — re-runs the cap test with cost to cure
         // included. First visit sends an empty list and behaves exactly as before.
-        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL', issues: issues || [], costOverrides: costOverrides || {} });
+        // `source: 'apply'` is for check_events. It rides on the SHARED body
+        // rather than a second object on purpose: the one string is what keeps
+        // the check call and the comps call describing the same property, and
+        // splitting them to keep one extra field out of /api/comps would trade a
+        // real drift risk for a cosmetic one. /api/comps reads named fields and
+        // ignores this.
+        const body = JSON.stringify({ street: property.street, zip: property.zip, city: property.city, state: 'FL', issues: issues || [], costOverrides: costOverrides || {}, source: 'apply' });
         const [cRes, kRes] = await Promise.all([
           fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
           fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null),
