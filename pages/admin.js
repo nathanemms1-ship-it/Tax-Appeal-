@@ -320,18 +320,34 @@ function FunnelView({ data, loading, error, onRetry }) {
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 10, marginBottom: 12, flexWrap: "wrap" }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: h.refusalRate > h.rollPredictedRate + 15 ? C.red : C.darkNavy }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 10, marginBottom: 4, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: h.verdict === 'above' ? C.red : C.darkNavy }}>
                 {h.refusalRate}%
               </div>
               <div style={{ fontSize: 13, color: C.bodyGray }}>
-                of checks that reached a finding{data.headlineSource === 'check' ? ' on /check' : ''}
+                of the <strong>{h.findings}</strong> check{h.findings === 1 ? '' : 's'} that reached a finding
+                {data.headlineSource === 'check' ? ' on /check' : ''}
               </div>
             </div>
+            {/* The sample size and the interval sit WITH the number, not in a
+                footnote, because the number is meaningless without them for the
+                panel's first week and that is exactly when it will be read most. */}
+            {h.ciLow != null && (
+              <div style={{ fontSize: 12.5, color: C.mutedGray, marginBottom: 12, fontVariantNumeric: "tabular-nums" }}>
+                95% confidence interval <strong style={{ color: C.bodyGray }}>{h.ciLow}% – {h.ciHigh}%</strong>
+                {h.findings < 30 && ' — a range this wide is what a small sample looks like, not a problem with the funnel'}
+              </div>
+            )}
             {/* The comparison is the whole point. A refusal rate on its own is a
-                number; against what the roll predicts it is a diagnosis. */}
+                number; against what the roll predicts it is a diagnosis — but only
+                once the interval can actually separate the two. */}
             <div style={{ position: "relative", height: 12, background: C.lightBlue, borderRadius: 6, marginBottom: 10 }}>
-              <div style={{ width: `${Math.min(100, h.refusalRate)}%`, height: "100%", background: C.red, borderRadius: 6 }} />
+              {/* The interval, drawn. The solid bar is the point estimate; the
+                  pale band behind it is the range the data actually admits. */}
+              {h.ciLow != null && (
+                <div style={{ position: "absolute", left: `${Math.min(100, h.ciLow)}%`, width: `${Math.max(1, Math.min(100, h.ciHigh) - Math.min(100, h.ciLow))}%`, top: 0, height: "100%", background: "#F5C6C0", borderRadius: 6 }} />
+              )}
+              <div style={{ position: "absolute", left: 0, width: `${Math.min(100, h.refusalRate)}%`, height: "100%", background: C.red, borderRadius: 6, opacity: 0.85 }} />
               <div title={`County roll predicts ${h.rollPredictedRate}%`}
                    style={{ position: "absolute", top: -4, left: `${Math.min(100, h.rollPredictedRate)}%`, width: 2, height: 20, background: C.darkNavy }} />
             </div>
@@ -339,11 +355,21 @@ function FunnelView({ data, loading, error, onRetry }) {
               The marker is <strong>{h.rollPredictedRate}%</strong> — what the county roll predicts, from
               1,995,000 of 5,155,929 residential parcels across the 13 largest counties that cannot benefit from an
               appeal at all.{' '}
-              {h.refusalRate > h.rollPredictedRate + 15
-                ? 'Running well above it: the ads are likely reaching homeowners the product was always going to refuse. That is a targeting question.'
-                : h.refusalRate < h.rollPredictedRate - 15
-                  ? 'Running well below it: the traffic is better-qualified than a random Florida homeowner, which is what good targeting looks like.'
-                  : 'Tracking the roll. The refusals are the market, not the funnel — no ad budget converts a capped parcel.'}
+              {/*
+                THE VERDICT IS DERIVED, NOT THRESHOLDED.
+                This sentence used to fire at any sample size, and its first ever
+                render told Nathan his ad targeting was working — computed from a
+                single check, run by the session that built the feature. It now
+                appears only when the confidence interval EXCLUDES the marker,
+                which is the same thing as saying the data can tell them apart.
+              */}
+              {h.verdict === 'above'
+                ? 'Running above it, and the interval clears it — the ads are reaching homeowners the product was always going to refuse. That is a targeting question.'
+                : h.verdict === 'below'
+                  ? 'Running below it, and the interval clears it — the traffic is better-qualified than a random Florida homeowner, which is what good targeting looks like.'
+                  : <><strong>Not yet distinguishable from the roll.</strong> The interval still spans {h.rollPredictedRate}%,
+                    so this rate cannot yet tell you whether the refusals are the market or the targeting. Nothing is wrong —
+                    there is just not enough data. Come back once the interval clears the marker.</>}
             </div>
           </>
         )}

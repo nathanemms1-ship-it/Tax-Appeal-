@@ -491,7 +491,109 @@ t('a reachable but empty table warns rather than reporting ok',
     /REQUIRES IS NOT THE SAME AS USES/.test(routesSrc));
 }
 
-// ── 10. THE DAY BOUNDARY IS CENTRAL, MATCHING EVERYTHING ELSE ─────────────────
+// ── 10. THE RATE CANNOT LIE ABOUT ITS OWN PRECISION ───────────────────────────
+/**
+ * COMPUTED AND COMPARED, against numbers this codebase did not produce.
+ *
+ * The panel's first render said "the traffic is better-qualified than a random
+ * Florida homeowner, which is what good targeting looks like" — from ONE check,
+ * which the session that built the feature had run itself. The verdict sentence
+ * fired at any sample size. Same family as the verify script whose "earliest is
+ * X" line kept printing Hillsborough after it stopped being true: a report gone
+ * false while still looking like a report.
+ *
+ * A numerical function asserted only against its own output proves nothing, so
+ * the expected bounds below were generated independently with Python's
+ * statsmodels — `proportion_confint(k, n, alpha=0.05, method='wilson')` — and
+ * pasted in. If lib/wilson.js is ever "simplified" into the normal
+ * approximation, these stop matching.
+ */
+{
+  const { wilsonInterval, compareToReference, Z95 } = await import('../lib/wilson.js');
+
+  // k/n -> [lower, upper], from statsmodels. Independent of this repo.
+  const REFERENCE = [
+    [0, 1, 0.000000, 0.793451],
+    [0, 30, 0.000000, 0.113513],
+    [12, 30, 0.245906, 0.576796],
+    [1, 4, 0.045587, 0.699358],
+    [50, 100, 0.403832, 0.596168],
+    [3, 7, 0.158220, 0.749542],
+    [7, 9, 0.452589, 0.936775],
+    [20, 30, 0.487801, 0.807695],
+    [2, 20, 0.027866, 0.301034],
+  ];
+  const matches = REFERENCE.every(([k, n, lo, hi]) => {
+    const iv = wilsonInterval(k, n);
+    return iv && Math.abs(iv.lower - lo) < 1e-6 && Math.abs(iv.upper - hi) < 1e-6;
+  });
+  t(`the Wilson interval matches statsmodels on all ${REFERENCE.length} reference cases`, matches);
+  t('the 95% quantile is the real one, not a rounded 1.96',
+    Math.abs(Z95 - 1.959963984540054) < 1e-12);
+
+  /**
+   * THE CASE THE TEXTBOOK INTERVAL GETS CATASTROPHICALLY WRONG, asserted
+   * explicitly because it is the state this panel launched in.
+   *
+   * At 0 refusals the normal approximation's standard error is sqrt(0·1/n) = 0,
+   * so it reports 0% ± 0% — perfect certainty from one observation. Wilson gives
+   * an upper bound near 79%, which is the honest reading of one check.
+   */
+  const oneCheck = wilsonInterval(0, 1);
+  t('a single check with no refusals does NOT report certainty',
+    oneCheck.upper > 0.5);
+  t('the naive interval this replaces really would have collapsed to zero width',
+    Math.sqrt((0 * 1) / 1) === 0);
+
+  // Wilson cannot mathematically leave [0,1]; a "simplification" to the normal
+  // approximation can, and would render as "-4.2%".
+  let inBounds = true;
+  for (let n = 1; n <= 60; n++) {
+    for (let k = 0; k <= n; k++) {
+      const iv = wilsonInterval(k, n);
+      if (!iv || iv.lower < 0 || iv.upper > 1 || iv.lower > iv.upper) inBounds = false;
+    }
+  }
+  t('no interval leaves [0,1] across every k/n up to n=60', inBounds);
+
+  t('nothing to describe returns null rather than an interval spanning everything',
+    wilsonInterval(0, 0) === null && wilsonInterval(5, 2) === null &&
+    wilsonInterval(-1, 10) === null && wilsonInterval('x', 10) === null);
+
+  /**
+   * The verdict is the interval's relationship to the marker, nothing else.
+   * INJECTION: make compareToReference return 'below' on overlap -> FAILS.
+   */
+  const ROLL = 0.387;
+  t('one check is not distinguishable from the roll',
+    compareToReference(wilsonInterval(0, 1), ROLL) === 'indistinguishable');
+  t('a clearly worse rate reads as above once the interval clears the marker',
+    compareToReference(wilsonInterval(20, 30), ROLL) === 'above');
+  t('a clearly better rate reads as below once the interval clears the marker',
+    compareToReference(wilsonInterval(2, 20), ROLL) === 'below');
+  t('no data is its own answer, not a verdict',
+    compareToReference(null, ROLL) === 'no_data');
+}
+
+/**
+ * And the panel must take the verdict from that comparison rather than
+ * re-deriving one from the point estimate — which is what it did before, with a
+ * hardcoded ±15 point band that ignored sample size entirely.
+ *
+ * INJECTION: restore `h.refusalRate > h.rollPredictedRate + 15` -> FAILS.
+ */
+t('the roster exposes the interval and the derived verdict',
+  /ciLow/.test(rosterSrc) && /ciHigh/.test(rosterSrc) &&
+  /compareToReference/.test(rosterSrc) && /wilsonInterval/.test(rosterSrc));
+t('the panel gates its verdict sentence on the interval, not on a point estimate',
+  /h\.verdict === 'above'/.test(adminSrc) && /h\.verdict === 'below'/.test(adminSrc) &&
+  !/refusalRate > h\.rollPredictedRate \+ 15/.test(adminSrc));
+t('the panel shows the sample size next to the rate',
+  /\{h\.findings\}<\/strong> check/.test(adminSrc));
+t('the panel says plainly when the data cannot yet separate the two',
+  /Not yet distinguishable from the roll/.test(adminSrc));
+
+// ── 11. THE DAY BOUNDARY IS CENTRAL, MATCHING EVERYTHING ELSE ─────────────────
 /**
  * On UTC everything after 7pm Nathan's time lands on tomorrow's row, so an
  * evening ad test splits across two days and neither matches the number he

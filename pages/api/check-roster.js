@@ -45,6 +45,7 @@
 import { getSupabaseAdmin } from './supabase';
 import { requireAdmin } from '../../lib/adminAuth';
 import { OUTCOMES, outcomeGroup, outcomeLabel } from '../../lib/checkOutcomes';
+import { wilsonInterval, compareToReference } from '../../lib/wilson';
 
 export const config = { maxDuration: 60 };
 
@@ -128,6 +129,26 @@ export default async function handler(req, res) {
       const eligible = totalIn('eligible', src);
       const noAnswer = totalIn('no_answer', src);
       const findings = refused + rescuable + eligible;
+
+      /**
+       * THE RATE TRAVELS WITH ITS ERROR BAR, AND THE VERDICT IS DERIVED FROM IT.
+       *
+       * Shipped first without this, and the panel's first render told Nathan his
+       * ad targeting was working — off one check, which the session that built
+       * the feature had run itself. A rate with no sample size attached invites
+       * exactly that reading, and this panel exists to inform ad spend during a
+       * three-week season.
+       *
+       * `verdict` is not a threshold on n. It is whether the interval EXCLUDES
+       * the roll's prediction, so the claim is available precisely when the data
+       * can support it and not one check sooner. See lib/wilson.js.
+       */
+      const ROLL_PREDICTED_RATE = 38.7;
+      const interval = wilsonInterval(refused, findings);
+      const verdict = compareToReference(interval, ROLL_PREDICTED_RATE / 100);
+
+      const pct = (x) => (x == null ? null : Math.round(x * 1000) / 10);
+
       return {
         refused,
         rescuable,
@@ -137,12 +158,23 @@ export default async function handler(req, res) {
         findings,
         checks: findings + noAnswer,
         refusalRate: findings > 0 ? Math.round((refused / findings) * 1000) / 10 : null,
+
+        // 95% Wilson bounds, as percentages. Null when nothing reached a finding.
+        // Wilson rather than the textbook interval because at 0 refusals the
+        // normal approximation collapses to ±0 and would report certainty from a
+        // single observation — which is the state this panel starts in.
+        ciLow: interval ? pct(interval.lower) : null,
+        ciHigh: interval ? pct(interval.upper) : null,
+
+        // 'above' | 'below' | 'indistinguishable' | 'no_data'
+        verdict,
+
         // What the county roll predicts, for comparison. pages/api/check.js:
         // 1,995,000 of 5,155,929 residential parcels across the 13 largest
         // counties cannot benefit -- 38.7%. If the observed rate tracks this,
         // the funnel is working and the market is the constraint. If it is far
         // higher, the ads are reaching the wrong homeowners.
-        rollPredictedRate: 38.7,
+        rollPredictedRate: ROLL_PREDICTED_RATE,
       };
     };
 
