@@ -100,15 +100,6 @@ export default function BlogPost({ post, coverage }) {
     "mainEntityOfPage": { "@type": "WebPage", "@id": `https://www.taxappealusa.com/blog/${post.slug}` },
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": post.faqs.map(([q, a]) => ({
-      "@type": "Question",
-      "name": q,
-      "acceptedAnswer": { "@type": "Answer", "text": a }
-    }))
-  };
 
   return (
     <>
@@ -122,7 +113,6 @@ export default function BlogPost({ post, coverage }) {
         <meta property="og:type" content="article" key="og:type" />
         <meta property="article:published_time" content={post.publishDate} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       </Head>
       <style>{`
         ${FONT}

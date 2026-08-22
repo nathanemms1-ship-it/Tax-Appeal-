@@ -64,15 +64,6 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
     { step: "4", title: "You Save Money", desc: `The appraisal district reviews your evidence and typically responds within 30–90 days. Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate.` },
   ];
 
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqs.map(f => ({
-      "@type": "Question",
-      "name": f.q,
-      "acceptedAnswer": { "@type": "Answer", "text": f.a }
-    }))
-  };
 
   /* BreadcrumbList — this page has rendered a VISIBLE breadcrumb trail since it was
      built, with no markup behind it. That is the worst of both: the layout cost paid
@@ -113,9 +104,18 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
         <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Certified mail filing. No percentage cuts — you keep every dollar of any reduction.`} key="og:description" />
         <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
 
+      
+        {/* FAQPage JSON-LD removed 22 Aug 2026. Google withdrew the FAQ rich result on
+            7 May 2026, so it produced nothing in a search result and was pure page
+            weight. scripts/verify-pages.mjs has banned it since 10 Aug — but only
+            sampled the Florida surface plus one county per state, so the entire
+            Texas city, metro and hub set kept shipping it for twelve days. The
+            guard now covers Texas too. The visible FAQ content stays; only the
+            markup goes. (Bing still renders FAQ rich results — that is the one
+            argument against this, and it loses to consistency with a decision the
+            codebase already made and already enforces.) */}
       </Head>
 
       <style>{`

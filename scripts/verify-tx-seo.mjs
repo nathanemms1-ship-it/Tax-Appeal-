@@ -99,11 +99,60 @@ function stripComments(src) {
 
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length;
 
+/**
+ * DELIBERATE DATE QUOTATIONS.
+ *
+ * The dead-literal checks below exist to catch a past deadline presented as OUR
+ * deadline. They are not meant to stop a page quoting one — and a page that explains
+ * why the deadline is not 15 May has to be able to write "May 15", quote § 41.44's
+ * own text, quote HCAD's wrong 2026 headline, and cite § 23.231's "expires December
+ * 31, 2026". Blocking that would push the guard into making the content worse, which
+ * is how guards get switched off.
+ *
+ * So an exemption exists, and it is deliberately noisy to use:
+ *
+ *   deadline-literal-ok: <reason>     exempts that one line
+ *   deadline-quote:start / :end        exempts a region
+ *
+ * Read from the RAW source, before comments are stripped, so a marker is a comment
+ * and never reaches the page. Line numbers survive stripping because stripComments
+ * preserves newlines.
+ *
+ * Every marker must carry a reason. An unexplained exemption is how a real defect
+ * gets waved through six months from now, so a bare marker fails the build.
+ */
+function exemptLines(rawSrc) {
+  const lines = rawSrc.split('\n');
+  const exempt = new Set();
+  const bad = [];
+  let region = false;
+  lines.forEach((line, i) => {
+    const n = i + 1;
+    if (line.includes('deadline-quote:start')) region = true;
+    if (region) exempt.add(n);
+    if (line.includes('deadline-quote:end')) region = false;
+    if (line.includes('deadline-literal-ok')) {
+      // Exempts its own line AND the next, so the marker can sit above the prose it
+      // covers — the same convention as eslint-disable-next-line. A marker inline in
+      // JSX text would otherwise have to interrupt a sentence.
+      exempt.add(n);
+      exempt.add(n + 1);
+      if (!/deadline-literal-ok:\s*\S/.test(line)) bad.push(n);
+    }
+    if (line.includes('deadline-quote:start') && !/deadline-quote:start\s*[—:-]\s*\S/.test(line)) {
+      bad.push(n);
+    }
+  });
+  if (region) bad.push(0); // unterminated region
+  return { exempt, bad };
+}
+
 // ---------------------------------------------------------------------------
 // The Texas surface. Every page that can show a Texas homeowner a deadline.
 // ---------------------------------------------------------------------------
 const TX_PAGES = [
   'pages/texas.js',
+  'pages/texas/protest-deadline.js',
   'pages/texas/[city].js',
   'pages/counties/[slug].js',
   'pages/houston.js',
@@ -160,13 +209,23 @@ const pd = await load('lib/tx/protestDeadline.js');
   const live = String(pd.currentTaxYear());
   let flagged = 0;
   for (const rel of TX_PAGES) {
-    const src = stripComments(read(rel));
+    const raw = read(rel);
+    const { exempt, bad } = exemptLines(raw);
+    for (const n of bad) {
+      fail(n === 0
+        ? `${rel} opens a deadline-quote region and never closes it.`
+        : `${rel}:${n} uses a date-literal exemption with no reason after it. Write ` +
+          `"deadline-literal-ok: quoting § 41.44" — an unexplained exemption waves ` +
+          `through the next real defect.`);
+    }
+    const src = stripComments(raw);
     for (const re of DEAD) {
       re.lastIndex = 0;
       let m;
       while ((m = re.exec(src))) {
         const year = m[1];
         if (year === live) continue;      // stating the live year is correct
+        if (exempt.has(lineOf(src, m.index))) continue;
         // Florida's branch inside the county template is legitimately on 2026 while
         // its season runs. Only flag it once that season has closed.
         if (rel === 'pages/counties/[slug].js' && year === '2026') continue;
@@ -186,10 +245,13 @@ const pd = await load('lib/tx/protestDeadline.js');
   const bare = /\bMay 15\b(?!,\s*20)/g;
   let n = 0;
   for (const rel of TX_PAGES) {
-    const src = stripComments(read(rel));
+    const raw = read(rel);
+    const { exempt } = exemptLines(raw);
+    const src = stripComments(raw);
     bare.lastIndex = 0;
     let m;
     while ((m = bare.exec(src))) {
+      if (exempt.has(lineOf(src, m.index))) continue;
       n++;
       fail(`${rel}:${lineOf(src, m.index)} states a bare "May 15" as a Texas ` +
            `deadline. That was the § 41.44 floor through 2026 and is wrong now — ` +

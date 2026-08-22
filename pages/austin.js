@@ -31,10 +31,6 @@ export default function Austin() {
         <meta property="og:url" content="https://www.taxappealusa.com/austin" key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context":"https://schema.org","@type":"FAQPage",
-          "mainEntity": faqs.map(([q,a]) => ({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))
-        })}} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context":"https://schema.org","@type":"Service",
           "name":"Austin Property Tax Protest Filing",
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
@@ -42,6 +38,16 @@ export default function Austin() {
           "description":"Property tax protest letter preparation and USPS certified mail filing for Austin homeowners.",
           "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
+      
+        {/* FAQPage JSON-LD removed 22 Aug 2026. Google withdrew the FAQ rich result on
+            7 May 2026, so it produced nothing in a search result and was pure page
+            weight. scripts/verify-pages.mjs has banned it since 10 Aug — but only
+            sampled the Florida surface plus one county per state, so the entire
+            Texas city, metro and hub set kept shipping it for twelve days. The
+            guard now covers Texas too. The visible FAQ content stays; only the
+            markup goes. (Bing still renders FAQ rich results — that is the one
+            argument against this, and it loses to consistency with a decision the
+            codebase already made and already enforces.) */}
       </Head>
 
       <style>{`

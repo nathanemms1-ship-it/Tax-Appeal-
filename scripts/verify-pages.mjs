@@ -815,12 +815,30 @@ if (flChecked) {
     'florida', 'miami', 'tampa', 'orlando', 'jacksonville', 'fort-lauderdale',
     path.join('florida', 'miami-beach'), path.join('florida', 'boca-raton'),
   ];
+
+  /**
+   * The Texas surface, added 22 Aug 2026.
+   *
+   * The list above covered Florida and one county per state, and that gap was not
+   * theoretical: for the twelve days between this guard shipping and today, the
+   * Texas hub, all six Texas metro pages, all 69 /texas/[city] pages and every
+   * /blog/[slug] kept emitting FAQPage. The guard printed a passing line the whole
+   * time, because it was checking a set that did not include them.
+   *
+   * That is the failure shape this project keeps meeting — a check that proves a
+   * property about the wrong set and looks like it passed. Widening the set is the
+   * fix; the lesson is to state which set a guard covers.
+   */
+  const TX_SURFACE = [
+    'texas', 'houston', 'dallas', 'fort-worth', 'austin', 'san-antonio', 'el-paso',
+    path.join('texas', 'plano-tx'), path.join('texas', 'katy-tx'),
+  ];
   const sampleCounties = ALL_COUNTIES
     .filter((c, i, a) => a.findIndex((x) => x.code === c.code) === i)
     .map((c) => path.join('counties', c.slug));
 
   let schemaChecked = 0;
-  for (const name of [...FL_SURFACE, ...sampleCounties]) {
+  for (const name of [...FL_SURFACE, ...TX_SURFACE, ...sampleCounties]) {
     const file = findHtml(name);
     if (!file) continue;
     const html = fs.readFileSync(file, 'utf8');
