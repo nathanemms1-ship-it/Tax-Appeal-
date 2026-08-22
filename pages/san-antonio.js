@@ -1,17 +1,30 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Breadcrumb from '../components/Breadcrumb';
+import { currentTaxYear, deadlineSentence, deadlineShort } from '../lib/tx/protestDeadline';
+import { SITE_ORIGIN } from '../lib/breadcrumbs';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
+/* Derived, not typed. The deadline tile below read "2026 Protest Deadline /
+   May 15, 2026" until 22 Aug 2026 — three months after that deadline passed.
+   Declared ABOVE `faqs` deliberately: `faqs` interpolates DEADLINE at module
+   evaluation, so a declaration below it is a temporal-dead-zone crash at build,
+   not a lint nit. scripts/verify-tdz.mjs exists because of this class of bug. */
+const TAX_YEAR = currentTaxYear();
+const DEADLINE = deadlineShort(TAX_YEAR);
+const DEADLINE_SENTENCE = deadlineSentence(TAX_YEAR, 'Bexar Central Appraisal District');
+
 const faqs = [
-  ["How do I protest my San Antonio property taxes?","You file a formal protest with the Bexar Appraisal District (BCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail — creating legal proof of timely filing."],
-  ["What is BCAD and how does it affect my taxes?","BCAD (Bexar Appraisal District) is the government agency that appraises all properties in Bexar County. Your BCAD assessed value directly determines your property tax bill. If BCAD overestimates your value, you overpay — and you have the legal right to protest every year."],
+  ["How do I protest my San Antonio property taxes?",`You file a formal protest with the Bexar Central Appraisal District (BCAD) by ${DEADLINE} or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail — creating legal proof of timely filing.`],
+  ["What is BCAD and how does it affect my taxes?","BCAD (Bexar Central Appraisal District) is the government agency that appraises all properties in Bexar County. Your BCAD assessed value directly determines your property tax bill. If BCAD overestimates your value, you overpay — and you have the legal right to protest every year."],
   ["How much can San Antonio homeowners save by protesting?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
   ["Do I need to attend a BCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing is required. TaxAppeal's certified mail filing creates an official record of your protest with BCAD."],
-  ["What is the San Antonio property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by BCAD, whichever is later. Missing this deadline means waiting a full year to challenge your assessment."],
+  ["What is the San Antonio property tax protest deadline?",`The deadline is ${DEADLINE} or 30 days after your Notice of Appraised Value is mailed by BCAD, whichever is later. Missing this deadline means waiting a full year to challenge your assessment.`],
 ];
+
 
 export default function SanAntonio() {
   const router = useRouter();
@@ -41,6 +54,7 @@ export default function SanAntonio() {
           "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
+
       <style>{`
         ${FONT}
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -63,6 +77,17 @@ export default function SanAntonio() {
       </div>
 
       {/* Hero */}
+
+      <Breadcrumb
+        trail={[
+          { name: 'Home', href: '/' },
+          { name: 'Texas', href: '/texas' },
+          { name: 'Bexar County', href: '/counties/bexar-county-tx' },
+          { name: 'San Antonio' },
+        ]}
+        selfUrl={`${SITE_ORIGIN}/san-antonio`}
+      />
+
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>San Antonio, Texas — Property Tax Protest Service</div>
@@ -88,7 +113,7 @@ export default function SanAntonio() {
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Texas gives you the right to protest your appraised value every single year, at no cost to file. Here's why San Antonio homeowners have especially strong grounds.</p>
           <div style={{display:"grid",gap:24}}>
             {[
-              ["📊","Bexar Appraisal District Uses Mass Appraisal","BCAD appraises over 700,000 properties annually using mass-appraisal methods that apply broad neighborhood trends rather than assessing each home individually — leading to systematic over-valuation for many homeowners."],
+              ["📊","Bexar Central Appraisal District Uses Mass Appraisal","BCAD appraises over 700,000 properties annually using mass-appraisal methods that apply broad neighborhood trends rather than assessing each home individually — leading to systematic over-valuation for many homeowners."],
               ["📈","San Antonio's Rapid Growth Works Against You","San Antonio has been one of America's fastest-growing cities for a decade. BCAD's models often lag market corrections, leaving thousands of homeowners assessed above their property's actual current value."],
               ["⚖️","Texas Law Guarantees Your Right to Protest","Under Texas Tax Code §41.41, every Bexar County homeowner has the legal right to protest their assessed value every year. You don't need an attorney — just evidence. TaxAppeal builds it, you sign the protest, and we file it."],
             ].map(([icon,title,desc]) => (
@@ -107,11 +132,11 @@ export default function SanAntonio() {
       {/* BCAD Info */}
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
-          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>About the Bexar Appraisal District</h2>
+          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>About the Bexar Central Appraisal District</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>BCAD handles property valuations for all of Bexar County including San Antonio, Helotes, Leon Valley, Converse, Universal City, Schertz, and surrounding communities.</p>
           <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
             {[
-              ["📅","2026 Protest Deadline","May 15, 2026 or 30 days from your BCAD notice date — whichever is later. File early — BCAD informal hearings fill up fast."],
+              ["📅", `${TAX_YEAR} Protest Deadline`, `${DEADLINE_SENTENCE} File early — BCAD informal hearings fill up fast.`],
               ["📬","How TaxAppeal Files","We prepare a protest letter with comparable sales evidence and mail it via USPS Certified Mail with Return Receipt to BCAD — creating irrefutable legal proof of your timely filing."],
               ["🏘️","Areas Served","All Bexar County municipalities: San Antonio, Helotes, Leon Valley, Converse, Universal City, Schertz, Live Oak, Selma, Kirby, and all unincorporated areas."],
               ["📋","What Happens After Filing","BCAD schedules an informal hearing where most cases settle. If not, your case goes to the Appraisal Review Board (ARB). TaxAppeal notifies you at each stage."],

@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 import JurisdictionOutcomes from '../components/JurisdictionOutcomes';
 import { texasCities } from '../lib/texasCities';
 import { counties as ALL_COUNTIES } from '../lib/countyData';
+import Breadcrumb from '../components/Breadcrumb';
+import { SITE_ORIGIN } from '../lib/breadcrumbs';
+import { currentTaxYear, deadlineShort, deadlineSentence } from '../lib/tx/protestDeadline';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -12,8 +15,14 @@ const C = {
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
+/* Derived, not typed. These strings carried a bare "May 15" — correct through the
+   2026 season, wrong from 2027, when § 1.06 moves the floor to Monday 17 May. */
+const TX_TAX_YEAR = currentTaxYear();
+const TX_DEADLINE = deadlineShort(TX_TAX_YEAR);
+const TX_DEADLINE_SENTENCE = deadlineSentence(TX_TAX_YEAR);
+
 const faqs = [
-  ["What is the deadline to protest property taxes in Texas?", "The deadline is May 15 or 30 days after you receive your Notice of Appraised Value, whichever is later. If you miss this window, you cannot protest until the following year."],
+  ["What is the deadline to protest property taxes in Texas?", `${TX_DEADLINE_SENTENCE} If you miss this window, you cannot protest until the following year.`],
   ["How much can I save by protesting my Texas property taxes?", "The average Texas homeowner who protests saves $800–$2,500 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25–50% of what you save."],
   ["What is the success rate for property tax protests in Texas?", "Texas does not publish a statewide protest success rate — the Comptroller's ARB survey explicitly does not collect hearing results, so any statewide figure you see advertised is not coming from the state. The best available evidence is county-level: economists analysing Dallas Central Appraisal District records found that 69.7% of homeowner-filed protests won a reduction in 2020, with average first-year savings of $485 (American Economic Journal: Economic Policy, 2025). Outcomes vary by county and by property, and TaxAppeal cannot guarantee a reduction."],
   ["How does TaxAppeal compare to other Texas property tax protest companies?", "Most Texas protest firms charge 25–50% of your savings as a contingency fee. On a $2,000 reduction, that's $500–$1,000 in fees. TaxAppeal charges a flat $89 — you keep every dollar you save."],
@@ -63,7 +72,7 @@ const cities = [
     slug: "/fort-worth",
     county: "Tarrant County (TAD)",
     stats: ["Annual protest right", "Tarrant Appraisal District", "Fast-growing market"],
-    desc: "Fort Worth and the greater Tarrant County area have seen rapid appreciation. We prepare and mail your protest to the Tarrant Appraisal District before the May 15 deadline.",
+    desc: `Fort Worth and the greater Tarrant County area have seen rapid appreciation. We prepare and mail your protest to the Tarrant Appraisal District before the ${TX_DEADLINE} deadline.`,
   },
   {
     name: "Austin",
@@ -106,6 +115,7 @@ export default function Texas() {
           "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" }
         })}} />
       </Head>
+
       <style>{`
         ${FONT_IMPORT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -144,6 +154,12 @@ export default function Texas() {
       </div>
 
       {/* Hero */}
+
+      <Breadcrumb
+        trail={[{ name: 'Home', href: '/' }, { name: 'Texas' }]}
+        selfUrl={`${SITE_ORIGIN}/texas`}
+      />
+
       <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "2px", marginBottom: 16 }}>Texas Property Tax Protest Service</div>

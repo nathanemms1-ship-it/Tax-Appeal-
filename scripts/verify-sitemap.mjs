@@ -63,7 +63,9 @@ const missing = urls.filter((u) => !built.has(u));
 
 // ------------------------------------------------------- built but not advertised
 const advertised = new Set(urls);
-const IGNORE = /^\/(_|api\/|404$|500$)/;
+// /sitemap.xml and /sitemaps/* are sitemaps, not content. They must never list
+// themselves, so they are not orphans.
+const IGNORE = /^\/(_|api\/|404$|500$|sitemap\.xml$|sitemaps\/)/;
 const orphans = [...built].filter(
   (r) => !advertised.has(r) && !IGNORE.test(r) && !r.includes('[')
 );

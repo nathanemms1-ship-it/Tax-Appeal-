@@ -1,10 +1,19 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Breadcrumb from '../components/Breadcrumb';
+import { currentTaxYear, deadlineShort } from '../lib/tx/protestDeadline';
+import { SITE_ORIGIN } from '../lib/breadcrumbs';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const faqs = [["How do I protest my Austin property taxes?","File a formal protest with Travis Central Appraisal District (TCAD) by May 15 or 30 days after your Notice of Appraised Value. TaxAppeal prepares your protest letter with comparable sales and files via USPS certified mail."],["What is TCAD?","TCAD (Travis Central Appraisal District) appraises all properties in Travis County. Your TCAD assessed value determines your Austin property tax bill. If it's too high, you can protest under Texas Tax Code §41.41."],["How much can Austin homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat."],["Is Austin's real estate correction helping homeowners protest?","Yes. If your home was assessed at peak 2022 values but the market has since corrected, you have strong grounds to protest. Comparable sales from the past 12 months showing lower values are powerful evidence."],["What is the Austin property tax protest deadline?","May 15 or 30 days after TCAD mails your Notice of Appraised Value, whichever is later."]];
+/* Derived, not typed. These FAQ strings carried a bare "May 15", which was
+   the correct § 41.44 floor for 2026 and is wrong for 2027 — 15 May 2027 is a
+   Saturday and § 1.06 moves the floor to Monday 17 May. */
+const TAX_YEAR = currentTaxYear();
+const DEADLINE = deadlineShort(TAX_YEAR);
+
+const faqs = [["How do I protest my Austin property taxes?",`File a formal protest with Travis Central Appraisal District (TCAD) by ${DEADLINE} or 30 days after your Notice of Appraised Value. TaxAppeal prepares your protest letter with comparable sales and files via USPS certified mail.`],["What is TCAD?","TCAD (Travis Central Appraisal District) appraises all properties in Travis County. Your TCAD assessed value determines your Austin property tax bill. If it's too high, you can protest under Texas Tax Code §41.41."],["How much can Austin homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat."],["Is Austin's real estate correction helping homeowners protest?","Yes. If your home was assessed at peak 2022 values but the market has since corrected, you have strong grounds to protest. Comparable sales from the past 12 months showing lower values are powerful evidence."],["What is the Austin property tax protest deadline?",`${DEADLINE} or 30 days after TCAD mails your Notice of Appraised Value, whichever is later.`]];
 
 export default function Austin() {
   const router = useRouter();
@@ -34,6 +43,7 @@ export default function Austin() {
           "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
+
       <style>{`
         ${FONT}
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -53,6 +63,17 @@ export default function Austin() {
         </a>
         <button className="btn-primary" style={{padding:"10px 22px",fontSize:14}} onClick={go}>Start my protest →</button>
       </div>
+
+
+      <Breadcrumb
+        trail={[
+          { name: 'Home', href: '/' },
+          { name: 'Texas', href: '/texas' },
+          { name: 'Travis County', href: '/counties/travis-county-tx' },
+          { name: 'Austin' },
+        ]}
+        selfUrl={`${SITE_ORIGIN}/austin`}
+      />
 
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
@@ -102,7 +123,7 @@ export default function Austin() {
             <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
               <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
               <div style={{fontSize:16,fontWeight:600,color:C.darkNavy,marginBottom:16}}>Travis Central Appraisal District (TCAD)</div>
-              {[["📍","850 E Anderson Ln, Austin, TX 78752"],["📞","(512) 834-9138"],["🌐","traviscad.org"],["📅","Deadline: May 15 or 30 days after your Notice of Appraised Value"],["⚖️","Texas Tax Code §41.41 & §41.43"]].map(([icon,text]) => (
+              {[["📍","850 E Anderson Ln, Austin, TX 78752"],["📞","(512) 834-9138"],["🌐","traviscad.org"],["📅",`Deadline: ${DEADLINE} or 30 days after your Notice of Appraised Value`],["⚖️","Texas Tax Code §41.41 & §41.43"]].map(([icon,text]) => (
                 <div key={text} style={{display:"flex",gap:10,marginBottom:10,fontSize:13,color:C.bodyGray}}>
                   <span style={{flexShrink:0}}>{icon}</span><span>{text}</span>
                 </div>

@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 // same article). Using the raw array renders duplicate cards that all link to the
 // same URL. See lib/blogPosts.js.
 import { publishedPosts as posts, getPostBySlug, getAllSlugs } from '../../lib/blogPosts';
+import Breadcrumb from '../../components/Breadcrumb';
+import { SITE_ORIGIN } from '../../lib/breadcrumbs';
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -166,16 +168,16 @@ export default function BlogPost({ post, coverage }) {
         <button className="btn-primary" onClick={() => router.push('/apply')}>Start my dispute →</button>
       </div>
 
-      {/* Breadcrumb */}
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "10px 40px" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", fontSize: 12, color: C.mutedGray, display: "flex", gap: 6, alignItems: "center" }}>
-          <a href="/" style={{ color: C.mutedGray, textDecoration: "none" }}>Home</a>
-          <span>›</span>
-          <a href="/blog" style={{ color: C.mutedGray, textDecoration: "none" }}>Blog</a>
-          <span>›</span>
-          <span style={{ color: C.bodyGray }}>{post.title}</span>
-        </div>
-      </div>
+      {/* Was a hand-rolled trail with no BreadcrumbList behind it — visible to a
+          reader, invisible to a crawler. Now one array feeds both. */}
+      <Breadcrumb
+        trail={[
+          { name: 'Home', href: '/' },
+          { name: 'Blog', href: '/blog' },
+          { name: post.title },
+        ]}
+        selfUrl={`${SITE_ORIGIN}/blog/${post.slug}`}
+      />
 
       {/* Hero */}
       <section style={{ background: C.navy, padding: "48px 40px", color: C.white }}>

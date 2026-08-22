@@ -1,10 +1,19 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Breadcrumb from '../components/Breadcrumb';
+import { currentTaxYear, deadlineShort } from '../lib/tx/protestDeadline';
+import { SITE_ORIGIN } from '../lib/breadcrumbs';
 
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const faqs = [["How do I protest my Houston property taxes?","You file a formal protest with the Harris County Appraisal District (HCAD) by May 15 or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail."],["What is HCAD and how does it affect my taxes?","HCAD (Harris County Appraisal District) is the government agency that appraises all properties in Harris County. Your HCAD assessed value directly determines your property tax bill. If HCAD overestimates your value, you overpay — and you have the legal right to protest."],["How much can Houston homeowners save by protesting?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25-40% of what you save."],["Do I need to attend an HCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing. TaxAppeal's certified mail filing creates an official record of your protest with HCAD."],["What is the Houston property tax protest deadline?","The deadline is May 15 or 30 days after your Notice of Appraised Value is mailed by HCAD, whichever is later. Missing this deadline means waiting until next year."]];
+/* Derived, not typed. These FAQ strings carried a bare "May 15", which was
+   the correct § 41.44 floor for 2026 and is wrong for 2027 — 15 May 2027 is a
+   Saturday and § 1.06 moves the floor to Monday 17 May. */
+const TAX_YEAR = currentTaxYear();
+const DEADLINE = deadlineShort(TAX_YEAR);
+
+const faqs = [["How do I protest my Houston property taxes?",`You file a formal protest with the Harris County Appraisal District (HCAD) by ${DEADLINE} or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail.`],["What is HCAD and how does it affect my taxes?","HCAD (Harris County Appraisal District) is the government agency that appraises all properties in Harris County. Your HCAD assessed value directly determines your property tax bill. If HCAD overestimates your value, you overpay — and you have the legal right to protest."],["How much can Houston homeowners save by protesting?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25-40% of what you save."],["Do I need to attend an HCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing. TaxAppeal's certified mail filing creates an official record of your protest with HCAD."],["What is the Houston property tax protest deadline?",`The deadline is ${DEADLINE} or 30 days after your Notice of Appraised Value is mailed by HCAD, whichever is later. Missing this deadline means waiting until next year.`]];
 
 export default function Houston() {
   const router = useRouter();
@@ -34,6 +43,7 @@ export default function Houston() {
           "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       </Head>
+
       <style>{`
         ${FONT}
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -53,6 +63,17 @@ export default function Houston() {
         </a>
         <button className="btn-primary" style={{padding:"10px 22px",fontSize:14}} onClick={go}>Start my protest →</button>
       </div>
+
+
+      <Breadcrumb
+        trail={[
+          { name: 'Home', href: '/' },
+          { name: 'Texas', href: '/texas' },
+          { name: 'Harris County', href: '/counties/harris-county-tx' },
+          { name: 'Houston' },
+        ]}
+        selfUrl={`${SITE_ORIGIN}/houston`}
+      />
 
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
@@ -102,7 +123,7 @@ export default function Houston() {
             <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
               <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
               <div style={{fontSize:16,fontWeight:600,color:C.darkNavy,marginBottom:16}}>Harris County Appraisal District (HCAD)</div>
-              {[["📍","13013 Northwest Fwy, Houston, TX 77040"],["📞","(713) 957-7800"],["🌐","hcad.org"],["📅","Deadline: May 15 or 30 days after your Notice of Appraised Value"],["⚖️","Texas Tax Code §41.41 & §41.43"]].map(([icon,text]) => (
+              {[["📍","13013 Northwest Fwy, Houston, TX 77040"],["📞","(713) 957-7800"],["🌐","hcad.org"],["📅",`Deadline: ${DEADLINE} or 30 days after your Notice of Appraised Value`],["⚖️","Texas Tax Code §41.41 & §41.43"]].map(([icon,text]) => (
                 <div key={text} style={{display:"flex",gap:10,marginBottom:10,fontSize:13,color:C.bodyGray}}>
                   <span style={{flexShrink:0}}>{icon}</span><span>{text}</span>
                 </div>

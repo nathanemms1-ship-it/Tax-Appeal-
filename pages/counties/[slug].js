@@ -8,6 +8,24 @@ import { breadcrumbSchema } from '../../lib/breadcrumbs';
 // needs the same value for <lastmod> and is imported by a plain-Node build script,
 // which cannot parse this file's JSX. See that module for what the date means.
 import { COUNTY_CONTENT_REVISED } from '../../lib/contentRevised';
+import { currentTaxYear, deadlineShort } from '../../lib/tx/protestDeadline';
+
+/* TEXAS ONLY, DELIBERATELY.
+ *
+ * Every entry in `stateTerms` below carried `year: "2026"` and Texas carried
+ * `deadline: "May 15"`, both typed as literals. On 22 Aug 2026 that made all 254
+ * Texas county pages advertise a deadline three months in the past.
+ *
+ * Texas is derived from lib/tx/protestDeadline.js. Georgia, Arkansas and Alabama are
+ * knowingly left on the literal — their 2026 seasons have also closed and they need
+ * the same treatment, but they are outside this change and are reported as
+ * outstanding by scripts/verify-tx-seo.mjs rather than fixed silently here.
+ *
+ * FLORIDA IS UNTOUCHED ON PURPOSE. The Florida season is live as this ships and
+ * `fl.deadlineText` already derives from lib/filingWindows.js per county. Nothing in
+ * this file's Florida branch changes. */
+const TX_TAX_YEAR = currentTaxYear();
+const TX_DEADLINE = deadlineShort(TX_TAX_YEAR);
 
 // Renders only for Texas counties whose certified roll we actually hold, and
 // returns null for every other page. See the file header: pages follow data.
@@ -26,7 +44,7 @@ const C = {
 };
 
 const stateTerms = {
-  TX: { verb: "protest", noun: "protest", deadline: "May 15", process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: "2026" },
+  TX: { verb: "protest", noun: "protest", deadline: TX_DEADLINE, process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: String(TX_TAX_YEAR) },
   GA: { verb: "appeal", noun: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: "2026" },
   FL: { verb: "petition", noun: "appeal", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: "2026" },
   AR: { verb: "appeal", noun: "appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
@@ -36,6 +54,10 @@ const stateTerms = {
 // Fallback so any state code (including future launches) always renders and never breaks the build.
 const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: "2026" };
 const termsFor = (county) => stateTerms[county.code] || DEFAULT_TERMS;
+
+/* countyData.js stores `deadline: "May 15"` on all 254 Texas records — no year, and
+   wrong from 2027 on. Read through this, never off the record directly. */
+const deadlineFor = (county) => (county.code === 'TX' ? TX_DEADLINE : county.deadline);
 
 const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" };
 
@@ -82,9 +104,9 @@ const directAnswer = (county, fl) => {
     return `To appeal your ${county.name} County property taxes in 2026, file a property tax appeal (${t.form}) with the ${county.district} within 45 days of your annual assessment notice. Support your appeal with comparable sales showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
   }
   if (county.code === "TX") {
-    return `To protest your ${county.name} County property taxes in 2026, file a Notice of Protest (${t.form}) with the ${county.district} by May 15 — or within 30 days of your appraisal notice, whichever is later. Include comparable sales showing your home is overassessed. Protests are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your protest for a flat $89 — no percentage of your savings.`;
+    return `To protest your ${county.name} County property taxes in ${t.year}, file a Notice of Protest (${t.form}) with the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include comparable sales showing your home is overassessed. Protests are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your protest for a flat $89 — no percentage of your savings.`;
   }
-  return `To appeal your ${county.name} County property taxes in 2026, file ${t.form} with the ${county.district} by ${county.deadline}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
+  return `To appeal your ${county.name} County property taxes in ${t.year}, file ${t.form} with the ${county.district} by ${deadlineFor(county)}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
 };
 
 /**
@@ -117,14 +139,14 @@ const howToSteps = (county, fl) => {
       { name: "Review your appraisal notice", text: `Check the appraised value on your ${county.name} County notice of appraised value, mailed in spring.` },
       { name: "Gather your evidence", text: "Collect comparable sales and photos showing your home is appraised above market value." },
       { name: "File a Notice of Protest", text: "Complete Form 50-132 (Notice of Protest) for your property." },
-      { name: "File by May 15", text: `Submit your protest to the ${county.district} by May 15, or within 30 days of your notice.` },
+      { name: `File by ${TX_DEADLINE}`, text: `Submit your protest to the ${county.district} by ${TX_DEADLINE}, or within 30 days of your notice — whichever is later.` },
     ];
   }
   return [
     { name: "Review your assessment notice", text: `Check the value on your ${county.name} County property tax assessment notice.` },
     { name: "Gather your evidence", text: "Collect recent comparable sales showing your home is assessed above market value." },
     { name: "Prepare your appeal", text: "Complete your county's property tax appeal petition for your parcel." },
-    { name: "File by the deadline", text: `File your appeal with the ${county.district} by ${county.deadline}.` },
+    { name: "File by the deadline", text: `File your appeal with the ${county.district} by ${deadlineFor(county)}.` },
   ];
 };
 
@@ -136,7 +158,7 @@ const faqs = (county, fl) => {
       q: `What is the deadline to ${t.verb} property taxes in ${county.name} County, ${county.state}?`,
       a: county.code === "FL" && fl
         ? `Florida gives you 25 days from the date your TRIM notice is mailed. For the 2026 tax year the ${county.name} County deadline is ${fl.deadlineText}, and TaxAppeal USA works to that date. ${fl.receiptRequired ? `${county.name} County does not accept a postmark as proof of filing — your petition must be physically received by then, which is why we mail well ahead of the deadline.` : "Florida satisfies the deadline by physical receipt, not by postmark, so we mail well ahead of it."} Filing is authorized under ${county.statute}.`
-        : `The ${county.name} County property tax ${t.verb} deadline is ${county.deadline} (or 30 days after your assessment notice, whichever is later). Under ${county.statute}, you must file your ${t.verb} before this date or lose the right to challenge your assessment for the year.`,
+        : `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)} (or 30 days after your assessment notice, whichever is later). Under ${county.statute}, you must file your ${t.verb} before this date or lose the right to challenge your assessment for the year.`,
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
@@ -223,10 +245,14 @@ export default function CountyPage({ county, fl, contentRevised }) {
    * state, so the differentiating words stay visible. Truncation affects display,
    * not parsing.
    */
-  const title = `${county.name} County, ${county.state} Property Tax ${action} 2026 | TaxAppeal USA`;
+  /* The year lives in the title tag, which is why it must be derived. Every major
+     competitor bakes a literal year here — O'Connor, Ballard ("Lower Your 2026
+     Taxes"), HomeTaxShield — and all of them have to hand-rewrite every county
+     page each spring. Ours recomputes. */
+  const title = `${county.name} County, ${county.state} Property Tax ${action} ${t.year} | TaxAppeal USA`;
   const description = county.code === "FL" && fl
     ? `${county.name} County, Florida VAB petition for 2026 — deadline ${fl.deadlineText}, county filing fee ${fl.feeText}. TaxAppeal USA prepares your DR-486, pays the fee and mails it to the Clerk of the Value Adjustment Board for $89 flat.`
-    : `${county.name} County, ${county.state} property tax ${t.verb} for 2026 — deadline ${county.deadline}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`;
+    : `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`;
   const canonicalUrl = `https://www.taxappealusa.com/counties/${county.slug}`;
   const stateHref = `/${county.state.toLowerCase()}`;
 
@@ -360,10 +386,10 @@ export default function CountyPage({ county, fl, contentRevised }) {
         <div style={{ background: `linear-gradient(160deg, ${C.navy} 0%, ${C.navyLight} 100%)`, color: C.white, padding: "60px 32px 56px", textAlign: "center" }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
             <div style={{ display: "inline-block", background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.4)", borderRadius: 20, padding: "5px 16px", fontSize: 12, color: C.gold, fontFamily: "Arial,sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
-              {county.state} · {county.name} County · {county.code === "FL" && fl ? `2026 Deadline: ${fl.deadlineText}` : county.code === "FL" ? "2026 TRIM Appeal" : `${t.year} Deadline: ${county.deadline}`}
+              {county.state} · {county.name} County · {county.code === "FL" && fl ? `2026 Deadline: ${fl.deadlineText}` : county.code === "FL" ? "2026 TRIM Appeal" : `${t.year} Deadline: ${deadlineFor(county)}`}
             </div>
             <h1 style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 18px" }}>
-              {county.name} County Property Tax {action} 2026
+              {county.name} County Property Tax {action} {t.year}
             </h1>
             <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 32px", lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
               {county.code === "FL" ? (
@@ -401,7 +427,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
         <div style={{ background: C.white, borderBottom: `1px solid #E5E3DC`, padding: "34px 32px" }}>
           <div style={{ maxWidth: 820, margin: "0 auto" }}>
             <div style={{ fontSize: 12, color: C.muted, fontFamily: "Arial,sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
-              {county.name} County Property Tax {action} — 2026 · Reviewed {contentRevised}
+              {county.name} County Property Tax {action} — {t.year} · Reviewed {contentRevised}
             </div>
             <p style={{ fontSize: 18, lineHeight: 1.65, color: C.text, margin: 0, fontFamily: "Arial,sans-serif" }}>
               {directAnswer(county, fl)}
@@ -447,7 +473,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
               fl
                 ? { num: fl.feeText, label: `${county.name} County VAB fee — we pay it` }
                 : { num: "0%", label: "Of your savings taken" },
-              { num: fl ? fl.deadlineShort : county.deadline, label: `${county.name} County 2026 deadline` },
+              { num: fl ? fl.deadlineShort : deadlineFor(county), label: `${county.name} County ${t.year} deadline` },
               fl
                 ? { num: fl.allInText, label: "All in — service + county fee" }
                 : { num: "You", label: "Sign it — we mail it" },
@@ -576,7 +602,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
             </div>
             <div>
               <div style={{ fontSize: 12, color: C.muted, fontFamily: "Arial,sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Filing Deadline</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: C.navy }}>{fl ? fl.deadlineText : county.deadline}</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: C.navy }}>{fl ? fl.deadlineText : deadlineFor(county)}</div>
             </div>
             {fl && (
               <div>
@@ -661,7 +687,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
               Ready to lower your {county.name} County taxes?
             </h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 36, lineHeight: 1.7 }}>
-              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : county.deadline}</strong>. Get started in under 3 minutes — enter your address and we&apos;ll show you your estimated savings before you pay anything.
+              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. Get started in under 3 minutes — enter your address and we&apos;ll show you your estimated savings before you pay anything.
             </p>
             <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
               File My {action} — {fl ? `${fl.allInText} All In` : "$89 Flat"} →

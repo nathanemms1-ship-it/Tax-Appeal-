@@ -6,6 +6,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 import { texasCities, getTxCityBySlug, getAllTxCitySlugs } from '../../lib/texasCities';
+import Breadcrumb from '../../components/Breadcrumb';
+import { SITE_ORIGIN } from '../../lib/breadcrumbs';
+import { currentTaxYear, deadlineSentence, deadlineShort } from '../../lib/tx/protestDeadline';
 
 const C = {
   navy: "#1B3A6B",
@@ -19,7 +22,7 @@ const C = {
   white: "#FFFFFF",
 };
 
-export default function TexasCityPage({ city }) {
+export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSentenceText }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   if (!city) return <div>City not found</div>;
@@ -30,15 +33,15 @@ export default function TexasCityPage({ city }) {
   const faqs = [
     {
       q: `How do I protest my ${city.name} property taxes?`,
-      a: `You file a formal protest with the ${city.district} by May 15 or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA prepares your protest letter with comparable sales evidence and mails it via USPS certified mail — creating legal proof of timely filing.`,
+      a: `You file a formal protest with the ${city.district} by ${deadlineText} or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA prepares your protest letter with comparable sales evidence and mails it via USPS certified mail — creating legal proof of timely filing.`,
     },
     {
       q: `How much can ${city.name} homeowners save by protesting?`,
       a: `It depends on the gap between your appraised value and your property's market value, and the appraisal district makes the final call — we cannot promise a number. For scale: a peer-reviewed study of Dallas Central Appraisal District records found the average first-year saving on a successful homeowner-filed protest was $485 in 2020 (American Economic Journal: Economic Policy, 2025), and higher-value homes generally have more at stake. Whatever the reduction is, you keep all of it — unlike contingency firms that take 25–40% of what you save, every year.`,
     },
     {
-      q: `What is the ${city.name} property tax protest deadline?`,
-      a: `The deadline is May 15, 2026, or 30 days after the ${city.district} mails your Notice of Appraised Value — whichever is later. Missing this deadline means waiting a full year to challenge your assessment.`,
+      q: `What is the ${city.name} property tax protest deadline for ${taxYear}?`,
+      a: `${deadlineSentenceText} Missing it means waiting a full year to challenge your assessment.`,
     },
     {
       q: `Do I need to go to a hearing to protest my ${city.name} property taxes?`,
@@ -71,6 +74,22 @@ export default function TexasCityPage({ city }) {
     }))
   };
 
+  /* BreadcrumbList — this page has rendered a VISIBLE breadcrumb trail since it was
+     built, with no markup behind it. That is the worst of both: the layout cost paid
+     and the search benefit not collected. It matters more since 7 May 2026, when
+     Google removed the FAQ rich result — the FAQPage block above this now produces
+     nothing in a search result, and breadcrumb is the only type on this page that
+     still does. lib/breadcrumbs.js already existed and was wired into eight pages,
+     all of them Florida. The `trail` here is the same array the visible markup maps
+     over, which is what stops the two drifting apart. */
+  const trail = [
+    { name: 'Home', href: '/' },
+    { name: 'Texas', href: '/texas' },
+    { name: `${city.county} County`, href: `/counties/${city.countySlug}` },
+    { name: city.name },
+  ];
+  const canonicalUrl = `${SITE_ORIGIN}/texas/${city.slug}`;
+
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -96,6 +115,7 @@ export default function TexasCityPage({ city }) {
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
+
       </Head>
 
       <style>{`
@@ -127,20 +147,7 @@ export default function TexasCityPage({ city }) {
         <Link href="/apply"><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>Start my protest →</button></Link>
       </div>
 
-      {/* Breadcrumb */}
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "10px 40px" }}>
-        <div className="container" style={{ padding: 0 }}>
-          <p style={{ fontSize: 13, color: C.mutedGray }}>
-            <a href="/" style={{ color: C.mutedGray, textDecoration: "none" }}>Home</a>
-            {" → "}
-            <a href="/texas" style={{ color: C.mutedGray, textDecoration: "none" }}>Texas</a>
-            {" → "}
-            <a href={`/counties/${city.countySlug}`} style={{ color: C.mutedGray, textDecoration: "none" }}>{city.county} County</a>
-            {" → "}
-            <span style={{ color: C.darkNavy }}>{city.name}</span>
-          </p>
-        </div>
-      </div>
+      <Breadcrumb trail={trail} selfUrl={canonicalUrl} />
 
       {/* Hero */}
       <section style={{ background: C.navy, padding: "64px 40px", color: C.white }}>
@@ -155,10 +162,15 @@ export default function TexasCityPage({ city }) {
             {city.description} TaxAppeal files your formal protest with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+            {/* Two of these four tiles used to read "$89" with the labels
+                "Flat fee, any outcome" and "Flat fee" — the same number stated
+                twice in a four-tile row, which reads as a rendering bug to anyone
+                who looks at it. Replaced with the deadline, which is the fact a
+                visitor to this page actually arrived needing. */}
             {[
               ["$89", "Flat fee, any outcome"],
               ["0%", "Of your savings taken"],
-              ["$89", "Flat fee"],
+              [deadlineText, `${taxYear} filing deadline`],
               [city.county + " Co.", "Service area"],
             ].map(([n, l]) => (
               <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
@@ -235,7 +247,7 @@ export default function TexasCityPage({ city }) {
           </p>
           <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             {[
-              ["📅", "2026 Protest Deadline", "May 15, 2026, or 30 days from your Notice of Appraised Value mailing date — whichever is later. File early; informal hearing slots fill up fast."],
+              ["📅", `${taxYear} Protest Deadline`, `${deadlineSentenceText} File early; informal hearing slots fill up fast.`],
               ["📬", "How TaxAppeal Files", `We mail your protest letter with comparable sales evidence via USPS Certified Mail with Return Receipt to the ${city.district} — creating irrefutable legal proof of timely filing.`],
               ["📋", "The ARB Process", "If your protest isn't resolved at the informal level, it goes to the Appraisal Review Board (ARB) — an independent panel. TaxAppeal notifies you and provides guidance at each stage."],
               ["🔗", "Appraisal District Website", `Visit the ${city.district}'s website to look up your current assessed value, download your property record card, and verify your account number before filing.`],
@@ -306,7 +318,7 @@ export default function TexasCityPage({ city }) {
               Under <strong>Texas Tax Code §41.41</strong>, every {city.county} County homeowner has the legal right to protest their assessed value annually — on grounds of market value (§41.43(a)) or unequal appraisal (§41.43(b)).
             </p>
             <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy, marginBottom: 16 }}>
-              The protest deadline is <strong>May 15 or 30 days from your notice mailing date</strong> — whichever is later. Texas Tax Code §41.44 governs timely filing requirements.
+              The protest deadline is <strong>{deadlineText} or 30 days from your notice mailing date</strong> — whichever is later. Texas Tax Code §41.44 governs timely filing requirements, and § 1.06 moves any deadline that lands on a weekend or holiday to the next business day.
             </p>
             <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy }}>
               TaxAppeal USA prepares your formal protest and sends it to the {city.district} via USPS Certified Mail with Return Receipt — so you have legally admissible proof of timely filing.
@@ -383,5 +395,21 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const city = getTxCityBySlug(params.city);
   if (!city) return { notFound: true };
-  return { props: { city } };
+
+  /* Derived at build, never typed. The previous literal "May 15, 2026" survived the
+     close of the 2026 season by three months because nothing recomputed it.
+     currentTaxYear() rolls the day after the floor passes, so a deploy after the
+     deadline advertises the next season rather than a dead one. `revalidate` bounds
+     how long a page can keep claiming a year that has ended if the site is not
+     redeployed across the rollover — 12 hours, which is the whole point. */
+  const taxYear = currentTaxYear();
+  return {
+    props: {
+      city,
+      taxYear,
+      deadlineText: deadlineShort(taxYear),
+      deadlineSentenceText: deadlineSentence(taxYear, city.district),
+    },
+    revalidate: 43200,
+  };
 }
