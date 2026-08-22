@@ -2912,6 +2912,35 @@ function ApplyFunnel() {
    *      nothing gets an honest no instead of the same question again.
    */
   const [flRescueReturn, setFlRescueReturn] = useState(false);
+
+  /**
+   * ARRIVED FROM /check HAVING ALREADY SAID YES TO THE CONDITION QUESTION.
+   *
+   * /check now renders the same `conditionPrompt` this funnel does and sends them
+   * here with sessionStorage 'ta_intent' = 'condition' (see stashConditionIntent
+   * in pages/check.js). Without this flag the property step hands them to
+   * `florida-check`, /api/check returns the identical rescuable answer, and the
+   * funnel opens by telling somebody who has just volunteered to describe their
+   * failed roof that an appeal would not be worth filing — then asks them to
+   * describe it. Asked once, on /check; acted on once, here.
+   *
+   * Read in its own effect rather than beside 'ta_property' so it sits AFTER the
+   * state it feeds. Read and cleared, so a second visit cannot inherit an intent
+   * that belonged to a different property.
+   */
+  const [flConditionIntent, setFlConditionIntent] = useState(false);
+  useEffect(() => {
+    try {
+      const intent = sessionStorage.getItem('ta_intent');
+      if (!intent) return;
+      sessionStorage.removeItem('ta_intent');
+      if (intent === 'condition') setFlConditionIntent(true);
+    } catch {
+      // Storage unavailable. They get asked the condition question here instead,
+      // which is exactly where this funnel stood before /check could ask it.
+    }
+  }, []);
+
   const [resolvingCounty, setResolvingCounty] = useState(false);
   const [flCountyError, setFlCountyError] = useState(null);
 
@@ -3134,7 +3163,30 @@ function ApplyFunnel() {
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => { const sc = property.state.trim().toUpperCase(); setStep(sc === 'FL' ? 'florida-check' : 'issues'); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
+          {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => {
+            const sc = property.state.trim().toUpperCase();
+            /*
+              A CONDITION ARRIVAL ENTERS THE RESCUE LOOP ONE STEP EARLY.
+              They answered the condition question on /check by clicking through,
+              so send them to `issues` and set flRescueReturn — which is what makes
+              the issues step return to `florida-check` rather than running on to
+              the fee step. Pass 2 then re-runs qualify WITH their documented cure,
+              which is the only pass that can clear them, and `alreadyAsked`
+              suppresses a second invitation. Every gate still fires before
+              checkout; only the order of the first two screens changes.
+
+              `!flRescueReturn` keeps this to the first pass, so the loop cannot
+              re-enter itself.
+            */
+            if (sc === 'FL' && flConditionIntent && !flRescueReturn) {
+              setFlConditionIntent(false);
+              setFlRescueReturn(true);
+              setStep('issues');
+            } else {
+              setStep(sc === 'FL' ? 'florida-check' : 'issues');
+            }
+            window.scrollTo(0,0);
+          }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}

@@ -55,6 +55,9 @@ const C = {
   navy: '#1B3A6B', darkNavy: '#0F1F3D', gold: '#FFC940', bg: '#F4F7FC',
   white: '#FFFFFF', border: '#E8EDF4', body: '#5A6B82', muted: '#8596AF',
   green: '#2E7D52', amber: '#B8860B', amberBg: '#FFF8E6',
+  // Matches C.lightBlue in pages/apply.js. The condition invitation appears on
+  // both pages and must not change colour halfway through the funnel.
+  lightBlue: '#EEF3FB', lightBlueBorder: '#C5D3E8',
 };
 
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
@@ -96,6 +99,33 @@ function stashProperty(parcel) {
     }));
   } catch {
     // Storage unavailable. The customer types the address again, as before.
+  }
+}
+
+/**
+ * WHY THIS PERSON IS WALKING INTO /apply, not just which house they own.
+ *
+ * A `needs_condition_case` visitor has already been asked the condition question
+ * here and has already said yes by clicking. Without this flag /apply re-runs
+ * /api/check at the `florida-check` step, gets the same rescuable answer, and
+ * asks them the identical question a second time — the funnel telling somebody
+ * who just volunteered to describe their broken roof that an appeal would not be
+ * worth filing, before letting them describe it. Answered once, acted on once.
+ *
+ * Read and cleared by ApplyFunnel in the same effect that consumes 'ta_property',
+ * so a later visit cannot inherit an intent belonging to a different property.
+ *
+ * Never throws, for the same reason stashProperty does not: a lost prefill costs
+ * a repeated question, and a raised exception inside a next/link onClick cancels
+ * the navigation entirely. That is the exact defect this file already carries a
+ * comment about.
+ */
+function stashConditionIntent() {
+  try {
+    sessionStorage.setItem('ta_intent', 'condition');
+  } catch {
+    // Storage unavailable. /apply asks the condition question again — which is
+    // the behaviour before this flag existed, not a broken funnel.
   }
 }
 
@@ -452,15 +482,37 @@ export default function CheckPage() {
           {d && d.found && (
             <>
               {/* Verdict. The refusal gets the same prominence as the good news —
-                  it is the more useful answer and the reason to trust the other one. */}
+                  it is the more useful answer and the reason to trust the other one.
+
+                  THREE OUTCOMES, NOT TWO. `rescuable` is the band where comparable
+                  sales alone fall short but a documented cost to cure may carry the
+                  parcel — 688,497 Florida homes on the 2026 roll. /api/check has
+                  returned `rescuable: true` and a `conditionPrompt` for it since
+                  7 Aug and this page read neither, so every one of them was shown
+                  the flat amber refusal below. That headline is not merely
+                  discouraging, it is WRONG: qualify.js has not refused these people,
+                  it has asked them a question. */}
               <div style={{
-                background: d.eligible ? '#F0F9F4' : C.amberBg,
-                border: `1px solid ${d.eligible ? '#BFE3CE' : '#F0DFB0'}`,
+                background: d.eligible ? '#F0F9F4' : d.rescuable ? C.lightBlue : C.amberBg,
+                border: `1px solid ${d.eligible ? '#BFE3CE' : d.rescuable ? C.lightBlueBorder : '#F0DFB0'}`,
                 borderRadius: 12, padding: 24, marginBottom: 20,
               }}>
-                <div style={{ fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: d.eligible ? C.green : C.amber, fontWeight: 700, marginBottom: 8 }}>
-                  {d.eligible ? 'An appeal could lower your bill' : 'An appeal would not lower your bill'}
+                <div style={{ fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: d.eligible ? C.green : d.rescuable ? C.navy : C.amber, fontWeight: 700, marginBottom: 8 }}>
+                  {d.eligible
+                    ? 'An appeal could lower your bill'
+                    : d.rescuable
+                      ? 'One more question before we answer'
+                      : 'An appeal would not lower your bill'}
                 </div>
+                {/* Wording matched to StepFloridaCheck in pages/apply.js so the two
+                    screens cannot drift into telling the same person two different
+                    things about the same parcel. */}
+                {d.rescuable && (
+                  <p style={{ fontSize: 19, lineHeight: 1.45, margin: '0 0 10px', color: C.darkNavy, fontWeight: 700, fontFamily: '"DM Serif Display", serif' }}>
+                    On comparable sales alone, an appeal wouldn&rsquo;t be worth filing — but
+                    your home&rsquo;s condition can change that.
+                  </p>
+                )}
                 <p style={{ fontSize: 17, lineHeight: 1.6, margin: 0, color: C.darkNavy }}>
                   {d.message || d.facts.statement}
                 </p>
@@ -599,6 +651,137 @@ export default function CheckPage() {
                       {emailState === 'done' ? (
                         <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
                           Done. We&rsquo;ll email you the day {checkedCounty} County reopens.
+                        </p>
+                      ) : (
+                        <form onSubmit={(e) => joinList(e, null)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            aria-label="Email address"
+                            style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: 'none', borderRadius: 8, fontFamily: 'inherit' }}
+                          />
+                          <button
+                            type="submit"
+                            disabled={emailState === 'loading'}
+                            style={{ flex: '1 1 170px', padding: '13px 20px', fontSize: 16, fontWeight: 700, background: C.gold, color: C.darkNavy, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            {emailState === 'loading' ? 'Saving…' : 'Tell me when it opens'}
+                          </button>
+                        </form>
+                      )}
+                      {emailState === 'error' && (
+                        <p style={{ color: C.gold, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : d.rescuable ? (
+                /*
+                  RESCUABLE — A QUESTION, AND THE ONLY SCREEN THAT CAN ANSWER IT.
+                  ==============================================================
+                  Comparable sales alone fall short, but the required cut is within
+                  MAX_CURE_REACH_PCT of what a documented cost to cure can reach, so
+                  qualify.js returned `rescuable: true` INSTEAD of a refusal. Its own
+                  comment on that branch reads: "the UI must route this to the
+                  condition step, not to a dead end."
+
+                  /apply has honoured that since 7 Aug. /check never did — it fell
+                  through to the Save Our Homes watch card below, which tells these
+                  people to wait for the market to move. They do not need the market
+                  to move. They need to tick four boxes.
+
+                  Deliberately styled like the eligible branch — navy, gold button —
+                  not like a consolation. This is a live path to a sale, and the
+                  visitor should be able to tell that from across the room.
+
+                  NO EMAIL BOX HERE, ON PURPOSE. The old one tagged these leads
+                  `fl_not_eligible`, which is the bucket notify-waitlist is built to
+                  SKIP, so the capture promised an email nothing would ever send. The
+                  button below captures better anyway: step one of /apply is the
+                  account step, so clicking through asks for their email before
+                  anything else. A proper `fl_condition_case` reason is a separate
+                  change — it needs the CHECK constraint widened BEFORE the code
+                  ships, or it repeats the defect of 20 Aug for a fourth time.
+                */
+                <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
+                  <h2 style={{ fontSize: 21, margin: '0 0 10px', color: C.white }}>
+                    Tell us what&rsquo;s wrong with it — that could put you over the line
+                  </h2>
+
+                  {/* From qualify.js so the wording cannot drift apart from the
+                      arithmetic that produced it. The fallback is only reachable if
+                      an older /api/check is deployed against this page. */}
+                  <p style={{ lineHeight: 1.7, margin: '0 0 16px', fontSize: 15.5, color: C.white }}>
+                    {d.conditionPrompt || 'This answer assumes your home is in average condition for its neighbourhood. If it is not — a roof at the end of its life, a failed air conditioner, an original kitchen, active damage — those reduce what your property is worth on top of what comparable sales show, and they can change this answer.'}
+                  </p>
+
+                  {/* CONCRETE, BECAUSE "CONDITION" IS AN ABSTRACTION AND A DEAD ROOF
+                      IS NOT. A homeowner does not scan this list and think about
+                      valuation methodology; they recognise their own house in one of
+                      these lines. Recognition is what makes them click. */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 16px' }}>
+                    {['Roof at the end of its life', 'Failed air conditioning', 'Original kitchen or baths', 'Active damage or leaks', 'Foundation or plumbing trouble'].map((t) => (
+                      <span key={t} style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 999, padding: '7px 13px', fontSize: 13.5, color: C.white }}>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p style={{ lineHeight: 1.65, margin: '0 0 18px', fontSize: 14.5, color: '#C5D3E8' }}>
+                    Each one you document lowers what your property is worth on top of what
+                    comparable sales show. Enough of them and the numbers work —
+                    {' '}<strong style={{ color: C.white }}>we re-run the arithmetic with your repair costs before you are asked to pay anything.</strong>
+                  </p>
+
+                  {/* THE DEADLINE, ONLY WHERE IT IS TRUE AND ONLY WHERE IT DECIDES
+                      SOMETHING. Same rule as the eligible branch: the LAST ORDER DAY,
+                      never the county's own date, because Florida counts receipt and
+                      the petition needs minDays of travel first. */}
+                  {win && win.canFile && (
+                    <p style={{ background: 'rgba(255,201,64,0.14)', border: `1px solid ${C.gold}`, borderRadius: 8, padding: '11px 14px', margin: '0 0 16px', fontSize: 14.5, lineHeight: 1.55, color: C.white }}>
+                      <strong style={{ color: C.gold }}>{checkedCounty} County closes {fmtDay(win.lastOrderDate)}.</strong>{' '}
+                      {win.daysUntilLastOrder <= 1
+                        ? 'That is today — the last day we can accept an order for this county.'
+                        : `That is ${win.daysUntilLastOrder} days from now, so it is worth answering this while you are here.`}
+                    </p>
+                  )}
+
+                  {canOrder ? (
+                    <>
+                      <Link
+                        href="/apply"
+                        onClick={() => { stashProperty(state.data?.parcel); stashConditionIntent(); }}
+                        style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '14px 26px', borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: 'none' }}
+                      >
+                        Tell us what&rsquo;s wrong with the property →
+                      </Link>
+                      <p style={{ fontSize: 13.5, color: '#C5D3E8', lineHeight: 1.6, margin: '14px 0 0' }}>
+                        Takes about a minute, and nothing is charged. If your condition case still
+                        does not clear the bar, we will tell you plainly and you walk away — that is
+                        the whole reason this check exists.
+                      </p>
+                    </>
+                  ) : (
+                    /*
+                      The condition case may well work and there is no lawful way to
+                      file it this year, so there is no honest button to show. Captured
+                      as an ORDINARY waitlist row — blocked_reason null — for exactly
+                      the reason the eligible-but-closed branch gives: the reminder
+                      cron's default "your filing window just opened" is the message
+                      this person is owed, and it is the only branch that already
+                      sends it.
+                    */
+                    <>
+                      <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8', fontSize: 14.5 }}>
+                        {checkedCounty ? `${checkedCounty} County has closed for 2026` : 'Your county has closed for 2026'} — so
+                        there is nothing we can file yet. Leave your email and we will tell you the day
+                        it reopens, and pick this up with you then.
+                      </p>
+                      {emailState === 'done' ? (
+                        <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
+                          Done. We&rsquo;ll email you the day {checkedCounty || 'your county'} reopens.
                         </p>
                       ) : (
                         <form onSubmit={(e) => joinList(e, null)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
