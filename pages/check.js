@@ -63,6 +63,37 @@ const C = {
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
 /**
+ * CONCRETE, BECAUSE "CONDITION" IS AN ABSTRACTION AND A DEAD ROOF IS NOT.
+ *
+ * A homeowner does not scan this list and think about valuation methodology;
+ * they recognise their own house in one of these lines. Recognition is what
+ * makes them click.
+ *
+ * Shown on BOTH sides of the verdict. Wording deliberately mirrors the labels in
+ * StepIssues on pages/apply.js, so what they are promised here is what they are
+ * asked for on the next screen.
+ */
+const DEFECTS = [
+  'Roof at the end of its life',
+  'Failed air conditioning',
+  'Original kitchen or baths',
+  'Active damage or leaks',
+  'Foundation or plumbing trouble',
+];
+
+function DefectChips() {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 16px' }}>
+      {DEFECTS.map((t) => (
+        <span key={t} style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 999, padding: '7px 13px', fontSize: 13.5, color: C.white }}>
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * The middle third of a property handoff that shipped with its middle missing.
  *
  * The other two thirds were already built and built carefully. /api/check returns
@@ -617,6 +648,62 @@ export default function CheckPage() {
                             from the one screen where somebody is deciding whether to pay. */}
                         {' '}If the Board reduces your value, Florida law requires the county to refund that filing fee.
                       </p>
+
+                      {/*
+                        ELIGIBLE, BUT THE CUT IS AMBITIOUS — DO NOT LEAVE THEM WITH
+                        THE NUMBER AND NO WAY TO REACH IT.
+                        ====================================================================
+                        `disclosure` is present exactly when qualify.js rated the
+                        confidence 'marginal' or 'long_shot' — the required cut is above a
+                        plausible 15% result. Read on its own it is a discouraging
+                        sentence: "That is an ambitious reduction… if it falls short your
+                        bill will not change and the filing fee is not refundable." True,
+                        and it stays exactly where it is, in the verdict panel at the top of
+                        the result. The problem was that nothing between it and the buy
+                        button offered any way to reach the number — a hard target stated
+                        once and never answered.
+
+                        The means already exists and they walk into it two screens later:
+                        StepIssues prices a documented cost to cure through
+                        lib/costToCure.js, and that evidence goes into the petition on top
+                        of whatever comparable sales support — additive, per the note on
+                        qualify.js's `cureDollars`. Saying so here costs nothing and turns
+                        a number that reads as a wall into a number with a route through it.
+
+                        SCOPED TO `disclosure`, deliberately. A parcel rated 'good' needs a
+                        reduction comps alone reach comfortably; showing this there would be
+                        manufacturing a worry to sell the answer to it.
+
+                        NOT A ROUTING CHANGE. Eligible visitors already reach the issues
+                        step by the ordinary path — account, property, the check, then
+                        issues — so no intent flag is stashed here. This is the promise;
+                        StepIssues is where it is kept.
+                      */}
+                      {d.disclosure && (
+                        <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 10, padding: '18px 20px', margin: '0 0 18px' }}>
+                          <p style={{ fontSize: 16.5, fontWeight: 700, color: C.white, margin: '0 0 10px', lineHeight: 1.45 }}>
+                            {d.facts?.requiredReductionPct > 0
+                              ? <>A {d.facts.requiredReductionPct}% reduction is ambitious on comparable sales alone — so don&rsquo;t rely on them alone.</>
+                              : <>Comparable sales are only half the case you can make.</>}
+                          </p>
+                          <p style={{ fontSize: 14.5, lineHeight: 1.7, color: '#C5D3E8', margin: '0 0 14px' }}>
+                            That figure assumes your home is in average condition for its
+                            neighbourhood. If it is not, every documented defect argues the value
+                            down <strong style={{ color: C.white }}>on top of</strong> what comparable
+                            sales show — and counts toward the reduction you need.
+                          </p>
+
+                          <DefectChips />
+
+                          <p style={{ fontSize: 14, lineHeight: 1.65, color: '#C5D3E8', margin: 0 }}>
+                            You pick these on the next step and we price each one from published
+                            repair-cost data, or you enter your own quote if you have it. It goes
+                            into the petition as evidence.
+                            {' '}<strong style={{ color: C.white }}>It takes about a minute, and it is the part most people skip.</strong>
+                          </p>
+                        </div>
+                      )}
+
                       <Link
                         href="/apply"
                         onClick={() => stashProperty(state.data?.parcel)}
@@ -717,17 +804,7 @@ export default function CheckPage() {
                     {d.conditionPrompt || 'This answer assumes your home is in average condition for its neighbourhood. If it is not — a roof at the end of its life, a failed air conditioner, an original kitchen, active damage — those reduce what your property is worth on top of what comparable sales show, and they can change this answer.'}
                   </p>
 
-                  {/* CONCRETE, BECAUSE "CONDITION" IS AN ABSTRACTION AND A DEAD ROOF
-                      IS NOT. A homeowner does not scan this list and think about
-                      valuation methodology; they recognise their own house in one of
-                      these lines. Recognition is what makes them click. */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 16px' }}>
-                    {['Roof at the end of its life', 'Failed air conditioning', 'Original kitchen or baths', 'Active damage or leaks', 'Foundation or plumbing trouble'].map((t) => (
-                      <span key={t} style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 999, padding: '7px 13px', fontSize: 13.5, color: C.white }}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+                  <DefectChips />
 
                   <p style={{ lineHeight: 1.65, margin: '0 0 18px', fontSize: 14.5, color: '#C5D3E8' }}>
                     Each one you document lowers what your property is worth on top of what
