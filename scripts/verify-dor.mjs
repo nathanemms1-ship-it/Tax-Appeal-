@@ -18,7 +18,7 @@
 import assert from 'node:assert';
 import { qualify, taxEffect, breakEvenJv } from '../lib/dor/qualify.js';
 import { parseRoll, splitCsvLine } from '../lib/dor/parseRoll.js';
-import { normalizeAddr, anchoredPattern, rowMatches, addressVariants } from '../lib/dor/addressMatch.js';
+import { normalizeAddr, anchoredPattern, rowMatches, addressVariants, stripUnit } from '../lib/dor/addressMatch.js';
 
 let pass = 0;
 const fail = [];
@@ -347,6 +347,53 @@ t('spelled-out suffixes still abbreviate anywhere', normalizeAddr('123 North Oce
 // The ordinal is NOT stripped here — that is addressVariants' job, and keeping
 // the two separate is why a roll spelling either way still matches.
 t('a city after a comma is still stripped', normalizeAddr('11142 SW 6th St, Miami') === '11142 SW 6TH ST');
+
+
+// ── The customer's own unit number ───────────────────────────────────────────
+/**
+ * THE MIRROR OF THE UNIT-TEXT BUG, added the same day it was found.
+ *
+ * anchoredPattern tolerates extra text in the ROLL. It cannot tolerate extra
+ * text in what the CUSTOMER typed, because their string becomes the pattern —
+ * and in Florida the customer typing the unit is the common direction, because
+ * it is on their mail and the county keeps it in PHY_ADDR2.
+ *
+ * INJECTION: make stripUnit return its argument unchanged -> the first four FAIL.
+ */
+const typed = (s) => addressVariants(normalizeAddr(s));
+t('a typed APT is stripped so a unitless roll row matches', rowMatches('1610 SEAGRAPE WAY', typed('1610 Seagrape Way Apt 4')));
+t('a typed UNIT matches a roll row spelling it APT', rowMatches('1610 SEAGRAPE WAY APT 4', typed('1610 Seagrape Way Unit 4')));
+// normalizeAddr turns '#' into a space long before stripUnit sees it, so this
+// case has no designator at all and is caught by the positional rule instead.
+t('a typed # unit survives losing its hash', rowMatches('1610 SEAGRAPE WAY', typed('1610 Seagrape Way #4')));
+t('unit stripping composes with ordinal spelling', rowMatches('1610 SW 5 ST', typed('1610 SW 5th St Apt 4')));
+
+/**
+ * AND IT MUST NOT EAT A REAL ROAD NUMBER. stripUnit only ADDS a spelling; the
+ * unstripped form is still generated, and findParcel prefers an exact match over
+ * a prefix one so the real row wins.
+ *
+ * INJECTION: drop the STREET_TYPES guard from stripUnit's positional rule, or
+ * stop emitting the unstripped base in addressVariants -> the first FAILS.
+ */
+t('a county road number is still matched exactly', rowMatches('123 COUNTY RD 30', typed('123 County Rd 30')));
+t('...because the unstripped spelling is still generated', typed('123 County Rd 30').includes('123 COUNTY RD 30'));
+t('a trailing number NOT after a street type is left alone', stripUnit('100 NW 5') === '100 NW 5');
+t('a two-word address is never stripped to nothing', stripUnit('1610 SEAGRAPE') === '1610 SEAGRAPE');
+t('the house number is never read as a unit', stripUnit('4 MAIN ST') === '4 MAIN ST');
+
+/**
+ * findParcel resolves the ambiguity that unit stripping can introduce by
+ * preferring an exact match. It needs a database, so this is asserted against
+ * the source rather than executed — the weaker kind of guard, and recorded as
+ * such. See the header of lib/dor/addressMatch.js for why everything else here
+ * could be moved out of that category.
+ *
+ * INJECTION: delete the `if (exact.length) data = exact;` line -> FAILS.
+ */
+const parcelsSrc = readFileSync(new URL('../lib/dor/parcels.js', import.meta.url), 'utf8');
+t('findParcel prefers an exact match over a prefix match', /const exact = data\.filter/.test(parcelsSrc) && /if \(exact\.length\) data = exact;/.test(parcelsSrc));
+t('...and it runs after the rowMatches filter, not before', parcelsSrc.indexOf('const exact = data.filter') > parcelsSrc.indexOf('data = (data || []).filter'));
 
 // ── The no-cap break-even floor ──────────────────────────────────────────────
 /**
