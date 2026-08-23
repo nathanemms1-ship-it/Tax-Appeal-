@@ -312,7 +312,50 @@ export default function CheckPage() {
   if (checkedCounty) {
     try { win = getFilingWindowStatus('FL', checkedCounty); } catch { win = null; }
   }
-  const canOrder = !win || win.canFile || win.canPreOrder;
+  /**
+   * THE SECOND REASON WE CANNOT SELL, AND IT IS NOT THE CALENDAR.
+   *
+   * Eight Florida counties have no VAB mailing address we have confirmed directly
+   * with the county, and three more (Nassau, Columbia, Levy) have a good address
+   * and a fee that is still a $50 guess. send-letter.js refuses both, and it
+   * refuses AFTER the card has been charged — which is why apply.js diverts to
+   * FloridaCountyUnavailable before checkout.
+   *
+   * Until today this page knew nothing about either. It told an owner in one of
+   * those eleven counties that their property was worth appealing, showed them the
+   * gold button, and let them pick and price their defects across three more
+   * screens before the funnel said no. The refusal was right and it was in the
+   * wrong place.
+   *
+   * `countyFilable` comes from /api/check because the tables that answer it belong
+   * on the server — see the note beside the field there.
+   *
+   * SHAPED LIKE canOrder, DELIBERATELY: false ONLY when we positively know we
+   * cannot file. `null` (county not derived) leaves it true and lets the real gates
+   * in checkout and send-letter decide, because refusing a valid customer on
+   * missing data is the more expensive of the two mistakes.
+   */
+  const countyFilable = d?.countyFilable !== false;
+  const windowOpen = !win || win.canFile || win.canPreOrder;
+  const canOrder = windowOpen && countyFilable;
+
+  /**
+   * WHICH refusal, so the sentence matches the reason.
+   *
+   * "We'll email you the day your county reopens" is the right promise for a
+   * closed window and the wrong one for an unconfirmed county — that county has
+   * not closed, we simply cannot address the envelope yet. Sending the calendar
+   * message to those eleven counties would promise a date that is not the thing
+   * they are waiting for.
+   *
+   * The window is tested first because it is the harder stop: if the season is
+   * over, confirming the county's address changes nothing this year.
+   */
+  const blockedBy = canOrder ? null : (!windowOpen ? 'window' : 'county');
+  // Tagged so cron/notify-waitlist sends the county's own promise — "your county
+  // is confirmed and there is still time" — instead of the 24 August "your window
+  // just opened", which for these eleven counties would not be true.
+  const blockedReason = blockedBy === 'county' ? 'fl_county_unconfirmed' : null;
   const fmtDay = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
   return (
@@ -757,16 +800,33 @@ export default function CheckPage() {
                     */
                     <>
                       <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                        Your assessment is worth challenging — we just cannot file it until the
-                        window reopens. Leave your email and we will tell you the day it does,
-                        with time to spare before the deadline. Nothing else.
+                        {blockedBy === 'county' ? (
+                          <>
+                            Your assessment is worth challenging. {checkedCounty ? `${checkedCounty} County` : 'Your county'} has
+                            not confirmed the details we need to file there — the address its Value
+                            Adjustment Board takes petitions at, or the exact fee it charges — and we
+                            will not post a petition to an address we are guessing at. Florida counts a
+                            petition as filed when it is RECEIVED with the correct fee, so a wrong
+                            envelope is not a late filing, it is no filing. We are chasing them.
+                            Leave your email and we will tell you the moment it is settled, if there is
+                            still time to file this year.
+                          </>
+                        ) : (
+                          <>
+                            Your assessment is worth challenging — we just cannot file it until the
+                            window reopens. Leave your email and we will tell you the day it does,
+                            with time to spare before the deadline. Nothing else.
+                          </>
+                        )}
                       </p>
                       {emailState === 'done' ? (
                         <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
-                          Done. We&rsquo;ll email you the day {checkedCounty} County reopens.
+                          {blockedBy === 'county'
+                            ? <>Done. We&rsquo;ll email you as soon as {checkedCounty || 'your county'} County is confirmed.</>
+                            : <>Done. We&rsquo;ll email you the day {checkedCounty} County reopens.</>}
                         </p>
                       ) : (
-                        <form onSubmit={(e) => joinList(e, null)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <form onSubmit={(e) => joinList(e, blockedReason)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                           <input
                             type="email"
                             value={email}
@@ -878,16 +938,29 @@ export default function CheckPage() {
                     */
                     <>
                       <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8', fontSize: 14.5 }}>
-                        {checkedCounty ? `${checkedCounty} County has closed for 2026` : 'Your county has closed for 2026'} — so
-                        there is nothing we can file yet. Leave your email and we will tell you the day
-                        it reopens, and pick this up with you then.
+                        {blockedBy === 'county' ? (
+                          <>
+                            {checkedCounty ? `${checkedCounty} County` : 'Your county'} has not yet confirmed
+                            the filing address or the fee its Value Adjustment Board requires, and we will
+                            not post a petition to an address we are guessing at. Leave your email and we
+                            will pick this up with you the moment that is settled.
+                          </>
+                        ) : (
+                          <>
+                            {checkedCounty ? `${checkedCounty} County has closed for 2026` : 'Your county has closed for 2026'} — so
+                            there is nothing we can file yet. Leave your email and we will tell you the day
+                            it reopens, and pick this up with you then.
+                          </>
+                        )}
                       </p>
                       {emailState === 'done' ? (
                         <p style={{ color: C.gold, fontWeight: 700, margin: 0 }}>
-                          Done. We&rsquo;ll email you the day {checkedCounty || 'your county'} reopens.
+                          {blockedBy === 'county'
+                            ? <>Done. We&rsquo;ll email you as soon as {checkedCounty || 'your county'} is confirmed.</>
+                            : <>Done. We&rsquo;ll email you the day {checkedCounty || 'your county'} reopens.</>}
                         </p>
                       ) : (
-                        <form onSubmit={(e) => joinList(e, null)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <form onSubmit={(e) => joinList(e, blockedReason)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                           <input
                             type="email"
                             value={email}

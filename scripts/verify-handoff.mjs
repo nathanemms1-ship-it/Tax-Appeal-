@@ -190,6 +190,47 @@ for (const [name, src] of [['pages/check.js', check], ['pages/apply.js', apply]]
   t(`${name} does not hand-write the 'ta_verdict' key (SOURCE READ)`, !src.includes("'ta_verdict'"));
 }
 
+// ── The county gate on /check ─────────────────────────────────────────────────
+/**
+ * Eight counties have no confirmed VAB mailing address and three more have a fee
+ * that is still a guess. send-letter.js refuses both — AFTER the card is charged,
+ * which is why apply.js diverts before checkout. Until 23 Aug 2026 /check knew
+ * about neither, so an owner in one of those eleven was told their property was
+ * worth appealing, shown the gold button, and walked through three more screens
+ * picking and pricing defects before the funnel said no.
+ *
+ * The answer has to come from the server: canFileInFlCounty reads the 67-entry VAB
+ * address table, and importing that into the page would ship every street address,
+ * phone note and source URL to the browser to render one boolean.
+ *
+ * Proven by reintroducing each:
+ *   drop countyFilable from the /api/check response      -> 1 fail
+ *   drop countyFilable from the page's canOrder          -> 1 fail
+ *   import canFileInFlCounty into pages/check.js instead -> 1 fail
+ *   send the blocked capture with a null reason          -> 1 fail
+ */
+const checkApi = readFileSync('pages/api/check.js', 'utf8');
+t('/api/check answers whether we can file in the parcel\'s county (SOURCE READ)',
+  /countyFilable:/.test(checkApi) && /canFileInFlCounty\(/.test(checkApi));
+t('/api/check distinguishes an unconfirmed ADDRESS from an unconfirmed FEE (SOURCE READ)',
+  /countyBlockedReason:/.test(checkApi) && /'fee'\s*:\s*'address'/.test(checkApi));
+t('the county gate is part of what lets /check show a buy button (SOURCE READ)',
+  /const canOrder = .*countyFilable/.test(check));
+t('a county-blocked capture is tagged fl_county_unconfirmed, not left null (SOURCE READ)',
+  /blockedReason = blockedBy === 'county' \? 'fl_county_unconfirmed'/.test(check) &&
+  !/joinList\(e, null\)/.test(check));
+t('pages/check.js does NOT pull the VAB address or fee tables into the browser bundle (SOURCE READ)',
+  !/flVabAddresses/.test(check) && !/serviceCoverage/.test(check) && !/flCountyFees/.test(check));
+
+// Executed: the gate itself, against counties whose status is a published fact.
+{
+  const { canFileInFlCounty } = await import('../lib/serviceCoverage.js');
+  t('a confirmed county is filable', canFileInFlCounty('Broward') === true);
+  t('a county with no confirmed VAB address is not filable', canFileInFlCounty('Dixie') === false);
+  t('a county whose fee is still a guess is not filable', canFileInFlCounty('Levy') === false);
+  t('a county that does not exist is not filable', canFileInFlCounty('Notarealcounty') === false);
+}
+
 // ── The funnel order, and the password that is no longer part of it ───────────
 /**
  * These are assertions about a DECISION, not about correctness. Nothing breaks if

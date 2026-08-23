@@ -53,6 +53,14 @@ import { lookupAndQualify } from '../../lib/dor/parcels';
 import { DEFAULT_MILLAGE } from '../../lib/dor/qualify';
 import { isFloridaZip, LOADED_COUNTY_NAMES, LOADED_COUNTIES } from '../../lib/dor/coverage';
 import { recordCheckOutcome } from '../../lib/recordCheck';
+/**
+ * SERVER-SIDE ONLY, AND THAT IS THE POINT. canFileInFlCounty reads the 67-entry
+ * VAB address table and the fee table. Importing either into pages/check.js would
+ * ship every VAB street address, phone note and source URL to the browser to
+ * display one boolean — see the header of lib/serviceCoverage.js.
+ */
+import { canFileInFlCounty } from '../../lib/serviceCoverage';
+import { isFlCountySupported } from '../../lib/flVabAddresses';
 
 /**
  * ============================================================================
@@ -285,6 +293,43 @@ export default async function handler(req, res) {
       // Present on long-odds cases we WILL take. Must appear before checkout so
       // nobody is surprised by the shape of what they bought.
       disclosure: savings.disclosure || null,
+
+      /**
+       * ========================================================================
+       * CAN WE ACTUALLY FILE IN THIS COUNTY? ANSWERED HERE, SERVER-SIDE.
+       * ========================================================================
+       * Added 23 Aug 2026. Until today /check said "an appeal could lower your
+       * bill", showed a gold "Get started" button, and only three screens later —
+       * after the customer had picked their defects and priced them — did
+       * applyResolvedCounty discover this was one of the 8 counties with no
+       * confirmed VAB mailing address, or one of the 3 whose fee is still a guess.
+       * The refusal was correct and it was in the wrong place.
+       *
+       * ANSWERED HERE RATHER THAN ON THE PAGE because canFileInFlCounty() reads
+       * lib/flVabAddresses.js, and importing that into a component ships all 67 VAB
+       * street addresses, phone notes and source URLs into the browser bundle to
+       * render one boolean. lib/serviceCoverage.js carries a header saying so.
+       *
+       * NOT A MONEY GATE. /api/checkout and /api/send-letter both re-test these two
+       * conditions, and they are the ones that can stop a card being charged or a
+       * cheque being cut. This exists so the customer is told before they do the
+       * work — not instead of those.
+       *
+       * `countyBlockedReason` separates the two refusals because they are different
+       * promises: an unconfirmed address is waiting on a phone call, an unconfirmed
+       * fee is waiting on a county board meeting. cron/notify-waitlist re-tests both
+       * daily and writes to these people only while there is still time to file.
+       *
+       * null means the county could not be derived from the parcel, and the page
+       * must assert nothing either way — the funnel still resolves it later.
+       */
+      county: countyName(parcel) || null,
+      countyFilable: countyName(parcel) ? canFileInFlCounty(countyName(parcel)) : null,
+      countyBlockedReason: (() => {
+        const c = countyName(parcel);
+        if (!c || canFileInFlCounty(c)) return null;
+        return isFlCountySupported(c) ? 'fee' : 'address';
+      })(),
 
       checkedAt: new Date().toISOString(),
     });
