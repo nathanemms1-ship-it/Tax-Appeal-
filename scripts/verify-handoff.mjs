@@ -71,33 +71,42 @@ globalThis.sessionStorage = {
   removeItem: (k) => store.delete(k),
 };
 
-const { stashVerdict, readVerdict, VERDICT_KEY, VERDICT_TTL_MS } =
+const { stashVerdict, readVerdict, VERDICT_KEY, VERDICT_TTL_MS, PROPERTY_KEY } =
   await import('../lib/checkHandoff.js');
+
+/**
+ * pages/check.js writes the ADDRESS first and the verdict second, and stashVerdict
+ * reads the address key back before it commits — the two writes are separate
+ * try/catch blocks and a quota failure on the larger record can leave the verdict
+ * standing alone. So every fixture below has to stage the address the way the page
+ * does, and the divergence case is asserted explicitly further down.
+ */
+const withAddress = () => store.set(PROPERTY_KEY, JSON.stringify({ street: '1130 GLENWOOD CT' }));
 
 const ELIGIBLE = {
   found: true, reason: 'clearable', eligible: true,
   parcel: { parcelId: '30-1234', situs: { street: '1130 GLENWOOD CT', city: 'WESTON', state: 'FL', zip: '33326' } },
 };
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict(ELIGIBLE, 'Broward');
 t('a written verdict round-trips with its county', readVerdict()?.county === 'Broward');
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict(ELIGIBLE, 'Broward');
 readVerdict();
 t('readVerdict CLEARS the key — a second property cannot inherit the first one\'s answer',
   readVerdict() === null && !store.has(VERDICT_KEY));
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict(ELIGIBLE, 'Broward');
 t('a verdict older than the TTL is refused', readVerdict(Date.now() + VERDICT_TTL_MS + 1000) === null);
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict(ELIGIBLE, 'Broward');
 t('a verdict inside the TTL is accepted', readVerdict(Date.now() + VERDICT_TTL_MS - 1000) !== null);
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict(ELIGIBLE, 'Broward');
 t('a verdict timestamped in the FUTURE is refused — a hand-edited or clock-skewed record has unknown age',
   readVerdict(Date.now() - 60_000) === null);
@@ -110,11 +119,11 @@ store.clear();
 store.set(VERDICT_KEY, '{not json');
 t('a malformed record returns null instead of throwing', readVerdict() === null);
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict({ found: true, reason: 'cap_absorbs_everything', eligible: false, rescuable: false, parcel: {} }, 'Broward');
 t('a REFUSED verdict is never handed forward — there is no screen to skip to', readVerdict() === null);
 
-store.clear();
+store.clear(); withAddress();
 stashVerdict({ found: false, reason: 'no_parcel' }, '');
 t('a check that found no parcel writes nothing', !store.has(VERDICT_KEY));
 
@@ -122,9 +131,18 @@ t('a check that found no parcel writes nothing', !store.has(VERDICT_KEY));
 // written without one would send the customer to the condition step with no
 // address — pricing defects for a property the funnel cannot name, then onto a
 // petition whose one unforgiving field is the address.
-store.clear();
+store.clear(); withAddress();
 stashVerdict({ found: true, reason: 'clearable', eligible: true, parcel: { parcelId: '30-1234' } }, 'Broward');
 t('a parcel with no situs street writes no verdict — the address prefill would have refused it too',
+  !store.has(VERDICT_KEY));
+
+// The other half of the same invariant: the situs was fine, but the ADDRESS WRITE
+// FAILED — a full quota, a private-mode quirk. stashVerdict reads the key back and
+// withdraws rather than leaving a verdict that would route the customer to
+// `florida-check` with an empty street.
+store.clear();  // deliberately no withAddress()
+stashVerdict(ELIGIBLE, 'Broward');
+t('a verdict withdraws itself when the address write did not land',
   !store.has(VERDICT_KEY));
 
 // ── Read: the wiring inside the two pages ─────────────────────────────────────
@@ -278,6 +296,53 @@ t('the sale refusal still renders — it is the only place in the product it exi
   /const sale = state\.comps\?\.reason === 'subject_sold_above_indicated_value'/.test(apply));
 
 /**
+ * THE SALE GATE IS FAIL-OPEN, SO THE SKIP MUST NOT BE.
+ *
+ * /api/comps is wrapped in `.catch(() => null)` and rate limited 10 per minute per
+ * client IP, which a NAT'd office or a carrier can exhaust. A failed call yields no
+ * `reason`, which is indistinguishable from a clean result — so autoAdvance would
+ * have skipped the screen on the strength of a test that never ran, and left
+ * nothing on the page to say the gate had declined to run.
+ *
+ * A comps failure still must not BLOCK anyone: a property with a failed roof has a
+ * real case on condition, and a data gap is not evidence about a house. It simply
+ * may not license the skip.
+ */
+t('the funnel records WHETHER the sale test ran, not only what it said (SOURCE READ)',
+  /const saleTestRan = /.test(apply) && /data: j, comps, saleTestRan/.test(apply));
+t('autoAdvance refuses to skip a screen on a sale test that never ran (SOURCE READ)',
+  /if \(!state\.saleTestRan\) return;/.test(apply));
+
+/**
+ * THE RESCUE FLAG RECORDS A PROPERTY OF THE PARCEL, NOT A POSITION IN THE FUNNEL.
+ *
+ * Clearing it when the rescue pass succeeded let the customer walk the gate back in
+ * two clicks: details screen -> Back -> untick every defect -> "Skip & generate my
+ * dispute letter" -> straight on to account, fee and checkout, with the only pass
+ * that could clear them never re-run against the list that no longer clears them.
+ * Nothing downstream re-derives it: /api/checkout and /api/send-letter test the
+ * filing window and the two county gates and contain no eligibility test at all.
+ */
+t('the rescue flag survives a successful rescue pass, so any return to `issues` re-checks (SOURCE READ)',
+  /if \(flRescueReturn\) \{ setStep\("account"\); \}/.test(apply) &&
+  !/setFlRescueReturn\(false\); setStep\("account"\)/.test(apply));
+t('the issues step routes a rescuable parcel back through florida-check (SOURCE READ)',
+  /if \(sc === 'FL' && flRescueReturn\) \{ setStep\('florida-check'\)/.test(apply));
+
+/**
+ * The retry on the `unavailable` screen must re-run the request, not reload the
+ * page. readVerdict and the ta_property reader both removeItem on first mount, so a
+ * reload returns a customer who was just told their property is worth appealing to
+ * a blank address form. Status alone is not enough either — the effect's other
+ * dependency is the issues list, so without the nonce the spinner never resolves,
+ * which is worse than the reload it replaced.
+ */
+t('the unavailable screen retries in place rather than reloading (SOURCE READ)',
+  !/window\.location\.reload\(\)\}>Try again/.test(apply) &&
+  /setRetryNonce\(\(n\) => n \+ 1\)/.test(apply) &&
+  /retryNonce\]\);/.test(apply));
+
+/**
  * EVERY ROUTE BACK TO THE ADDRESS FIELD DISCARDS THE HANDOFF.
  *
  * flRollCounty sets the fee, the cheque payee and which VAB office receives the
@@ -381,10 +446,20 @@ t('portal login tests whether the hash is USABLE, not merely present — the `!`
       if (entry.isDirectory()) walk(p);
       else if (entry.name.endsWith('.js')) {
         const src = readFileSync(p, 'utf8');
-        // A WRITE, not a read. `.select('... password_hash ...')` and
-        // `order.password_hash` are reads; `password_hash:` inside an insert or
-        // update object is the write.
-        if (/password_hash:\s*[^,\n}]+/.test(src)) writers.push([p, src]);
+        /**
+         * A WRITE, NOT A READ — AND BOTH SPELLINGS OF A WRITE.
+         *
+         * `.select('... password_hash ...')` and `order.password_hash` are reads.
+         * A write is `password_hash:` inside an insert or update object, OR the
+         * ES6 shorthand `password_hash,` — which is how pages/api/save-order.js
+         * writes it, the very file whose dead-path assertion motivated this sweep.
+         * The first version matched only the colon form, so that file was not in
+         * `writers` and the sweep's own claim to find every writer was false on
+         * the day it was written. Same shape as the defect it was added for.
+         */
+        const colonForm = /password_hash:\s*[^,\n}]+/.test(src);
+        const shorthand = /^\s*password_hash,\s*$/m.test(src);
+        if (colonForm || shorthand) writers.push([p, src]);
       }
     }
   };
@@ -393,9 +468,15 @@ t('portal login tests whether the hash is USABLE, not merely present — the `!`
   t('at least two files write password_hash — the sweep found the writers rather than being told (SOURCE READ)',
     writers.length >= 2);
   for (const [p, src] of writers) {
-    const bad = src.match(/password_hash:\s*[^,\n}]*\|\|\s*null/);
+    // Every way of spelling "and if we have nothing, write a null". The first
+    // version tested `|| null` alone, so `?? null` and a bare `password_hash: null`
+    // both passed.
+    const bad = /password_hash:\s*[^,\n}]*(\|\||\?\?)\s*null/.test(src)
+      || /password_hash:\s*null\b/.test(src);
     t(`${p.replace(/^.*?\//, '')} does not default password_hash to an untested null (SOURCE READ)`, !bad);
   }
+  t('the sweep sees pages/api/save-order.js, which writes the column in shorthand (SOURCE READ)',
+    writers.some(([p]) => p.endsWith('pages/api/save-order.js')));
   const live = writers.find(([p]) => p.endsWith('lib/fulfillOrder.js'));
   t('lib/fulfillOrder.js — the insert that actually runs — writes the sentinel (SOURCE READ)',
     !!live && /password_hash: m\.passwordHash \|\| NO_PASSWORD_SENTINEL/.test(live[1]));
@@ -446,6 +527,16 @@ t('set-password requires the payment to have actually settled (SOURCE READ)',
  * So: no `.limit(` and no `.order(` in the lookup, and the test is `.some(...)`
  * across the rows rather than an index into one.
  */
+/**
+ * AND THE WRITE CARRIES ITS OWN CONDITION. The read-then-write above still has a
+ * window: two concurrent POSTs both pass the `some` test before either UPDATE
+ * lands. Each statement now only matches rows that STILL have no usable password,
+ * which the database evaluates atomically.
+ */
+t('the set-password write is conditional, so a concurrent real password cannot be clobbered (SOURCE READ)',
+  /\.eq\('password_hash', NO_PASSWORD_SENTINEL\)/.test(setPwCode) &&
+  /\.is\('password_hash', null\)/.test(setPwCode));
+
 t('set-password evaluates "already set" over EVERY row its write will change (SOURCE READ)',
   /orders\.some\(\([^)]*\)\s*=>\s*hasUsablePassword\(/.test(setPwCode) &&
   !/\.limit\(/.test(setPwCode) &&

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from '../supabase';
 import { enforceRateLimit } from '../../../lib/rateLimit';
-import { hasUsablePassword, hashPassword, MIN_PASSWORD_LENGTH } from '../../../lib/noPassword';
+import { hasUsablePassword, hashPassword, MIN_PASSWORD_LENGTH, NO_PASSWORD_SENTINEL } from '../../../lib/noPassword';
 
 /**
  * CLAIM THE PORTAL AFTER PAYING. Never a reset.
@@ -172,12 +172,43 @@ export default async function handler(req, res) {
       });
     }
 
-    // All orders for this email, like the reset route — one person, one password,
-    // and login.js reads whichever order is most recent.
-    const { error: updateError } = await supabase
+    /**
+     * ======================================================================
+     * CONDITIONAL WRITES, SO THE READ ABOVE IS NOT THE ONLY THING PROTECTING US.
+     * ======================================================================
+     * The read-then-write above still has a window: two concurrent POSTs for the
+     * same address both pass `orders.some(hasUsablePassword)` before either UPDATE
+     * lands, and the later one wins. The rate limit is 10 a minute, so it is
+     * raceable by anyone holding a valid paid session for that email.
+     *
+     * Narrower than the defect it replaced, and the same class — so the predicate
+     * moves into the statement. Each UPDATE only touches rows that STILL have no
+     * usable password when it executes, which the database evaluates atomically. A
+     * real hash written in between is simply not matched.
+     *
+     * Two statements because "no usable password" is two stored values: the
+     * sentinel on everything written since 23 Aug 2026, and a null on anything
+     * older. supabase-js cannot express `eq OR is null` in one filter without
+     * .or() string syntax, and `!` inside that syntax is a delimiter — a quoting
+     * bug there would silently widen the predicate to every row, which is the
+     * failure this whole block exists to prevent. Two explicit statements cannot
+     * be misread.
+     *
+     * All orders for this email, like the reset route — one person, one password,
+     * and login.js reads whichever order is most recent.
+     */
+    const newHash = hashPassword(password, crypto);
+    const { error: sentinelError } = await supabase
       .from('orders')
-      .update({ password_hash: hashPassword(password, crypto) })
-      .eq('customer_email', email);
+      .update({ password_hash: newHash })
+      .eq('customer_email', email)
+      .eq('password_hash', NO_PASSWORD_SENTINEL);
+    const { error: legacyError } = await supabase
+      .from('orders')
+      .update({ password_hash: newHash })
+      .eq('customer_email', email)
+      .is('password_hash', null);
+    const updateError = sentinelError || legacyError;
 
     if (updateError) {
       console.error('set-password: update failed:', updateError);

@@ -1232,6 +1232,20 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  */
 function StepFloridaCheck({ property, account, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked, autoAdvance }) {
   const [state, setState] = useState({ status: 'loading', data: null, comps: null });
+  /**
+   * Retry counter, in the fetch effect's dependency list.
+   *
+   * Without it, the "Try again" button on the `unavailable` screen can only reload
+   * the page — and on the /check handoff path a reload is a trap, because
+   * readVerdict() and the ta_property reader both removeItem on first mount. The
+   * customer returns to a blank address form with the verdict and the address
+   * already consumed.
+   *
+   * Setting status back to 'loading' alone is NOT enough and would be worse than
+   * the reload: the effect's only other dependency is the issues list, which has
+   * not changed, so nothing would re-run and the spinner would never resolve.
+   */
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -1328,7 +1342,28 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         try { comps = kRes ? await kRes.json() : null; } catch { comps = null; }
         if (cancelled) return;
 
-        setState({ status: 'done', data: j, comps });
+        /**
+         * DID THE SALE TEST ACTUALLY RUN? A SEPARATE QUESTION FROM WHAT IT SAID.
+         *
+         * `comps === null` means the call was caught, refused or unparseable —
+         * /api/comps is rate limited 10 per minute per client IP, and a NAT'd
+         * office or carrier can exhaust that. `comps.reason` merely absent means
+         * it ran and found nothing disqualifying.
+         *
+         * Both used to be indistinguishable, and the paragraph above is right that
+         * neither may BLOCK a customer. But `autoAdvance` skips the screen, so
+         * conflating them would have skipped a screen on the strength of a test
+         * that never ran, and left nothing on the page to say so. The customer
+         * would see the condition step and no trace of the gate declining.
+         *
+         * So: a comps failure still does not block, and it does not license the
+         * skip either. `saleTestRan: false` sends them to the ordinary verdict
+         * screen — the one they have already read — which is a redundant screen
+         * rather than a silent gap.
+         */
+        const saleTestRan = comps !== null && typeof comps === 'object' && !comps.error;
+
+        setState({ status: 'done', data: j, comps, saleTestRan });
       } catch {
         // A thrown fetch is our failure, not evidence about their property.
         // See the long note above — this used to call onEligible() and wave them
@@ -1337,7 +1372,7 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
       }
     })();
     return () => { cancelled = true; };
-  }, [(issues || []).join('|')]);
+  }, [(issues || []).join('|'), retryNonce]);
 
   /**
    * ==========================================================================
@@ -1379,12 +1414,35 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
     // The sale refusal wins over eligibility, exactly as it does in the render
     // below. Auto-advancing past it would be the bug this effect exists to avoid.
     if (state.comps?.reason === 'subject_sold_above_indicated_value') return;
+    // AND the test must have actually run. A rate-limited or failed /api/comps
+    // yields no reason, which is indistinguishable from a clean result unless we
+    // ask. Skipping a screen on a test that did not run is the same defect one
+    // layer down. They get the verdict screen instead — redundant, not silent.
+    if (!state.saleTestRan) return;
     autoAdvanced.current = true;
     onEligible();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAdvance, state.status, state.data, state.comps]);
 
-  if (state.status === 'loading') {
+  /**
+   * NO FLASH OF THE SCREEN WE ARE ABOUT TO LEAVE.
+   *
+   * useEffect is passive: `{status:'done'}` commits and can paint the "Your
+   * property is worth appealing" screen for a frame before onEligible() runs. That
+   * is the exact screen autoAdvance exists to skip, and a flash of it is worse
+   * than showing it properly. Rendering the loading state for the one frame in
+   * between is deterministic and needs no useLayoutEffect (which warns on the
+   * server).
+   *
+   * The conditions match the effect above exactly. If they ever drift, this
+   * renders a spinner nobody dismisses — so they are written once, here, and the
+   * effect reads the same three facts.
+   */
+  const willAutoAdvance = autoAdvance && !autoAdvanced.current
+    && state.status === 'done' && state.data?.found && state.data?.eligible
+    && state.saleTestRan && state.comps?.reason !== 'subject_sold_above_indicated_value';
+
+  if (state.status === 'loading' || willAutoAdvance) {
     return (
       <div style={{ maxWidth: 620, margin: '0 auto', padding: '64px 24px', textAlign: 'center' }}>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10 }}>
@@ -1468,7 +1526,27 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
             <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>{' '}
             with your address and we will look it up by hand.
           </p>
-          <button style={primaryBtn} onClick={() => window.location.reload()}>Try again</button>
+          {/*
+            RETRY IN PLACE. This was window.location.reload(), which on the /check
+            handoff path is a trap: readVerdict() and the ta_property reader both
+            removeItem on first mount, so a reload returns to a blank address form
+            with the verdict and the address already consumed — the customer was
+            told their property is worth appealing, hit one transient 500, and
+            landed on an empty page with no explanation. That is the "apply form
+            simply opened blank" failure lib/checkHandoff.js calls the most
+            expensive way to fail, and autoAdvance made it newly reachable.
+
+            Re-running the effect keeps every piece of React state, including the
+            prefilled address, so a retry costs one query rather than the session.
+          */}
+          {/*
+            RETRY IN PLACE, not window.location.reload(). See the note on
+            retryNonce: a reload consumes the handoff and returns a customer who
+            was just told their property is worth appealing to a blank form. This
+            keeps every piece of React state, including the prefilled address, so a
+            transient 500 costs one query rather than the session.
+          */}
+          <button style={primaryBtn} onClick={() => { setState({ status: 'loading', data: null, comps: null }); setRetryNonce((n) => n + 1); }}>Try again</button>
           <div style={{ marginTop: 14 }}>
             <button style={{ ...secondaryBtn, width: 'auto', padding: '10px 22px' }} onClick={onBack}>&larr; Back</button>
           </div>
@@ -3437,9 +3515,15 @@ function ApplyFunnel() {
    * sessionStorage is the visitor's own browser and can be edited from a console.
    * So `eligible` and `rescuable` are read for one purpose only — which step to
    * open on — and a forged value buys somebody the issues screen, which is free,
-   * asks for nothing, and is followed by the fee step, the checkout gate, and
-   * send-letter, each of which re-derives eligibility from the roll. There is no
-   * path from a hand-edited flag to a mailed petition.
+   * asks for nothing, and is followed by `florida-check`, which derives the
+   * verdict from the roll itself and refuses there if it does not hold.
+   *
+   * BE PRECISE ABOUT WHAT THE LATER GATES DO. /api/checkout and /api/send-letter
+   * re-test the filing window, the county's VAB address and its fee confidence.
+   * Neither contains an eligibility test — an earlier draft of this comment said
+   * they "re-derive eligibility from the roll" and that is false. The screen that
+   * derives eligibility is `florida-check`, which is why an eligible arrival is
+   * routed through it rather than around it.
    *
    * A rescuable arrival sets flRescueReturn, which is what makes the issues step
    * return to `florida-check` for a second pass WITH their documented cure rather
@@ -3544,6 +3628,15 @@ function ApplyFunnel() {
    *   flRescueReturn   would route the second property past its own first pass
    *   flConditionIntent same, one screen earlier
    *
+   * DISMISSING AN OVERLAY IS ALSO A ROUTE BACK. FilingWindowClosed and
+   * UnsupportedState do not navigate — they stop rendering, which REVEALS the
+   * property step underneath. flRollCounty and flAutoAdvance cannot be live there,
+   * but flConditionIntent can: it is set by its own effect, independently of the
+   * verdict effect, which returns early on the closed-window branch. Without a
+   * clear, the next address typed skips its own first qualify pass with
+   * `alreadyAsked` already true — silently closing the rescue path to a second
+   * property that might have needed it.
+   *
    * The first version of this cleared only flRollCounty, from one of the three
    * Back buttons. Adversarial review of the diff found the rest: going back from
    * `florida-check`, typing a different address and continuing could reach the fee
@@ -3558,7 +3651,37 @@ function ApplyFunnel() {
     setFlConditionIntent(false);
   };
 
-  /** Condition questions are done. Florida may still owe a second qualify pass. */
+  /**
+   * Condition questions are done. Florida may still owe a second qualify pass.
+   *
+   * ==========================================================================
+   * flRescueReturn IS NOT CLEARED WHEN THE RESCUE PASS SUCCEEDS. THAT IS THE FIX.
+   * ==========================================================================
+   * It used to be. `onEligible` did `setFlRescueReturn(false)` and moved on, which
+   * meant the flag recorded "we are mid-rescue" rather than what it actually needs
+   * to record: THIS PARCEL ONLY QUALIFIES WITH A DOCUMENTED COST TO CURE.
+   *
+   * The difference is two clicks. Pass 2 clears them with their defects ticked ->
+   * details screen -> Back -> untick every defect -> "Skip & generate my dispute
+   * letter" (StepIssues has no minimum) -> with the flag cleared, this function
+   * routed them straight to `account`, then the fee screen, then checkout. The one
+   * pass that could clear them was never re-run against the list that no longer
+   * clears them.
+   *
+   * Nothing downstream re-derives it. /api/checkout and /api/send-letter re-test
+   * the filing window and the two county gates and contain no eligibility test at
+   * all — so a homeowner in the 688,497-parcel rescuable band would have paid $89
+   * plus a county fee for a petition lib/dor/qualify.js says cannot reach their
+   * bill. Found by adversarial review; no guard covered it, and the comment on the
+   * verdict effect claiming checkout "re-derives eligibility from the roll" was
+   * simply wrong and has been corrected.
+   *
+   * Leaving the flag set makes the loop self-healing: any return to `issues`, from
+   * anywhere, sends them back through `florida-check`, which re-runs qualify with
+   * whatever is ticked NOW. `alreadyAsked` keeps the invitation to one showing.
+   * The cost is one redundant re-check for a customer who goes back and changes
+   * nothing, which is the right side of that trade.
+   */
   const afterIssues = () => {
     const sc = property.state.trim().toUpperCase();
     // THE RESCUE PASS IS NOT THE DUPLICATE CHECK. A rescuable parcel was refused
@@ -3662,9 +3785,9 @@ function ApplyFunnel() {
           onBack={() => setFlCountyError(null)}
         />
       ) : closedWindow ? (
-        <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => setClosedWindow(null)} account={account} property={property} />
+        <FilingWindowClosed stateCode={closedWindow.stateCode} windowStatus={closedWindow.windowStatus} onBack={() => { clearHandoff(); setClosedWindow(null); }} account={account} property={property} />
       ) : unsupportedState ? (
-        <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} account={account} property={property} />
+        <UnsupportedState stateCode={unsupportedState} onBack={() => { clearHandoff(); setUnsupportedState(null); }} account={account} property={property} />
       ) : (
         <>
           {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
@@ -3698,7 +3821,7 @@ function ApplyFunnel() {
               hand. It is step 3 now, so jumping to the fee screen from here would
               reach the review page with no name on the petition and no address to
               send the confirmation to. */}
-          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={() => { setFlAutoAdvance(false); setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn) { setFlRescueReturn(false); setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={() => { setFlAutoAdvance(false); setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn) { setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={afterIssues} onBack={() => {
             /*
               GOING BACK TO THE ADDRESS DISCARDS THE ROLL'S COUNTY.

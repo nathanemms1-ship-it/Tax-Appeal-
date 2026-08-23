@@ -266,9 +266,32 @@ t('the preparer is disclaimed as non-representative', /not the owner's represent
    * the function DECLARATION. The checks were satisfied by code that no longer did
    * the job. So: slice out the lookup effect and assert on its control flow.
    */
+  /**
+   * THE TERMINATOR IS MATCHED LOOSELY, AND ITS ABSENCE IS AN ERROR.
+   *
+   * This used to search for the literal `}, [(issues || []).join('|')]);`. On
+   * 23 Aug 2026 a retry counter was added to that dependency array, the literal
+   * stopped matching, indexOf returned -1, and `slice(start, -1)` quietly widened
+   * the body under test to the whole rest of the file — pulling in a DIFFERENT
+   * effect that legitimately calls onEligible(). The assertion below failed, which
+   * is the lucky direction: had the widening made a check pass instead of fail,
+   * nothing would have said so.
+   *
+   * So the dependency list is matched with the issues key plus anything else, and
+   * a slice that cannot find its end fails rather than defaulting to everything.
+   * An upper bound on the length catches the same accident a second way.
+   */
   const effectStart = apply.indexOf('function StepFloridaCheck');
-  const effectBody = apply.slice(effectStart, apply.indexOf("}, [(issues || []).join('|')]);", effectStart));
-  t('the eligibility effect was located for inspection', effectStart > -1 && effectBody.length > 200);
+  const terminator = /\}, \[\(issues \|\| \[\]\)\.join\('\|'\)[^\]]*\]\);/.exec(
+    effectStart > -1 ? apply.slice(effectStart) : ''
+  );
+  t('the lookup effect terminator was found — the slice cannot silently run to EOF',
+    effectStart > -1 && !!terminator,
+    'without this an edit to the dependency array widens the body under test to the whole file');
+  const effectBody = terminator ? apply.slice(effectStart, effectStart + terminator.index) : '';
+  t('the eligibility effect was located for inspection',
+    effectStart > -1 && effectBody.length > 200 && effectBody.length < 12000,
+    'too short means the slice missed it; too long means the slice swallowed its neighbours');
 
   t('nothing in the lookup effect advances the customer',
     !/onEligible\s*\(/.test(effectBody),
