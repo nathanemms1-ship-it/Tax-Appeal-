@@ -401,9 +401,14 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
     /We could not save your details/.test(applyCode) &&
     /you are <strong[^>]*>not<\/strong> on the list yet/.test(applyCode));
 
+  // `started` became a ref holding the EMAIL a save was started for, rather than a
+  // boolean, on 23 Aug 2026. Three of these screens can now be reached before we
+  // hold an address at all, so the hook must fire when one arrives later — a
+  // boolean latch would swallow it and the customer would watch a dead form.
+  // Retry clears it exactly as before; only the empty value changed.
   t('a failed save offers a retry that re-runs the request',
     /onClick=\{onRetry\}/.test(applyCode) &&
-    /started\.current = false; setNonce/.test(applyCode));
+    /started\.current = null; setNonce/.test(applyCode));
 
   t('the hook stops retrying a 4xx that is not a rate limit',
     /res\.status >= 400 && res\.status < 500 && res\.status !== 429\) break/.test(applyCode));
@@ -422,8 +427,18 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   // NoParcelRecord deliberately does not, because nothing ever contacts that bucket.
   // That exemption is asserted rather than assumed, so deleting the comment without
   // building the job breaks the build.
-  t('every screen that promises an email renders the shared notice',
-    (applyCode.match(/<LeadCaptureNotice/g) || []).length === 3);
+  // <LeadCapture> wraps the notice as of 23 Aug 2026. The three screens promise an
+  // email; what changed is that they can no longer assume they already hold one,
+  // because the account step moved below the property step and all three are
+  // reached from the property step. The wrapper asks for the address when it is
+  // missing and renders the same notice once there is a result to report.
+  //
+  // `\s` after the name is load-bearing: without it this also matches
+  // <LeadCaptureNotice and the count silently means something else.
+  t('every screen that promises an email renders the shared capture',
+    (applyCode.match(/<LeadCapture\s/g) || []).length === 3);
+  t('the "Saved" / "could not save" notice is rendered from exactly one place',
+    (applyCode.match(/<LeadCaptureNotice/g) || []).length === 1);
   t('the no-parcel screen still promises no email it cannot send',
     /THE ONE SCREEN THAT DELIBERATELY DOES NOT RENDER LeadCaptureNotice/.test(applySrc));
 

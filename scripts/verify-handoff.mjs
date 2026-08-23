@@ -190,6 +190,68 @@ for (const [name, src] of [['pages/check.js', check], ['pages/apply.js', apply]]
   t(`${name} does not hand-write the 'ta_verdict' key (SOURCE READ)`, !src.includes("'ta_verdict'"));
 }
 
+// ── The funnel order, and the password that is no longer part of it ───────────
+/**
+ * These are assertions about a DECISION, not about correctness. Nothing breaks if
+ * the account step goes back to the top — the funnel works, every gate still
+ * fires, and the only symptom is the one measured on 21-23 Aug: 12 landings, 3
+ * checks, 0 sales. That is precisely the kind of regression that survives review,
+ * because the diff that causes it looks like a tidy-up.
+ *
+ * Proven by reintroducing each:
+ *   restore "account" to the front of STEPS                    -> 1 fail
+ *   restore the password Field to StepAccount                  -> 1 fail
+ *   restore `password: account.password` to the checkout body  -> 1 fail
+ *   set the initial step back to "account"                     -> 1 fail
+ *   point restart() back at "account"                          -> 1 fail
+ *   revert login.js to `if (!order.password_hash)`             -> 1 fail
+ */
+const STEPS_LINE = apply.match(/const STEPS = \[([^\]]*)\]/);
+const stepOrder = STEPS_LINE ? STEPS_LINE[1].split(',').map((s) => s.trim().replace(/["']/g, '')) : [];
+t('the funnel runs property -> issues -> account -> dispute (SOURCE READ)',
+  stepOrder.join('|') === 'property|issues|account|dispute');
+t('the funnel OPENS on the property, not on a form (SOURCE READ)',
+  /useState\("property"\)/.test(apply));
+t('restart() returns to the property step, not the details step (SOURCE READ)',
+  /setStep\("property"\);\n\s*setAccount\(/.test(apply));
+t('the Florida fee screen displays no earlier than the details step (SOURCE READ)',
+  /'florida-fee':\s*'account'/.test(apply));
+
+// The password. Two ends: it is not collected, and the absence is handled.
+t('StepAccount renders no password field (SOURCE READ)',
+  !/<Field[^>]*type="password"/.test(apply));
+t('the checkout body carries no password (SOURCE READ)',
+  !/^\s*password: account\.password,/m.test(apply));
+
+const login = readFileSync('pages/api/portal/login.js', 'utf8');
+/**
+ * ANCHORED TO THE START OF A LINE, because login.js QUOTES the old test verbatim
+ * while explaining why it was replaced. An unanchored negative match failed
+ * against correct code — for the third time in this session's work, after the
+ * stashProperty count and verify-fl-data's call counter.
+ *
+ * The pattern is worth naming: a guard written to catch a defect keeps matching
+ * the sentence that describes the defect. Every one of them was caught by running
+ * the guard against code that was already right, which is the cheap half of
+ * proving a guard and the half that is easy to skip.
+ *
+ * A block comment's continuation lines begin `*`, so requiring `if` to be the
+ * first non-whitespace on the line separates code from prose without a parser.
+ */
+t('portal login tests whether the hash is USABLE, not merely present — the `!` sentinel is not a null (SOURCE READ)',
+  /hasUsablePassword\(order\.password_hash\)/.test(login) && !/^\s*if\s*\(!order\.password_hash\)/m.test(login));
+
+const saveOrder = readFileSync('pages/api/save-order.js', 'utf8');
+t('save-order writes the no-password sentinel rather than a null of unknown legality (SOURCE READ)',
+  /let password_hash = NO_PASSWORD_SENTINEL;/.test(saveOrder));
+
+const { hasUsablePassword, NO_PASSWORD_SENTINEL } = await import('../lib/noPassword.js');
+t('the sentinel is not a usable password', !hasUsablePassword(NO_PASSWORD_SENTINEL));
+t('a null hash is not a usable password', !hasUsablePassword(null));
+t('an empty hash is not a usable password', !hasUsablePassword(''));
+t('a real bcrypt hash IS usable', hasUsablePassword('$2b$10$abcdefghijklmnopqrstuv'));
+t('a real pbkdf2 salt:hash IS usable', hasUsablePassword('deadbeef:cafebabe'));
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`\n  ${failures.length} handoff assertion(s) FAILED:`);

@@ -19,8 +19,39 @@ const C = {
   red: "#C0392B", orange: "#E67E22", blue: "#2980B9", teal: "#27AE60", purple: "#8E44AD",
 };
 
-const STEPS = ["account", "property", "issues", "dispute"];
-const stepLabels = { account: "Create Account", property: "Your Property", issues: "Property Issues", dispute: "Dispute Letter" };
+/**
+ * THE ORDER OF THE FUNNEL. Changed 23 Aug 2026, and the change is the point.
+ *
+ * Was: account -> property -> issues -> dispute. The first thing this funnel ever
+ * asked a stranger for was their name, their email and a password of at least six
+ * characters, before it had told them a single thing about their property.
+ *
+ * Measured 21-23 Aug: /check, which asks for nothing, turned 116 landings into 46
+ * checks. /apply, which asked for all three up front, turned 12 landings into 3.
+ * Same product, opposite order, and the order is what differs.
+ *
+ * Now: property -> issues -> account -> dispute. The address earns the verdict,
+ * the verdict earns the condition questions, and only then do we ask who they are
+ * — at the point where we need it to sell them something rather than at the point
+ * where they are deciding whether to stay.
+ *
+ * THE PASSWORD IS GONE FROM HERE ENTIRELY. It protects the portal, and the portal
+ * shows the status of an appeal that does not exist yet. It is offered on /success
+ * after the DR-486 signature instead. See lib/noPassword.js.
+ *
+ * Florida inserts two sub-steps that are not numbered: `florida-check` between
+ * property and issues, and `florida-fee` between account and dispute. SUBSTEPS in
+ * ProgressBar maps each to the numbered step it displays as — without that the bar
+ * renders as though the customer had not started, which reads as progress lost.
+ */
+const STEPS = ["property", "issues", "account", "dispute"];
+/**
+ * "Create Account" was accurate when this step created one. It no longer takes a
+ * password, so it no longer creates anything — it collects the name that goes on
+ * the petition and the address we send the confirmation to. Calling it an account
+ * step would promise a login that only exists if they choose to set one later.
+ */
+const stepLabels = { property: "Your Property", issues: "Property Issues", account: "Your Details", dispute: "Dispute Letter" };
 
 const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
@@ -119,7 +150,10 @@ function ProgressBar({ currentStep }) {
   // steps — they sit between "Your Property" and "Property Issues". Without this
   // STEPS.indexOf returns -1 on those screens and the whole bar renders as though
   // the customer had not started, which reads as progress being lost.
-  const SUBSTEPS = { 'florida-check': 'property', 'florida-fee': 'issues' };
+  // 'florida-fee' moved from 'issues' to 'account' when the account step moved
+  // below issues — it now sits between "Your Details" and the review screen, so
+  // showing it as "Property Issues" would walk the bar backwards.
+  const SUBSTEPS = { 'florida-check': 'property', 'florida-fee': 'account' };
   const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
@@ -294,14 +328,17 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
    * `submitted` anyway, so the green panel below rendered regardless. State set,
    * read nowhere, exactly like `needsManualFiling` before it.
    */
-  const capture = useLeadCapture(account?.email ? {
-    email: account.email,
-    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+  // Built unconditionally now. <LeadCapture> asks for the email when we do not
+  // already hold one, which since 23 Aug 2026 is the ordinary case — this screen
+  // is reached from the property step, and the details step is below it.
+  const capturePayload = {
+    email: account?.email || "",
+    name: `${account?.firstName || ""} ${account?.lastName || ""}`.trim(),
     state: stateCode,
     county: null,
     propertyAddress: property ? `${property.street}, ${property.city}, ${property.state} ${property.zip}` : null,
     notifyDate: windowStatus?.openDate ? windowStatus.openDate.toISOString().split("T")[0] : null,
-  } : null);
+  };
 
   if (!state || !windowStatus) return null;
   const isTooClose = windowStatus.isOpen && windowStatus.tooClose;
@@ -327,12 +364,10 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
           <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until filing season opens"}</div>
           <div style={{ fontSize: 12, color: "#8596AF", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
         </div>
-        <LeadCaptureNotice
-          status={capture.status}
-          email={account?.email}
+        <LeadCapture
+          payload={capturePayload}
           street={property?.street}
           promise={`the day the ${state.name} filing window opens. No action needed on your end.`}
-          onRetry={capture.retry}
         />
         <div style={{ marginTop: 16 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
@@ -372,16 +407,43 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
  *
  * The server end alerts separately (see pages/api/join-waitlist.js). This half
  * cannot: a browser that failed to reach us also cannot tell us that it failed.
+ *
+ * ============================================================================
+ * 'idle' — ADDED 23 Aug 2026, AND IT IS THE SAME BUG A THIRD TIME
+ * ============================================================================
+ * The initial status was 'saving'. With no email in the payload the effect
+ * returned immediately and nothing ever moved it, so LeadCaptureNotice rendered
+ * "Saving your details…" permanently — for a customer whose details we did not
+ * have and were never going to save.
+ *
+ * That was unreachable while the account step was step one, because everybody who
+ * could see one of these screens had already given us an email. Moving the
+ * account step below the property step made it the ORDINARY case for all three:
+ * UnsupportedState, FilingWindowClosed and FloridaCountyUnavailable are all
+ * reached from the property step, which is now the first thing anyone sees.
+ *
+ * It is the same defect this hook was written to kill, third variation: a panel
+ * asserting something the code is not doing. "You're on the list!" with no
+ * network call, then a success panel that ignored the result, now a spinner for a
+ * request that was never issued.
+ *
+ * So 'idle' means WE HAVE NOTHING TO SAVE AND HAVE NOT PRETENDED OTHERWISE, and
+ * <LeadCapture> renders an email field instead of a status. Telling somebody the
+ * window is shut and then asking for their email is the right order; asking first
+ * and telling them afterwards is the version that reads as a bait.
  */
 function useLeadCapture(payload) {
-  const [status, setStatus] = useState('saving');
+  const [status, setStatus] = useState(payload?.email ? 'saving' : 'idle');
   const [nonce, setNonce] = useState(0);
-  const started = useRef(false);
+  // Keyed on the ADDRESS, not a boolean. An email that arrives later — typed into
+  // the field on one of these screens — is a different payload and must fire; a
+  // boolean latch would swallow it and the customer would watch a dead form.
+  const started = useRef(null);
 
   useEffect(() => {
     if (!payload || !payload.email) return;
-    if (started.current) return;
-    started.current = true;
+    if (started.current === payload.email) return;
+    started.current = payload.email;
     let cancelled = false;
 
     (async () => {
@@ -410,11 +472,11 @@ function useLeadCapture(payload) {
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nonce]);
+  }, [nonce, payload?.email]);
 
   return {
     status,
-    retry: () => { started.current = false; setNonce((n) => n + 1); },
+    retry: () => { started.current = null; setNonce((n) => n + 1); },
   };
 }
 
@@ -426,7 +488,96 @@ function useLeadCapture(payload) {
  * `promise` is what we are actually committing to, and it differs per screen —
  * "when Nassau County confirms its fee" is not "when Arkansas opens in 2027".
  */
+/**
+ * THE DEAD-END SCREENS' EMAIL CAPTURE, in the only order that is honest.
+ *
+ * ============================================================================
+ * WHY THIS EXISTS NOW AND DID NOT BEFORE
+ * ============================================================================
+ * UnsupportedState, FilingWindowClosed and FloridaCountyUnavailable all end the
+ * funnel and all promise an email when the thing that blocked it clears. Until
+ * 23 Aug 2026 they could keep that promise without asking for anything, because
+ * the account step was step one — everybody who reached them had already handed
+ * over a name and an email.
+ *
+ * The account step is step three now. All three of these are reached from the
+ * property step, which is the first screen. So the promise these pages make had
+ * become one they had no way to keep, and useLeadCapture's spinner said "Saving
+ * your details…" about a request that was never issued.
+ *
+ * ============================================================================
+ * REFUSE FIRST, THEN ASK
+ * ============================================================================
+ * The field renders BELOW the sentence explaining why we cannot help. The other
+ * arrangement — collect the details, then reveal the wall — captures marginally
+ * more addresses and reads as a bait, which is a poor trade for a business whose
+ * entire claim is a refusal the homeowner can check for themselves.
+ *
+ * When an email is already held (a customer who got as far as the details step and
+ * came back, or any pre-existing path) it saves on mount exactly as before and no
+ * field is shown. Asking somebody to retype what they have already typed adds a
+ * step whose only possible outcome is losing the record.
+ */
+function LeadCapture({ payload, promise, street }) {
+  const [typed, setTyped] = useState('');
+  const [email, setEmail] = useState(payload?.email || '');
+  const [err, setErr] = useState('');
+  const capture = useLeadCapture(email ? { ...payload, email } : null);
+
+  if (!email) {
+    return (
+      <div style={{ padding: 18, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, textAlign: "left" }}>
+        <div style={{ fontSize: 13, color: C.darkNavy, fontWeight: 700, marginBottom: 8 }}>
+          Want us to tell you {promise || "when this changes"}
+        </div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 12 }}>
+          Leave your email and that is the only thing we will send. Nothing else &mdash; no marketing.
+        </div>
+        {err && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{err}</div>}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            type="email"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="you@example.com"
+            aria-label="Email address"
+            style={{ flex: "2 1 220px", padding: "11px 13px", fontSize: 15, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit" }}
+          />
+          <button
+            style={{ ...primaryBtn, flex: "1 1 140px", width: "auto", padding: "11px 18px", fontSize: 14 }}
+            onClick={() => {
+              const v = typed.trim();
+              // The server validates too. This is here so a typo is corrected on
+              // the screen the customer is looking at rather than becoming a
+              // 'failed' panel that reads as our fault.
+              if (!v.includes('@')) { setErr('Enter a valid email address.'); return; }
+              setErr(''); setEmail(v);
+            }}
+          >
+            Email me
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <LeadCaptureNotice
+      status={capture.status}
+      email={email}
+      street={street}
+      promise={promise}
+      onRetry={capture.retry}
+    />
+  );
+}
+
 function LeadCaptureNotice({ status, email, street, promise, onRetry }) {
+  // Nothing to report on and nothing pretended. <LeadCapture> renders the field
+  // in this state; a bare notice reaching it must say nothing rather than claim a
+  // save is in flight. See the 'idle' note on useLeadCapture.
+  if (status === 'idle') return null;
+
   if (status === 'saved') {
     return (
       <div style={{ padding: 18, background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 8, textAlign: "left" }}>
@@ -481,15 +632,15 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
   const info = SUPPORTED_STATES[stateCode];
   const servingFrom = info?.servingFrom || null;
   const stateName = info?.name || stateCode;
-  const capture = useLeadCapture(account?.email ? {
-    email: account.email,
-    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+  const capturePayload = {
+    email: account?.email || "",
+    name: `${account?.firstName || ""} ${account?.lastName || ""}`.trim(),
     state: stateCode,
     county: property?.county || null,
     propertyAddress: property && property.street
       ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
       : null,
-  } : null);
+  };
 
   // The headline and body describe what we will do IF we have them. Neither may
   // assert that we do — that is the notice's job, and only it knows.
@@ -505,12 +656,10 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
             ? <>We are not filing in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season, and we will email you the day filing opens so you have time to get it in.</>
             : <>We are not filing in {stateName} yet, and we will email you the day we open there.</>}
         </p>
-        <LeadCaptureNotice
-          status={capture.status}
-          email={account?.email}
+        <LeadCapture
+          payload={capturePayload}
           street={property?.street}
           promise={servingFrom ? `when ${stateName} filing opens in ${servingFrom}.` : `when we open in ${stateName}.`}
-          onRetry={capture.retry}
         />
         <div style={{ marginTop: 16 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>&larr; Back</button></div>
       </div>
@@ -538,16 +687,16 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
  */
 function FloridaCountyUnavailable({ county, reason, onBack, account, property }) {
   const countyName = county || "This";
-  const capture = useLeadCapture(account?.email ? {
-    email: account.email,
-    name: `${account.firstName || ""} ${account.lastName || ""}`.trim(),
+  const capturePayload = {
+    email: account?.email || "",
+    name: `${account?.firstName || ""} ${account?.lastName || ""}`.trim(),
     state: "FL",
     county: county || null,
     propertyAddress: property && property.street
       ? `${property.street}, ${property.city}, ${property.state} ${property.zip}`
       : null,
     blockedReason: "fl_county_unconfirmed",
-  } : null);
+  };
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
@@ -577,12 +726,10 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
           it after the deadline.
         </p>
 
-        <LeadCaptureNotice
-          status={capture.status}
-          email={account?.email}
+        <LeadCapture
+          payload={capturePayload}
           street={property?.street}
           promise={`as soon as ${countyName} County is confirmed, so you can file — and only if there is still enough time to get your petition delivered before your deadline.`}
-          onRetry={capture.retry}
         />
 
         <div style={{ marginTop: 16 }}>
@@ -615,6 +762,20 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
  */
 function NoParcelRecord({ property, account, detail, onBack }) {
   const outsideCoverage = detail?.reason === 'outside_coverage';
+  /**
+   * STILL CONDITIONAL ON AN EMAIL, DELIBERATELY, AND NOW USUALLY A NO-OP.
+   *
+   * The other three dead ends were converted to <LeadCapture> on 23 Aug 2026 so
+   * they could ask for an address they no longer hold. This one is not, because
+   * this one deliberately promises nothing — see the note below the copy. There is
+   * no email to ask for when there is nothing we have offered to send.
+   *
+   * Since the account step moved below the property step, most visitors reaching
+   * this screen have no email and this records nothing. That loses no signal that
+   * matters: /api/check already writes every `no_parcel` and `outside_coverage` to
+   * check_events, which is where the coverage question is actually answered and is
+   * the only place it can be counted against the checks that succeeded.
+   */
   const capture = useLeadCapture(account?.email ? {
     email: account.email,
     name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
@@ -694,12 +855,47 @@ function NoParcelRecord({ property, account, detail, onBack }) {
   );
 }
 
-function StepAccount({ data, onChange, onNext }) {
+/**
+ * WHO WE ARE FILING FOR. Third step since 23 Aug 2026, and no longer an account.
+ *
+ * ============================================================================
+ * WHAT MOVED, AND WHY IT WAS COSTING SALES
+ * ============================================================================
+ * This was step one. It asked a stranger for a name, an email and a six-character
+ * password before saying anything about their property, and 9 of every 12 people
+ * who reached it from /check left rather than answer. They had just been told, on
+ * the previous screen, that their property was worth appealing.
+ *
+ * It now runs after the verdict and after the condition questions — at the point
+ * where the name is needed for the petition and the email is needed to send the
+ * confirmation, rather than at the point where somebody is deciding whether this
+ * is worth their time.
+ *
+ * ============================================================================
+ * THE PASSWORD IS NOT ASKED HERE ANY MORE
+ * ============================================================================
+ * It protects the portal. The portal shows the status of an appeal that does not
+ * exist yet, so the moment of need is three weeks away, not now. It is offered on
+ * /success after the DR-486 signature, where the sale is closed and the friction
+ * costs nothing — and never above that signature, because nothing mails until the
+ * owner signs and no optional field belongs in front of a required one.
+ *
+ * lib/noPassword.js covers what the order row carries in the meantime and why
+ * "Forgot password?" works for a customer who never set one.
+ *
+ * ============================================================================
+ * THE NAME IS A PETITION FIELD, NOT A GREETING
+ * ============================================================================
+ * It goes onto the DR-486 as the owner of record, so the placeholder asks for the
+ * name as the county holds it. A petition filed in a name the roll does not carry
+ * is a petition the Board can reject, and the customer has no way to know that
+ * from a field labelled "First Name".
+ */
+function StepAccount({ data, onChange, onNext, onBack }) {
   const [err, setErr] = useState("");
   const go = () => {
     if (!data.firstName || !data.lastName) return setErr("Enter your full name.");
     if (!data.email.includes("@")) return setErr("Enter a valid email address.");
-    if (data.password.length < 6) return setErr("Password must be at least 6 characters.");
     setErr(""); onNext();
   };
   return (
@@ -754,26 +950,29 @@ function StepAccount({ data, onChange, onNext }) {
         ))}
       </div>
       <div className="card-padding" style={{ ...cardStyle, position: "sticky", top: 20 }}>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Create your account</h2>
-        {/* ALL FIVE STATES ARE SHOWN, DELIBERATELY.
-            Nathan's call, and it is the right one: this sidebar sits on step 1, and
-            the state gate is on step 2 — so a homeowner completes name, email and
-            password BEFORE they learn their state opens next season, and we capture
-            them either way. Flagging "2027" up here only buys a bounce.
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Who are we filing for?</h2>
+        {/* THE STATE CHIPS ARE GONE FROM THIS SIDEBAR, AND THE REASON THEY WERE
+            HERE HAS GONE WITH THEM.
 
-            What we do not do is call it "available". We cannot file in Arkansas or
-            Alabama this season, and "currently available for residents of" would be
-            a plain false claim — the thing scripts/verify-pages.mjs sweeps 1,079
-            pages for on every build. "We serve homeowners in" is true of all five
-            and costs nothing. The honest version of the fact lands on step 2, where
-            it reads as an offer rather than a rejection. */}
-        <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 12, fontFamily: "'DM Sans', sans-serif" }}>We serve homeowners in:</p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-          {Object.entries(SUPPORTED_STATES).map(([code, s]) => (
-            <div key={code} style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 20, padding: "5px 12px", fontSize: 12, color: C.navy, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5 }}>📍 {s.name}</div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: "#A0AFBF", marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>🕐 More states coming soon</div>
+            The note that used to sit here was right about its own funnel: the
+            sidebar was on step 1 and the state gate was on step 2, so listing all
+            five states captured a name, an email and a password BEFORE an Arkansas
+            homeowner learned we do not file there until 2027.
+
+            This step is now step 3. The state gate fires on step 1 and, for a
+            Florida arrival from /check, again in the verdict effect before this
+            screen renders at all. Nobody reaches it whose state we have not already
+            accepted — so a list of five states here is answering a question that
+            was settled two screens ago, and the two of them we cannot file in read
+            as an offer we are not making.
+
+            The homepage still sells Arkansas and Alabama. That is a real open item
+            and it is not this file's to fix — see "Homepage sells AR and AL" in the
+            open items queue, and the two verify-pages warnings that carry it. */}
+        <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 20, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          This goes on the petition, so use the name your county has on the property
+          record. We email the confirmation and the tracking to the address below.
+        </p>
         <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -787,8 +986,12 @@ function StepAccount({ data, onChange, onNext }) {
           <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
         </div>
         <Field label="Email Address" id="email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="jane@example.com" />
-        <Field label="Password" id="pw" type="password" value={data.password} onChange={e => onChange("password", e.target.value)} placeholder="At least 6 characters" />
+        {/* NO PASSWORD FIELD. It is offered on /success after the signature — see
+            the header of this component and lib/noPassword.js. */}
         <button style={primaryBtn} onClick={go}>Continue →</button>
+        {onBack && (
+          <button onClick={onBack} style={{ ...secondaryBtn, marginTop: 10 }}>← Back</button>
+        )}
         <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>
           🔒 Secure checkout · 256-bit encryption<br />
           <span style={{ marginTop: 4, display: "block" }}>You won't be charged until your appeal is ready to file.</span>
@@ -857,7 +1060,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
       {showPopup && checkedState && <DeadlinePopup stateCode={checkedState} onClose={() => { setShowPopup(false); window.scrollTo(0,0); onNext(); }} />}
       <div className="page-grid-sm">
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🏠 Step 2 of 4</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🏠 Step 1 of 4</div>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 8 }}>Tell us about your property</h2>
           <div style={{ background: "#F0F7FF", border: "1px solid #C5D9F0", borderRadius: 8, padding: "10px 14px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#1B4D8E", fontFamily: "'DM Sans', sans-serif" }}>
             🗄️ <span><strong>We auto-fill what we can.</strong> Enter your address and we'll pull your tax appraisal value, property details, and comparable sales from public records automatically.</span>
@@ -1868,7 +2071,15 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           email: account.email,
           firstName: account.firstName,
           lastName: account.lastName,
-          password: account.password,
+          // NO `password`. The funnel stopped collecting one on 23 Aug 2026 — it is
+          // offered on /success after the signature instead. /api/checkout has always
+          // treated the field as optional (`if (password)` before it hashes), so this
+          // omission is the case that branch was written for, and save-order.js writes
+          // the lib/noPassword.js sentinel rather than a null.
+          //
+          // Sending `account.password` as an empty string would also have worked, and
+          // is worse: a field that is always "" travelling through Stripe metadata to
+          // a bcrypt branch is a live wire nobody can see is dead.
           address: pd.rawAddress,
           county: pd.county,
           // Carried all the way to the cheque memo and to orders.account_number.
@@ -2849,8 +3060,12 @@ function FloridaCountyPicker({ info, onConfirm, onBack }) {
 }
 
 function ApplyFunnel() {
-  const [step, setStep] = useState("account");
-  const [account, setAccount] = useState({ firstName: "", lastName: "", email: "", password: "" });
+  // The funnel opens on the property, not on a form. See the note on STEPS.
+  const [step, setStep] = useState("property");
+  // No `password` field. It is not collected in this funnel any more and nothing
+  // downstream reads one — carrying an always-empty string here is the live wire
+  // nobody can see is dead. See lib/noPassword.js and the note on StepAccount.
+  const [account, setAccount] = useState({ firstName: "", lastName: "", email: "" });
   const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
 
   /**
@@ -3181,14 +3396,48 @@ function ApplyFunnel() {
     return next;
   });
   const restart = () => {
-    setStep("account");
-    setAccount({ firstName: "", lastName: "", email: "", password: "" });
+    setStep("property");
+    setAccount({ firstName: "", lastName: "", email: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
     setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
     // The /check handoff is per-property. Starting over means the roll's county
     // and the rescue loop belong to a property this funnel is no longer about —
     // carrying either forward would price the next petition off the last one.
     setFlRollCounty(''); setFlRescueReturn(false); setFlCountyBlocked(null);
+  };
+
+  /**
+   * ==========================================================================
+   * THE TWO TRANSITIONS THAT CHANGED, WRITTEN ONCE.
+   * ==========================================================================
+   * The step order moved on 23 Aug 2026 — see the note on STEPS. Three different
+   * screens hand control onward at these two points (the issues step, the second
+   * pass of `florida-check`, and the account step), and before this they each
+   * carried their own inline copy of the routing. That is how the two Florida
+   * sub-steps came to be reachable in orders nobody intended: `goToFloridaFeeStep`
+   * was called from the issues step, which is now two screens too early, because
+   * the fee screen sits AFTER the details we have not collected yet.
+   *
+   * Stated once, so the order is a fact about this file rather than a coincidence
+   * between three handlers.
+   */
+
+  /** Condition questions are done. Florida may still owe a second qualify pass. */
+  const afterIssues = () => {
+    const sc = property.state.trim().toUpperCase();
+    // THE RESCUE PASS IS NOT THE DUPLICATE CHECK. A rescuable parcel was refused
+    // on comparable sales alone; this is the run that includes the documented cost
+    // to cure, and it is the only pass that can clear them. It must happen before
+    // we ask for anything, because it can still end in an honest no.
+    if (sc === 'FL' && flRescueReturn) { setStep('florida-check'); window.scrollTo(0, 0); return; }
+    setStep('account'); window.scrollTo(0, 0);
+  };
+
+  /** We have a name and an email. Florida discloses its county fee before paying. */
+  const afterAccount = () => {
+    const sc = property.state.trim().toUpperCase();
+    if (sc === 'FL') { goToFloridaFeeStep(); return; }
+    setStep('dispute'); window.scrollTo(0, 0);
   };
 
   // Capture referral code and pre-fill state from URL params on mount.
@@ -3282,7 +3531,7 @@ function ApplyFunnel() {
         <UnsupportedState stateCode={unsupportedState} onBack={() => setUnsupportedState(null)} account={account} property={property} />
       ) : (
         <>
-          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => {
             const sc = property.state.trim().toUpperCase();
             /*
@@ -3306,9 +3555,15 @@ function ApplyFunnel() {
               setStep(sc === 'FL' ? 'florida-check' : 'issues');
             }
             window.scrollTo(0,0);
-          }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
-          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => {
+          }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
+          {/* PASS 2 OF THE FLORIDA CHECK ENDS AT THE DETAILS STEP, NOT THE FEE
+              STEP. It used to run straight on to `goToFloridaFeeStep`, which was
+              correct while the account step was step 1 and the name was already in
+              hand. It is step 3 now, so jumping to the fee screen from here would
+              reach the review page with no name on the petition and no address to
+              send the confirmation to. */}
+          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={afterIssues} onBack={() => {
             /*
               GOING BACK TO THE ADDRESS DISCARDS THE ROLL'S COUNTY.
               flRollCounty is the county of the parcel /check matched. The moment
@@ -3321,7 +3576,7 @@ function ApplyFunnel() {
             */
             setFlRollCounty(""); setStep("property"); window.scrollTo(0,0);
           }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
+          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>
       )}

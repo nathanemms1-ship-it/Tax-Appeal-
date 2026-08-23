@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { enforceRateLimit } from '../../../lib/rateLimit';
+import { hasUsablePassword } from '../../../lib/noPassword';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -72,7 +73,23 @@ export default async function handler(req, res) {
 
   const order = orders[0];
 
-  if (!order.password_hash) {
+  /**
+   * NO USABLE PASSWORD — the ordinary case since 23 Aug 2026, not an edge one.
+   *
+   * The funnel stopped asking for a password before checkout; it is offered on
+   * /success after the signature and plenty of people will skip it. Those orders
+   * carry the `!` sentinel (lib/noPassword.js) rather than a null, so this test
+   * must ask whether the hash is USABLE — `if (!order.password_hash)` was true only
+   * for a null and would have sent every one of them into bcrypt.compare against
+   * a one-character string.
+   *
+   * Answered before any comparison, so the sentinel is never a credential: there is
+   * no code path where sending `!` as a password compares equal to anything.
+   *
+   * "Forgot password?" is the route out and it genuinely works for these customers
+   * — forgot-password.js looks them up by their ORDER, not by their hash.
+   */
+  if (!hasUsablePassword(order.password_hash)) {
     return res.status(401).json({ error: 'No password set for this account. Please use "Forgot password?" to set one.' });
   }
 

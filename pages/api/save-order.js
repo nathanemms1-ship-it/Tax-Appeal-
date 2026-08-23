@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { NO_PASSWORD_SENTINEL } from '../../lib/noPassword';
 
 /**
  * INTERNAL ONLY. This endpoint has no in-app caller any more — fulfillment moved
@@ -78,8 +79,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, orderId: existing.id, duplicate: true });
     }
 
-    // Handle password hash
-    let password_hash = null;
+    /**
+     * Handle password hash.
+     *
+     * NO PASSWORD IS THE ORDINARY CASE NOW, not an edge one. The funnel stopped
+     * asking for one on 23 Aug 2026 — it is offered on /success after the DR-486
+     * signature instead, where the sale is already closed. See lib/noPassword.js
+     * for why that is, and why the column gets a sentinel rather than a null.
+     *
+     * The `null` this used to write was never exercised: /api/checkout always had
+     * a hash, because the funnel enforced a six-character minimum before it would
+     * let anyone past step one. Nothing in this repo declares whether the column
+     * accepts a null, so the first order to find out would have been a real one.
+     */
+    let password_hash = NO_PASSWORD_SENTINEL;
     if (passwordHash) {
       password_hash = passwordHash;
     } else if (customerPassword) {
