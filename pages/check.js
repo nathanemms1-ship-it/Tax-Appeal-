@@ -5,6 +5,25 @@ import Link from 'next/link';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import ContactModal from '../components/ContactModal';
 import { getFilingWindowStatus } from '../lib/filingWindows';
+/**
+ * THE VERDICT WE JUST RENDERED, carried into /apply so it is not asked again.
+ *
+ * 21-23 Aug: 17 visitors were told "an appeal could lower your bill", 12 landed
+ * on /apply, and 3 ran a check there. The other 9 quit at a screen that asked
+ * them to type the address they had typed a moment earlier, so that qualify()
+ * could be run a second time against the same roll row and print the same answer.
+ *
+ * `stashProperty` below already carried the address. It could not carry the
+ * ANSWER, so ApplyFunnel had no way to know a check had been run and routed every
+ * eligible arrival to `florida-check` regardless. The rescuable branch got an
+ * exemption via `ta_intent`; the eligible branch — the larger one, and the only
+ * one with a sale at the end of it — never did.
+ *
+ * The record is a PREFILL and never a permission: /apply re-tests the filing
+ * window, the VAB address and the fee confidence on arrival, and /api/checkout
+ * tests all three again. See the header of lib/checkHandoff.js.
+ */
+import { stashVerdict } from '../lib/checkHandoff';
 
 /**
  * THE FREE SAVINGS CHECK — public page.
@@ -704,9 +723,16 @@ export default function CheckPage() {
                         </div>
                       )}
 
+                      {/*
+                        THE VERDICT GOES WITH THEM. Without stashVerdict this click
+                        landed on the account step, then the property step, then
+                        `florida-check` — which re-ran the identical query against
+                        the identical roll row to print the identical sentence they
+                        are reading right now. 9 of 12 never got past it.
+                      */}
                       <Link
                         href="/apply"
-                        onClick={() => stashProperty(state.data?.parcel)}
+                        onClick={() => { stashProperty(state.data?.parcel); stashVerdict(state.data, checkedCounty); }}
                         style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '13px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}
                       >
                         Get started →
@@ -829,7 +855,7 @@ export default function CheckPage() {
                     <>
                       <Link
                         href="/apply"
-                        onClick={() => { stashProperty(state.data?.parcel); stashConditionIntent(); }}
+                        onClick={() => { stashProperty(state.data?.parcel); stashConditionIntent(); stashVerdict(state.data, checkedCounty); }}
                         style={{ display: 'inline-block', background: C.gold, color: C.darkNavy, padding: '14px 26px', borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: 'none' }}
                       >
                         Tell us what&rsquo;s wrong with the property →

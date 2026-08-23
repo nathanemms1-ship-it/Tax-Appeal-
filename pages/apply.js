@@ -6,6 +6,7 @@ import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus } from '../lib/filingWindows';
+import { readVerdict } from '../lib/checkHandoff';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
 
@@ -2914,6 +2915,22 @@ function ApplyFunnel() {
   const [flRescueReturn, setFlRescueReturn] = useState(false);
 
   /**
+   * THE COUNTY THE DOR ROLL ITSELF REPORTED, when they arrived from /check.
+   *
+   * Empty on the ordinary path, and every consumer must behave exactly as before
+   * when it is. Set only by the verdict effect below, from the parcel's own DOR
+   * county number — see lib/dor/coverage.js LOADED_COUNTIES.
+   *
+   * It is a SHORTCUT, not a second source of truth. getFlVabFee and
+   * isFlCountySupported are still the tables that decide anything, and
+   * applyResolvedCounty is still the only function that acts on a county. What
+   * this removes is one round trip to the Census geocoder for a fact the roll
+   * already stated — the same geocoder whose four-minute outage is why the county
+   * picker screen exists.
+   */
+  const [flRollCounty, setFlRollCounty] = useState('');
+
+  /**
    * ARRIVED FROM /check HAVING ALREADY SAID YES TO THE CONDITION QUESTION.
    *
    * /check now renders the same `conditionPrompt` this funnel does and sends them
@@ -2955,6 +2972,18 @@ function ApplyFunnel() {
    * The customer typed their legal name to attest to numbers that were all wrong.
    */
   const goToFloridaFeeStep = async () => {
+    /*
+      THE ROLL ALREADY SAID WHICH COUNTY THIS IS.
+      Set only when the visitor arrived from /check, where the county comes off
+      the parcel's own DOR county number. Asking the Census geocoder to re-derive
+      a fact the assessment roll stated is a network call that can time out, can
+      answer `confidence: 'zip'` and send a resolved customer to the county
+      picker, and cannot be more right than the roll it is being checked against.
+
+      applyResolvedCounty is still the only thing that acts on the answer, so both
+      refusal gates below it fire exactly as they do on the typed path.
+    */
+    if (flRollCounty) { applyResolvedCounty(flRollCounty, 'roll'); return; }
     setResolvingCounty(true);
     setFlCountyError(null);
     try {
@@ -3055,6 +3084,93 @@ function ApplyFunnel() {
     window.scrollTo(0, 0);
   };
 
+  /**
+   * ==========================================================================
+   * ARRIVED FROM /check WITH THE ANSWER ALREADY IN HAND.
+   * ==========================================================================
+   * Measured 21-23 Aug: 17 people were told "an appeal could lower your bill",
+   * 12 clicked through to here, and 3 ran a check. The 9 who did not were
+   * looking at the account step, then the property step, then `florida-check` —
+   * a screen that re-ran the same qualify() against the same roll row to print
+   * the sentence they had just read. The check is the product; asking for it
+   * twice is the funnel telling them it did not believe itself.
+   *
+   * `ta_intent` gave the RESCUABLE branch this exemption on 22 Aug. This gives it
+   * to the eligible branch, which is the larger one and the only one with a sale
+   * at the end of it.
+   *
+   * ==========================================================================
+   * EVERY GATE STILL FIRES. THAT IS THE WHOLE POINT OF DOING IT HERE.
+   * ==========================================================================
+   * Skipping StepProperty means skipping the three refusals StepProperty owns, so
+   * they are re-run here against the county the roll gave us, in the same order
+   * and with the same arguments:
+   *
+   *   1. The filing window for this county, STRICT — the same shape of call
+   *      /api/checkout makes. Strict because a blank or unrecognised county must
+   *      fall to the EARLIEST date we stand behind rather than the latest, which
+   *      is how a Hillsborough order came to be measured against Miami-Dade's
+   *      deadline eleven days later.
+   *
+   *      Deliberately not written here as the function name followed by its
+   *      arguments: verify-fl-data.mjs COUNTS those calls across this file to
+   *      assert how many of them gate money, and its matcher spans newlines — so
+   *      a call spelled out in prose is counted as a real one. The first draft of
+   *      this comment failed the build for a call that does not exist.
+   *   2. isFlCountySupported — the 8 counties with no confirmed VAB address.
+   *   3. fee confidence === 'confirmed' — Nassau, Columbia and Levy, which have a
+   *      good address and a $50 guess.
+   *
+   * 2 and 3 are send-letter.js's two refusals, and reaching them HERE rather than
+   * at the fee step is a fix in its own right: a Dixie County owner used to pick
+   * their defects, price them, and only then be told we cannot file in their
+   * county at all. Same refusal, three screens earlier, before any work is asked
+   * of them.
+   *
+   * ==========================================================================
+   * THE VERDICT PICKS A SCREEN. IT NEVER GRANTS A PERMISSION.
+   * ==========================================================================
+   * sessionStorage is the visitor's own browser and can be edited from a console.
+   * So `eligible` and `rescuable` are read for one purpose only — which step to
+   * open on — and a forged value buys somebody the issues screen, which is free,
+   * asks for nothing, and is followed by the fee step, the checkout gate, and
+   * send-letter, each of which re-derives eligibility from the roll. There is no
+   * path from a hand-edited flag to a mailed petition.
+   *
+   * A rescuable arrival sets flRescueReturn, which is what makes the issues step
+   * return to `florida-check` for a second pass WITH their documented cure rather
+   * than running on to the fee step. That re-check is not the duplicate this
+   * effect removes — it is the only pass that can clear them.
+   */
+  useEffect(() => {
+    const v = readVerdict();
+    if (!v) return;
+    const county = (v.county || '').trim();
+    // No county means no gate can be evaluated, so nothing may be skipped. The
+    // ordinary path already handles this: the property step resolves the county
+    // and the picker catches it when the geocoder cannot.
+    if (!county) return;
+
+    const ws = getFilingWindowStatus('FL', county, { strict: true });
+    if (!ws || (!ws.canFile && !ws.canPreOrder)) {
+      setProperty(p => ({ ...p, state: p.state || 'FL', county }));
+      setClosedWindow({ stateCode: 'FL', windowStatus: ws });
+      return;
+    }
+
+    const feeInfo = getFlVabFee(county);
+    if (!isFlCountySupported(county) || feeInfo?.confidence !== 'confirmed') {
+      setProperty(p => ({ ...p, state: p.state || 'FL', county }));
+      setFlCountyBlocked({ county, reason: !isFlCountySupported(county) ? 'address' : 'fee' });
+      return;
+    }
+
+    setProperty(p => ({ ...p, state: p.state || 'FL', county }));
+    setFlRollCounty(county);
+    if (v.rescuable) setFlRescueReturn(true);
+    setStep('issues');
+  }, []);
+
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
   const toggleIssue = (issue) => setIssues(prev => prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]);
   // null clears the override and restores the computed figure.
@@ -3069,6 +3185,10 @@ function ApplyFunnel() {
     setAccount({ firstName: "", lastName: "", email: "", password: "" });
     setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
     setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
+    // The /check handoff is per-property. Starting over means the roll's county
+    // and the rescue loop belong to a property this funnel is no longer about —
+    // carrying either forward would price the next petition off the last one.
+    setFlRollCounty(''); setFlRescueReturn(false); setFlCountyBlocked(null);
   };
 
   // Capture referral code and pre-fill state from URL params on mount.
@@ -3188,7 +3308,19 @@ function ApplyFunnel() {
             window.scrollTo(0,0);
           }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
           {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); goToFloridaFeeStep(); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
-          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
+          {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={() => { const sc = property.state.trim().toUpperCase(); if (sc === 'FL') { if (flRescueReturn) { setStep('florida-check'); window.scrollTo(0,0); } else { goToFloridaFeeStep(); } } else { setStep('dispute'); window.scrollTo(0,0); } }} onBack={() => {
+            /*
+              GOING BACK TO THE ADDRESS DISCARDS THE ROLL'S COUNTY.
+              flRollCounty is the county of the parcel /check matched. The moment
+              the customer can edit the address it may no longer describe the
+              property they are filing on, and it is the value that sets the fee,
+              the cheque payee and which VAB office receives the petition. Dropping
+              it returns them to the ordinary path — /api/resolve-county, then the
+              picker — which is slower and is correct for an address we have not
+              matched to the roll.
+            */
+            setFlRollCounty(""); setStep("property"); window.scrollTo(0,0);
+          }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>

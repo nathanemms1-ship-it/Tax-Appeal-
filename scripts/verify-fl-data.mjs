@@ -191,15 +191,33 @@ for (const [variant, expected] of [
     }
   }
 
-  // apply.js is split: :256 drives "N days left" copy and is deliberately loose,
-  // the two that decide whether we take the money must be strict. Assert the counts
-  // rather than the line numbers, which move.
+  // apply.js is split: one call drives "N days left" copy and is deliberately
+  // loose; the ones that decide whether we take the money must be strict. Assert
+  // the counts rather than the line numbers, which move.
+  //
+  // 3/2 -> 4/3 on 23 Aug 2026. The fourth is the verdict effect in ApplyFunnel,
+  // which re-runs the window gate for a customer arriving from /check with their
+  // county already resolved from the DOR roll. That customer does not pass through
+  // StepProperty any more, so without this call they would pass NO window check
+  // inside the funnel at all — /api/checkout would still refuse them, but only
+  // after they had picked their defects, priced them, and reached the card.
+  //
+  // Raising these numbers is a decision, not maintenance. Anything that increments
+  // them is a new place where the funnel decides whether Florida is open. The
+  // question to answer before editing this line is which call it is and whether it
+  // gates money; if it does, it is strict.
+  //
+  // NOTE ON THE MATCHER: CALL spans newlines and only skips a `//` line, so a call
+  // written out in PROSE inside a block comment is counted as a real one. A comment
+  // in the verdict effect describing this very gate did exactly that and failed the
+  // build for a call that does not exist. If this assertion fires and the arithmetic
+  // does not add up, check the comments before the code.
   {
     const src = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
     const all = [...src.matchAll(CALL)].filter(m => !m[1].includes('//'));
     const strict = all.filter(c => /strict\s*:\s*true/.test(c[1]));
-    if (all.length !== 3 || strict.length !== 2) {
-      errors.push(`pages/apply.js: expected 3 getFilingWindowStatus calls of which 2 strict (the sale gate and the review screen), found ${all.length} of which ${strict.length} strict`);
+    if (all.length !== 4 || strict.length !== 3) {
+      errors.push(`pages/apply.js: expected 4 getFilingWindowStatus calls of which 3 strict (the sale gate, the review screen, and the /check verdict effect), found ${all.length} of which ${strict.length} strict`);
     }
   }
 
