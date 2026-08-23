@@ -29,6 +29,62 @@ import path from 'node:path';
 
 const DIR = '.next/server/pages';
 
+/**
+ * IS THE BUILD OLDER THAN THE SOURCE?
+ *
+ * Everything below reads .next, not the source tree. That is the point — the whole
+ * file exists because "the text I targeted changed" is not the same as "the page is
+ * still intact". But it has a failure mode nobody had hit until 22 Aug 2026:
+ *
+ *   run `npm run verify:pages` without building first, and it silently checks the
+ *   PREVIOUS build.
+ *
+ * That day it reported eighteen failures — FAQPage present, BreadcrumbList missing —
+ * against a patch that had already removed the FAQPage and added the breadcrumbs.
+ * Every failure was real about the artefact on disk and false about the code. The
+ * only tell was a page count one lower than the source would produce, which is not
+ * something anyone should be expected to notice.
+ *
+ * So: compare the newest source file against the build manifest. Fail, loudly and
+ * first, rather than emitting a page of failures about code that no longer exists.
+ */
+{
+  const SRC_DIRS = ['pages', 'lib', 'components'];
+  const manifest = '.next/build-manifest.json';
+
+  if (!fs.existsSync(manifest)) {
+    console.error(`\n  FAIL  no ${manifest} — nothing has been built.`);
+    console.error(`        This script reads .next, not the source. Run \`npm run build\` first.\n`);
+    process.exit(1);
+  }
+
+  const builtAt = fs.statSync(manifest).mtimeMs;
+  let newest = 0;
+  let newestFile = '';
+  const walkSrc = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) { walkSrc(full); continue; }
+      if (!/\.(js|jsx|mjs|ts|tsx|json)$/.test(e.name)) continue;
+      const m = fs.statSync(full).mtimeMs;
+      if (m > newest) { newest = m; newestFile = full; }
+    }
+  };
+  for (const d of SRC_DIRS) if (fs.existsSync(d)) walkSrc(d);
+
+  // A second of slack: the build itself touches files, and mtime resolution varies
+  // across filesystems. Anything beyond that is a real edit after a real build.
+  if (newest > builtAt + 1000) {
+    const mins = Math.round((newest - builtAt) / 60000);
+    console.error(`\n  FAIL  the build is older than the source.`);
+    console.error(`        ${newestFile} was modified ${mins} minute(s) after the last build.`);
+    console.error(`        This script reads .next — it would be checking the PREVIOUS build, and`);
+    console.error(`        every failure it reported would be about code you have already changed.`);
+    console.error(`        Run \`npm run build\` (which runs this script at the end anyway).\n`);
+    process.exit(1);
+  }
+}
+
 // Pages that must be structurally complete. Landing pages carry paid traffic.
 const REQUIRED = [
   'index', 'florida', 'texas', 'georgia', 'arkansas', 'alabama',
@@ -838,9 +894,11 @@ if (flChecked) {
     .map((c) => path.join('counties', c.slug));
 
   let schemaChecked = 0;
+  let schemaOk = 0;
   for (const name of [...FL_SURFACE, ...TX_SURFACE, ...sampleCounties]) {
     const file = findHtml(name);
     if (!file) continue;
+    const before = failures;
     const html = fs.readFileSync(file, 'utf8');
     for (const dead of ['FAQPage', 'HowTo']) {
       if (html.includes(`"@type":"${dead}"`) || html.includes(`"@type": "${dead}"`)) {
@@ -852,9 +910,22 @@ if (flChecked) {
       failures++;
       console.error(`  FAIL  /${name} has no BreadcrumbList — the only rich result these pages are still eligible for`);
     }
+    if (failures === before) schemaOk++;
     schemaChecked++;
   }
-  if (schemaChecked) console.log(`  ${schemaChecked} pages carry BreadcrumbList and no dead FAQ/HowTo markup`);
+  // Only claim the pages are clean if they actually are. This block used to print
+  // "22 pages carry BreadcrumbList and no dead FAQ/HowTo markup" in the same output
+  // as eighteen FAIL lines about those very pages, because schemaChecked counted
+  // every page it looked at rather than every page that passed. On 22 Aug 2026 that
+  // cost real time: the summary read as reassurance while the failures above it were
+  // the actual answer. Same shape as the fee checker that found zero claims and
+  // passed silently, and the "earliest is X" line that kept printing Hillsborough
+  // after it stopped being true.
+  if (schemaChecked) {
+    console.log(schemaOk === schemaChecked
+      ? `  ${schemaChecked} pages carry BreadcrumbList and no dead FAQ/HowTo markup`
+      : `  ${schemaOk} of ${schemaChecked} pages carry BreadcrumbList and no dead FAQ/HowTo markup — see the ${schemaChecked - schemaOk} FAIL line(s) above`);
+  }
 }
 
 /**
