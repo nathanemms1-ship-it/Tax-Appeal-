@@ -118,15 +118,36 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'That order has no email address on file. Please contact us.' });
     }
 
-    // An explicit field list, never select('*') — the orders table carries the
-    // signature attestation, the signer IP and the DR-486 elections, and
-    // verify-security fails the build for a wildcard read on it.
+    /**
+     * ======================================================================
+     * READ EVERY ROW THIS WRITE WILL TOUCH. NOT THE NEWEST ONE.
+     * ======================================================================
+     * The first version of this read `.order('created_at', {ascending:false})
+     * .limit(1)`, copying login.js — and then updated ALL rows for the address.
+     * So the guard was evaluated against a row that had just been created by the
+     * payment now being presented, which by definition has no password yet.
+     * hasUsablePassword returned false, the refusal never fired, and the update
+     * overwrote the customer's real hash on their earlier orders.
+     *
+     * That is the exact escalation the header of this file argues is impossible,
+     * and it was reachable two ways: a leaked /success URL from a second purchase,
+     * and — because the funnel never verifies that an email belongs to the person
+     * typing it — anyone willing to spend $89 checking out under somebody else's
+     * address.
+     *
+     * Found by adversarial review of the diff. The build was green: verify-handoff
+     * asserted the `hasUsablePassword` line existed, not that it was reading the
+     * rows the update would change. A guard proving a property about the wrong set,
+     * again.
+     *
+     * An explicit field list, never select('*') — this table carries the signature
+     * attestation, the signer IP and the DR-486 elections, and verify-security
+     * fails the build for a wildcard read on it.
+     */
     const { data: orders, error: readError } = await supabase
       .from('orders')
       .select('id, password_hash')
-      .eq('customer_email', email)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .eq('customer_email', email);
 
     if (readError) {
       console.error('set-password: order lookup failed:', readError);
@@ -139,9 +160,12 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Your order is still being set up. Please try again in a moment.', code: 'ORDER_NOT_READY' });
     }
 
-    if (hasUsablePassword(orders[0].password_hash)) {
-      // NOT an error, and deliberately not phrased as one. The common way to reach
-      // this is a returning customer buying a second property.
+    // ANY row with a usable password refuses the whole write. One address is one
+    // person here — the update below is deliberately unscoped for that reason —
+    // so a password held on any of their orders is the password being protected.
+    if (orders.some((o) => hasUsablePassword(o.password_hash))) {
+      // NOT an error, and deliberately not phrased as one. The ordinary way to
+      // reach this is a returning customer buying a second property.
       return res.status(409).json({
         error: 'This email already has a password. Use "Forgot password?" on the sign-in page to change it.',
         code: 'PASSWORD_ALREADY_SET',

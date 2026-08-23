@@ -57,7 +57,7 @@
  * every other verify script, and renders identically.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const failures = [];
 let pass = 0;
@@ -74,7 +74,10 @@ globalThis.sessionStorage = {
 const { stashVerdict, readVerdict, VERDICT_KEY, VERDICT_TTL_MS } =
   await import('../lib/checkHandoff.js');
 
-const ELIGIBLE = { found: true, reason: 'clearable', eligible: true, parcel: { parcelId: '30-1234' } };
+const ELIGIBLE = {
+  found: true, reason: 'clearable', eligible: true,
+  parcel: { parcelId: '30-1234', situs: { street: '1130 GLENWOOD CT', city: 'WESTON', state: 'FL', zip: '33326' } },
+};
 
 store.clear();
 stashVerdict(ELIGIBLE, 'Broward');
@@ -114,6 +117,15 @@ t('a REFUSED verdict is never handed forward — there is no screen to skip to',
 store.clear();
 stashVerdict({ found: false, reason: 'no_parcel' }, '');
 t('a check that found no parcel writes nothing', !store.has(VERDICT_KEY));
+
+// BOTH KEYS OR NEITHER. stashProperty refuses without situs.street, and a verdict
+// written without one would send the customer to the condition step with no
+// address — pricing defects for a property the funnel cannot name, then onto a
+// petition whose one unforgiving field is the address.
+store.clear();
+stashVerdict({ found: true, reason: 'clearable', eligible: true, parcel: { parcelId: '30-1234' } }, 'Broward');
+t('a parcel with no situs street writes no verdict — the address prefill would have refused it too',
+  !store.has(VERDICT_KEY));
 
 // ── Read: the wiring inside the two pages ─────────────────────────────────────
 const check = readFileSync('pages/check.js', 'utf8');
@@ -231,6 +243,65 @@ t('pages/check.js does NOT pull the VAB address or fee tables into the browser b
   t('a county that does not exist is not filable', canFileInFlCounty('Notarealcounty') === false);
 }
 
+// ── What the handoff must not let a customer walk past ────────────────────────
+/**
+ * THE SALE REFUSAL EXISTS IN EXACTLY ONE PLACE IN THE PRODUCT.
+ *
+ * `subject_sold_above_indicated_value` — the property sold arms-length for more
+ * than comparable sales support, so the Property Appraiser answers every comp we
+ * cite with the owner's own closing figure — lives in lib/dor/comps.js,
+ * pages/api/comps.js, and the refusal screen inside StepFloridaCheck. It is NOT
+ * in /api/checkout and NOT in send-letter.js.
+ *
+ * The first version of the handoff routed eligible arrivals straight to `issues`,
+ * so StepFloridaCheck never mounted and that refusal never ran — for the LARGEST
+ * eligible cohort, and the one most likely to trip it: a Florida
+ * `no_cap_differential` verdict usually means the homestead cap has just reset on
+ * a sale, so those visitors are recent buyers.
+ *
+ * The fix is autoAdvance: mount the component, run both tests, skip only the
+ * confirmation screen. These assertions are what stop that being quietly undone.
+ *
+ * Proven by reintroducing each:
+ *   route eligible arrivals to 'issues' again          -> 1 fail
+ *   let autoAdvance fire despite the sale refusal      -> 1 fail
+ *   drop the autoAdvance prop from the JSX             -> 1 fail
+ *   stop clearing the handoff on a Back button         -> 1 fail
+ */
+t('an ELIGIBLE /check arrival is routed THROUGH florida-check, never around it (SOURCE READ)',
+  /setFlAutoAdvance\(true\);\s*\n\s*setStep\('florida-check'\)/.test(apply));
+t('autoAdvance is passed to the component that owns the refusals (SOURCE READ)',
+  /autoAdvance=\{flAutoAdvance\}/.test(apply));
+t('autoAdvance refuses to skip past the sale refusal (SOURCE READ)',
+  /if \(state\.comps\?\.reason === 'subject_sold_above_indicated_value'\) return;/.test(apply));
+t('the sale refusal still renders — it is the only place in the product it exists (SOURCE READ)',
+  /const sale = state\.comps\?\.reason === 'subject_sold_above_indicated_value'/.test(apply));
+
+/**
+ * EVERY ROUTE BACK TO THE ADDRESS FIELD DISCARDS THE HANDOFF.
+ *
+ * flRollCounty sets the fee, the cheque payee and which VAB office receives the
+ * petition. flAutoAdvance would skip the verdict screen for a property never
+ * checked. flRescueReturn and flConditionIntent would route a second property past
+ * its own first pass. Going back from `florida-check`, typing a different address
+ * and continuing could reach the fee screen disclosing the PREVIOUS county's fee
+ * and payee, with the previous property's priced defects attached, and ask the
+ * owner to confirm that county and sign an authorization naming it.
+ */
+t('clearHandoff discards all four handoff values (SOURCE READ)',
+  /const clearHandoff = \(\) => \{[\s\S]{0,400}?setFlRollCounty\(''\);[\s\S]{0,200}?setFlAutoAdvance\(false\);[\s\S]{0,200}?setFlRescueReturn\(false\);[\s\S]{0,200}?setFlConditionIntent\(false\);/.test(apply));
+{
+  // Every onBack that lands on the property step must call it. Counting them
+  // rather than naming them, so a fourth route added later is covered too.
+  const backsToProperty = (apply.match(/onBack=\{\(\) => \{[^}]*setStep\(['"]property['"]\)/g) || []);
+  t('every Back that reaches the address field clears the handoff first (SOURCE READ)',
+    backsToProperty.length > 0 && backsToProperty.every((h) => h.includes('clearHandoff()')));
+  t('restart() clears the handoff too (SOURCE READ)',
+    /setStep\("property"\);[\s\S]{0,900}?clearHandoff\(\);/.test(apply));
+}
+t('the sign-in exit is offered on the first screen only, not above checkout (SOURCE READ)',
+  /const isFirstStep = step === "property";/.test(apply) && !/\["account", "property"\]\.includes\(step\)/.test(apply));
+
 // ── The funnel order, and the password that is no longer part of it ───────────
 /**
  * These are assertions about a DECISION, not about correctness. Nothing breaks if
@@ -282,6 +353,54 @@ const login = readFileSync('pages/api/portal/login.js', 'utf8');
 t('portal login tests whether the hash is USABLE, not merely present — the `!` sentinel is not a null (SOURCE READ)',
   /hasUsablePassword\(order\.password_hash\)/.test(login) && !/^\s*if\s*\(!order\.password_hash\)/m.test(login));
 
+/**
+ * EVERY WRITER OF password_hash, NOT ONE FILE.
+ *
+ * The first version of this assertion named pages/api/save-order.js — which has
+ * had no in-app caller since fulfillment moved to lib/fulfillOrder.js, as that
+ * file's own header states. So it proved the sentinel was present on a path no
+ * customer takes, while the live insert in fulfillOrder.js went on writing
+ * `m.passwordHash || null` for 100% of orders. The build was green the whole time.
+ *
+ * That is the failure this repo keeps recording under different names: the
+ * conservative fallback proven against counties already checked, the FAQ guard
+ * that sampled Florida while Texas shipped the dead markup, the fee checker that
+ * found zero claims and passed. A check can prove a property about a set that
+ * does not contain the defect.
+ *
+ * So this one FINDS the writers rather than being told where they are. Any new
+ * file that writes the column is covered the day it is written, and a writer that
+ * defaults to null fails the build.
+ */
+{
+  const writers = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.next' || entry.name === '.git') continue;
+      const p = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(p);
+      else if (entry.name.endsWith('.js')) {
+        const src = readFileSync(p, 'utf8');
+        // A WRITE, not a read. `.select('... password_hash ...')` and
+        // `order.password_hash` are reads; `password_hash:` inside an insert or
+        // update object is the write.
+        if (/password_hash:\s*[^,\n}]+/.test(src)) writers.push([p, src]);
+      }
+    }
+  };
+  walk('pages'); walk('lib');
+
+  t('at least two files write password_hash — the sweep found the writers rather than being told (SOURCE READ)',
+    writers.length >= 2);
+  for (const [p, src] of writers) {
+    const bad = src.match(/password_hash:\s*[^,\n}]*\|\|\s*null/);
+    t(`${p.replace(/^.*?\//, '')} does not default password_hash to an untested null (SOURCE READ)`, !bad);
+  }
+  const live = writers.find(([p]) => p.endsWith('lib/fulfillOrder.js'));
+  t('lib/fulfillOrder.js — the insert that actually runs — writes the sentinel (SOURCE READ)',
+    !!live && /password_hash: m\.passwordHash \|\| NO_PASSWORD_SENTINEL/.test(live[1]));
+}
+
 const saveOrder = readFileSync('pages/api/save-order.js', 'utf8');
 t('save-order writes the no-password sentinel rather than a null of unknown legality (SOURCE READ)',
   /let password_hash = NO_PASSWORD_SENTINEL;/.test(saveOrder));
@@ -309,11 +428,28 @@ t('save-order writes the no-password sentinel rather than a null of unknown lega
 const setPw = readFileSync('pages/api/portal/set-password.js', 'utf8');
 const setPwCode = setPw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 t('set-password REFUSES when a usable password already exists — it claims, it never resets (SOURCE READ)',
-  /if\s*\(hasUsablePassword\([^)]*\)\)/.test(setPwCode));
+  /if\s*\(orders\.some\([\s\S]{0,80}?hasUsablePassword\([\s\S]{0,40}?\)\)\)/.test(setPwCode) &&
+  /PASSWORD_ALREADY_SET/.test(setPwCode));
 t('set-password takes the email from the Stripe session, never from the request body (SOURCE READ)',
   /session\.customer_email/.test(setPwCode) && !/const\s*\{[^}]*\bemail\b[^}]*\}\s*=\s*req\.body/.test(setPwCode));
 t('set-password requires the payment to have actually settled (SOURCE READ)',
   /payment_status\s*!==\s*'paid'/.test(setPwCode));
+/**
+ * THE GUARD MUST READ EVERY ROW THE WRITE WILL TOUCH.
+ *
+ * The first version read the NEWEST order and updated ALL of them. The newest
+ * order is the one the presented payment just created, so it never has a password
+ * — the refusal could not fire, and the write destroyed the customer's real hash
+ * on their earlier orders. Reachable from a leaked /success URL, or by paying $89
+ * under somebody else's email, which the funnel never verifies.
+ *
+ * So: no `.limit(` and no `.order(` in the lookup, and the test is `.some(...)`
+ * across the rows rather than an index into one.
+ */
+t('set-password evaluates "already set" over EVERY row its write will change (SOURCE READ)',
+  /orders\.some\(\([^)]*\)\s*=>\s*hasUsablePassword\(/.test(setPwCode) &&
+  !/\.limit\(/.test(setPwCode) &&
+  !/hasUsablePassword\(orders\[0\]/.test(setPwCode));
 t('set-password is rate limited — a session id should not be free to brute-force (SOURCE READ)',
   /enforceRateLimit\(\s*req/.test(setPwCode));
 t('set-password reads its password from the body, not the query string (SOURCE READ)',

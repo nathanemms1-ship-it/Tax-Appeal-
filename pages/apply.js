@@ -104,8 +104,25 @@ function AnnouncementBar() {
 }
 
 function NavBar({ step, account, property }) {
-  const isAccountStep = ["account", "property"].includes(step);
-  const rightText = isAccountStep ? "Have an account? Sign in" : "Need help? Contact us";
+  /**
+   * "Sign in" IS AN EXIT, AND IT ONLY BELONGS ON THE FIRST SCREEN.
+   *
+   * This read `["account", "property"]` when `account` was step one and `property`
+   * step two — the screens where a returning customer might realise they are in
+   * the wrong place, with nothing entered yet to lose. Reordering the funnel on
+   * 23 Aug 2026 left it pointing at the LAST screen before payment: the details
+   * step now sits immediately above the Florida fee screen and checkout, and all
+   * funnel state lives in React state only. One click on a prominent navy button
+   * and a customer who has given the address, read the verdict and priced their
+   * defects is on a sign-in page with every bit of it gone — signing in to an
+   * account that, since the password moved to /success, they probably have no
+   * password for.
+   *
+   * The exit belongs on the first screen and nowhere else; every screen after it
+   * offers help instead. Found by adversarial review of the diff.
+   */
+  const isFirstStep = step === "property";
+  const rightText = isFirstStep ? "Have an account? Sign in" : "Need help? Contact us";
   /**
    * "Need help? Contact us" used to be mailto:support@taxappealusa.com. Broken two
    * ways: support@ does not exist in the GoDaddy account, and a mailto: link does
@@ -125,7 +142,7 @@ function NavBar({ step, account, property }) {
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
         </div>
       </div>
-      {isAccountStep ? (
+      {isFirstStep ? (
         <a href="/portal" className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s" }}>{rightText}</a>
       ) : (
         <button type="button" onClick={() => setContactOpen(true)} className="nav-right" style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, textDecoration: "none", fontFamily: "'DM Sans', sans-serif", padding: "9px 18px", borderRadius: 8, border: `1.5px solid ${C.navy}`, transition: "background 0.2s", cursor: "pointer" }}>{rightText}</button>
@@ -153,7 +170,13 @@ function ProgressBar({ currentStep }) {
   // 'florida-fee' moved from 'issues' to 'account' when the account step moved
   // below issues — it now sits between "Your Details" and the review screen, so
   // showing it as "Property Issues" would walk the bar backwards.
-  const SUBSTEPS = { 'florida-check': 'property', 'florida-fee': 'account' };
+  // 'florida-check' maps to `issues`, not `property`. It runs at two points: pass
+  // one between property and issues, pass two — the rescue re-check with the cost
+  // to cure — between issues and account. Mapping it to `property` walked the bar
+  // BACKWARDS on pass two, on the screen where a marginal customer is deciding
+  // whether to carry on, which is the exact symptom this map exists to prevent.
+  // `issues` is the position that is right for one pass and adjacent for the other.
+  const SUBSTEPS = { 'florida-check': 'issues', 'florida-fee': 'account' };
   const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
@@ -1136,7 +1159,17 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
             </div>
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-            <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
+            {/* NO BACK BUTTON ON STEP ONE. This rendered unconditionally while the
+                account step sat above it. The account step moved below on 23 Aug
+                2026 and this became a control with `onClick={undefined}` — it does
+                not throw, it simply does nothing when pressed, which is the worst
+                available outcome: the customer concludes the page is broken and
+                there is no error anywhere to say so. This page has already shipped
+                a dead control once (the signature button on /success) and the cost
+                was two reproductions before anyone believed it. */}
+            {onBack && (
+              <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
+            )}
             <button style={{ ...primaryBtn }} onClick={go} disabled={checking}>{checking ? "Checking filing window..." : "🔍 Look up my property & continue"}</button>
           </div>
         </div>
@@ -1197,7 +1230,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * continue, because refusing on absence of evidence would turn an outage into
  * lost customers who were perfectly eligible.
  */
-function StepFloridaCheck({ property, account, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked }) {
+function StepFloridaCheck({ property, account, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked, autoAdvance }) {
   const [state, setState] = useState({ status: 'loading', data: null, comps: null });
 
   useEffect(() => {
@@ -1305,6 +1338,51 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
     })();
     return () => { cancelled = true; };
   }, [(issues || []).join('|')]);
+
+  /**
+   * ==========================================================================
+   * ARRIVED FROM /check WITH THE VERDICT ALREADY: RUN THE GATES, SKIP THE SCREEN.
+   * ==========================================================================
+   * The first version of the /check handoff routed an eligible arrival straight
+   * to `issues`, so this component never mounted. That skipped a refusal that
+   * exists in exactly ONE place in the whole product — the sale test below.
+   *
+   * `subject_sold_above_indicated_value` appears in lib/dor/comps.js,
+   * pages/api/comps.js and here. It is NOT in /api/checkout and NOT in
+   * send-letter.js, so nothing downstream would have caught it. And the cohort it
+   * refuses is precisely the cohort the handoff was carrying: in Florida a
+   * `no_cap_differential` verdict overwhelmingly means the homestead cap has just
+   * RESET ON A SALE, so the largest eligible bucket is recent buyers — the people
+   * whose own closing figure is the strongest evidence the Property Appraiser
+   * has. We would have sold $89 filings we expect to lose, to the segment least
+   * able to win, on the page that exists to say no.
+   *
+   * So the component still mounts and both tests still run. What `autoAdvance`
+   * removes is the "Your property is worth appealing" screen at the bottom of
+   * this file — the duplicate of what /check just said, and the screen 9 of 12
+   * customers quit at. They see the loading state and land on the condition step.
+   *
+   * THE QUERY IS STILL DUPLICATED. That is the honest cost: the roll lookup runs
+   * twice for these visitors, and it buys the sale gate. What the handoff removes
+   * is the duplicated question and the duplicated screen, not the duplicated
+   * query.
+   *
+   * Guarded by a ref rather than by the dependency list because `onEligible` is an
+   * inline arrow recreated on every render of ApplyFunnel — putting it in the deps
+   * would advance the step repeatedly.
+   */
+  const autoAdvanced = useRef(false);
+  useEffect(() => {
+    if (!autoAdvance || autoAdvanced.current) return;
+    const d = state.data;
+    if (state.status !== 'done' || !d?.found || !d.eligible) return;
+    // The sale refusal wins over eligibility, exactly as it does in the render
+    // below. Auto-advancing past it would be the bug this effect exists to avoid.
+    if (state.comps?.reason === 'subject_sold_above_indicated_value') return;
+    autoAdvanced.current = true;
+    onEligible();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAdvance, state.status, state.data, state.comps]);
 
   if (state.status === 'loading') {
     return (
@@ -3146,6 +3224,17 @@ function ApplyFunnel() {
   const [flRollCounty, setFlRollCounty] = useState('');
 
   /**
+   * Skip the "worth appealing" screen — never the tests behind it.
+   *
+   * Set only for an eligible arrival from /check, who has already read that
+   * verdict. StepFloridaCheck still mounts, still runs the cap test and the sale
+   * test, and still renders every refusal; this only suppresses the confirmation
+   * screen they have already seen. Cleared the moment they can change the
+   * property, because then the verdict they read no longer describes it.
+   */
+  const [flAutoAdvance, setFlAutoAdvance] = useState(false);
+
+  /**
    * ARRIVED FROM /check HAVING ALREADY SAID YES TO THE CONDITION QUESTION.
    *
    * /check now renders the same `conditionPrompt` this funnel does and sends them
@@ -3382,8 +3471,29 @@ function ApplyFunnel() {
 
     setProperty(p => ({ ...p, state: p.state || 'FL', county }));
     setFlRollCounty(county);
-    if (v.rescuable) setFlRescueReturn(true);
-    setStep('issues');
+
+    /**
+     * RESCUABLE goes to the condition step; ELIGIBLE goes through the check.
+     *
+     * A rescuable parcel has already been asked the condition question on /check
+     * and answered it by clicking. It needs `issues` first, and flRescueReturn
+     * sends it back to `florida-check` for the second pass — the one that runs
+     * qualify WITH the documented cure, and the only pass that can clear them.
+     * That second pass is where their sale test runs.
+     *
+     * An ELIGIBLE parcel has passed the cap test and NOT the sale test, because
+     * /check never runs one. So it goes through `florida-check` with autoAdvance:
+     * both tests run, the refusals render, and the "worth appealing" screen — the
+     * duplicate of what they just read — is skipped. See the autoAdvance effect in
+     * StepFloridaCheck for why routing them straight to `issues` was wrong.
+     */
+    if (v.rescuable) {
+      setFlRescueReturn(true);
+      setStep('issues');
+    } else {
+      setFlAutoAdvance(true);
+      setStep('florida-check');
+    }
   }, []);
 
   const upd = (setObj) => (key, val) => setObj(p => ({ ...p, [key]: val }));
@@ -3403,7 +3513,7 @@ function ApplyFunnel() {
     // The /check handoff is per-property. Starting over means the roll's county
     // and the rescue loop belong to a property this funnel is no longer about —
     // carrying either forward would price the next petition off the last one.
-    setFlRollCounty(''); setFlRescueReturn(false); setFlCountyBlocked(null);
+    clearHandoff(); setFlCountyBlocked(null);
   };
 
   /**
@@ -3421,6 +3531,32 @@ function ApplyFunnel() {
    * Stated once, so the order is a fact about this file rather than a coincidence
    * between three handlers.
    */
+
+  /**
+   * EVERYTHING THE /check HANDOFF CARRIED, DISCARDED TOGETHER.
+   *
+   * Called from every control that lets the customer reach the address field
+   * again. All four values describe the property /check matched, and the moment
+   * that address is editable none of them can be trusted about the next one:
+   *
+   *   flRollCounty     sets the fee, the cheque payee and which VAB receives it
+   *   flAutoAdvance    would skip the verdict screen for a property never checked
+   *   flRescueReturn   would route the second property past its own first pass
+   *   flConditionIntent same, one screen earlier
+   *
+   * The first version of this cleared only flRollCounty, from one of the three
+   * Back buttons. Adversarial review of the diff found the rest: going back from
+   * `florida-check`, typing a different address and continuing could reach the fee
+   * screen disclosing the PREVIOUS county's fee and payee, with the previous
+   * property's priced defects attached — and ask the owner to confirm that county
+   * and sign an authorization naming it.
+   */
+  const clearHandoff = () => {
+    setFlRollCounty('');
+    setFlAutoAdvance(false);
+    setFlRescueReturn(false);
+    setFlConditionIntent(false);
+  };
 
   /** Condition questions are done. Florida may still owe a second qualify pass. */
   const afterIssues = () => {
@@ -3515,7 +3651,7 @@ function ApplyFunnel() {
         <FloridaCountyUnavailable
           county={flCountyBlocked.county}
           reason={flCountyBlocked.reason}
-          onBack={() => { setFlCountyBlocked(null); setStep('property'); }}
+          onBack={() => { setFlCountyBlocked(null); clearHandoff(); setStep('property'); }}
           account={account}
           property={property}
         />
@@ -3562,7 +3698,7 @@ function ApplyFunnel() {
               hand. It is step 3 now, so jumping to the fee screen from here would
               reach the review page with no name on the petition and no address to
               send the confirmation to. */}
-          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} onAddIssues={() => { setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { if (flRescueReturn) { setFlRescueReturn(false); setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={() => { setFlAutoAdvance(false); setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn) { setFlRescueReturn(false); setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={afterIssues} onBack={() => {
             /*
               GOING BACK TO THE ADDRESS DISCARDS THE ROLL'S COUNTY.
@@ -3574,7 +3710,7 @@ function ApplyFunnel() {
               picker — which is slower and is correct for an address we have not
               matched to the roll.
             */
-            setFlRollCounty(""); setStep("property"); window.scrollTo(0,0);
+            clearHandoff(); setStep("property"); window.scrollTo(0,0);
           }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
           {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
