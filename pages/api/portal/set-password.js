@@ -95,6 +95,29 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
 
+  /**
+   * ======================================================================
+   * THE BUILD MUST NOT TALK TO STRIPE.
+   * ======================================================================
+   * scripts/verify-routes.mjs invokes every route in this list to prove the
+   * module imports and the handler executes. On Vercel it runs inside `next
+   * build` WITH PRODUCTION CREDENTIALS — which is why that file already sets
+   * SUPPRESS_CHECK_EVENTS, so its smoke call cannot write a synthetic row into
+   * check_events and flatter the refusal rate.
+   *
+   * This route had no equivalent, so every deployment made a real
+   * `checkout.sessions.retrieve` against the live account with the fixture id
+   * `cs_test_smoke`, and Stripe answered `resource_missing` — a genuine API call,
+   * against the production key, from a build, logged as an error on every deploy.
+   *
+   * Same flag, same reason: an endpoint that reaches a vendor needs a way to be
+   * executed without reaching it. Absent the variable it is always live, so
+   * production behaviour is unchanged and the default cannot be got wrong.
+   */
+  if (process.env.SUPPRESS_EXTERNAL_CALLS === '1') {
+    return res.status(503).json({ error: 'Password setup is temporarily unavailable.', code: 'SUPPRESSED' });
+  }
+
   const stripe = getStripe();
   const supabase = getSupabaseAdmin();
   if (!stripe || !supabase) {
@@ -105,7 +128,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(String(session_id));
+    /**
+     * A SESSION ID WE DO NOT RECOGNISE IS A CLIENT ERROR, NOT A SERVER ERROR.
+     *
+     * `retrieve` THROWS for an unknown id (`resource_missing`), and that throw used
+     * to fall to the bottom catch and answer 500 "Something went wrong" — telling a
+     * customer our server broke when what actually happened is they presented an id
+     * we cannot match. It also buries a real outage in the same message, so neither
+     * case can be read off the logs.
+     *
+     * Caught here and answered the same way an unpaid session is answered, because
+     * they mean the same thing to this route: you have not shown us a completed
+     * payment.
+     */
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(String(session_id));
+    } catch (stripeErr) {
+      if (stripeErr?.type === 'StripeInvalidRequestError' || stripeErr?.raw?.code === 'resource_missing') {
+        return res.status(403).json({ error: 'That checkout session is not a completed payment.', code: 'SESSION_NOT_FOUND' });
+      }
+      throw stripeErr;   // a real Stripe outage still reaches the 500 below
+    }
     if (session?.payment_status !== 'paid') {
       return res.status(403).json({ error: 'That checkout session is not a completed payment.' });
     }

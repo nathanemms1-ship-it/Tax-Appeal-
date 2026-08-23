@@ -66,6 +66,24 @@ register('./resolve-extensionless.mjs', import.meta.url);
  */
 process.env.SUPPRESS_CHECK_EVENTS = '1';
 
+/**
+ * AND NO SMOKE CALL MAY REACH A VENDOR.
+ *
+ * Added 23 Aug 2026, after pages/api/portal/set-password.js joined this list and
+ * every Vercel deployment started making a real `checkout.sessions.retrieve`
+ * against the live Stripe account with the fixture id below. Stripe answered
+ * `resource_missing`, correctly, and logged an error on each build.
+ *
+ * Exactly the reasoning of SUPPRESS_CHECK_EVENTS above: this script runs inside
+ * `next build` WITH PRODUCTION CREDENTIALS, so "it will just fail harmlessly" is
+ * not good enough — it is a live API call from a build, on every deploy, and the
+ * next route added here might do something that is not harmless.
+ *
+ * Set on THIS process only, so it cannot leak into the serverless runtime and
+ * quietly disable a route in production. Absent the variable, every route is live.
+ */
+process.env.SUPPRESS_EXTERNAL_CALLS = '1';
+
 const FL = { street: '1130 GLENWOOD CT', city: 'WESTON', state: 'FL', zip: '33326' };
 
 /** A body per route, shaped like what the funnel actually sends. */
