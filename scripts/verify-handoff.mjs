@@ -323,11 +323,15 @@ t('autoAdvance refuses to skip a screen on a sale test that never ran (SOURCE RE
  * Nothing downstream re-derives it: /api/checkout and /api/send-letter test the
  * filing window and the two county gates and contain no eligibility test at all.
  */
+// The invariant is that the flag is NOT cleared when the rescue pass succeeds.
+// `flIssuesDone` joined the same branch on 23 Aug for the summary pass, so the
+// positive match moved; the negative is the one carrying the weight.
 t('the rescue flag survives a successful rescue pass, so any return to `issues` re-checks (SOURCE READ)',
-  /if \(flRescueReturn\) \{ setStep\("account"\); \}/.test(apply) &&
-  !/setFlRescueReturn\(false\); setStep\("account"\)/.test(apply));
+  /if \(flRescueReturn \|\| flIssuesDone\) \{ setStep\("account"\); \}/.test(apply) &&
+  !/setFlRescueReturn\(false\)[^\n]*setStep\("account"\)/.test(apply));
 t('the issues step routes a rescuable parcel back through florida-check (SOURCE READ)',
-  /if \(sc === 'FL' && flRescueReturn\) \{ setStep\('florida-check'\)/.test(apply));
+  /const wantsSummary = sc === 'FL' && \(flRescueReturn \|\|/.test(apply) &&
+  /if \(wantsSummary\) \{[^}]*setStep\('florida-check'\)/.test(apply));
 
 /**
  * The retry on the `unavailable` screen must re-run the request, not reload the
@@ -366,6 +370,103 @@ t('clearHandoff discards all four handoff values (SOURCE READ)',
 }
 t('the sign-in exit is offered on the first screen only, not above checkout (SOURCE READ)',
   /const isFirstStep = step === "property";/.test(apply) && !/\["account", "property"\]\.includes\(step\)/.test(apply));
+
+// ── The cure summary, the invitation, and the county label ───────────────────
+/**
+ * Four things, all found or requested during the 23 Aug live test.
+ *
+ * Proven by reintroducing each:
+ *   drop the strip from checkout's line-item name        -> 1 fail
+ *   drop it from the cheque memo                          -> 1 fail
+ *   stop returning the cure from /api/check               -> 1 fail
+ *   recompute the cure in the browser instead             -> 1 fail
+ *   route eligible+defects straight to `account`          -> 1 fail
+ *   unscope the invitation from `disclosure`              -> 1 fail
+ *   hardcode $89 on the details step again                -> 1 fail
+ *   pass the click event to onAddIssues again             -> 1 fail
+ */
+const checkoutSrc = readFileSync('pages/api/checkout.js', 'utf8');
+const sendLetter = readFileSync('pages/api/send-letter.js', 'utf8');
+const parcels = readFileSync('lib/dor/parcels.js', 'utf8');
+
+// A live test purchase was billed for a "Broward County County VAB Filing Fee".
+// The county arrives carrying its own suffix, so anything appending " County"
+// must strip it first — including the memo line printed on a real cheque.
+t('checkout strips the county suffix before appending it (SOURCE READ)',
+  /countyLabel = String\(county \|\| ''\)\.replace\(\/\\s\+County\$\/i, ''\)/.test(checkoutSrc) &&
+  !/name: `\$\{county\} County VAB/.test(checkoutSrc));
+t('the cheque memo strips it too (SOURCE READ)',
+  !/return `\$\{county\} County VAB Filing Fee`/.test(sendLetter));
+
+// The number shown must be the number the arithmetic used. The browser holds the
+// issue labels but not the NAL row, so a second pricing there is a different sum.
+t('/api/check returns the cure figure it actually used (SOURCE READ)',
+  /cure: result\.cure \|\| null/.test(checkApi) && /cure: cureDollars > 0/.test(parcels));
+t('the delta reads the server cure rather than recomputing it (SOURCE READ)',
+  /d\.cure && d\.cure\.shareOfValue != null/.test(apply) &&
+  !/totalCostToCure\([^)]*\)[^;]*;\s*\n\s*const curePts/.test(apply));
+t('the delta handles the no-cap case, where there is no gap to close (SOURCE READ)',
+  /const hasGap = requiredPts > 0;/.test(apply));
+
+// The summary pass, and the flag that makes it distinguishable from the verdict.
+t('an eligible parcel with defects ticked gets the summary pass (SOURCE READ)',
+  /const wantsSummary = sc === 'FL' && \(flRescueReturn \|\| issues\.length > 0\);/.test(apply));
+t('the summary pass renders — autoAdvance is cleared before it (SOURCE READ)',
+  /if \(wantsSummary\) \{ setFlAutoAdvance\(false\); setStep\('florida-check'\)/.test(apply));
+t('finishing the issues step is tracked separately from needing the cure to qualify (SOURCE READ)',
+  /const \[flIssuesDone, setFlIssuesDone\] = useState\(false\);/.test(apply) &&
+  /if \(flRescueReturn \|\| flIssuesDone\) \{ setStep\("account"\); \}/.test(apply));
+t('starting over forgets that the question was asked (SOURCE READ)',
+  /setFlIssuesDone\(false\);/.test(apply));
+
+/**
+ * THE INVITATION IS SCOPED, AND THIS IS THE ASSERTION THAT MATTERS MOST HERE.
+ *
+ * The issue list goes onto a DR-486 signed under penalty of perjury. "Your total
+ * looks small, add more" is coaching somebody to inflate a sworn claim — against
+ * their own interest, because a petition the Board rejects costs them the year.
+ * So it appears only in the `disclosure` band, where the required cut is above
+ * what comparable sales plausibly reach and a point or two genuinely decides
+ * whether filing is worth it, and the copy says only real defects belong on it.
+ */
+t('the "did we miss anything" invitation is scoped to the disclosure band (SOURCE READ)',
+  /\{d\.cure && d\.disclosure && onAddIssues && \(/.test(apply));
+t('the invitation tells the owner only to add what is true (SOURCE READ)',
+  /Only add what is actually true of/.test(apply));
+/**
+ * Scoped to StepFloridaCheck. StepDispute has its own `onAddIssues` prop that
+ * takes no argument and legitimately reads `onClick={onAddIssues}`, so an
+ * unanchored negative here failed against correct code — the same
+ * measuring-the-wrong-set mistake, caught by running it.
+ */
+{
+  const start = apply.indexOf('function StepFloridaCheck(');
+  /*
+   * COMMENTS STRIPPED — and this assertion needed it on its own first run, which
+   * is the fifth time in this branch. The comment that now sits beside the fixed
+   * button QUOTES the defect (`onClick={onAddIssues}`) while explaining why it was
+   * wrong, and the negative match found its own documentation.
+   *
+   * The rule was already written down two guards ago. Writing it down is not the
+   * same as applying it, so it is applied here too.
+   */
+  const flCheck = apply.slice(start, apply.indexOf('\nfunction ', start + 1))
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  t('the rescue flag is raised explicitly, not from a click event (SOURCE READ)',
+    /onAddIssues=\{\(isRescue\) => \{[^}]*if \(isRescue\) setFlRescueReturn\(true\)/.test(apply) &&
+    !/onClick=\{onAddIssues\}/.test(flCheck) &&
+    /onClick=\{\(\) => onAddIssues\(true\)\}/.test(flCheck) &&
+    /onClick=\{\(\) => onAddIssues\(false\)\}/.test(flCheck));
+}
+
+// "Total today $89" is not the total for a Florida order, and this screen is now
+// the one before checkout.
+t('the details step shows the real total, not a hardcoded $89 (SOURCE READ)',
+  /vabFeeCents \? `\$\$\{89 \+ vabFeeCents \/ 100\}` : "\$89"/.test(apply));
+t('only a CONFIRMED county fee is printed beside the word Total (SOURCE READ)',
+  /info\?\.confidence === 'confirmed' \? info\.vabFee : null/.test(apply));
 
 // ── The funnel order, and the password that is no longer part of it ───────────
 /**

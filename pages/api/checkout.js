@@ -153,13 +153,31 @@ quantity: 1,
 },
 ];
 
+const countyLabel = String(county || '').replace(/\s+County$/i, '').trim();
 if (isFL && vabFee > 0) {
 lineItems.push({
 price_data: {
 currency: 'usd',
 product_data: {
-name: `${county} County VAB Filing Fee`,
-description: `Mandatory filing fee paid on your behalf to the ${county} Value Adjustment Board (required by Florida law § 194.013)`,
+/*
+ * STRIP THE SUFFIX, THEN ADD IT BACK. BOTH LINES, NOT ONE.
+ *
+ * `name` read `${county} County VAB Filing Fee` and `county` arrives carrying
+ * its own suffix (apply.js takes bdJson.resolvedCounty, which is
+ * "Broward County"), so a live test purchase billed a customer for a
+ * "Broward County County VAB Filing Fee" on the Stripe payment screen.
+ *
+ * The description below was correct — but only by luck, because it appended
+ * nothing. Hand it a bare county name and IT breaks instead, reading "the
+ * Broward Value Adjustment Board". One of the two was always going to be wrong
+ * depending on which caller ran.
+ *
+ * Normalising once makes both correct for either shape. Note this is display
+ * only: getFlVabFee already normalises for its own lookup, which is why the
+ * $25 charged was right while the label was not.
+ */
+name: `${countyLabel} County VAB Filing Fee`,
+description: `Mandatory filing fee paid on your behalf to the ${countyLabel} County Value Adjustment Board (required by Florida law § 194.013)`,
 },
 unit_amount: vabFee,
 },

@@ -32,7 +32,11 @@ function buildCheckMemo({ parcelId, ownerName, county }) {
   if (parcel) return `VAB fee - Parcel ${parcel}`.slice(0, 40);
   const surname = String(ownerName || '').trim().split(/\s+/).filter(Boolean).pop();
   if (surname) return `VAB fee - ${surname}`.slice(0, 40);
-  return `${county} County VAB Filing Fee`.slice(0, 40);
+  // Same strip-then-append as pages/api/checkout.js. This one lands in the MEMO
+  // FIELD OF A REAL CHEQUE to the Clerk, so "Broward County County VAB Filing
+  // Fee" would be printed and posted. Usually shadowed by the parcel-number memo
+  // above, which is why it never surfaced.
+  return `${String(county || '').replace(/\s+County$/i, '').trim()} County VAB Filing Fee`.slice(0, 40);
 }
 
 function authorized(req) {
@@ -211,7 +215,7 @@ export default async function handler(req, res) {
 </html>`;
 
       const checkPayload = {
-        description: `${county} County VAB Filing Fee — ${propertyAddress}`,
+        description: `${String(county || '').replace(/\s+County$/i, '').trim()} County VAB Filing Fee — ${propertyAddress}`,
         to: {
           name: feeInfo.payableTo,
           address_line1: vabAddr.street,

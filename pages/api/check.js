@@ -323,6 +323,10 @@ export default async function handler(req, res) {
        * null means the county could not be derived from the parcel, and the page
        * must assert nothing either way — the funnel still resolves it later.
        */
+      // What the owner's documented repairs contributed, as used. Null on the
+      // first pass, when nobody has been asked yet.
+      cure: result.cure || null,
+
       county: countyName(parcel) || null,
       countyFilable: countyName(parcel) ? canFileInFlCounty(countyName(parcel)) : null,
       countyBlockedReason: (() => {

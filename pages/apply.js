@@ -914,7 +914,7 @@ function NoParcelRecord({ property, account, detail, onBack }) {
  * is a petition the Board can reject, and the customer has no way to know that
  * from a field labelled "First Name".
  */
-function StepAccount({ data, onChange, onNext, onBack }) {
+function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
   const [err, setErr] = useState("");
   const go = () => {
     if (!data.firstName || !data.lastName) return setErr("Enter your full name.");
@@ -998,11 +998,39 @@ function StepAccount({ data, onChange, onNext, onBack }) {
           This goes on the petition, so use the name your county has on the property
           record. We email the confirmation and the tracking to the address below.
         </p>
-        <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>$89</span>
-            <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
+        {/*
+          "TOTAL TODAY $89" WAS NOT THE TOTAL, AND THIS IS NOW THE SCREEN BEFORE
+          CHECKOUT.
+          ======================================================================
+          A Florida order is $89 plus the county's VAB filing fee — $15 to $50,
+          set by the county, paid on the owner's behalf under Fla. Stat.
+          § 194.013. The fee screen discloses it correctly and Stripe itemises it,
+          so nobody was ever charged a surprise. But this panel used to sit on
+          step one as a headline price; the reorder put it immediately before the
+          purchase, where a number that goes UP on the next screen reads as a
+          bait rather than a summary.
+          It is also unnecessary now: the county is known by the time anyone sees
+          this screen — off the DOR roll for a /check arrival, or resolved before
+          the fee step otherwise — so the real number can simply be shown.
+          `vabFeeCents` is null when the county is genuinely not resolved yet
+          (a typed non-Florida address, or a lookup still pending). Then we say
+          what we know and no more, rather than printing a total we cannot stand
+          behind.
+        */}
+        <div style={{ background: C.bg, borderRadius: 8, padding: "10px 14px", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>
+                {vabFeeCents ? `$${89 + vabFeeCents / 100}` : "$89"}
+              </span>
+              <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 6, lineHeight: 1.5 }}>
+            {vabFeeCents
+              ? <>$89 filing service + ${vabFeeCents / 100} county filing fee, paid to your Value Adjustment Board on your behalf.</>
+              : <>$89 filing service. Your county adds its own filing fee ($15&ndash;$50), shown before you pay.</>}
           </div>
         </div>
         {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
@@ -1676,7 +1704,12 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
             <p style={{ color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.75, marginBottom: 14, fontSize: 14, fontWeight: 600 }}>
               {d.conditionPrompt || 'This answer assumes your home is in average condition. What it would cost to put right a failed roof, a dead air conditioner, an original kitchen or active damage reduces what your property is worth on top of what comparable sales show.'}
             </p>
-            <button style={{ ...primaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onAddIssues}>
+            {/* `true` = this parcel only qualifies WITH the cure. Passed explicitly:
+                this used to be `onClick={onAddIssues}`, which handed the click EVENT
+                to the handler — truthy, so it happened to work here and would have
+                silently set the rescue flag for the eligible customer using the new
+                "Review my property issues" button below. */}
+            <button style={{ ...primaryBtn, width: 'auto', padding: '13px 24px' }} onClick={() => onAddIssues(true)}>
               Tell us what&rsquo;s wrong with the property →
             </button>
           </div>
@@ -1710,8 +1743,115 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         ✓ Worth appealing
       </div>
       <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-        Your property is worth appealing
+        {d.cure ? 'What your documented repairs change' : 'Your property is worth appealing'}
       </h2>
+
+      {/*
+        ====================================================================
+        THE DELTA. WHAT A MINUTE OF TICKING BOXES ACTUALLY BOUGHT.
+        ====================================================================
+        This screen used to state the position and leave the owner to infer what
+        their own answers contributed. Nathan's call, 23 Aug: show it.
+
+        THE ARITHMETIC IS EXACT, NOT AN ESTIMATE, AND THAT IS WHY IT IS ON THIS
+        SIDE OF THE LINE. qualify() asks for `jv * (1 - pct) - cure`, so a cure of
+        C dollars reduces the percentage comparable sales must carry by exactly
+        C / jv. No modelling, no opinion of value, no millage — two figures off
+        the county roll and a division. It belongs with the facts, and the dollar
+        projections stay where they are, separately, carrying their own ±30%.
+
+        THE CURE FIGURE COMES FROM THE SERVER. lib/dor/parcels.js prices the
+        owner's issue labels against the NAL row and hands the total to qualify().
+        The browser holds the labels but not the row — no living area, no land
+        value — so recomputing here would print a number that is not the one that
+        decided anything. `d.cure` is what was used.
+
+        WE DO NOT SAY "YOU WILL SAVE". The sentence is about what the ask
+        changes. Cost to cure is the owner's evidence under § 193.011(6); whether
+        the Board accepts it is the Board's to decide, and asserting otherwise is
+        the unlicensed-appraisal line this whole file is careful about (counsel
+        memo, question 3).
+      */}
+      {d.cure && d.cure.shareOfValue != null && (() => {
+        const curePts = d.cure.shareOfValue * 100;
+        const requiredPts = d.facts?.requiredReductionPct ?? 0;
+        // Below the cap there is no gap to close — every dollar off just value
+        // already reaches the bill — so "covers X of Y points" would be arithmetic
+        // about a threshold that does not exist for them. 88% of the sellable
+        // population is in this branch; it gets the true sentence instead.
+        const hasGap = requiredPts > 0;
+        const remaining = Math.max(0, requiredPts - curePts);
+        return (
+          <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              Your documented repairs: {money(d.cure.dollars)}
+            </div>
+            <p style={{ fontSize: 14.5, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, margin: 0 }}>
+              {hasGap ? (
+                <>
+                  That is <strong>{curePts.toFixed(1)}%</strong> of your county&rsquo;s{' '}
+                  {money(d.facts?.justValue)} just value. A petition needs{' '}
+                  <strong>{requiredPts.toFixed(1)}%</strong> before your bill changes, so your
+                  repairs carry {curePts.toFixed(1)} of those points and comparable sales have to
+                  carry the remaining <strong>{remaining.toFixed(1)}%</strong>.
+                </>
+              ) : (
+                <>
+                  That is <strong>{curePts.toFixed(1)}%</strong> of your county&rsquo;s{' '}
+                  {money(d.facts?.justValue)} just value, argued off on top of whatever comparable
+                  sales support. Nothing is capped below market here, so every dollar of reduction
+                  reaches your bill.
+                </>
+              )}
+            </p>
+            <p style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '10px 0 0' }}>
+              Priced from published repair-cost data, or your own figures where you entered them.
+              It goes into the petition as evidence under Fla. Stat. § 193.011(6). Whether the
+              Board accepts it is the Board&rsquo;s decision.
+            </p>
+          </div>
+        );
+      })()}
+
+      {/*
+        ====================================================================
+        "DID WE MISS ANYTHING?" — SCOPED, AND NOT A QUOTA.
+        ====================================================================
+        Shown only when the required cut is still ABOVE what comparable sales
+        plausibly reach — the same `disclosure` band the cost-to-cure invitation
+        on /check is scoped to. That is the state where going back is genuinely
+        useful information, because a point or two decides whether this is worth
+        filing at all.
+
+        NOT shown because a total looks small. The issue list goes onto a DR-486
+        signed under penalty of perjury, and a screen that says "your number is
+        low, add more" is coaching somebody to inflate a sworn claim — against
+        their own interest, since a petition the Board rejects costs them the
+        year. So the copy is a memory aid for defects people genuinely forget,
+        and it says out loud that only real ones belong on it.
+      */}
+      {d.cure && d.disclosure && onAddIssues && (
+        <div style={{ background: '#FBFCFE', border: `1px dashed #C5D0E0`, borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>
+            Did we miss anything?
+          </div>
+          <p style={{ fontSize: 13.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, margin: '0 0 12px' }}>
+            This is an ambitious reduction to ask comparable sales to carry on their own, so
+            anything else you can document counts. The ones owners most often forget: the age of
+            the roof, an air conditioner past its life, original kitchens and baths, and drainage
+            or flooding. <strong style={{ color: C.darkNavy }}>Only add what is actually true of
+            your home</strong> — you sign this petition yourself, and a claim you cannot support
+            costs you the year rather than helping.
+          </p>
+          <p style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '0 0 12px' }}>
+            If you have a repair quote for any of them, entering your own figure is stronger
+            evidence than our regional average.
+          </p>
+          <button style={{ ...secondaryBtn, width: 'auto', padding: '11px 22px' }} onClick={() => onAddIssues(false)}>
+            ← Review my property issues
+          </button>
+        </div>
+      )}
 
       {/* Identify the parcel we matched. A customer needs to see we found THEIR
           house before any figure below it means anything. */}
@@ -3325,6 +3465,24 @@ function ApplyFunnel() {
   const [flAutoAdvance, setFlAutoAdvance] = useState(false);
 
   /**
+   * THE CONDITION STEP HAS BEEN ANSWERED — so `florida-check` means something
+   * different from here on.
+   *
+   * Before the issues step, that screen is the verdict. After it, the same screen
+   * re-runs qualify WITH the documented cost to cure, so it is a summary of what
+   * the owner's own answers changed. Without this flag `onEligible` cannot tell
+   * the two apart and sends a customer who has just finished the issues step back
+   * to the issues step.
+   *
+   * Distinct from flRescueReturn on purpose. That one means "this parcel only
+   * qualifies WITH the cure" and governs whether a sale may proceed at all;
+   * this one means "the question has been asked" and governs which screen comes
+   * next. Overloading one for the other is how the rescue gate came to be
+   * walk-back-able in the first place.
+   */
+  const [flIssuesDone, setFlIssuesDone] = useState(false);
+
+  /**
    * ARRIVED FROM /check HAVING ALREADY SAID YES TO THE CONDITION QUESTION.
    *
    * /check now renders the same `conditionPrompt` this funnel does and sends them
@@ -3661,6 +3819,7 @@ function ApplyFunnel() {
     setFlAutoAdvance(false);
     setFlRescueReturn(false);
     setFlConditionIntent(false);
+    setFlIssuesDone(false);
   };
 
   /**
@@ -3700,9 +3859,48 @@ function ApplyFunnel() {
     // on comparable sales alone; this is the run that includes the documented cost
     // to cure, and it is the only pass that can clear them. It must happen before
     // we ask for anything, because it can still end in an honest no.
-    if (sc === 'FL' && flRescueReturn) { setStep('florida-check'); window.scrollTo(0, 0); return; }
+    setFlIssuesDone(true);
+    /**
+     * A RESCUABLE PARCEL MUST re-check. AN ELIGIBLE ONE WITH DEFECTS SHOULD.
+     *
+     * Rescuable: this is the only pass that can clear them, and it can still end
+     * in an honest no. Non-negotiable.
+     *
+     * Eligible with defects ticked: the re-check is not a gate, it is the summary
+     * — qualify() subtracts the documented cure from the requested just value in
+     * every scenario, so the numbers genuinely change and the owner can see what
+     * their minute of ticking boxes bought. Nathan's call, 23 Aug.
+     *
+     * Eligible with NOTHING ticked: skip it. There is nothing new to say, and a
+     * screen with nothing new on it is the duplicate check this funnel just spent
+     * a day removing.
+     */
+    const wantsSummary = sc === 'FL' && (flRescueReturn || issues.length > 0);
+    if (wantsSummary) { setFlAutoAdvance(false); setStep('florida-check'); window.scrollTo(0, 0); return; }
     setStep('account'); window.scrollTo(0, 0);
   };
+
+  /**
+   * THE COUNTY FEE, FOR THE DETAILS SCREEN'S TOTAL. Null when we cannot stand
+   * behind a number.
+   *
+   * Only a CONFIRMED fee is shown. Nassau, Columbia and Levy carry a $50 guess,
+   * and the funnel refuses those counties before this screen anyway — but a
+   * number printed beside the word "Total" must never be one of them, and
+   * relying on an upstream gate to guarantee that is how the $50 default came to
+   * be charged for "Notarealcounty" on 15 Aug.
+   *
+   * flRollCounty first: it came off the parcel's own DOR county number. Falling
+   * back to property.county covers the typed path, where the county was resolved
+   * by the geocoder before the fee step.
+   */
+  const flAccountVabFee = (() => {
+    if (property.state.trim().toUpperCase() !== 'FL') return null;
+    const c = (flRollCounty || property.county || '').trim();
+    if (!c) return null;
+    const info = getFlVabFee(c);
+    return info?.confidence === 'confirmed' ? info.vabFee : null;
+  })();
 
   /** We have a name and an email. Florida discloses its county fee before paying. */
   const afterAccount = () => {
@@ -3802,7 +4000,7 @@ function ApplyFunnel() {
         <UnsupportedState stateCode={unsupportedState} onBack={() => { clearHandoff(); setUnsupportedState(null); }} account={account} property={property} />
       ) : (
         <>
-          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} />}
+          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} vabFeeCents={flAccountVabFee} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => {
             const sc = property.state.trim().toUpperCase();
             /*
@@ -3833,7 +4031,7 @@ function ApplyFunnel() {
               hand. It is step 3 now, so jumping to the fee screen from here would
               reach the review page with no name on the petition and no address to
               send the confirmation to. */}
-          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={() => { setFlAutoAdvance(false); setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn) { setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
+          {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={(isRescue) => { setFlAutoAdvance(false); if (isRescue) setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn || flIssuesDone) { setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={afterIssues} onBack={() => {
             /*
               GOING BACK TO THE ADDRESS DISCARDS THE ROLL'S COUNTY.
