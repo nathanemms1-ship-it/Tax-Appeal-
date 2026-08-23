@@ -1,6 +1,7 @@
 // pages/api/portal/reset-password.js
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { hashPassword, MIN_PASSWORD_LENGTH } from '../../../lib/noPassword';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
 
   const { token, email, password } = req.body;
   if (!token || !email || !password) return res.status(400).json({ error: 'Missing required fields' });
-  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (password.length < MIN_PASSWORD_LENGTH) return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
 
   try {
     // Tokens are stored as a SHA-256 digest — see pages/api/portal/forgot-password.js.
@@ -37,10 +38,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' });
     }
 
-    // Hash the new password using built-in crypto (no bcryptjs needed)
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    const passwordHash = `${salt}:${hash}`;
+    // Hash via lib/noPassword.js — the same function /api/portal/set-password uses.
+    // These two routes are the only places a customer chooses a password, and the
+    // recipe was inline here until 23 Aug 2026. A second copy is how one of them
+    // acquires a different iteration count and quietly stops matching, which reaches
+    // the customer as "my password does not work" and is indistinguishable from them
+    // misremembering it.
+    const passwordHash = hashPassword(password, crypto);
 
     // Update password_hash on all orders for this email
     const { error: updateError } = await supabase

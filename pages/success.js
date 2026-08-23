@@ -380,6 +380,27 @@ export default function Success() {
               </div>
             </div>
 
+            {/*
+              THE PASSWORD, AND THIS IS NOW THE ONLY PLACE IT IS ASKED FOR.
+
+              It used to be the first field in the funnel — name, email, password,
+              before a stranger had been told one thing about their property. What it
+              protects is the portal, and the portal shows the status of an appeal
+              that did not exist at the point the question was being asked.
+
+              BELOW THE SIGNATURE, NEVER ABOVE IT. Everything in this branch renders
+              only once `signed` is true. Nothing mails until the owner signs, and no
+              optional field belongs in front of a required one. The version of that
+              mistake this page has already made — a signature button that appeared to
+              do nothing while the server had in fact succeeded — is why the ordering
+              is worth writing down rather than assuming.
+
+              Optional, and it says so. A customer who skips it still gets in through
+              "Forgot password?", which looks them up by their ORDER rather than by a
+              hash they do not have.
+            */}
+            <SetPasswordCard sessionId={session_id} email={session?.email} isPreOrder={!!session?.isPreOrder} />
+
             <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
               <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
@@ -421,5 +442,128 @@ export default function Success() {
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * "Set a password to track your appeal" — offered, never required.
+ *
+ * ============================================================================
+ * WHY IT IS OPTIONAL AND WHY THAT IS NOT A COMPROMISE
+ * ============================================================================
+ * The portal's job is status: where the petition is, what the Board decided. The
+ * customer needs that in three weeks, not now — and we email the dispatch
+ * confirmation, the tracking number and the decision prompt anyway, so nothing
+ * about this order depends on them choosing a password today.
+ *
+ * What choosing one today buys is that they do not have to go through a reset
+ * link the first time they come back. That is worth one field on a page they are
+ * already looking at. It is not worth a wall in front of a purchase, which is
+ * what it was until 23 Aug 2026.
+ *
+ * ============================================================================
+ * THE PRE-ORDER BRANCH GETS A DIFFERENT SENTENCE
+ * ============================================================================
+ * A pre-order customer is not told "your petition is on its way" — they are told
+ * it files when their county opens, which can be weeks out. They wait longest
+ * with the least visible movement and are the most likely to want to look, so
+ * they get the reason rather than the generic offer.
+ *
+ * ============================================================================
+ * EVERY FAILURE SAYS WHAT HAPPENED
+ * ============================================================================
+ * PASSWORD_ALREADY_SET is not an error and is not styled as one — the ordinary
+ * way to reach it is a returning customer buying a second property. ORDER_NOT_READY
+ * is a race with the Stripe webhook that writes the order row, so it says "in a
+ * moment" and leaves the form usable rather than clearing it.
+ *
+ * This page has already shipped a control that appeared to do nothing while the
+ * server had succeeded. Nothing here reports success unless the response said so.
+ */
+function SetPasswordCard({ sessionId, email, isPreOrder }) {
+  const [password, setPassword] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
+  const [message, setMessage] = useState('');
+
+  // No session id means no way to prove who this is, so there is nothing to
+  // offer. Rendering a dead field would be worse than rendering nothing.
+  if (!sessionId) return null;
+
+  const submit = async () => {
+    if (password.length < 6) { setStatus('error'); setMessage('Password must be at least 6 characters.'); return; }
+    setStatus('saving'); setMessage('');
+    try {
+      const r = await fetch('/api/portal/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, password }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.success) { setStatus('done'); setPassword(''); return; }
+      if (d.code === 'PASSWORD_ALREADY_SET') { setStatus('already'); setMessage(d.error || ''); return; }
+      setStatus('error');
+      setMessage(d.error || 'That did not save. Please try again.');
+    } catch {
+      setStatus('error');
+      setMessage('That did not save. Please try again.');
+    }
+  };
+
+  if (status === 'done') {
+    return (
+      <div style={{ background: "#E6F4ED", border: `1px solid #B7DEC8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 6 }}>✓ Password set</div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
+          Sign in at <a href="/portal" style={{ color: C.navy }}>/portal</a> with{' '}
+          <strong style={{ color: C.darkNavy }}>{email || 'your email address'}</strong> whenever you want to check on this.
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'already') {
+    return (
+      <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>🔐 You already have a password</div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
+          {message} Your new order is already on the same account — sign in at{' '}
+          <a href="/portal" style={{ color: C.navy }}>/portal</a>.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, marginBottom: 6 }}>
+        🔐 Set a password to track your appeal <span style={{ fontWeight: 400, color: C.mutedGray }}>— optional</span>
+      </div>
+      <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 12 }}>
+        {isPreOrder
+          ? <>Your petition is prepared and waiting for your county to open, so there will be a stretch with nothing in your inbox. A password lets you look in on it any time — we still email you the moment it is filed, with tracking.</>
+          : <>We email you every update, so you do not need one. It just saves you a reset link the first time you come back to check on your appeal.</>}
+      </div>
+      {status === 'error' && message && (
+        <div style={{ fontSize: 12.5, color: C.red || '#C0392B', marginBottom: 10 }}>{message}</div>
+      )}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="At least 6 characters"
+          aria-label="Choose a password"
+          autoComplete="new-password"
+          style={{ flex: "2 1 220px", padding: "11px 13px", fontSize: 15, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit" }}
+        />
+        <button
+          onClick={submit}
+          disabled={status === 'saving'}
+          style={{ flex: "1 1 150px", padding: "11px 18px", fontSize: 14, fontWeight: 600, background: C.navy, color: C.white, border: "none", borderRadius: 8, cursor: status === 'saving' ? 'wait' : 'pointer', fontFamily: "inherit" }}
+        >
+          {status === 'saving' ? 'Saving…' : 'Set password'}
+        </button>
+      </div>
+    </div>
   );
 }

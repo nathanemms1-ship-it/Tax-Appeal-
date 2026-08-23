@@ -93,6 +93,12 @@ const ROUTES = [
   // expected answer is the auth rejection — what is proven is that it imports and
   // executes, and verify-security separately proves the guard is not negated.
   { name: 'preview-unlock',   body: {} },
+  // Claim a portal password after paying. Invoked with a session id Stripe will not
+  // recognise, so the expected answer is a rejection — what is proven is that the
+  // module imports and the handler executes. It is the only write path a customer
+  // can reach without being signed in, and it runs AFTER the money has been taken,
+  // so a defect in it is invisible until somebody has already paid.
+  { name: 'portal/set-password', body: { session_id: 'cs_test_smoke', password: 'smoketest' } },
   { name: 'health',           body: {}, method: 'GET' },
   {
     // The route that broke. Every field the funnel sends, so a field that stops

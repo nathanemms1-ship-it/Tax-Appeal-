@@ -245,7 +245,61 @@ const saveOrder = readFileSync('pages/api/save-order.js', 'utf8');
 t('save-order writes the no-password sentinel rather than a null of unknown legality (SOURCE READ)',
   /let password_hash = NO_PASSWORD_SENTINEL;/.test(saveOrder));
 
-const { hasUsablePassword, NO_PASSWORD_SENTINEL } = await import('../lib/noPassword.js');
+/**
+ * /api/portal/set-password — the only write a customer can reach without being
+ * signed in, running after the money has been taken.
+ *
+ * The property that matters is that it CLAIMS and never RESETS. `session_id` is a
+ * real credential — unguessable, checked against Stripe, and the payment must have
+ * settled — but it travels in the URL of /success, so it reaches browser history,
+ * Referer headers and every log in between. Letting it overwrite a password that
+ * already exists would turn a leaked URL into an account takeover; letting it set
+ * one that does not exist grants no more reach than /api/verify-payment already
+ * gives the same holder on the same page.
+ *
+ * Proven by reintroducing each:
+ *   delete the hasUsablePassword refusal          -> 1 fail
+ *   take the email from req.body instead of Stripe -> 1 fail
+ *   drop the payment_status check                 -> 1 fail
+ *   remove enforceRateLimit                       -> 1 fail
+ *   read the password from req.query              -> 1 fail (and verify-security too)
+ *   select('*') on orders                         -> 1 fail (and verify-security too)
+ */
+const setPw = readFileSync('pages/api/portal/set-password.js', 'utf8');
+const setPwCode = setPw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+t('set-password REFUSES when a usable password already exists — it claims, it never resets (SOURCE READ)',
+  /if\s*\(hasUsablePassword\([^)]*\)\)/.test(setPwCode));
+t('set-password takes the email from the Stripe session, never from the request body (SOURCE READ)',
+  /session\.customer_email/.test(setPwCode) && !/const\s*\{[^}]*\bemail\b[^}]*\}\s*=\s*req\.body/.test(setPwCode));
+t('set-password requires the payment to have actually settled (SOURCE READ)',
+  /payment_status\s*!==\s*'paid'/.test(setPwCode));
+t('set-password is rate limited — a session id should not be free to brute-force (SOURCE READ)',
+  /enforceRateLimit\(\s*req/.test(setPwCode));
+t('set-password reads its password from the body, not the query string (SOURCE READ)',
+  !/req\.query/.test(setPwCode));
+t('set-password does not select(*) on orders (SOURCE READ)',
+  !/\.select\(\s*['"]\*['"]\s*\)/.test(setPwCode));
+
+const { hasUsablePassword, NO_PASSWORD_SENTINEL, hashPassword, MIN_PASSWORD_LENGTH } = await import('../lib/noPassword.js');
+
+// The two routes where a customer chooses a password must produce a hash
+// pages/api/portal/login.js can actually verify. It sniffs `salt:hash` for pbkdf2
+// and falls through to bcrypt, so a format change here locks people out silently.
+{
+  const nodeCrypto = await import('node:crypto');
+  const h = hashPassword('correct horse battery staple', nodeCrypto.default);
+  const [salt, digest] = h.split(':');
+  t('hashPassword produces the salt:hash pbkdf2 shape login.js verifies',
+    !!salt && !!digest && /^[0-9a-f]{32}$/.test(salt) && /^[0-9a-f]{128}$/.test(digest));
+  t('hashPassword salts — two hashes of the same password differ',
+    hashPassword('same', nodeCrypto.default) !== hashPassword('same', nodeCrypto.default));
+  t('a hash it produces is a usable password', hasUsablePassword(h));
+  const reset = readFileSync('pages/api/portal/reset-password.js', 'utf8');
+  t('both password-setting routes use the one hasher (SOURCE READ)',
+    /hashPassword\(password, crypto\)/.test(reset) && /hashPassword\(password, crypto\)/.test(setPwCode));
+  t('both enforce the same minimum length (SOURCE READ)',
+    /MIN_PASSWORD_LENGTH/.test(reset) && /MIN_PASSWORD_LENGTH/.test(setPwCode) && MIN_PASSWORD_LENGTH === 6);
+}
 t('the sentinel is not a usable password', !hasUsablePassword(NO_PASSWORD_SENTINEL));
 t('a null hash is not a usable password', !hasUsablePassword(null));
 t('an empty hash is not a usable password', !hasUsablePassword(''));
