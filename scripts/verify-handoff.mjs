@@ -394,6 +394,65 @@ t('restart() returns to the property step, not the details step (SOURCE READ)',
 t('the Florida fee screen displays no earlier than the details step (SOURCE READ)',
   /'florida-fee':\s*'account'/.test(apply));
 
+/**
+ * ==========================================================================
+ * THE FIRST SCREEN CARRIES THE PAGE'S <h1>. NOTHING LOCAL WOULD TELL YOU.
+ * ==========================================================================
+ * verify-pages asserts that every required page has exactly one <h1>. It reads
+ * the BUILT HTML — and pages/apply.js returns <WaitlistForm /> unless
+ * NEXT_PUBLIC_SALES_ENABLED is 'true'. That variable is unset on a developer
+ * machine, so a local `npm run build` prerenders the waitlist page (which has its
+ * own h1) and NEVER RENDERS THE FUNNEL. Production has it set, renders the funnel,
+ * and gets whatever the first step happens to be.
+ *
+ * Reordering the funnel moved the h1 off the first screen. Every local build was
+ * green; the deploy failed with `FAIL apply / no <h1> — page has no heading`.
+ *
+ * This is the blind spot restated: a build proves a property about the page THIS
+ * MACHINE renders, which is not the page customers get. So the assertion is made
+ * against SOURCE, where the environment cannot hide it.
+ *
+ * Proven by reintroducing it: demote StepProperty's h1 to an h2 -> 1 fail;
+ * promote StepAccount's h2 back to an h1 -> 1 fail.
+ */
+{
+  /**
+   * COMMENTS STRIPPED, because both of these components now carry a comment
+   * EXPLAINING which heading level they use and why — and `<h1>` written in prose
+   * matched the test. That is the fourth time in this branch a guard has matched
+   * its own documentation rather than the code (the stashProperty count,
+   * verify-fl-data's call counter, login's negative test, and this). It is worth
+   * naming as a rule: any assertion about the presence of a token in source must
+   * strip comments first, or the act of documenting the rule breaks it.
+   */
+  const componentSrc = (name) => {
+    const start = apply.indexOf(`function ${name}(`);
+    if (start < 0) return null;
+    const next = apply.indexOf('\nfunction ', start + 1);
+    return apply.slice(start, next < 0 ? apply.length : next)
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ')   // JSX comments
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')         // block comments
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');      // line comments
+  };
+  const firstStep = stepOrder[0];                      // 'property'
+  const STEP_COMPONENTS = {
+    property: 'StepProperty', issues: 'StepIssues',
+    account: 'StepAccount', dispute: 'StepDispute',
+  };
+  const firstSrc = componentSrc(STEP_COMPONENTS[firstStep]);
+  t(`the component for the first step (${STEP_COMPONENTS[firstStep]}) was located (SOURCE READ)`, !!firstSrc);
+  t(`${STEP_COMPONENTS[firstStep]} renders the page's <h1> — it is the screen /apply opens on (SOURCE READ)`,
+    !!firstSrc && /<h1[\s>]/.test(firstSrc));
+
+  for (const [step, comp] of Object.entries(STEP_COMPONENTS)) {
+    if (step === firstStep) continue;
+    const src = componentSrc(comp);
+    t(`${comp} does not also claim an <h1> — one page, one heading (SOURCE READ)`,
+      !!src && !/<h1[\s>]/.test(src));
+  }
+}
+
+
 // The password. Two ends: it is not collected, and the absence is handled.
 t('StepAccount renders no password field (SOURCE READ)',
   !/<Field[^>]*type="password"/.test(apply));

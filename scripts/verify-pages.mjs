@@ -218,6 +218,36 @@ function visibleText(html) {
     .replace(/\s+/g, ' ');
 }
 
+/**
+ * ============================================================================
+ * THIS SCRIPT CHECKS THE PAGE **THIS MACHINE** BUILT, WHICH IS NOT ALWAYS THE
+ * PAGE CUSTOMERS GET.
+ * ============================================================================
+ * Learned on 23 Aug 2026, from a deploy that failed while every local build was
+ * green.
+ *
+ * pages/apply.js returns <WaitlistForm /> unless NEXT_PUBLIC_SALES_ENABLED is
+ * 'true'. That variable is unset on a developer machine, so a local `npm run
+ * build` prerenders the waitlist page — which has its own <h1>, its own price and
+ * its own word count — and NEVER RENDERS THE FUNNEL AT ALL. Production has it set.
+ *
+ * So the funnel step order changed, the <h1> moved off the first screen, and this
+ * script reported `all pages structurally intact` locally and
+ * `FAIL apply / no <h1>` on Vercel. Both were correct about the page in front of
+ * them.
+ *
+ * TO CHECK /apply THE WAY PRODUCTION BUILDS IT:
+ *
+ *   SALES_ENABLED=true NEXT_PUBLIC_SALES_ENABLED=true npm run build
+ *
+ * (both, because verify-hardening fails the build if the server flag and the UI
+ * flag disagree — which is its own good rule and is why one alone will not work).
+ *
+ * The <h1> case specifically is now also asserted against SOURCE in
+ * scripts/verify-handoff.mjs, where no environment variable can hide it. The rest
+ * of the assertions below — the price, the CTA, the word count, the banned claims
+ * — are still only proven for whichever version of /apply this machine rendered.
+ */
 let failures = 0;
 let warnings = 0;
 console.log(`Page structure check — ${REQUIRED.length} pages`);
