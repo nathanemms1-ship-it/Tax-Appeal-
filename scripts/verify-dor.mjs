@@ -18,6 +18,7 @@
 import assert from 'node:assert';
 import { qualify, taxEffect, breakEvenJv } from '../lib/dor/qualify.js';
 import { parseRoll, splitCsvLine } from '../lib/dor/parseRoll.js';
+import { normalizeAddr, anchoredPattern, rowMatches, addressVariants } from '../lib/dor/addressMatch.js';
 
 let pass = 0;
 const fail = [];
@@ -278,6 +279,112 @@ const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8'
 t('funnel only forwards comps that support a reduction', apply.includes('cJson?.supportsReduction !== false'));
 t('funnel only forwards a sufficient comp set', apply.includes('cJson?.sufficient'));
 t('a comps failure does not block the petition', apply.includes('filing on methodology alone'));
+
+
+// ── Address matching ─────────────────────────────────────────────────────────
+/**
+ * ADDED 23 Aug 2026, after 13 of 46 recorded checks returned `no_parcel`.
+ *
+ * findParcel built its filter with `orIlike(col, addressVariants(addr))` and no
+ * wildcards. ILIKE with no wildcard is case-insensitive EQUALITY, so a customer
+ * had to reproduce the county's PHY_ADDR1 character for character. Measured
+ * against the loaded 2026 roll the same day: 326,092 parcels carry unit text in
+ * PHY_ADDR1 and 270,468 have irregular internal whitespace — up to 596,560 of
+ * 8,410,126 that no correctly-typed address could reach.
+ *
+ * suggestAddresses wrapped its patterns in `%...%` the whole time, so the
+ * DROPDOWN found those properties. The same address therefore succeeded or
+ * failed on whether the customer clicked a suggestion, and the failure read as a
+ * statement about the property. Every assertion below fails if the equality
+ * comparison is restored.
+ */
+t('a roll row with trailing unit text matches', rowMatches('1610 SEAGRAPE WAY APT 4', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('a roll row with a doubled internal space matches', rowMatches('1610  SEAGRAPE  WAY', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('a roll row with leading/trailing space matches', rowMatches('  1610 SEAGRAPE WAY ', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('an exact roll row still matches', rowMatches('1610 SEAGRAPE WAY', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+
+/**
+ * THE OTHER HOUSE. These are the assertions that stop the fix becoming a worse
+ * bug than the one it replaced: a loose match would put another household's
+ * assessment on somebody's sworn petition.
+ *
+ * INJECTION: change anchoredPattern to return `%${...}%`, or rowMatches to use
+ * `a.includes(w)` -> the first two FAIL.
+ */
+t('a different house number does NOT match', !rowMatches('11610 SEAGRAPE WAY', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('a longer street name does NOT match', !rowMatches('1610 SEAGRAPE WAYSIDE DR', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('a different street does NOT match', !rowMatches('1610 PALM AVE', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+t('an empty roll address never matches', !rowMatches('', addressVariants(normalizeAddr('1610 Seagrape Way'))));
+
+/**
+ * The pattern must stay anchored at the house number. This is the single
+ * character that separates the fix from the bug in the other direction.
+ *
+ * INJECTION: add a leading '%' -> FAILS.
+ */
+t('the SQL pattern is anchored at the house number', !anchoredPattern('1610 SEAGRAPE WAY').startsWith('%'));
+t('the SQL pattern tolerates anything after the street', anchoredPattern('1610 SEAGRAPE WAY').endsWith('%'));
+t('the SQL pattern wildcards every internal space', anchoredPattern('1610 SEAGRAPE WAY') === '1610%SEAGRAPE%WAY%');
+
+/**
+ * Ordinal handling predates this and must survive it — Miami-Dade writes
+ * "92 SW 3 ST" and "10981 SW 121ST ST" in the same file.
+ */
+t('an ordinal typed by the owner matches a roll that omits it', rowMatches('92 SW 3 ST', addressVariants(normalizeAddr('92 SW 3rd St'))));
+t('an ordinal omitted by the owner matches a roll that has it', rowMatches('10981 SW 121ST ST', addressVariants(normalizeAddr('10981 SW 121 St'))));
+
+/**
+ * TERMINAL_SUFFIXES is applied to the LAST WORD ONLY. Applying it to every word
+ * would rewrite street NAMES that contain a suffix word, which is a new class of
+ * miss traded for the one being fixed.
+ *
+ * INJECTION: fold TERMINAL_SUFFIXES into the whole-word map in normalizeAddr ->
+ * the second FAILS.
+ */
+t('a terminal suffix is abbreviated', normalizeAddr('123 Ocean Plaza') === '123 OCEAN PLZ');
+t('the same word inside a name is left alone', normalizeAddr('123 Crossing Creek Dr') === '123 CROSSING CREEK DR');
+t('spelled-out suffixes still abbreviate anywhere', normalizeAddr('123 North Ocean Boulevard') === '123 N OCEAN BLVD');
+// The ordinal is NOT stripped here — that is addressVariants' job, and keeping
+// the two separate is why a roll spelling either way still matches.
+t('a city after a comma is still stripped', normalizeAddr('11142 SW 6th St, Miami') === '11142 SW 6TH ST');
+
+// ── The no-cap break-even floor ──────────────────────────────────────────────
+/**
+ * ADDED 23 Aug 2026. `no_cap_differential` returned eligible unconditionally and
+ * returned BEFORE saving_below_cost, so it was the one verdict in qualify() with
+ * no break-even test. 15 of the 17 visitors ever told they could be helped came
+ * out of that line.
+ *
+ * INJECTION: restore the unconditional return -> the first three FAIL.
+ */
+const noCap = (jv) => qualify(
+  { parcel_id: 'X', dor_uc: 1, jv, av_sd: jv, av_nsd: jv, tv_sd: jv, tv_nsd: jv, tot_lvg_area: 900, act_yr_blt: 1985 },
+  { millage: { school: 6.3, nonSchool: 11.5 } }
+);
+
+const thinNoCap = noCap(20000);
+t('a no-cap parcel that cannot pay for itself is NOT sold', thinNoCap.eligible === false);
+t('...and is asked about condition rather than refused', thinNoCap.reason === 'needs_condition_case');
+t('...which is a rescue, not a dead end', thinNoCap.rescuable === true);
+t('...and its best case really is under the fee', thinNoCap.bestCaseSaving < 104);
+
+const marginalNoCap = noCap(30000);
+t('a thin but viable no-cap parcel is still sellable', marginalNoCap.eligible === true && marginalNoCap.reason === 'no_cap_differential');
+t('...but is rated marginal, not high', marginalNoCap.confidence === 'marginal');
+// `disclosure` is what pages/check.js scopes the cost-to-cure invitation to, so
+// this is the assertion that the thinnest results get the extra help rather than
+// the least. See Condition_Case_Routing_2026-08-22.
+t('...and carries a disclosure, which is what surfaces the condition question', typeof marginalNoCap.disclosure === 'string');
+// Null-safe on purpose: reintroducing the unconditional return leaves disclosure
+// undefined, and a guard that throws a TypeError names the assertion file rather
+// than the defect. It still fails the build either way; this way it says why.
+t('...that quotes the real numbers', typeof marginalNoCap.disclosure === 'string'
+  && marginalNoCap.disclosure.includes('$104') && marginalNoCap.disclosure.includes('not refundable'));
+
+const strongNoCap = noCap(300000);
+t('a comfortable no-cap parcel is unchanged', strongNoCap.eligible === true && strongNoCap.reason === 'no_cap_differential');
+t('...stays high confidence', strongNoCap.confidence === 'high');
+t('...and is not given a worry it does not have', strongNoCap.disclosure == null);
 
 // ── Report ───────────────────────────────────────────────────────────────────
 if (fail.length) {
