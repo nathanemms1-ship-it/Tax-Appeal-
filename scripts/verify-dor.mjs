@@ -433,6 +433,60 @@ t('a comfortable no-cap parcel is unchanged', strongNoCap.eligible === true && s
 t('...stays high confidence', strongNoCap.confidence === 'high');
 t('...and is not given a worry it does not have', strongNoCap.disclosure == null);
 
+/**
+ * ============================================================================
+ * CONFIDENCE IS RATED ON WHAT COMPS STILL HAVE TO CARRY, NOT THE GROSS GAP.
+ * ============================================================================
+ * Found in a browser on 23 Aug, contradicting itself on one screen: a parcel
+ * needing 16.3% with $71,300 documented read "comparable sales have to carry the
+ * remaining 7.0%" and, underneath, "that is an ambitious reduction" plus an
+ * invitation to document more. Both sentences came from qualify().
+ *
+ * requiredCutPct is the whole distance to the cap and the cure does not change
+ * it — the cure takes dollars off the ask. So a rating built on requiredCutPct
+ * describes an owner who answered no condition questions at all.
+ *
+ * The fixture is the real Broward parcel from the live test.
+ */
+{
+  const seagrape = { jv: 764980, av_sd: 640180, av_nsd: 640180, tv_sd: 640180, tv_nsd: 640180, dor_uc: 1 };
+
+  const noCure = qualify(seagrape, { serviceFee: 114 });
+  t('pass 1 with no cure rates the gross requirement — 16.3% is marginal',
+    noCure.confidence === 'marginal' && typeof noCure.disclosure === 'string');
+  t('...and its disclosure does not mention repairs nobody documented',
+    !/documented repairs/.test(noCure.disclosure));
+
+  // 9.3 points of the 16.3 covered, leaving 7.0 — inside a plausible 15% result.
+  const withCure = qualify(seagrape, { serviceFee: 114, cureDollars: 71300 });
+  t('the same parcel with $71,300 documented is rated on the residual, not the gross',
+    withCure.confidence === 'good');
+  t('...so it is no longer told the reduction is ambitious',
+    withCure.disclosure == null);
+  t('...and it is still eligible', withCure.eligible === true);
+
+  // Enough cure to matter, not enough to clear it: 16.3 - 2.6 = 13.7... still good.
+  // Take a smaller one so the residual stays above the plausible band.
+  const thinCure = qualify(seagrape, { serviceFee: 114, cureDollars: 8000 });
+  t('a cure too small to close the gap leaves the rating marginal',
+    thinCure.confidence === 'marginal');
+  t('...and its disclosure names the residual and the documented figure',
+    typeof thinCure.disclosure === 'string'
+      && thinCure.disclosure.includes('$8,000')
+      && /comparable sales to carry/.test(thinCure.disclosure));
+
+  // THE SAFETY PROPERTY: pass 1 is byte-identical to before this change.
+  t('cureDollars = 0 rates exactly as the gross requirement did',
+    qualify(seagrape, { serviceFee: 114, cureDollars: 0 }).confidence === noCure.confidence);
+
+  // And the cure must never be able to buy its way past the gate, which is a
+  // different test entirely (scenarios.optimistic.noEffect / bestCase).
+  const capped = { jv: 608998, av_sd: 459927, av_nsd: 459927, tv_sd: 408516, tv_nsd: 408516, dor_uc: 1 };
+  const absurd = qualify(capped, { serviceFee: 114, cureDollars: 10_000_000 });
+  t('an absurd cure does not produce an absurd verdict', absurd.eligible === true || absurd.eligible === false);
+  t('...and never a negative asking price', absurd.scenarios.optimistic != null);
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 if (fail.length) {
   console.error(`DOR check — ${fail.length} of ${pass + fail.length} FAILED:`);

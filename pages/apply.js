@@ -1746,6 +1746,73 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         {d.cure ? 'What your documented repairs change' : 'Your property is worth appealing'}
       </h2>
 
+      {/* Identify the parcel we matched. A customer needs to see we found THEIR
+          house before any figure below it means anything. */}
+      {px.address && (
+        <div style={{ background: '#FBFCFE', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>{px.address}</div>
+          <div style={{ color: C.mutedGray, fontSize: 13 }}>
+            {[px.livingArea ? `${Number(px.livingArea).toLocaleString()} sq ft` : null,
+              px.yearBuilt ? `built ${px.yearBuilt}` : null,
+              px.parcelId ? `parcel ${px.parcelId}` : null].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+      )}
+
+      <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 20 }}>
+        These are your county&rsquo;s own figures from the {px.rollYear || ''} assessment roll.
+        You can check every one of them against your TRIM notice.
+      </p>
+
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+        {[
+          ['Just value — the figure a petition disputes', money(d.facts?.justValue)],
+          uncapped ? null : ['Your assessed value is capped at', money(d.facts?.cappedAt)],
+          uncapped ? null : ['A reduction has to clear this much first', money(d.facts?.differential)],
+        ].filter(Boolean).filter(([, v]) => v).map(([label, value], i) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            <span style={{ color: C.bodyGray }}>{label}</span>
+            <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: uncapped ? '#E8F5EE' : C.lightBlue, border: `1px solid ${uncapped ? '#B8DFC9' : '#C5D3E8'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+        {uncapped
+          ? <>Your assessed value is <strong>not capped</strong> — it equals your just value. That is the
+             best position to appeal from: every dollar taken off your just value comes straight off
+             the value you are taxed on, with nothing absorbing it first.</>
+          : (d.facts?.statement || <>Save Our Homes caps your assessed value below your just value, so a
+             reduction only reaches your bill once it clears that gap.</>)}
+      </div>
+
+      {/* When comparable sales already support a lower value, say so here rather
+          than making the customer take the cap arithmetic on trust. This is the
+          strongest thing we know about their property and it was previously not
+          surfaced until after payment. */}
+      {state.comps?.sufficient && state.comps?.indicatedValue && d.facts?.justValue
+        && state.comps.indicatedValue < d.facts.justValue && (
+        <div style={{ background: '#E8F5EE', border: '1px solid #B8DFC9', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          <strong>Comparable sales already support a lower value.</strong> {state.comps.comps?.length || 0} qualified
+          arms-length sales in your own appraiser neighbourhood indicate about {money(state.comps.indicatedValue)},
+          against the county&rsquo;s {money(d.facts.justValue)}. Those sales are cited in your petition.
+        </div>
+      )}
+
+      {/*
+        ORDER MATTERS HERE, AND THE FIRST VERSION HAD IT WRONG.
+        ======================================================================
+        These two blocks sat directly under the heading, ABOVE the parcel card and
+        above the figures table — so the screen opened by telling the owner their
+        repairs were "9.3% of your county's $764,980 just value" before it had
+        shown them which property it meant or where $764,980 came from. A delta
+        has to come after the things it is a delta of.
+
+        They now sit between the county's own figures and the savings estimates,
+        which is also the right side of the fact/estimate line this file keeps:
+        the delta is exact arithmetic on the roll, so it belongs with the facts
+        above it, not with the ±30% projections below.
+      */}
       {/*
         ====================================================================
         THE DELTA. WHAT A MINUTE OF TICKING BOXES ACTUALLY BOUGHT.
@@ -1836,10 +1903,10 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
             Did we miss anything?
           </div>
           <p style={{ fontSize: 13.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, margin: '0 0 12px' }}>
-            This is an ambitious reduction to ask comparable sales to carry on their own, so
-            anything else you can document counts. The ones owners most often forget: the age of
-            the roof, an air conditioner past its life, original kitchens and baths, and drainage
-            or flooding. <strong style={{ color: C.darkNavy }}>Only add what is actually true of
+            Comparable sales still have to carry the rest on their own, which is an ambitious
+            reduction to ask of them &mdash; so anything else you can document counts. The ones
+            owners most often forget: the age of the roof, an air conditioner past its life,
+            original kitchens and baths, and drainage or flooding. <strong style={{ color: C.darkNavy }}>Only add what is actually true of
             your home</strong> — you sign this petition yourself, and a claim you cannot support
             costs you the year rather than helping.
           </p>
@@ -1853,58 +1920,6 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         </div>
       )}
 
-      {/* Identify the parcel we matched. A customer needs to see we found THEIR
-          house before any figure below it means anything. */}
-      {px.address && (
-        <div style={{ background: '#FBFCFE', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-          <div style={{ color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>{px.address}</div>
-          <div style={{ color: C.mutedGray, fontSize: 13 }}>
-            {[px.livingArea ? `${Number(px.livingArea).toLocaleString()} sq ft` : null,
-              px.yearBuilt ? `built ${px.yearBuilt}` : null,
-              px.parcelId ? `parcel ${px.parcelId}` : null].filter(Boolean).join(' · ')}
-          </div>
-        </div>
-      )}
-
-      <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 20 }}>
-        These are your county&rsquo;s own figures from the {px.rollYear || ''} assessment roll.
-        You can check every one of them against your TRIM notice.
-      </p>
-
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-        {[
-          ['Just value — the figure a petition disputes', money(d.facts?.justValue)],
-          uncapped ? null : ['Your assessed value is capped at', money(d.facts?.cappedAt)],
-          uncapped ? null : ['A reduction has to clear this much first', money(d.facts?.differential)],
-        ].filter(Boolean).filter(([, v]) => v).map(([label, value], i) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 16px', background: i % 2 ? C.white : '#FBFCFE', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-            <span style={{ color: C.bodyGray }}>{label}</span>
-            <span style={{ color: C.darkNavy, fontWeight: 600 }}>{value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ background: uncapped ? '#E8F5EE' : C.lightBlue, border: `1px solid ${uncapped ? '#B8DFC9' : '#C5D3E8'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-        {uncapped
-          ? <>Your assessed value is <strong>not capped</strong> — it equals your just value. That is the
-             best position to appeal from: every dollar taken off your just value comes straight off
-             the value you are taxed on, with nothing absorbing it first.</>
-          : (d.facts?.statement || <>Save Our Homes caps your assessed value below your just value, so a
-             reduction only reaches your bill once it clears that gap.</>)}
-      </div>
-
-      {/* When comparable sales already support a lower value, say so here rather
-          than making the customer take the cap arithmetic on trust. This is the
-          strongest thing we know about their property and it was previously not
-          surfaced until after payment. */}
-      {state.comps?.sufficient && state.comps?.indicatedValue && d.facts?.justValue
-        && state.comps.indicatedValue < d.facts.justValue && (
-        <div style={{ background: '#E8F5EE', border: '1px solid #B8DFC9', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          <strong>Comparable sales already support a lower value.</strong> {state.comps.comps?.length || 0} qualified
-          arms-length sales in your own appraiser neighbourhood indicate about {money(state.comps.indicatedValue)},
-          against the county&rsquo;s {money(d.facts.justValue)}. Those sales are cited in your petition.
-        </div>
-      )}
 
       {/* Scenarios labelled with the reduction each assumes, not adjectives.
           "Typical: $3,121" invites the question the label cannot answer.
