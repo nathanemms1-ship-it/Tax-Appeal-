@@ -1095,14 +1095,44 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
         if (j?.found && j?.county) countyName = j.county;
       } catch (e) { console.log("County check failed:", e.message); }
       setChecking(false);
+      // PERSIST IT. It used to live and die in this local, so `property.county` was
+      // still empty on the account step, `flAccountVabFee` fell back to nothing, and
+      // the screen rendered "Total today $89" — then the fee step, which resolves the
+      // county properly, rendered "$114". The price went up after the customer had
+      // read a total. The comment at :1012 says this was fixed; it was fixed for
+      // arrivals from /check, which carry a county, and not for anyone who typed one.
+      if (countyName) onChange("county", countyName);
     }
-    // strict:true — if the geocoder could not place the address we gate on the
-    // earliest Florida deadline rather than the latest. The customer is not blocked:
-    // an unplaceable address already gets the "pick your county" screen at the fee
-    // step, and being asked to confirm a county beats being sold a filing that
-    // cannot arrive in time.
+    /*
+      ==========================================================================
+      A GEOCODER MISS IS NOT A CLOSED WINDOW. 24 Aug.
+      ==========================================================================
+      The comment that used to sit here read: "The customer is not blocked: an
+      unplaceable address already gets the 'pick your county' screen at the fee
+      step." That was false, and this line is why — it returns before the fee step
+      can ever be reached.
+
+      With strict:true and a null county, getFilingWindowStatus falls back to the
+      EARLIEST Florida deadline. Executed on 24 Aug: null -> {canFile:false,
+      canPreOrder:false, daysUntilHard:9}, while Broward, Miami-Dade and Orange all
+      return 25. So one failed /api/resolve-county call — a Census 403, a timeout, a
+      rural address it cannot place — sent a Broward homeowner to a terminal screen
+      reading "The Florida filing deadline is in 9 days ... we cannot accept new
+      filings this close to the cutoff." False about their county, on the first
+      screen of the funnel, with no way forward.
+
+      The strict fallback is right for PRICING and for gating a KNOWN county. It is
+      wrong as grounds for refusal when the county is simply unknown, because the
+      thing it is conservative about is the one fact we have not established.
+
+      Refusing here was also never load-bearing. Nothing can be sold through a closed
+      window regardless: /api/checkout re-runs this exact call with strict:true and
+      409s FILING_WINDOW_CLOSED, and re-tests county filability besides. Advancing an
+      unplaceable address costs nothing and routes it to the fee step, where the
+      county picker exists precisely for this case.
+    */
     const ws = getFilingWindowStatus(sc, countyName, { strict: true });
-    if (ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(sc, ws); return; }
+    if (countyName && ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(sc, ws); return; }
     if (ws && ws.canPreOrder) { setErr(""); onNext(); return; }
     if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();

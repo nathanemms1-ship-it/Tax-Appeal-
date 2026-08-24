@@ -139,21 +139,49 @@ const countyFeeInfo = isFL ? getFlVabFee(county) : null;
 const vabFee = isFL ? countyFeeInfo.vabFee : 0;
 const vabPayableTo = isFL ? countyFeeInfo.payableTo : '';
 
+/*
+  MOVED UP from below `lineItems`, because the service line needs it too. 24 Aug.
+  `county` arrives carrying its own suffix — apply.js sends bdJson.resolvedCounty,
+  which is "Broward County" — so strip once here and re-add per line.
+*/
+const countyLabel = String(county || '').replace(/\s+County$/i, '').trim();
+const countyPhrase = countyLabel ? `${countyLabel} County` : 'your county';
+
+/*
+  ==========================================================================
+  THE DESCRIPTION READ "VAB petition preparation & Prepared and filed by mail".
+  ==========================================================================
+  Three faults in one string, and it is the only line item every state gets.
+
+  (a) "VAB petition" is Florida vocabulary. A Texas customer's Stripe page — and
+      the descriptor on their card statement — named a body that does not exist in
+      Texas. send-letter.js and success.js were both audited for exactly this
+      class of error; the checkout line was missed.
+  (b) "& Prepared and" is a broken concatenation: two fragments joined by an
+      ampersand, in two different tenses.
+  (c) "Prepared and filed by mail" is past tense on a payment page, before the
+      customer has signed anything. Nothing has been prepared or filed yet.
+
+  It is also the only sentence some customers read carefully, because it is the
+  one on the page where they type a card number.
+*/
 const lineItems = [
 {
 price_data: {
 currency: 'usd',
 product_data: {
-name: 'TaxAppeal USA — Property Tax Dispute Filing',
-description: `VAB petition preparation & Prepared and filed by mail for ${address} — ${county}`,
+name: isFL
+  ? 'TaxAppeal USA — VAB petition preparation and filing'
+  : 'TaxAppeal USA — Property tax protest preparation and filing',
+description: isFL
+  ? `We prepare your DR-486 petition for ${address}, pay the ${countyPhrase} filing fee on your behalf, and mail it to the Value Adjustment Board with USPS tracking. You sign it — we do not represent you.`
+  : `We prepare your property tax protest for ${address} and mail it to the ${countyPhrase} appraisal district by USPS certified mail with return receipt. You sign it — we do not represent you.`,
 },
 unit_amount: 8900,
 },
 quantity: 1,
 },
 ];
-
-const countyLabel = String(county || '').replace(/\s+County$/i, '').trim();
 if (isFL && vabFee > 0) {
 lineItems.push({
 price_data: {

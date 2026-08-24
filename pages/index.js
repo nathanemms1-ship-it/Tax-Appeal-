@@ -598,7 +598,22 @@ export default function Landing() {
             <div className="price-left">
               <div className="price-tag">One-time fee</div>
               <div className="price-amount">$89</div>
-              <div className="price-note">Flat rate. No hidden cuts.</div>
+              {/*
+                THE COUNTY FEE IS NOT INCLUDED, AND THIS PAGE IMPLIED IT WAS. 24 Aug.
+                "Flat rate. No hidden cuts." sat alone under $89 while /terms said
+                "your total in Florida is $104 to $139", /check said "on top of the
+                $89 there is your county's own filing fee", and _app.js published
+                maxPrice 139.00 in this page's own schema. On the state carrying
+                100% of paid traffic that is a $50 understatement printed directly
+                under the words "no hidden cuts". Texas and Georgia genuinely are
+                $89, so the honest sentence has to separate them rather than pick one.
+              */}
+              <div className="price-note">Flat rate. No percentage of your savings, ever.</div>
+              <div className="price-note" style={{ marginTop: 6 }}>
+                In Florida your county charges its own filing fee of $15&ndash;$50 on top. We pay
+                it for you and show your exact total before you pay &mdash; $104 to $139 all in.
+                Texas and Georgia charge no filing fee, so $89 is the whole price.
+              </div>
             </div>
             <div className="price-divider" />
             <div className="price-right">
@@ -612,7 +627,9 @@ export default function Landing() {
       {/* What's included */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-          <div className="section-title">Everything included for $89</div>
+          {/* Was "Everything included for $89" — see the price-note comment above.
+              In Florida it is not everything, and the county fee is the part it left out. */}
+          <div className="section-title">What the $89 covers</div>
           <div className="checklist">
             {[
               ["We mail the appeal for you", "Your signed filing goes to the correct authority by tracked USPS mail — no action needed on your end after you sign."],
@@ -722,7 +739,16 @@ export default function Landing() {
       {/* Footer CTA */}
       <div className="footer-cta">
         <h2>Ready to fight your tax bill?</h2>
-        <p>Join homeowners across Texas, Georgia, Florida, Arkansas, and Alabama saving money every year.</p>
+        {/*
+          Was: "Join homeowners across Texas, Georgia, Florida, Arkansas, and Alabama
+          saving money every year." That asserts an existing customer base and
+          recurring results. The comment at :504 in this same file records that there
+          has never been a customer, which is why twenty fabricated testimonials came
+          out under 16 C.F.R. Part 465. verify-pages bans "Join thousands of"; this
+          sentence made the identical claim in words the guard did not match, and it
+          also named two states apply.js refuses.
+        */}
+        <p>We prepare and mail property tax appeals in Texas, Georgia and Florida.</p>
         <button className="footer-cta-btn" onClick={go}>Start my dispute — $89 →</button>
         <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
           You won't be charged until your appeal is ready to file.

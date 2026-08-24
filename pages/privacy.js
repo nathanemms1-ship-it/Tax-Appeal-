@@ -19,7 +19,9 @@ export default function Privacy() {
               <div style={{ fontSize: 20, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>TaxAppeal USA</div>
             </Link>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1B2A4A', margin: '16px 0 8px' }}>Privacy Policy</h1>
-            <p style={{ fontSize: 13, color: '#999' }}>Last updated: June 2025</p>
+            {/* Was "June 2025" — fourteen months stale, and the first line a Google Ads
+                policy review or a regulator reads. /terms already says August 2026. */}
+            <p style={{ fontSize: 13, color: '#999' }}>Last updated: August 2026</p>
           </div>
 
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
@@ -55,11 +57,18 @@ export default function Privacy() {
               <tbody>
                 {[
                   ['Stripe', 'Payment processing', 'Name, email, payment amount'],
-                  ['Lob.com', 'Mail dispatch — certified (TX/GA/AR/AL) and First Class (FL)', 'Name, property address, letter content'],
+                  ['Lob.com', 'Mail dispatch — certified (TX/GA) and First Class (FL)', 'Name, property address, letter content'],
                   ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
                   ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
                   ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
                   ['Google', 'Address autocomplete', 'Address input (partial)'],
+                  // Added 24 Aug. _app.js has loaded gtag with the Google Ads
+                  // conversion ID since the campaign started on 19 Aug, and fires
+                  // conversion events from apply.js and success.js. Google has been
+                  // receiving this data for five days and was not disclosed as a
+                  // recipient anywhere on this page.
+                  ['Google Analytics', 'Site usage measurement', 'Pages visited, IP address, device type'],
+                  ['Google Ads', 'Advertising and conversion measurement', 'Pages visited, whether an order completed, order value'],
                   ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],
                   ['Supabase', 'Order database storage', 'Full order record'],
                   ['Vercel', 'Application hosting', 'Server logs, IP addresses'],
@@ -88,8 +97,40 @@ export default function Privacy() {
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>6. Security</h2>
             <p>We use industry-standard encryption (TLS/HTTPS) for all data in transit. Payment data is handled entirely by Stripe and never touches our servers. We use row-level security on our database to protect your records.</p>
 
-            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. Cookies</h2>
-            <p>We use minimal session cookies required for the checkout flow. We do not use advertising or tracking cookies.</p>
+            {/*
+              THIS SECTION SAID "We do not use advertising or tracking cookies" WHILE
+              WE DID. 24 Aug.
+
+              _app.js:112-125 loads googletagmanager with NEXT_PUBLIC_GADS_ID and calls
+              gtag('config', 'AW-...'), which sets _gcl_au; the analytics ID sets _ga
+              and _ga_*. Both are advertising and analytics cookies by Google's own
+              naming. apply.js and success.js additionally fire conversion events with
+              send_to. The campaign has been serving since 19 Aug, so this sentence has
+              been false on every page view of a paid click.
+
+              Left as-was it is a live misstatement in the operative document, on a
+              site running Google Ads — which is also a Google Ads policy exposure, not
+              only a privacy one.
+            */}
+            <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>7. Cookies and advertising</h2>
+            <p>We use session cookies required for the checkout flow.</p>
+            <p style={{ marginTop: 12 }}>
+              We also use Google Analytics and Google Ads. When you visit any page on this site,
+              Google sets cookies (including <code>_ga</code> and <code>_gcl_au</code>) that let us
+              count visitors, see which pages they use, and see which of our ads led to an order.
+              Google may use this data to show you our ads on other sites.
+            </p>
+            <p style={{ marginTop: 12 }}>
+              You can opt out of Google Analytics with{' '}
+              <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer">Google&rsquo;s browser add-on</a>,
+              and you can turn off personalised advertising in your{' '}
+              <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google Ad Settings</a>.
+              Blocking cookies in your browser also stops these, and the checkout flow will still work.
+            </p>
+            <p style={{ marginTop: 12 }}>
+              We do not sell your personal information, and we do not use cookies to build a profile
+              of you for anyone other than ourselves.
+            </p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>8. Contact</h2>
             <p>
