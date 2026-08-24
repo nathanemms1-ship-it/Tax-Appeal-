@@ -38,8 +38,52 @@ import { useEffect, useRef, useState } from 'react';
  * query guaranteed to resolve, and it sidesteps the ZIP disagreement that made
  * this page tell people we had no record of their house — the roll said 33064
  * where USPS said 33060.
+ *
+ * ============================================================================
+ * autoComplete WAS "off". IT NOW SAYS "street-address". 24 AUG.
+ * ============================================================================
+ * "off" suppresses the browser's own saved-address fill. Chrome's field data across
+ * millions of page loads has autofill users abandoning forms ~75% less often and
+ * filling ~35% faster; Zuko puts completion at 71% for autofill users against 59%
+ * without. On a page whose single job is getting one address typed, on traffic that
+ * is overwhelmingly mobile, that was the largest available lever and it was off.
+ *
+ * It was off for a real reason — the browser's dropdown fighting the roll-backed
+ * listbox below. That collision mostly does not arise, because the two appear at
+ * different moments: onFocus opens ours only when suggestions already exist, and
+ * suggestions only exist once the debounced /api/suggest call has returned rows, by
+ * which point the browser has filtered its own list away. The browser's list shows
+ * at empty focus, which is exactly when ours is empty.
+ *
+ * And a browser-filled address is not the failure warned about above. That warning
+ * is about SUGGESTING a street we hold no parcel for. Autofill types the visitor's
+ * own real address, which then goes through the same /api/check matcher and the
+ * same `candidates` near-miss fallback as anything typed by hand.
+ *
+ * IF `no_parcel` RISES AFTER THIS SHIPS, suspect this line first — reverting it is
+ * a one-word change. It is currently 28% of all checks and the county split has
+ * still never been queried. See Funnel_Read_2026-08-23.md.
+ *
+ * ============================================================================
+ * WHY autoCorrect IS OFF
+ * ============================================================================
+ * iOS autocorrect rewrites street names — Cir, Pkwy, Vía, and essentially every
+ * Florida street that is not a dictionary word. The address field already carries
+ * the longest dwell time and the second-highest re-edit rate of any field type in
+ * Zuko's benchmarks; autocorrect makes both worse and does it silently.
+ * autoCapitalize="words" matches how the roll spells things.
+ *
+ * ============================================================================
+ * `id` AND THE aria-label FALLBACK
+ * ============================================================================
+ * Pass `id` when the caller renders a visible <label htmlFor>. A visible label is
+ * the better accessible name and aria-label would silently override it, so
+ * aria-label is only applied when no id was given. /check now labels the field
+ * "Your home address"; anything still calling this without an id keeps the old
+ * behaviour unchanged.
  */
 export default function AddressAutocomplete({
+  id = null,
   value,
   onChange,
   onSelect,
@@ -123,9 +167,14 @@ export default function AddressAutocomplete({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onFocus={() => { if (suggestions.length) setShow(true); }}
+        id={id || undefined}
         placeholder={placeholder}
-        aria-label="Street address"
-        autoComplete="off"
+        aria-label={id ? undefined : 'Street address'}
+        autoComplete="street-address"
+        autoCorrect="off"
+        autoCapitalize="words"
+        spellCheck={false}
+        enterKeyHint="search"
         role="combobox"
         aria-expanded={show}
         aria-autocomplete="list"

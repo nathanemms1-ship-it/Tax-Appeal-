@@ -42,10 +42,16 @@ import { stashVerdict } from '../lib/checkHandoff';
  * with no way to tell which figure you had. We hold the county roll, so we can
  * answer it for free and say no.
  *
- * This page therefore leads with the "no". A refusal that the homeowner can
- * verify against their own TRIM notice is the only claim in this market that
- * survives being checked, which is what makes it worth more than any assertion
- * we could make about ourselves.
+ * A refusal that the homeowner can verify against their own TRIM notice is the
+ * only claim in this market that survives being checked, which is what makes it
+ * worth more than any assertion we could make about ourselves.
+ *
+ * UNTIL 24 AUG THIS PAGE LED WITH THE "NO". It does not any more, and the reason
+ * is placement rather than a change of heart — the refusal is still the product
+ * and the verdict screens below are untouched. A headline that answered itself
+ * "no" before the visitor had typed anything was measured turning ~98 real
+ * arrivals into ~28 checks. The full argument, with the research it rests on, is
+ * in the hero comment further down this file. Read that before restoring it.
  *
  * ============================================================================
  * FACTS AND ESTIMATES ARE VISUALLY SEPARATE, NOT JUST WORDED DIFFERENTLY
@@ -199,6 +205,9 @@ export default function CheckPage() {
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');
   const [contactOpen, setContactOpen] = useState(false);
+  // ZIP is disclosed on demand rather than shown by default — see the comment at
+  // the field itself. Reset to closed when a suggestion supplies the roll's own ZIP.
+  const [zipOpen, setZipOpen] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -376,46 +385,130 @@ export default function CheckPage() {
           nothing telling a stranger whose site they had landed on. Matches the bar
           on /apply so the funnel does not appear to change hands halfway through.
         */}
-        <div style={{ background: C.navy, color: C.white, textAlign: 'center', padding: '10px 20px', fontSize: 13 }}>
-          Check your property free — <strong style={{ color: C.gold }}>no account, no card, no phone call.</strong>
-        </div>
+        {/*
+          THE TOP RIBBON IS GONE, DELIBERATELY.
+
+          It read "Check your property free — no account, no card, no phone call."
+          All three promises now sit as chips attached to the button, which is where
+          the objection is actually felt. On a 375px phone the ribbon spent ~40px of
+          the only screenful that matters repeating words that appear again 300px
+          lower. See the fold arithmetic in the hero comment below.
+        */}
 
         <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🏠</div>
             <div>
               <div style={{ fontFamily: '"DM Serif Display", serif', fontSize: 19, color: C.darkNavy, lineHeight: 1 }}>TaxAppeal</div>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.5px', color: C.muted }}>Property Tax Dispute</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.5px', color: C.muted, whiteSpace: 'nowrap' }}>Property Tax Dispute</div>
             </div>
           </Link>
+          {/*
+            THE CONTACT CONTROL IS A LINK NOW, NOT A FILLED NAVY BUTTON.
+
+            Found by screenshotting the page at 375px rather than by any check. It was
+            rendering as the single loudest element on the first screen — same navy
+            fill, same weight and a larger tap target than "Check my property", which
+            sits 400px lower. The most prominent button on a page whose only job is
+            getting an address typed was a support link. It stays reachable; it stops
+            competing.
+          */}
           <button
             type="button"
             onClick={() => setContactOpen(true)}
-            style={{ fontSize: 15, fontWeight: 500, color: C.white, background: C.navy, fontFamily: 'inherit', padding: '9px 18px', borderRadius: 8, border: `1.5px solid ${C.navy}`, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontSize: 14, fontWeight: 500, color: C.navy, background: 'transparent', fontFamily: 'inherit', padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
-            Need help? Contact us
+            Need help?
           </button>
         </div>
 
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px 80px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 5vw, 40px) 20px 80px' }}>
 
-          <h1 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 40, lineHeight: 1.15, margin: '0 0 16px' }}>
-            Will an appeal actually lower your tax bill?
+          {/*
+            ============================================================================
+            THE HERO IS 21 WORDS. IT USED TO BE 74. THAT WAS THE BUG.
+            ============================================================================
+            21-23 Aug: 116 landings on this page produced 46 checks. Net of ~18 checks
+            that were our own testing — testing runs checks, it barely touches landings
+            — that is roughly 28 real strangers out of ~98 who typed anything at all.
+            About 71% left without using the one control on the page. Zuko's form
+            benchmark has ~68% of people who SEE a form start filling it in; the
+            healthy number here is ~30% walking away, not 71%.
+
+            The copy was not the jargon problem it looked like. Measured 24 Aug, the
+            old hero scored Flesch-Kincaid grade 5.5 — plainer by syllable count than
+            Ownwell, Redux, Opendoor and King County. It was 74 words against their
+            17-33. So: not harder words. Three times too many of them, and pointed the
+            wrong way.
+
+            Two things were actually wrong.
+
+            (1) THE FOLD. h1 at a hardcoded fontSize: 40 wraps to four or five lines on
+            a 375px screen. Header 110px + padding 40 + h1 ~200 + lead ~123 + the Save
+            Our Homes paragraph ~237 put the address box near 700px — at or past the
+            fold on a phone, which is where paid traffic overwhelmingly is. The h1 now
+            uses clamp() and the paragraph below it is one line.
+
+            (2) THE DIRECTION. "Will an appeal actually lower your tax bill?" is a
+            question whose very next sentence answered "no". Nobody types an address
+            into a page that has just talked them out of it. That opening was a
+            deliberate choice — see THE REFUSAL IS THE PRODUCT in the file header — and
+            the choice was right about the product and wrong about the placement.
+
+            The refusal has not been softened and nothing about what we sell has
+            changed. It moved. Two-sided messages work when the drawback FOLLOWS the
+            promise and fail when it leads: Eisend's meta-analysis finds a curvilinear
+            optimum, the blemishing effect (Ein-Gar/Shiv/Tormala) requires the negative
+            to come second under low-effort processing, the pratfall effect makes
+            admitting flaws a privilege of established competence an unknown site has
+            not banked yet, and GOV.UK's "check a service is suitable" pattern is blunt
+            that users do not read eligibility prose placed before the start button —
+            it belongs in the questions and in the result.
+
+            So the honesty now sits in three places that are all AFTER the box: the
+            "4 in 10" line under the form, the "Why we sometimes say no" block below
+            it, and — the one that matters — the refusal verdict itself, which is
+            unchanged and is still the product.
+
+            Whoever edits this hero next: the constraint is a word count, not a tone.
+            Keep it at or under ~25 words to the top of the form, and keep every
+            concept that needs a definition below the box.
+          */}
+          <h1 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.85rem, 6.4vw, 2.5rem)', lineHeight: 1.14, margin: '0 0 14px', textWrap: 'balance' }}>
+            Is your Florida tax bill too high?
           </h1>
 
-          <p style={{ fontSize: 18, lineHeight: 1.6, color: C.body, margin: '0 0 8px' }}>
-            For most Florida homeowners, the honest answer is no — and the companies charging
-            them to file know it.
-          </p>
-          <p style={{ fontSize: 16, lineHeight: 1.6, color: C.body, margin: '0 0 32px' }}>
-            Save Our Homes caps how fast your assessed value can rise. Once that cap opens a
-            gap, winning a reduction in market value doesn&rsquo;t change what you pay. We check
-            your property against your county&rsquo;s own tax roll and tell you either way.
-            Free, no account, no card.
+          <p style={{ fontSize: 'clamp(16px, 4.2vw, 18px)', lineHeight: 1.55, color: C.body, margin: '0 0 20px' }}>
+            Type your address. We check your county&rsquo;s own records and give you a
+            straight answer.
           </p>
 
           {/* ── Input ─────────────────────────────────────────────────────── */}
           <form onSubmit={runCheck} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 24 }}>
+            {/*
+              A VISIBLE LABEL, NOT A PLACEHOLDER DOING A LABEL'S JOB.
+
+              At 375px the field rendered as a lone box containing "8023 Marbella Creek
+              Ave", which reads as a value already filled in rather than an instruction.
+              Baymard puts placeholder-as-label at 38% of mobile checkouts and finds it
+              fails; on a single-field page the label is the only instruction there is.
+              The example address stays as the placeholder — 60% of sites give no format
+              example at all and this one is genuinely useful.
+            */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 7 }}>
+              <label htmlFor="ta-check-street" style={{ fontSize: 14, fontWeight: 600, color: C.darkNavy }}>
+                Your home address
+              </label>
+              {!zipOpen && (
+                <button
+                  type="button"
+                  onClick={() => setZipOpen(true)}
+                  style={{ padding: 0, fontSize: 13, color: C.navy, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}
+                >
+                  Add a ZIP
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {/*
                 Suggestions come from OUR roll, not Google — see the header of
@@ -424,22 +517,45 @@ export default function CheckPage() {
                 guaranteed to resolve.
               */}
               <AddressAutocomplete
+                id="ta-check-street"
                 value={form.street}
                 onChange={(v) => setForm((f) => ({ ...f, street: v }))}
-                onSelect={(s) => setForm({ street: s.street || '', zip: s.zip || '' })}
+                onSelect={(s) => { setForm({ street: s.street || '', zip: s.zip || '' }); setZipOpen(false); }}
                 zip={form.zip}
                 colors={C}
-                style={{ flex: '3 1 260px' }}
-              />
-              <input
-                value={form.zip}
-                onChange={set('zip')}
-                placeholder="ZIP (optional)"
-                inputMode="numeric"
-                aria-label="ZIP code, optional"
-                style={{ flex: '1 1 130px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                style={{ flex: '1 1 100%' }}
               />
             </div>
+
+            {/*
+              ZIP IS BEHIND A LINK NOW. It was a full-width box under the address,
+              captioned "(optional)" and looking exactly as mandatory as the field
+              above it — a second ask on a page selling "all we need is an address".
+
+              It is not removed, because it still disambiguates. It is not needed by
+              default, because picking a suggestion writes the roll's own ZIP back
+              (see AddressAutocomplete's header) and a genuine ambiguity already comes
+              back from /api/check as `candidates`, which this page renders as "Did you
+              mean one of these?" — a better disambiguation than asking 100% of
+              visitors for a ZIP to help the few percent who need it.
+            */}
+            {zipOpen && (
+              <div style={{ marginTop: 10 }}>
+                <label htmlFor="ta-check-zip" style={{ display: 'block', fontSize: 13, color: C.body, marginBottom: 6 }}>
+                  ZIP code <span style={{ color: C.muted }}>(optional)</span>
+                </label>
+                <input
+                  id="ta-check-zip"
+                  value={form.zip}
+                  onChange={set('zip')}
+                  placeholder="33064"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  autoCorrect="off"
+                  style={{ width: 150, maxWidth: '100%', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                />
+              </div>
+            )}
             <button
               type="submit"
               disabled={state.status === 'loading'}
@@ -449,11 +565,34 @@ export default function CheckPage() {
                 cursor: state.status === 'loading' ? 'wait' : 'pointer', fontFamily: 'inherit',
               }}
             >
-              {state.status === 'loading' ? 'Checking the county roll…' : 'Check my property — free'}
+              {state.status === 'loading' ? 'Checking your county records…' : 'Check my property'}
             </button>
-            <p style={{ fontSize: 13, color: C.muted, margin: '12px 0 0' }}>
-              Covering all 67 Florida counties — we hold the current Department of Revenue
-              roll for every one of them.
+
+            {/*
+              FOUR CHIPS, ONE OBJECTION EACH — cost, time, commitment, contact.
+              This is the pattern every converting address-first funnel in this market
+              uses (Ownwell: "Only pay if you save / No upfront costs"; Opendoor: "No
+              obligation. Takes 5 minutes. Your information stays private."). It
+              replaces the old top ribbon and the "Department of Revenue roll" line,
+              which answered a question nobody standing at this box was asking.
+            */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, margin: '13px 0 0' }}>
+              {['Free', 'About 20 seconds', 'No account, no card', 'No phone calls'].map((t) => (
+                <span key={t} style={{ fontSize: 12.5, color: C.body, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: '5px 11px', whiteSpace: 'nowrap' }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            {/*
+              WHY WE WANT THE ADDRESS, next to the box that wants it. Baymard finds
+              65% of mobile checkouts create privacy anxiety purely by not saying what
+              a field is for, and that test subjects respond by abandoning or typing
+              rubbish. One sentence removes it.
+            */}
+            <p style={{ fontSize: 12.5, color: C.muted, margin: '11px 0 0', lineHeight: 1.5 }}>
+              We use your address to pull your county&rsquo;s public record. That&rsquo;s all
+              it&rsquo;s for — we don&rsquo;t sell it and we won&rsquo;t call you.
             </p>
           </form>
 
@@ -463,11 +602,11 @@ export default function CheckPage() {
             you about to ask for my details, and where do your numbers come from.
             Answered before the fold rather than in a FAQ nobody scrolls to.
           */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 26 }}>
             {[
-              ['Free', 'No account, no card'],
-              ['County records', "Your county's own tax roll"],
-              ['Straight answer', 'We say no when it is no'],
+              ['$89 flat', 'Never a percentage of your savings'],
+              ['All 67 counties', "We hold every Florida county's roll"],
+              ['We say no', "About 4 in 10 homes can't be helped"],
             ].map(([head, sub]) => (
               <div key={head} style={{ flex: '1 1 190px', background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '13px 15px' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.darkNavy }}>{head}</div>
@@ -475,6 +614,23 @@ export default function CheckPage() {
               </div>
             ))}
           </div>
+
+          {/*
+            THE PRICE, ON THE FIRST SCREEN. Of seven live competitors read on 24 Aug,
+            the three that disclose a rate charge 30-50% OF SAVINGS (O'Connor 50%,
+            prptytax 45%, FTAPS $20 + 30%) and the two modern ones (Ownwell, Redux)
+            hide the percentage entirely until deep in the funnel. A flat $89 stated
+            up front is the strongest competitive fact we own and it was three scrolls
+            down. It is shown only before a check has run — once there is a verdict on
+            screen the verdict carries its own pricing.
+          */}
+          {!d && (
+            <p style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6, marginBottom: 34 }}>
+              On top of the $89 there is your county&rsquo;s own filing fee — <strong style={{ color: C.darkNavy }}>$15
+              to $50</strong>, set by the county, not by us. If the Board lowers your value, Florida
+              law requires the county to give that fee back.
+            </p>
+          )}
 
           {state.error && (
             <p style={{ color: C.amber, fontSize: 15 }}>{state.error}</p>
@@ -1036,9 +1192,50 @@ export default function CheckPage() {
             process block competes with it. This is here for the visitor still
             deciding whether to type an address at all.
           */}
+          {/*
+            SAVE OUR HOMES, EXPLAINED BELOW THE BOX INSTEAD OF ABOVE IT.
+
+            This is the paragraph that used to be sentence three of the hero. Every
+            word in it was short and the IDEA was not: "once that cap opens a gap,
+            winning a reduction in market value doesn't change what you pay" asks a
+            cold ad click to hold four new concepts at once — the cap, the gap,
+            assessed versus market value, and the fact that winning can still change
+            nothing. A readability formula counts syllables and cannot see that.
+
+            Rewritten with the two terms of art removed: "taxable value" for assessed
+            value, "what it would sell for" for market value, and no cap/gap metaphor
+            at all. If you are tempted to put "assessed value" back, note that the
+            verdict screens below still use it — correctly, next to the county's own
+            figure and the parcel number, where the homeowner can check it against
+            their TRIM notice. It belongs there. It does not belong here.
+          */}
+          {!d && (
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 'clamp(18px, 4vw, 24px)', margin: '0 0 34px' }}>
+              <h2 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.25rem, 4.6vw, 1.5rem)', margin: '0 0 10px' }}>
+                Why we sometimes say no
+              </h2>
+              <p style={{ fontSize: 15, color: C.body, lineHeight: 1.65, margin: '0 0 12px' }}>
+                Florida has a rule called Save Our Homes. It limits how fast the taxable value
+                of your home can climb — and after a few years that figure is often well below
+                what the house would actually sell for.
+              </p>
+              <p style={{ fontSize: 15, color: C.body, lineHeight: 1.65, margin: '0 0 12px' }}>
+                When that is true of your home, arguing that it is worth less than the county
+                thinks will not lower your bill. You are already being taxed on the smaller
+                number. Winning changes nothing.
+              </p>
+              <p style={{ fontSize: 15, color: C.body, lineHeight: 1.65, margin: 0 }}>
+                That is about 4 in 10 Florida homes. Every other company will take their money
+                and file anyway, because finding out requires the county&rsquo;s own roll and no
+                data provider sells it. <strong style={{ color: C.darkNavy }}>We hold the roll,
+                so we can tell you in about twenty seconds, for free, and send you away.</strong>
+              </p>
+            </div>
+          )}
+
           {!d && (
             <div style={{ marginTop: 8 }}>
-              <h2 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 26, margin: '0 0 6px' }}>
+              <h2 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.35rem, 5vw, 1.625rem)', margin: '0 0 6px' }}>
                 If it turns out you can save
               </h2>
               <p style={{ fontSize: 15, color: C.body, lineHeight: 1.6, margin: '0 0 22px' }}>
