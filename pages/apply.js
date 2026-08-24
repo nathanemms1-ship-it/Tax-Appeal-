@@ -2766,6 +2766,17 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   const [valueConflict, setValueConflict] = useState(null);
   const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  /**
+   * Whether the failure was ours-and-transient or the lookup genuinely not working.
+   *
+   * The heading on the error screen below was hardcoded "Lookup failed" for every
+   * error reachable here. When /api/generate-dr486 answers 503 VENDOR_UNAVAILABLE —
+   * the model API was briefly unreachable, nothing to do with the lookup, which had
+   * already succeeded — the customer read "Lookup failed" above a sentence saying
+   * their petition service was busy. Two different claims, one screen, and the one
+   * in the larger type was the wrong one.
+   */
+  const [errTransient, setErrTransient] = useState(false);
   const ran = useRef(false);
   const { account, property, issues, costOverrides } = formData;
   const addr = `${property.street}, ${property.city}, ${property.state} ${property.zip}`;
@@ -2774,7 +2785,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   useEffect(() => { if (ran.current) return; ran.current = true; run(); }, []);
 
   const run = async () => {
-    setLoading(true); setErrMsg(""); setLetter(""); setPropData(null);
+    setLoading(true); setErrMsg(""); setErrTransient(false); setLetter(""); setPropData(null);
     try {
       const res = await fetch("/api/lookup", {
         method: "POST",
@@ -3112,6 +3123,14 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           }),
         });
         claudeJson = await dr486Res.json();
+        /**
+         * A 503 from this route means the model API was briefly unreachable or slow —
+         * see the header of pages/api/generate-dr486.js. The lookup already worked, so
+         * this is worth telling the customer plainly and worth them clicking Try Again
+         * for. Read from the STATUS, not from the message text, so the copy can change
+         * without silently changing what the screen claims.
+         */
+        if (dr486Res.status === 503) setErrTransient(true);
         if (claudeJson.error) throw new Error(claudeJson.error);
         // For FL: letter display shows evidence text; letterKey points to full DR-486 HTML
         setLetter(claudeJson.evidenceText || '');
@@ -3234,7 +3253,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
       <div style={{ maxWidth: 520, margin: "80px auto", padding: "0 24px" }}>
         <div style={{ ...cardStyle, textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 8 }}>Lookup failed</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 8 }}>{errTransient ? "One moment needed" : "Lookup failed"}</h2>
           <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 20, textAlign: "left" }}>{errMsg}</div>
           <button style={primaryBtn} onClick={() => { ran.current = false; run(); ran.current = true; }}>Try Again</button>
           <div style={{ marginTop: 12 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Start over</button></div>

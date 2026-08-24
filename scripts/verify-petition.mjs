@@ -527,6 +527,240 @@ t('the preparer is disclaimed as non-representative', /not the owner's represent
       /reduced by the priced grounds/.test(evidenceLedPrompt) && !/MINIMUM reduction/.test(evidenceLedPrompt),
       'the two cases must not collapse into one another');
   }
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════════
+   * A TRANSIENT ANTHROPIC FAILURE MUST NOT COST THE SALE
+   * ══════════════════════════════════════════════════════════════════════════
+   * 24 Aug 2026: Anthropic had a brief outage. This route had ONE fetch, no
+   * timeout and no retry, so a customer on the review screen at that moment got a
+   * 500 and could not buy. The truncation retry above does nothing for it — that
+   * is the model finishing and running out of budget, a different failure at a
+   * different layer.
+   *
+   * The distinction these assertions defend is between "not now" and "never", and
+   * it is a MONEY distinction before it is a latency one. A non-streaming request
+   * we hang up on has already been billed, so retrying a timeout pays twice and
+   * sells nothing. Only failures that provably produced no tokens are retried —
+   * a connection that never landed, a 429, a 503/529 capacity refusal.
+   *
+   * Counted by INVOKING the handler. A regex over this file would prove only that
+   * the words are present, which is how five earlier assertions came to match
+   * their own documentation.
+   */
+  {
+    const mod = await import('../pages/api/generate-dr486.js');
+    const { ANTHROPIC_MAX_ATTEMPTS, ANTHROPIC_BACKOFF_MS, config: dr486Config } = mod;
+
+    // Assert the REAL values before any test zeroes them, so a backoff deleted in
+    // production cannot hide behind the speed-up below.
+    t('the retry ceiling is bounded and greater than one attempt',
+      ANTHROPIC_MAX_ATTEMPTS >= 2 && ANTHROPIC_MAX_ATTEMPTS <= 4, ANTHROPIC_MAX_ATTEMPTS);
+    t('backoffs are real and increasing — a retry storm is not a retry',
+      ANTHROPIC_BACKOFF_MS.length >= 2 &&
+      ANTHROPIC_BACKOFF_MS[0] > 0 &&
+      ANTHROPIC_BACKOFF_MS.every((ms, i, a) => i === 0 || ms > a[i - 1]),
+      ANTHROPIC_BACKOFF_MS);
+
+    /**
+     * THE BUDGET IS ONLY REAL IF THE PLATFORM ALLOWS IT.
+     *
+     * A wall-clock budget larger than maxDuration is not a budget — the function is
+     * killed mid-retry and Vercel returns an HTML 504, which pages/apply.js then
+     * fails to parse as JSON. The customer sees a JSON syntax error instead of the
+     * 503 copy, and the whole vendor-unavailable path is unreachable in exactly the
+     * outage it was written for. Read from the source so the numbers cannot drift
+     * apart silently.
+     */
+    const dr486Src = readCode('pages/api/generate-dr486.js');
+    const budgetMs = Number((dr486Src.match(/ANTHROPIC_EVIDENCE_BUDGET_MS\s*=\s*(\d+)/) || [])[1]);
+    t('the route pins its own function ceiling rather than inheriting one',
+      typeof dr486Config?.maxDuration === 'number' && dr486Config.maxDuration > 0,
+      dr486Config?.maxDuration);
+    t('the evidence budget fits inside that ceiling with room to answer',
+      budgetMs > 0 && budgetMs <= (dr486Config.maxDuration - 20) * 1000,
+      { budgetMs, maxDuration: dr486Config?.maxDuration });
+    t('the body-size limit survived being merged with maxDuration',
+      dr486Config?.api?.bodyParser?.sizeLimit === '64kb', dr486Config?.api);
+
+    // Now zero the backoffs for the duration of the counting tests.
+    const realBackoff = [...ANTHROPIC_BACKOFF_MS];
+    ANTHROPIC_BACKOFF_MS.fill(0);
+
+    try {
+      const attemptsFor = async (responder, { suppress = false } = {}) => {
+        let calls = 0;
+        let lastInit = null;
+        const realFetch = globalThis.fetch;
+        const realKey = process.env.ANTHROPIC_API_KEY;
+        const realSuppress = process.env.SUPPRESS_EXTERNAL_CALLS;
+        process.env.ANTHROPIC_API_KEY = 'stub';
+        if (suppress) process.env.SUPPRESS_EXTERNAL_CALLS = '1';
+        else delete process.env.SUPPRESS_EXTERNAL_CALLS;
+        globalThis.fetch = async (url, init) => {
+          if (String(url).includes('anthropic')) { lastInit = init; return responder(++calls); }
+          return { ok: true, status: 200, json: async () => ({}) };
+        };
+        const res = {
+          statusCode: 0, payload: null,
+          status(c) { this.statusCode = c; return this; },
+          json(p) { this.payload = p; return this; },
+          setHeader() { return this; },
+          end() { return this; },
+        };
+        try {
+          await dr486Handler({
+            method: 'POST', body: { ...BODY, askRestsOn: 'mass_appraisal_floor' }, query: {},
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+            socket: { remoteAddress: '127.0.0.1' },
+          }, res);
+        } catch { /* the assertions judge the attempts and the answer */ }
+        finally {
+          globalThis.fetch = realFetch;
+          if (realKey === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = realKey;
+          if (realSuppress === undefined) delete process.env.SUPPRESS_EXTERNAL_CALLS;
+          else process.env.SUPPRESS_EXTERNAL_CALLS = realSuppress;
+        }
+        return { calls, lastInit, statusCode: res.statusCode, payload: res.payload };
+      };
+
+      const good = { json: async () => ({ content: [{ text: 'BASIS OF PETITION\n\nStub.' }], stop_reason: 'end_turn' }) };
+      const truncated = { json: async () => ({ content: [{ text: 'BASIS OF PETITION\n\nCut off mid-' }], stop_reason: 'max_tokens' }) };
+      const connFailed = () => { throw new TypeError('fetch failed'); };
+
+      // The healthy path is untouched — one call, no retry, no added latency.
+      const clean = await attemptsFor(() => good);
+      t('a working Anthropic call is still made exactly once', clean.calls === 1, clean.calls);
+
+      /**
+       * THE TIMEOUT EXISTS AND IS BOUNDED BY WHAT WAS ASKED FOR.
+       *
+       * Asserted from the init object the handler actually passed to fetch. Without
+       * this, deleting `signal:` outright leaves every count-based assertion below
+       * passing — the exact shape of "a test that passes while the feature is
+       * broken" this suite exists to prevent.
+       */
+      t('the request carries an abort signal — the hang has a bound',
+        clean.lastInit?.signal instanceof AbortSignal, typeof clean.lastInit?.signal);
+
+      /**
+       * AND THE TWO askClaude CALLS SHARE ONE BUDGET.
+       *
+       * The truncation retry asks for DOUBLE the tokens, so it is the longest
+       * generation this route ever issues. If it opened a fresh budget the pair
+       * could outlive maxDuration; if it inherited a constant timeout it would be
+       * the one request given the least room. Both are proven here: two calls, the
+       * second with a larger max_tokens, and a deadline that did not reset.
+       */
+      const truncatedRun = await attemptsFor((n) => (n === 1 ? truncated : good));
+      t('a truncated first pass is retried at a larger budget', truncatedRun.calls === 2, truncatedRun.calls);
+      {
+        const secondMax = JSON.parse(truncatedRun.lastInit?.body || '{}').max_tokens;
+        t('...and the retry really does ask for more tokens', secondMax > 6000, secondMax);
+        t('...while still carrying a bounded signal rather than an unbounded one',
+          truncatedRun.lastInit?.signal instanceof AbortSignal);
+      }
+
+      // THE 24 AUG CASE: the connection never lands, then it does.
+      const flap = await attemptsFor((n) => (n === 1 ? connFailed() : good));
+      t('a dropped connection is retried rather than sold as a 500',
+        flap.calls === 2 && flap.statusCode === 200, flap.statusCode);
+
+      // 529 overloaded — the most likely shape of a real Anthropic blip, and the one
+      // that used to arrive as data.error and be thrown like a malformed request.
+      const overloaded = await attemptsFor((n) => (n < 3 ? { ok: false, status: 529 } : good));
+      t('an overloaded 529 is retried up to the ceiling and still succeeds',
+        overloaded.calls === 3 && overloaded.statusCode === 200, overloaded.calls);
+
+      // A rate limit is "not now", not "never".
+      const limited = await attemptsFor((n) => (n === 1 ? { ok: false, status: 429 } : good));
+      t('a 429 is treated as try-again, not as failure',
+        limited.calls === 2 && limited.statusCode === 200, limited.calls);
+
+      // Sustained outage: bounded, and the customer is told to come back.
+      const dead = await attemptsFor(connFailed);
+      t('a sustained outage stops at the attempt ceiling instead of looping',
+        dead.calls === ANTHROPIC_MAX_ATTEMPTS, dead.calls);
+      t('...and answers 503 with a retryable code, not 500',
+        dead.statusCode === 503 && dead.payload?.code === 'VENDOR_UNAVAILABLE', dead.payload);
+      t('...with a message written for the customer, naming no vendor',
+        /please try again in a moment/i.test(dead.payload?.error || '') &&
+        !/anthropic|overloaded|HTTP \d/i.test(dead.payload?.error || ''), dead.payload);
+
+      /**
+       * A TIMEOUT IS NOT RETRIED — THIS IS THE SPEND ASSERTION.
+       *
+       * The first draft retried it. A non-streaming request aborted at N seconds has
+       * already had its tokens generated and billed; Anthropic does not un-bill them
+       * because we stopped listening. So retrying paid up to three times for one
+       * checkSpend('anthropic', 1) increment, and did it hardest during exactly the
+       * vendor slowdown when every request in flight would do the same.
+       */
+      const timedOut = await attemptsFor(() => {
+        throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+      });
+      t('a timeout is NOT retried — the tokens were already billed once',
+        timedOut.calls === 1, timedOut.calls);
+      t('...but still reaches the customer as a retryable 503, not a raw DOMException',
+        timedOut.statusCode === 503 && timedOut.payload?.code === 'VENDOR_UNAVAILABLE', timedOut.payload);
+      t('...with copy that says it was slow, not that it was unreachable',
+        /took longer than expected/i.test(timedOut.payload?.error || ''), timedOut.payload);
+
+      // A BAD REQUEST IS NOT TRANSIENT. Retrying it is strictly worse than failing.
+      const badRequest = await attemptsFor(() => ({ ok: false, status: 400, json: async () => ({ error: { message: 'invalid request' } }) }));
+      t('a 400 fails on the first attempt — a broken request is not retried',
+        badRequest.calls === 1 && badRequest.statusCode === 500, badRequest);
+
+      const badKey = await attemptsFor(() => ({ json: async () => ({ error: { message: 'invalid x-api-key' } }) }));
+      t('a rejected API key fails immediately rather than three times',
+        badKey.calls === 1, badKey.calls);
+
+      /**
+       * OUR OWN BUGS MUST NOT BE DRESSED AS VENDOR OUTAGES.
+       *
+       * `e.name === 'TypeError'` was the first draft's test for "the connection never
+       * landed". A plain dereference bug inside the same try block throws a TypeError
+       * too — so a real defect would be retried three times and then reported to the
+       * customer as a transient vendor problem, AND would become invisible to
+       * verify-routes.mjs, whose CODE_DEFECT matcher reads the returned message.
+       */
+      const ourBug = await attemptsFor(() => ({ json: async () => null }));
+      t('a dereference bug in our own code is not retried as if it were transport',
+        ourBug.calls === 1, ourBug.calls);
+      t('...and still surfaces as a code defect, which verify-routes can see',
+        ourBug.statusCode === 500 && /Cannot read propert/i.test(ourBug.payload?.error || ''),
+        ourBug.payload);
+
+      /**
+       * THE BUILD REFUSES; IT DOES NOT INVENT.
+       *
+       * verify-routes.mjs sets SUPPRESS_EXTERNAL_CALLS inside `next build`, which on
+       * Vercel runs with production credentials. An earlier draft returned a
+       * placeholder evidence string here and answered 200. Follow that string:
+       * buildDR486Html renders it, redis caches it, fulfillOrder copies it to
+       * orders.evidence_text, finalize-order feeds it back, processOrder MAILS it.
+       * One environment variable on the wrong project and a homeowner signs a
+       * petition, under penalty of perjury, whose argument is a placeholder.
+       *
+       * Executed, because the previous version of this assertion was the one regex in
+       * the block and a reviewer defeated it by replacing the guard's body while
+       * leaving its condition text byte-identical.
+       */
+      const suppressed = await attemptsFor(() => good, { suppress: true });
+      t('the build makes no Anthropic call at all', suppressed.calls === 0, suppressed.calls);
+      t('...and REFUSES rather than answering 200 with placeholder evidence',
+        suppressed.statusCode === 503 && suppressed.payload?.code === 'SUPPRESSED', suppressed.payload);
+      t('...so no fabricated evidence can reach a petition, Redis or an order',
+        !suppressed.payload?.dr486Html && !suppressed.payload?.evidenceText && !suppressed.payload?.letterKey,
+        suppressed.payload);
+      t('suppression is read from the environment, never defaulted on',
+        !/SUPPRESS_EXTERNAL_CALLS\s*\|\|/.test(dr486Src));
+    } finally {
+      // Restored in a finally: any assertion added after this block that throws would
+      // otherwise leave the exported array zeroed for the rest of the process.
+      realBackoff.forEach((ms, i) => { ANTHROPIC_BACKOFF_MS[i] = ms; });
+    }
+  }
 }
 
 if (failures.length) {

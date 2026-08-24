@@ -26,6 +26,16 @@
 import { runAllChecks } from '../../lib/healthChecks';
 import { enforceRateLimit } from '../../lib/rateLimit';
 
+/**
+ * Pinned, not inherited. checkDatabase now retries once within the run, so a probe
+ * against a stalled Supabase can take 6s + 500ms + 6s before it reports — and this
+ * is the endpoint whose entire job is to answer DURING that stall. Inheriting a
+ * platform default short enough to kill it would mean health goes silent at exactly
+ * the moment it has something to say. pages/api/cron/health-monitor.js already pins
+ * its own for the same reason.
+ */
+export const config = { maxDuration: 30 };
+
 function tokenOk(req) {
   const expected = process.env.HEALTH_TOKEN;
   if (!expected || String(expected).length < 16) return false;

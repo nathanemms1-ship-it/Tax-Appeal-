@@ -32,10 +32,18 @@ register('./resolve-extensionless.mjs', import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
+/**
+ * Any assertion about a TOKEN in source must strip comments first. Five separate
+ * assertions in this codebase have passed by matching their own documentation — the
+ * act of writing down the rule broke the check of the rule. See verify-petition.mjs,
+ * which learned this the same way.
+ */
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 let pass = 0;
 const failures = [];
-const t = (name, cond) => (cond ? pass++ : failures.push(name));
+const t = (name, cond, got) => (cond ? pass++ : failures.push(got === undefined ? name : `${name} — got: ${JSON.stringify(got)}`));
 
 // ── 1. LOB_BANK_ACCOUNT_ID is watched ─────────────────────────────────────────
 // send-letter.js puts this straight into the Lob cheque payload. Unset, it becomes
@@ -541,6 +549,107 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
       /typeof v === 'string' \? v : v\?\.status/.test(hm));
     t('no two-strike rule was introduced — it would have hidden the 24 Aug incident',
       !/consecutiveFail|strikes|failCount/.test(hm));
+  }
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════════
+   * THE DATABASE PROBE RETRIES ONCE, IN THE SAME RUN, AND ONLY IN THE SAME RUN
+   * ══════════════════════════════════════════════════════════════════════════
+   * 24 Aug 19:20:52Z: `CRITICAL: Database — unreachable: timeout after 6000ms`,
+   * while seven other Supabase-backed checks in the SAME report read OK. One
+   * request stalled; nothing was down. A false CRITICAL is not a harmless extra
+   * email — it is a withdrawal from the only account the monitor has, which is
+   * being believed the next time.
+   *
+   * The fix is one immediate retry inside checkDatabase. The assertion that
+   * matters most is the one directly above: that this did NOT become the
+   * cross-run two-strike rule, which would have hidden a real 40-minute outage.
+   *
+   * EXECUTED, NOT MATCHED. Every earlier attempt to prove a property of this
+   * codebase by regex has eventually matched its own documentation instead of its
+   * code — five times, which is why the strip-comments rule exists. So
+   * checkDatabase is CALLED, with a stubbed fetch, and its return value is read.
+   */
+  {
+    const { checkDatabase, DB_PROBE_ATTEMPTS } = await import('../lib/healthChecks.js');
+
+    const runWithFetch = async (responder) => {
+      const realFetch = globalThis.fetch;
+      const realUrl = process.env.SUPABASE_URL;
+      const realKey = process.env.SUPABASE_SERVICE_KEY;
+      process.env.SUPABASE_URL = 'https://stub.supabase.invalid';
+      process.env.SUPABASE_SERVICE_KEY = 'stub-key';
+      let calls = 0;
+      globalThis.fetch = async () => responder(++calls);
+      try {
+        return { res: await checkDatabase(), calls };
+      } finally {
+        globalThis.fetch = realFetch;
+        if (realUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = realUrl;
+        if (realKey === undefined) delete process.env.SUPABASE_SERVICE_KEY; else process.env.SUPABASE_SERVICE_KEY = realKey;
+      }
+    };
+
+    t('two attempts are configured — one retry, not a suppression window',
+      DB_PROBE_ATTEMPTS === 2);
+
+    // The healthy path must be untouched: one request, no added delay, and the same
+    // detail string the daily all-clear has always printed.
+    const healthy = await runWithFetch(() => ({ ok: true, status: 200 }));
+    t('a healthy database still answers ok', healthy.res.status === 'ok');
+    t('a healthy database is probed exactly once — the retry costs nothing when unneeded',
+      healthy.calls === 1);
+    t('the healthy detail line is unchanged', healthy.res.detail === 'orders table readable');
+
+    // THE 24 AUG CASE. One stall, then fine.
+    const flapped = await runWithFetch((n) => {
+      if (n === 1) throw new Error('timeout after 6000ms');
+      return { ok: true, status: 200 };
+    });
+    t('a single stalled request no longer reports critical', flapped.res.status === 'ok');
+    t('it is retried exactly once', flapped.calls === 2);
+    t('the recovered probe still NAMES the failed attempt, so a flap is not hidden',
+      /earlier attempts failed: timeout after 6000ms/.test(flapped.res.detail), flapped.res.detail);
+
+    // A REAL OUTAGE. Must still alert, on this run, with no delay and no carry-over.
+    const down = await runWithFetch(() => { throw new Error('fetch failed'); });
+    t('a database that is genuinely down still reports critical on the same run',
+      down.res.status === 'critical');
+    // COUNTED, not read off the constant. The detail line used to interpolate
+    // DB_PROBE_ATTEMPTS, so it would have claimed two attempts while listing one if a
+    // failure ever went unrecorded — a lie the reader of the alert cannot detect.
+    t('every configured attempt is really made', down.calls === DB_PROBE_ATTEMPTS, down.calls);
+    t('it says how many attempts were made, so the alert keeps its size',
+      new RegExp(`${down.calls} attempts in the same run`).test(down.res.detail) &&
+      /fetch failed/.test(down.res.detail), down.res.detail);
+    t('and it names every failure, not only the first',
+      (down.res.detail.match(/fetch failed/g) || []).length === DB_PROBE_ATTEMPTS, down.res.detail);
+
+    // A 5xx from PostgREST is the same transient shape as a stall.
+    const http503 = await runWithFetch((n) => (n === 1 ? { ok: false, status: 503 } : { ok: true, status: 200 }));
+    t('a transient HTTP 503 is retried rather than reported as an outage',
+      http503.res.status === 'ok' && http503.calls === 2);
+
+    // An auth failure fails twice and reports what it always did.
+    const http401 = await runWithFetch(() => ({ ok: false, status: 401 }));
+    t('a persistent HTTP error still reports critical and names the status',
+      http401.res.status === 'critical' && /HTTP 401/.test(http401.res.detail));
+
+    // The retry must live in the PROBE, not in the alerting layer — a retry in
+    // health-monitor.js would be a second RUN by another name, which is the rejected
+    // rule wearing a different hat. Comments stripped first: this file's own history
+    // is five assertions that matched their own documentation, and the block above
+    // discusses retrying at length.
+    const hmCode = stripComments(read('pages/api/cron/health-monitor.js'));
+    t('the alerting layer runs the checks once and does not re-probe',
+      (hmCode.match(/runAllChecks\(\)/g) || []).length === 1 &&
+      !/\bretr(y|ies|ying)\b|\bre-?probe|\bagain\b/i.test(hmCode));
+
+    // And the stalled request is CANCELLED, not merely stopped being waited on —
+    // otherwise the retry adds a connection to a pool that is already contended,
+    // which is the condition the incident was.
+    t('the probe aborts its own stalled request rather than abandoning it',
+      /signal:[\s\S]{0,120}AbortSignal\.timeout\(TIMEOUT_MS\)/.test(stripComments(read('lib/healthChecks.js'))));
   }
 
   const roster = read('pages/api/waitlist-roster.js');

@@ -62,8 +62,22 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { validateVendorInput, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
 import { checkSpend } from '../../lib/spendGuard';
 
-// 64 KB instead of Next's 1 MB default. See lib/inputLimits.js.
-export const config = PROMPT_ROUTE_CONFIG;
+/**
+ * 64 KB instead of Next's 1 MB default (see lib/inputLimits.js), and an EXPLICIT
+ * function ceiling.
+ *
+ * maxDuration is pinned rather than inherited. ANTHROPIC_EVIDENCE_BUDGET_MS below
+ * only means anything if the platform lets the function live that long — and the
+ * first draft of that budget was justified against an assumed 300s Fluid default,
+ * which is exactly the kind of thing that is true until someone changes a plan or a
+ * project setting. Every other long-running route here already pins it
+ * (cron/process-queued-orders.js, cron/settle-referrals.js). If the platform kills
+ * this function mid-retry the customer gets an opaque HTML 504, apply.js fails
+ * parsing it as JSON, and the carefully-worded 503 below is never reached — a worse
+ * outcome than the bug this file set out to fix. scripts/verify-petition.mjs asserts
+ * the budget stays inside this number.
+ */
+export const config = { ...PROMPT_ROUTE_CONFIG, maxDuration: 300 };
 
 let redis = null;
 try {
@@ -168,6 +182,87 @@ function esc(s) {
  * another page Lob prints and posts.
  */
 const EVIDENCE_MAX_TOKENS = 6000;
+
+/**
+ * ============================================================================
+ * THE MODEL CALL HAD NO TIMEOUT AND NO RETRY. THIS IS THE REVENUE PATH.
+ * ============================================================================
+ * On 24 Aug 2026 Anthropic had a brief outage. A customer sitting on the review
+ * screen at that moment clicked to generate their petition, this route's single
+ * fetch failed, the outer catch turned it into a 500, and they could not buy. There
+ * was no second attempt. The failure alertOps' own header names as the one that
+ * stops revenue outright had exactly one chance to not happen.
+ *
+ * The existing retry above covers TRUNCATION — the model finished but ran out of
+ * budget. It does nothing for the API being unreachable, which is a different
+ * failure at a different layer, and the more likely of the two.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * WHAT IS RETRIED: ONLY WHAT DEMONSTRABLY PRODUCED NOTHING
+ * ────────────────────────────────────────────────────────────────────────────
+ * The first draft of this retried anything that smelled like transport, including a
+ * timeout. That is wrong, and the reason is money rather than latency: a
+ * non-streaming request that we hang up on at N seconds has ALREADY had its tokens
+ * generated and billed. Anthropic does not un-bill them because we stopped
+ * listening. So retrying a timeout pays twice and sells nothing — while
+ * checkSpend('anthropic', 1) below counts the whole evidence step as one.
+ *
+ * So the retryable set is deliberately narrow, and every member of it is a case
+ * where inference PROVABLY never started:
+ *
+ *   fetch failed  the TCP/TLS connection was never established. Nothing was sent.
+ *   429           rate limited. Rejected at the edge, before any model ran.
+ *   503 / 529     capacity refusal. Same — this is the shape of a real outage.
+ *
+ * Everything else fails on the first attempt, on purpose:
+ *
+ *   timeout       the vendor was probably working, just slow. Sending the same
+ *                 request again makes it slower AND bills it twice.
+ *   terminated    socket reset mid-BODY — the response had started, so tokens were
+ *                 generated. Ambiguous, and ambiguity here costs real money.
+ *   500/502/504   could be pre- or post-inference. Not worth the gamble.
+ *   400 / 401     a broken request or a dead key. Retrying spends the customer's
+ *                 patience three times to reach the same answer.
+ *
+ * That keeps the claim under checkSpend HONEST: a retry here follows an attempt that
+ * generated no tokens, so not re-counting it is correct rather than convenient.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * WHY THE TIMEOUT IS GENEROUS AND SCALES WITH THE ASK
+ * ────────────────────────────────────────────────────────────────────────────
+ * A fixed per-attempt timeout is a guess about how long a legitimate generation
+ * takes, and guessing low breaks real petitions to fix a rare one — a strictly
+ * worse trade. It is worse still on the TRUNCATION retry below, which asks for
+ * DOUBLE the tokens: that call is by construction the longest generation this route
+ * ever issues, so a constant timeout squeezes the one request that needs the most
+ * room, turning a recoverable long petition into a deterministic dead end.
+ *
+ * So the timeout is derived from what was asked for, and the whole evidence step —
+ * both askClaude calls — shares one wall-clock budget inside the pinned
+ * maxDuration below. The timeout exists to catch a socket that is hung, not to
+ * hurry a model that is working.
+ */
+const ANTHROPIC_EVIDENCE_BUDGET_MS = 270000;
+/** Per attempt: a floor for connection setup, plus room proportional to the ask. */
+const ANTHROPIC_TIMEOUT_BASE_MS = 45000;
+const ANTHROPIC_TIMEOUT_PER_TOKEN_MS = 18;
+/** Below this, there is not enough budget left for a retry to plausibly finish. */
+const ANTHROPIC_MIN_RETRY_MS = 20000;
+export const ANTHROPIC_MAX_ATTEMPTS = 3;
+/**
+ * Exported and read by index at call time so scripts/verify-petition.mjs can zero
+ * the waits while it counts attempts. Without that the guard sleeps 4s per exhausted
+ * case and adds ~10s to every build — a slow suite is a suite people start skipping.
+ * The guard separately asserts these real values are non-zero and ascending, so
+ * zeroing them in a test cannot hide a backoff that was removed in production.
+ */
+export const ANTHROPIC_BACKOFF_MS = [1000, 3000];
+
+/** Statuses that prove the request was refused BEFORE any token was generated. */
+const ANTHROPIC_RETRYABLE_STATUS = new Set([429, 503, 529]);
+
+const anthropicAttemptTimeout = (maxTokens) =>
+  ANTHROPIC_TIMEOUT_BASE_MS + maxTokens * ANTHROPIC_TIMEOUT_PER_TOKEN_MS;
 
 export function bareCounty(county) {
   return String(county || '').replace(/\s+County\s*$/i, '').trim();
@@ -692,15 +787,146 @@ Professional, factual, first person as the property owner. Output only the four 
      * defects); a second truncation is an error, because mailing a petition that
      * stops mid-sentence is worse than not mailing one.
      */
+    /**
+     * The wall-clock budget is opened once, here, and shared by BOTH askClaude calls
+     * below. Opening it per call would let the truncation retry start a fresh budget
+     * and blow the platform ceiling — the failure would then be an opaque platform
+     * kill rather than our own error, which is the harder one to diagnose.
+     */
+    const evidenceDeadline = Date.now() + ANTHROPIC_EVIDENCE_BUDGET_MS;
+
     const askClaude = async (maxTokens) => {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages: [{ role: 'user', content: evidencePrompt }] }),
-      });
-      const data = await r.json();
-      if (data.error) throw new Error(data.error.message);
-      return { text: data.content?.[0]?.text || '', truncated: data.stop_reason === 'max_tokens' };
+      /**
+       * THE BUILD MUST NOT BUY A PETITION — AND MUST NEVER INVENT ONE.
+       *
+       * Third route to need this flag, same reason as the first two
+       * (SUPPRESS_CHECK_EVENTS, then Stripe in portal/set-password):
+       * scripts/verify-routes.mjs invokes this handler on every deploy, inside
+       * `next build`, WITH PRODUCTION CREDENTIALS. Its fixture carries no
+       * providedEvidence, so it lands here — and on Vercel, where ANTHROPIC_API_KEY
+       * is valid, that is a real 6,000-token generation billed on every deploy.
+       * Locally the key is invalid, so the call fails fast and the cost was
+       * invisible from a developer machine.
+       *
+       * IT REFUSES. It does not return placeholder evidence.
+       *
+       * The first draft returned a stub string, on the reasoning that letting the
+       * handler run on through buildDR486Html made the smoke test stronger. Follow
+       * where that string goes: buildDR486Html renders it into the EVIDENCE AND
+       * ARGUMENT block, redis.set caches it, lib/fulfillOrder.js copies it to
+       * orders.evidence_text, finalize-order feeds it back as providedEvidence, and
+       * lib/processOrder.js mails it. Nothing on that path inspects the text. The
+       * response is 200 with no error field, so pages/apply.js renders it happily.
+       * One environment variable set on the wrong project — plausibly by someone
+       * reacting to the very complaint documented above — and a homeowner signs a
+       * petition, under penalty of perjury, whose entire argument is a placeholder.
+       *
+       * A build that skips a step is a smaller loss than a filing that fabricates
+       * one. portal/set-password.js already refuses under this flag; this matches it.
+       *
+       * Refusing HERE rather than at the top of the handler keeps everything before
+       * the model call under test — validation, the county and VAB lookup, the spend
+       * gate, the whole prompt build — which is more coverage than the route had
+       * before, without producing a single fabricated character.
+       *
+       * Set on the verifying process only. Absent the variable, every call is live.
+       */
+      if (process.env.SUPPRESS_EXTERNAL_CALLS === '1') {
+        throw Object.assign(
+          new Error('Evidence generation is temporarily unavailable.'),
+          { suppressed: true }
+        );
+      }
+
+      let lastError = null;
+      let attemptsMade = 0;
+
+      for (let attempt = 1; attempt <= ANTHROPIC_MAX_ATTEMPTS; attempt++) {
+        // Not enough budget left for an attempt to plausibly finish. Sending one
+        // anyway would abort within milliseconds, burn a socket, and replace the real
+        // fault below with a meaningless timeout.
+        const remaining = evidenceDeadline - Date.now();
+        if (remaining < ANTHROPIC_MIN_RETRY_MS) break;
+
+        attemptsMade++;
+        try {
+          const r = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages: [{ role: 'user', content: evidencePrompt }] }),
+            // Guarded the way lib/spendGuard.js and lib/heartbeat.js guard it. Without
+            // the guard an old runtime would throw "AbortSignal.timeout is not a
+            // function" on EVERY petition — trading a rare hang for a total outage.
+            signal: typeof AbortSignal?.timeout === 'function'
+              ? AbortSignal.timeout(Math.min(anthropicAttemptTimeout(maxTokens), remaining))
+              : undefined,
+          });
+
+          // Status is read BEFORE the body. A 529 overloaded_error used to arrive
+          // here as `data.error` and be thrown like a malformed request — the same
+          // treatment for "try again in a second" and "this will never work".
+          if (!r.ok && ANTHROPIC_RETRYABLE_STATUS.has(r.status)) {
+            // Release the socket rather than leaving an unread body pinning a
+            // connection out of the pool — three per request during a 529 storm.
+            try { await r.body?.cancel(); } catch { /* nothing to release */ }
+            throw Object.assign(new Error(`Anthropic HTTP ${r.status}`), { anthropicRefused: true });
+          }
+
+          const data = await r.json();
+          if (data.error) throw new Error(data.error.message);
+          return { text: data.content?.[0]?.text || '', truncated: data.stop_reason === 'max_tokens' };
+        } catch (e) {
+          /**
+           * `fetch failed` is undici's message when the connection was never
+           * established — DNS, refused, TLS. Nothing was sent, so nothing was billed.
+           *
+           * Matched on the exact message rather than on `e.name === 'TypeError'`,
+           * which was the first draft: a plain dereference bug inside this try block
+           * ALSO throws a TypeError, and retrying our own defect three times before
+           * telling the customer it was a transient vendor problem would bury it —
+           * and would make it invisible to verify-routes, whose CODE_DEFECT matcher
+           * reads the returned message.
+           */
+          const connectionNeverLanded = e instanceof TypeError && e.message === 'fetch failed';
+          if (!e.anthropicRefused && !connectionNeverLanded) {
+            // A timeout is deliberately NOT retried — see the header; the tokens were
+            // almost certainly generated and billed. But it must still reach the
+            // customer as something they can act on, not as a raw DOMException.
+            if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+              console.error(`[dr486] Anthropic timed out at ${anthropicAttemptTimeout(maxTokens)}ms for ${maxTokens} tokens`);
+              throw Object.assign(
+                new Error('Preparing your petition took longer than expected. Please try again — it usually completes on a second attempt.'),
+                { vendorUnavailable: true, timedOut: true, cause: e }
+              );
+            }
+            throw e;
+          }
+
+          lastError = e;
+          const backoff = ANTHROPIC_BACKOFF_MS[attempt - 1] ?? ANTHROPIC_BACKOFF_MS[ANTHROPIC_BACKOFF_MS.length - 1];
+          const left = evidenceDeadline - Date.now() - backoff;
+          if (attempt >= ANTHROPIC_MAX_ATTEMPTS || left < ANTHROPIC_MIN_RETRY_MS) break;
+
+          console.warn(`[dr486] Anthropic attempt ${attempt} failed (${e.name}: ${e.message}) — retrying in ${backoff}ms, ${Math.round(left / 1000)}s of budget left`);
+          await new Promise((resolve) => setTimeout(resolve, backoff));
+        }
+      }
+
+      /**
+       * Every attempt failed on transport. The technical detail goes to the log; the
+       * customer gets a sentence that tells them the truth AND what to do about it.
+       *
+       * This message reaches a human: pages/apply.js throws `claudeJson.error`
+       * verbatim on the review screen. Before this, that screen could show them
+       * "Overloaded" — a word from a vendor's API they have no relationship with,
+       * with no suggestion that trying again would work. It does work, which is the
+       * whole point of the 503 below.
+       */
+      console.error(`[dr486] Anthropic unreachable after ${attemptsMade} attempt(s):`, lastError?.name, lastError?.message);
+      throw Object.assign(
+        new Error('We could not reach the service that prepares your petition. This is usually brief — please try again in a moment.'),
+        { vendorUnavailable: true, attemptsMade, cause: lastError }
+      );
     };
 
     let attempt = await askClaude(EVIDENCE_MAX_TOKENS);
@@ -756,6 +982,15 @@ Professional, factual, first person as the property owner. Output only the four 
     });
   } catch (err) {
     console.error('DR-486 generation error:', err);
+    // A vendor that was unreachable is not the same answer as a defect in this
+    // route, and it must not be dressed as one: 503 says "come back", 500 says
+    // "something here is broken". The customer is one click from buying.
+    if (err?.suppressed) {
+      return res.status(503).json({ error: err.message, code: 'SUPPRESSED' });
+    }
+    if (err?.vendorUnavailable) {
+      return res.status(503).json({ error: err.message, code: 'VENDOR_UNAVAILABLE' });
+    }
     return res.status(500).json({ error: err.message || 'DR-486 generation failed' });
   }
 }
