@@ -186,9 +186,28 @@ function referrerHost(req) {
   if (!raw) return null;
   try {
     const url = new URL(raw);
-    const self = req.headers.get('host') || '';
-    if (url.host === self) return null;
-    return url.host.replace(/^www\./, '').slice(0, 120);
+    /**
+     * NORMALISE BOTH SIDES BEFORE COMPARING. This was the bug.
+     *
+     * The comparison was `url.host === self` with `www.` stripped only AFTERWARDS,
+     * on the return line. So a visitor moving between `taxappealusa.com` and
+     * `www.taxappealusa.com` — which happens on the apex-to-www redirect, on every
+     * internal link that hardcodes one form, and on any bookmark of the other —
+     * failed the equality, fell through, and was written down as an INBOUND
+     * REFERRAL FROM OURSELVES.
+     *
+     * Measured: 25 such visitors on 20 Aug, 55 by 23 Aug. Growing, and 12-15% of
+     * all traffic — in the only table that answers "where is traffic coming from",
+     * during the season the ad spend is being judged on. Every "is this odd?"
+     * question about the traffic numbers has had to be answered around it.
+     *
+     * Ports are stripped too: a host header can carry one and a Referer may not.
+     */
+    const bare = (h) => String(h || '').toLowerCase().replace(/^www\./, '').replace(/:\d+$/, '');
+    const self = bare(req.headers.get('host'));
+    const from = bare(url.host);
+    if (!from || from === self) return null;
+    return from.slice(0, 120);
   } catch {
     return null;
   }

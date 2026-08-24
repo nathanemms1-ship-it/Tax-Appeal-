@@ -454,6 +454,95 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   t('the health check would catch a missing blocked_reason column',
     /select=id,created_at,blocked_reason/.test(health) && /res\.status === 400/.test(health));
 
+  /**
+   * ==========================================================================
+   * THE SELF-REFERRAL COMPARISON, PROVEN BY RUNNING IT.
+   * ==========================================================================
+   * `referrerHost` compared `url.host === self` and stripped `www.` only on the
+   * RETURN line, so anyone crossing between the apex and www — the redirect,
+   * a hardcoded internal link, a bookmark of the other form — was written down as
+   * an inbound referral FROM OURSELVES. 25 visitors on 20 Aug, 55 by 23 Aug, and
+   * 12-15% of all traffic in the one table that answers "where is traffic coming
+   * from", during the season the ad spend is judged on.
+   *
+   * Extracted and executed rather than pattern-matched: the bug was a comparison
+   * that looked right, and no regex over source distinguishes a correct
+   * comparison from a plausible one.
+   */
+  {
+    const mwSource = read('middleware.js');
+    const fn = mwSource.slice(mwSource.indexOf('function referrerHost('));
+    const body = fn.slice(0, fn.indexOf('\n}') + 2);
+    // eslint-disable-next-line no-new-func
+    const referrerHost = new Function(`${body}; return referrerHost;`)();
+    const req = (referer, host) => ({ headers: { get: (h) => (h === 'referer' ? referer : host) } });
+
+    t('a visitor arriving from our own apex is not a referral',
+      referrerHost(req('https://taxappealusa.com/check', 'www.taxappealusa.com')) === null,
+      'this is the bug: 12-15% of traffic logged as referred by us');
+    t('...and neither is the reverse',
+      referrerHost(req('https://www.taxappealusa.com/', 'taxappealusa.com')) === null);
+    t('...nor an exact match',
+      referrerHost(req('https://www.taxappealusa.com/x', 'www.taxappealusa.com')) === null);
+    t('...nor one carrying a port',
+      referrerHost(req('https://taxappealusa.com/x', 'www.taxappealusa.com:443')) === null);
+    t('a REAL referrer still comes through, stripped of www',
+      referrerHost(req('https://www.google.com/search?q=x', 'www.taxappealusa.com')) === 'google.com');
+    t('...and a different host is never mistaken for ours',
+      referrerHost(req('https://nottaxappealusa.com/', 'www.taxappealusa.com')) === 'nottaxappealusa.com');
+    t('a missing or malformed referer is null, not a crash',
+      referrerHost(req(null, 'www.taxappealusa.com')) === null
+      && referrerHost(req('not a url', 'www.taxappealusa.com')) === null);
+  }
+
+  /**
+   * A DROPPED FUNNEL OUTCOME MUST LEAVE A TRACE.
+   *
+   * recordCheckOutcome abandons its insert after 1200ms so the customer's answer
+   * is never delayed — right, and not changing. But the row left NOTHING behind,
+   * so a database slow enough to drop rows and a day when nobody checked produced
+   * identical evidence. On 24 Aug that ambiguity cost a morning of guessing.
+   */
+  {
+    const rc = read('lib/recordCheck.js');
+    t('a timed-out outcome is counted, not silently lost',
+      /await countDrop\('timeout'\)/.test(rc));
+    t('a rejected outcome is counted too',
+      /await countDrop\('rejected'\)/.test(rc));
+    t('the drop counter cannot delay the customer — its own timeout is tighter than the insert\'s',
+      /const DROP_TIMEOUT_MS = 500;/.test(rc));
+    t('the health check reports drops alongside recorded checks',
+      /droppedOutcomesToday\(\)/.test(read('lib/healthChecks.js')));
+    t('...and reports "unknown" rather than zero when it could not ask',
+      /dropped == null \? ', drops unknown/.test(read('lib/healthChecks.js')));
+  }
+
+  /**
+   * RECOVERY EMAILS CARRY DURATION.
+   *
+   * "critical -> ok" cannot distinguish a six-second blip from the forty-minute
+   * degradation of 24 Aug. Duration is what makes the difference between ignoring
+   * an email and going to look at Supabase.
+   *
+   * The obvious alternative — don't alert until a check fails twice — was
+   * proposed and rejected: it would have suppressed that incident entirely, since
+   * Database failed at :20 and had recovered by :30. The signal was real; only
+   * its size was missing. Asserted here so nobody re-derives the wrong fix.
+   */
+  {
+    const hm = read('pages/api/cron/health-monitor.js');
+    t('the monitor records WHEN a check entered its state, not only what it is',
+      /since: unchanged \? \(sinceOf\(before\) \?\? now\) : now/.test(hm));
+    t('recovery emails say how long it was broken',
+      /after \$\{humanDuration\(c\.forMs\)\}/.test(hm));
+    t('a still-critical reminder says how long so far',
+      /humanDuration\(downFor\)/.test(hm));
+    t('the old bare-string state shape is still readable, so a deploy needs no reset',
+      /typeof v === 'string' \? v : v\?\.status/.test(hm));
+    t('no two-strike rule was introduced — it would have hidden the 24 Aug incident',
+      !/consecutiveFail|strikes|failCount/.test(hm));
+  }
+
   const roster = read('pages/api/waitlist-roster.js');
   t('the admin roster bounds its read rather than selecting everything',
     /limit\(ROW_CAP \+ 1\)/.test(roster) && /truncated/.test(roster));

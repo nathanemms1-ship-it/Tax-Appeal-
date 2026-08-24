@@ -139,15 +139,50 @@ export default async function handler(req, res) {
   // the right outcome.
   const degraded = !stateAvailable;
 
+  /**
+   * ==========================================================================
+   * REMEMBER WHEN EACH CHECK ENTERED ITS CURRENT STATE, NOT JUST WHAT IT IS.
+   * ==========================================================================
+   * 24 Aug 2026. The database was slow for roughly forty minutes: Database went
+   * critical and recovered, Schema warned twenty minutes later, and the admin
+   * panel crawled throughout. Three independent signals, one incident — and the
+   * emails said "critical → ok" with no way to tell whether that was six seconds
+   * or an hour.
+   *
+   * Duration is what makes a transient blip and a real degradation
+   * distinguishable, and it is the difference between "ignore it" and "go look at
+   * Supabase". Without it the only honest response to any recovery email is a
+   * shrug, which is how a monitor stops being read.
+   *
+   * WHY NOT A TWO-STRIKE RULE, which was the obvious fix and was proposed first:
+   * it would have suppressed this incident entirely. Database failed at :20 and
+   * had recovered by :30, so a rule requiring two consecutive failures would have
+   * sent nothing at all — for a forty-minute degradation that was silently
+   * dropping check_events rows the whole time. The signal was real. What was
+   * missing was its size.
+   *
+   * Backwards compatible on purpose: the previous state was a bare
+   * `{name: status}` map, and `statusOf` reads either shape. A deploy does not
+   * need the old key cleared, and a missing timestamp reports no duration rather
+   * than a wrong one.
+   */
+  const now = Date.now();
+  const statusOf = (v) => (typeof v === 'string' ? v : v?.status);
+  const sinceOf = (v) => (typeof v === 'string' ? null : v?.since);
+
   const current = {};
-  for (const c of report.checks) current[c.name] = c.status;
+  for (const c of report.checks) {
+    const before = previous[c.name];
+    const unchanged = statusOf(before) === c.status;
+    current[c.name] = { status: c.status, since: unchanged ? (sinceOf(before) ?? now) : now };
+  }
 
   const broke = [];
   const recovered = [];
   const stillCritical = [];
 
   for (const c of report.checks) {
-    const before = previous[c.name];
+    const before = statusOf(previous[c.name]);
     const worsened = before ? SEVERITY[c.status] > SEVERITY[before] : c.status !== 'ok';
     const improved = before && SEVERITY[c.status] < SEVERITY[before];
 
@@ -157,7 +192,7 @@ export default async function handler(req, res) {
       continue;
     }
     if (worsened) broke.push(c);
-    else if (improved) recovered.push({ ...c, from: before });
+    else if (improved) recovered.push({ ...c, from: before, forMs: now - (sinceOf(previous[c.name]) ?? now) });
     else if (c.status === 'critical') stillCritical.push(c);
   }
 
@@ -194,7 +229,7 @@ export default async function handler(req, res) {
   if (recovered.length) {
     const subject = `Recovered: ${recovered.map((c) => c.name).join(', ')}`;
     const body = recovered
-      .map((c) => `${c.name}: ${c.from} → ${c.status}\n${indent(c.detail)}`)
+      .map((c) => `${c.name}: ${c.from} → ${c.status}${c.forMs ? ` after ${humanDuration(c.forMs)}` : ''}\n${indent(c.detail)}`)
       .join('\n\n');
     const r = await alertOps(subject, body, { force: true });
     sent.push({ type: 'recovered', subject, ...r });
@@ -202,7 +237,8 @@ export default async function handler(req, res) {
 
   // ── Still broken: a reminder, but suppressed to once per 12h per check ───────
   for (const c of stillCritical) {
-    const r = await alertOps(`STILL CRITICAL: ${c.name}`, `${c.name} has not recovered.\n\n${indent(c.detail)}`, {
+    const downFor = now - (sinceOf(previous[c.name]) ?? now);
+    const r = await alertOps(`STILL CRITICAL: ${c.name}`, `${c.name} has not recovered${downFor ? ` — ${humanDuration(downFor)} so far` : ''}.\n\n${indent(c.detail)}`, {
       key: `still:${c.name}`,
       suppressSeconds: 12 * 60 * 60,
     });
@@ -243,6 +279,21 @@ export default async function handler(req, res) {
     emailsSent: sent.filter((s) => s.sent).length,
     checkedAt: report.checkedAt,
   });
+}
+
+/**
+ * Rounded, and never "0 minutes".
+ *
+ * The point is to separate a six-second blip from a forty-minute degradation, so
+ * seconds matter below a minute and nothing below that is worth a number.
+ */
+function humanDuration(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
 }
 
 function indent(s) {
