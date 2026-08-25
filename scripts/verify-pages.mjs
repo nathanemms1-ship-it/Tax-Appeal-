@@ -159,6 +159,75 @@ const BANNED = [
   // the page renders now, because it is COUNTED. This bans the claim with no
   // number in it, which is the one nobody can check.
   { re: /All\s+counties\s+covered/i, why: 'unqualified coverage claim — render it from getServiceCoverage() so it counts both filing gates' },
+
+  // ==========================================================================
+  // ADDED 25 Aug 2026 — THE VAB FILING FEE IS NOT REFUNDABLE
+  // ==========================================================================
+  // The site told people, on /check (the screen where they decide to pay) and 15
+  // times across the blog, that "Florida law requires the county to refund that
+  // filing fee" if the Board reduces their value. One blog post drew the
+  // conclusion out loud: "the net cost of a successful appeal is zero", and
+  // "your county VAB will mail it to the address on file".
+  //
+  // No such law was ever found. s. 194.013 governs this fee and has four
+  // subsections — the $50 cap, the hardship waiver, pay-at-filing-or-be-rejected,
+  // and (4), which applies collected fees to "the costs incurred in connection
+  // with the administration and operation of the value adjustment board". No
+  // refund, including in the CURRENT text as amended by HB 7031 in 2025 (the
+  // amendment that raised the cap $15 -> $50, and therefore the version worth
+  // checking — an earlier reading of the 2021 text was not enough on its own).
+  // Fla. Admin. Code R. 12D-9.015 does not contain the word "refund".
+  //
+  // The counties say the opposite in their own words: Lee, "a non-refundable
+  // $30.00 per petition"; Orange, "the non-refundable $50 filing fee". And
+  // lib/flCountyFees.js already quoted Flagler saying the same — so the repo
+  // contradicted itself, and the false half was the one on the money screen.
+  //
+  // It was found because a customer read it, asked whether a cheque was coming
+  // and which address it would be posted to, and turned out to own a rental. Two
+  // defects from one question.
+  //
+  // s. 194.014(2) DOES require a refund with interest — of overpaid ad valorem
+  // TAXES, from the tax collector. That is a different thing and may be said. The
+  // patterns below are written to catch the fee claim without catching it, and
+  // without catching the honest "not refundable" copy that replaced it.
+  // KEYED ON THE CONDITION, NOT ON THE WORDS "filing fee". The first version of
+  // these patterns required that exact phrase, and the sentence actually shipped
+  // on fourteen county blog posts was "Florida law requires the Board to refund
+  // THE FEE if your petition results in a reduction" — which matched nothing.
+  // Reinstating one of those fourteen and rebuilding reported "none found": an
+  // assertion on a case that cannot fail. What is false here is not the word
+  // "refund", it is a refund CONDITIONED ON WINNING, so that is what to match.
+  //
+  // It also has to leave the true refunds alone. We do refund the county fee when
+  // we have not remitted it (/terms: "at any time before your petition is mailed,
+  // the county filing fee is refunded to you in full"), and s.194.014(2) really
+  // does refund overpaid TAXES with interest. Neither is conditioned on prevailing,
+  // which is what keeps them out of these patterns.
+  // Two orderings, and BOTH require the thing refunded to be a FEE.
+  //
+  // The first draft matched a win-condition anywhere near the word "refund" and
+  // would have flagged the honest replacement copy in the same commit — "if the
+  // board reduces your value after you have already paid, the county refunds the
+  // overpaid tax with interest under s.194.014(2)", which is true and is the only
+  // refund chapter 194 actually provides. Requiring "fee" within 40 characters of
+  // "refund" separates the false claim from the true one.
+  //
+  // The condition list has to carry "if the board reduces" as well as "results in
+  // a reduction": the /check wording and the blog wording differed, the first
+  // tightening only covered the blog's, and reinstating the /check sentence still
+  // reported "none found". Every pattern here was arrived at by putting the real
+  // sentence back and watching this fail.
+  { re: /(results?\s+in\s+a\s+reduction|if\s+you\s+(win|prevail)|if\s+your\s+(appeal|petition)\s+(succeeds|prevails)|if\s+the\s+(board|vab)\s+reduces)[^.]{0,120}refund[^.]{0,40}\bfees?\b/i,
+    why: 'a filing-fee refund conditioned on winning — s.194.013 has no refund provision and counties print "non-refundable"' },
+  { re: /refund[^.]{0,40}\bfees?\b[^.]{0,120}(results?\s+in\s+a\s+reduction|if\s+you\s+(win|prevail)|if\s+your\s+(appeal|petition)\s+(succeeds|prevails)|if\s+the\s+(board|vab)\s+reduces)/i,
+    why: 'a filing-fee refund conditioned on winning — s.194.013 has no refund provision' },
+  { re: /\bfee[^.]{0,40}\bis\s+refundable\b/i,
+    why: 'the VAB filing fee is not refundable' },
+  { re: /refundable\s+if\s+(you\s+(win|prevail)|the\s+taxpayer\s+prevails|your\s+appeal\s+succeeds)/i,
+    why: 'the VAB filing fee is not refundable' },
+  { re: /net\s+cost\s+of\s+a\s+successful\s+appeal\s+is\s+(zero|\$0)/i,
+    why: 'rests on the filing fee being refunded, which it is not' },
 ];
 
 /**

@@ -249,8 +249,21 @@ t('the county gate is part of what lets /check show a buy button (SOURCE READ)',
 t('a county-blocked capture is tagged fl_county_unconfirmed, not left null (SOURCE READ)',
   /blockedReason = blockedBy === 'county' \? 'fl_county_unconfirmed'/.test(check) &&
   !/joinList\(e, null\)/.test(check));
+/**
+ * COMMENTS STRIPPED, AND THIS ASSERTION IS WHY THE RULE EXISTS.
+ *
+ * The claim is about what pages/check.js IMPORTS — pulling the 67-entry VAB
+ * address table into a client bundle to render one boolean. It was matching the
+ * raw file, so on 25 Aug 2026 it went red because a comment explaining that
+ * lib/flCountyFees.js already documents the filing fee as non-refundable
+ * mentioned that filename in prose.
+ *
+ * A guard that fails when someone writes a comment is a guard people learn to
+ * satisfy by not writing comments. Test the code.
+ */
+const checkCode = check.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
 t('pages/check.js does NOT pull the VAB address or fee tables into the browser bundle (SOURCE READ)',
-  !/flVabAddresses/.test(check) && !/serviceCoverage/.test(check) && !/flCountyFees/.test(check));
+  !/flVabAddresses/.test(checkCode) && !/serviceCoverage/.test(checkCode) && !/flCountyFees/.test(checkCode));
 
 // Executed: the gate itself, against counties whose status is a published fact.
 {

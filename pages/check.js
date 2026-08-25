@@ -896,9 +896,36 @@ export default function CheckPage() {
                       <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
                         Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
                         You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
-                        {/* Fla. Stat. s. 194.014(2). It is on the Brevard guide and was missing
-                            from the one screen where somebody is deciding whether to pay. */}
-                        {' '}If the Board reduces your value, Florida law requires the county to refund that filing fee.
+                        {/* WHAT WAS HERE, AND WHY IT IS NOT: 25 Aug 2026.
+                            ================================================================
+                            "If the Board reduces your value, Florida law requires the county
+                            to refund that filing fee." It cited Fla. Stat. s. 194.014(2),
+                            which requires a refund WITH INTEREST of overpaid *taxes* — a
+                            different thing, and the only refund in chapter 194.
+
+                            s. 194.013 is the section that governs this fee and it has four
+                            subsections: the $50 cap, the hardship waiver, pay-at-filing-or-
+                            be-rejected, and (4), which says collected fees "shall be
+                            allocated and utilized to defray... the costs incurred in
+                            connection with the administration and operation of the value
+                            adjustment board". No refund provision, including in the current
+                            text as amended by HB 7031 in 2025 — the amendment that raised
+                            the cap $15 -> $50 and is therefore the version worth checking.
+                            Fla. Admin. Code R. 12D-9.015 does not contain the word.
+
+                            The counties say the opposite in their own words. Lee: "a
+                            non-refundable $30.00 per petition". Orange: "the non-refundable
+                            $50 filing fee". lib/flCountyFees.js already quotes Flagler —
+                            "A nonrefundable filing fee of $50 per parcel must accompany each
+                            petition" — so this file and that one contradicted each other, and
+                            the false half was the one on the screen where money is decided.
+
+                            Found because a customer read the same claim on the VAB fee blog
+                            post, where it also said the county "will mail it to the address
+                            on file", and wrote in to ask whether a cheque was coming and
+                            which address it would go to. He owns a rental.
+
+                            Do not reinstate without a citation that survives reading. */}
                       </p>
 
                       {/*
@@ -1361,8 +1388,9 @@ export default function CheckPage() {
 
               <p style={{ fontSize: 14, color: C.body, lineHeight: 1.6, background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', margin: '22px 0 0' }}>
                 <strong style={{ color: C.darkNavy }}>Flat $89 plus your county&rsquo;s filing fee</strong>{' '}
-                (set by the county, $15–$50). Never a percentage of your savings — and if the
-                Board reduces your value, Florida law requires the county to refund the filing fee.
+                (set by the county, $15–$50). Never a percentage of your savings. The county&rsquo;s
+                fee is not refundable, which is why we check whether an appeal can lower your bill
+                before you pay rather than after.
               </p>
             </div>
           )}
