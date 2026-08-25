@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/verify-fl-data.mjs && node scripts/verify-tx-seo.mjs && node scripts/verify-valuation.mjs && node scripts/verify-comps.mjs && node scripts/verify-dor.mjs && node scripts/verify-security.mjs && node scripts/verify-hardening.mjs && node scripts/verify-schema.mjs && node scripts/verify-monitoring.mjs && node scripts/verify-check-events.mjs && node scripts/verify-handoff.mjs && node scripts/verify-fl-dispatch.mjs && node scripts/verify-signature-reminder.mjs && node scripts/verify-emails.mjs && node scripts/verify-petition.mjs && node scripts/verify-tdz.mjs && node scripts/verify-routes.mjs && node scripts/verify-render.mjs && node scripts/verify-referrals.mjs && next build && node scripts/verify-sitemap.mjs && node scripts/verify-pages.mjs && node scripts/verify-state-service.mjs closed",
+    "build": "node scripts/verify-fl-data.mjs && node scripts/verify-tx-seo.mjs && node scripts/verify-valuation.mjs && node scripts/verify-comps.mjs && node scripts/verify-dor.mjs && node scripts/verify-security.mjs && node scripts/verify-hardening.mjs && node scripts/verify-schema.mjs && node scripts/verify-monitoring.mjs && node scripts/verify-check-events.mjs && node scripts/verify-handoff.mjs && node scripts/verify-fl-dispatch.mjs && node scripts/verify-signature-reminder.mjs && node scripts/verify-emails.mjs && node scripts/verify-petition.mjs && node scripts/verify-tdz.mjs && node scripts/verify-routes.mjs && node scripts/verify-render.mjs && node scripts/verify-referrals.mjs && node scripts/verify-owner-mailing.mjs && node scripts/verify-waitlist-notify.mjs && next build && node scripts/verify-sitemap.mjs && node scripts/verify-pages.mjs && node scripts/verify-state-service.mjs closed",
     "start": "next start",
     "verify:fl": "node scripts/verify-fl-data.mjs",
     "verify:sitemap": "node scripts/verify-sitemap.mjs",
@@ -26,6 +26,8 @@
     "verify:funnel": "node scripts/verify-check-events.mjs",
     "verify:handoff": "node scripts/verify-handoff.mjs",
     "verify:states": "node scripts/verify-state-service.mjs closed",
+    "verify:mailing": "node scripts/verify-owner-mailing.mjs",
+    "verify:waitlist": "node scripts/verify-waitlist-notify.mjs",
     "verify:states:injection": "bash scripts/verify-state-service.sh"
   },
   "dependencies": {

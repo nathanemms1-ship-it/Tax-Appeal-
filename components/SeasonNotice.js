@@ -35,6 +35,7 @@ const C = {
 export default function SeasonNotice({ stateCode, id = 'notify', variant = 'light', compact = false }) {
   const status = stateSaleStatus(stateCode);
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [state, setState] = useState('idle'); // idle | sending | done | duplicate | error
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -51,15 +52,19 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
 
   const submit = async (e) => {
     e.preventDefault();
-    const addr = email.trim();
-    if (!addr || state === 'sending') return;
+    const mail = email.trim();
+    const property = address.trim();
+    if (!mail || state === 'sending') return;
     setState('sending');
     setErrorMsg('');
     try {
       const res = await fetch('/api/join-waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: addr, state: status.code }),
+        // propertyAddress is what makes the eventual email worth opening — see the
+        // note above the address field. Omitted rather than sent empty, so a blank
+        // never overwrites an address an earlier signup already gave us.
+        body: JSON.stringify({ email: mail, state: status.code, ...(property ? { propertyAddress: property } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -103,7 +108,7 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
 
       <p style={{ fontSize: 15, lineHeight: 1.65, color: sub, marginBottom: done ? 0 : 18 }}>
         {done
-          ? <>We&rsquo;ll email <strong style={{ color: fg }}>{email.trim()}</strong> {status.promise} Nothing to pay now, and nothing else to do.</>
+          ? <>We&rsquo;ll email <strong style={{ color: fg }}>{email.trim()}</strong> {status.promise}{address.trim() ? <> We have <strong style={{ color: fg }}>{address.trim()}</strong> on file and will check it before we write.</> : null} Nothing to pay now, and nothing else to do.</>
           : status.body}
       </p>
 
@@ -124,14 +129,65 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
             placeholder="you@example.com"
             autoComplete="email"
             inputMode="email"
+            enterKeyHint="next"
+            style={{
+              width: '100%', padding: '13px 14px', fontSize: 16, borderRadius: 8,
+              border: `1.5px solid ${dark ? 'rgba(255,255,255,0.25)' : C.border}`,
+              background: dark ? 'rgba(255,255,255,0.06)' : C.white,
+              color: fg, fontFamily: 'inherit', outline: 'none', marginBottom: 14,
+            }}
+          />
+
+          {/**
+            * THE ADDRESS IS THE POINT OF THE CAPTURE, NOT AN EXTRA.
+            *
+            * cron/notify-waitlist.js already renders a "Your Property 📍 …" panel in
+            * the opening email when the row has one. Without an address the email we
+            * eventually send is "your state is open, go and file" addressed to
+            * nobody's house in particular; with one it names their property back to
+            * them, and it is the thing that lets us check their assessment before we
+            * write rather than after they click.
+            *
+            * OPTIONAL, DELIBERATELY. Requiring it puts a second field between a
+            * stranger and the only thing they came here to do, on a page that is
+            * asking them to wait a year. The email alone still keeps the promise;
+            * the address makes the promise worth keeping. Anyone who leaves it blank
+            * can add it when we write to them.
+            *
+            * A plain input rather than components/AddressAutocomplete: that
+            * component is backed by our Florida parcels table and only ever suggests
+            * a property we hold a roll for. We hold no roll for Arkansas or Alabama,
+            * so it would suggest nothing here and quietly look broken.
+            * autoComplete="street-address" hands the work to the browser's own saved
+            * address, which is the larger lever anyway — see the note in that file.
+            */}
+          <label
+            htmlFor={`${id}-address`}
+            style={{ display: 'block', fontSize: 13, fontWeight: 600, color: dark ? 'rgba(255,255,255,0.85)' : C.navy, marginBottom: 6 }}
+          >
+            Your property address <span style={{ fontWeight: 400, color: dark ? 'rgba(255,255,255,0.5)' : C.muted }}>— optional</span>
+          </label>
+          <input
+            id={`${id}-address`}
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={`123 Main St, ${status.name}`}
+            autoComplete="street-address"
+            autoCorrect="off"
+            autoCapitalize="words"
+            spellCheck={false}
             enterKeyHint="go"
             style={{
               width: '100%', padding: '13px 14px', fontSize: 16, borderRadius: 8,
               border: `1.5px solid ${dark ? 'rgba(255,255,255,0.25)' : C.border}`,
               background: dark ? 'rgba(255,255,255,0.06)' : C.white,
-              color: fg, fontFamily: 'inherit', outline: 'none', marginBottom: 12,
+              color: fg, fontFamily: 'inherit', outline: 'none', marginBottom: 6,
             }}
           />
+          <p style={{ fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.5)' : C.muted, margin: '0 0 12px', lineHeight: 1.55 }}>
+            Give us this and we will have looked at your assessment before we write.
+          </p>
 
           {state === 'error' && (
             <div style={{ background: '#FCEDEA', border: '1px solid #E9B5AB', borderRadius: 8, padding: '11px 13px', fontSize: 14, color: C.red, marginBottom: 12 }}>

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
+import { isStateServable, STATE_NAMES, servingFrom } from '../../../lib/stateService';
 import { isFlCountySupported } from '../../../lib/flVabAddresses';
 import { getFlVabFee } from '../../../lib/flCountyFees';
 
@@ -44,8 +45,15 @@ function clients() {
 // a generic server error rather than a missing variable.
 function buildEmail({ email, name, state, county, propertyAddress, daysLeft, isFirstDay, filingUrl }) {
   const firstName = name ? name.split(' ')[0] : 'there';
-  const stateNames = { TX: 'Texas', GA: 'Georgia', FL: 'Florida' };
-  const stateName = stateNames[state] || state;
+  /**
+   * THIS MAP WAS MISSING ARKANSAS AND ALABAMA — the two states whose signups are
+   * the only reason a row sits here for a future season. `stateNames[state] ||
+   * state` degrades silently to the CODE, so the email an Arkansas homeowner was
+   * queued to receive read "Your AR filing window just opened" and headed itself
+   * "Benton County, AR". It was the fifth hand-written copy of the same five-name
+   * list in this repo. It now reads lib/stateService.js like everything else.
+   */
+  const stateName = STATE_NAMES[state] || state;
   // county and stateName land in an HTML email; escape at the point of assembly so
   // every downstream use (subject line, headline, body) inherits it.
   const location = county ? `${h(county)}, ${h(stateName)}` : h(stateName);
@@ -432,6 +440,36 @@ export default async function handler(req, res) {
 
       if (!windowStatus || !windowStatus.isOpen) {
         console.log(`[notify-waitlist] Skipping ${email} — window not open`);
+        totalSkipped++;
+        continue;
+      }
+
+      /**
+       * ==================================================================
+       * AN OPEN WINDOW IS NOT THE SAME THING AS A STATE WE WILL SELL IN
+       * ==================================================================
+       * Added 25 Aug 2026 alongside the Arkansas/Alabama capture forms, and it is
+       * the half of that feature that makes the promise keepable.
+       *
+       * These rows are stamped `filing_year` by waitlistFilingYear(), which reads
+       * SERVING_FROM — so an Arkansas signup made today sits at 2027 and this loop
+       * ignores it until then. But it only ever moves a row FORWARD at the moment
+       * it is written. If Arkansas is not ready in 2027 and SERVING_FROM.AR is
+       * pushed to 2028, every row already stamped 2027 stays stamped 2027, and on
+       * 1 June 2027 — the day AR's window opens — this branch would send them
+       * "🎉 Your Arkansas filing window just opened — file today!" with a $89
+       * button, and pages/apply.js would refuse them at the state selector.
+       *
+       * This file already argues the point twice, about county-blocked rows: an
+       * email somebody ACTS on and is then refused is worse than no email at all.
+       * The same reasoning, one level up. The filing window is the state's fact;
+       * whether we can post the envelope is ours, and only ours gates the send.
+       *
+       * Silence, not a substitute email. When we are genuinely ready the row is
+       * still here and the next run sends the real thing.
+       */
+      if (!isStateServable(stateUpper)) {
+        console.log(`[notify-waitlist] Skipping ${email} — ${stateUpper} window is open but we do not file there until ${servingFrom(stateUpper)}`);
         totalSkipped++;
         continue;
       }

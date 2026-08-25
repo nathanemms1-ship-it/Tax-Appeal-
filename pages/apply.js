@@ -7,6 +7,7 @@ import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 import { SERVING_FROM } from '../lib/stateService';
+import { resolveOwnerMailing } from '../lib/ownerMailing';
 import { readVerdict } from '../lib/checkHandoff';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
@@ -923,11 +924,60 @@ function NoParcelRecord({ property, account, detail, onBack }) {
  * is a petition the Board can reject, and the customer has no way to know that
  * from a field labelled "First Name".
  */
-function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
+function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCents }) {
   const [err, setErr] = useState("");
+  /**
+   * CLOSED BY DEFAULT, AND THE DEFAULT IS THE PROPERTY.
+   *
+   * Most owners do have the county write to the house, so this is a disclosure
+   * rather than four more inputs — the same treatment the TRIM override gets in
+   * StepProperty, which took 511px off that step. What is on screen unopened is
+   * one line stating where the mail will go, which is the only thing somebody
+   * who does not need this has to read.
+   *
+   * Opened once, it stays open: `data.mailStreet` surviving a Back is what tells
+   * resolveOwnerMailing an answer was given, and a panel that closed itself on
+   * re-render would look like the answer had been thrown away.
+   */
+  const [showMailing, setShowMailing] = useState(!!data.mailStreet);
+
+  const propertyLine = [property.street, property.city, property.state, property.zip].filter(Boolean).join(", ");
+
+  // Prefill from the property so opening the panel is an EDIT, not a retype. It
+  // also means "opened and changed nothing" resolves to the property, which is
+  // the same answer as never having opened it.
+  const openMailing = () => {
+    if (!data.mailStreet) {
+      onChange("mailStreet", property.street || "");
+      onChange("mailCity", property.city || "");
+      onChange("mailState", property.state || "");
+      onChange("mailZip", property.zip || "");
+    }
+    setShowMailing(true);
+  };
+
+  const useProperty = () => {
+    onChange("mailStreet", ""); onChange("mailCity", ""); onChange("mailState", ""); onChange("mailZip", "");
+    setShowMailing(false);
+  };
+
   const go = () => {
     if (!data.firstName || !data.lastName) return setErr("Enter your full name.");
     if (!data.email.includes("@")) return setErr("Enter a valid email address.");
+    /**
+     * A HALF-FILLED MAILING ADDRESS IS WORSE THAN NONE.
+     *
+     * resolveOwnerMailing falls back per part, so a missing city quietly borrows
+     * the property's — which for somebody who has moved out of state produces a
+     * street in one town and a ZIP in another, printed on the petition as the
+     * address the Board should write to. Catch it here, where they can still see
+     * what they typed.
+     */
+    if (showMailing && String(data.mailStreet || "").trim()) {
+      if (!String(data.mailCity || "").trim() || !String(data.mailState || "").trim() || !String(data.mailZip || "").trim()) {
+        return setErr("Please complete the mailing address — city, state and ZIP.");
+      }
+    }
     setErr(""); onNext();
   };
   return (
@@ -1079,6 +1129,56 @@ function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
           <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
         </div>
         <Field label="Email Address" id="email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="jane@example.com" />
+
+        {/* ==================================================================
+            WHERE THE COUNTY WRITES TO. Added 25 Aug 2026.
+            ==================================================================
+            The petition prints this as the owner's Mailing Address and tells the
+            Board to send its correspondence and its determination there. Until
+            today this file filled it with the PROPERTY address at all three
+            call sites, so a landlord's county mail went to their tenant. See
+            the note above resolveOwnerMailing.
+            ================================================================== */}
+        {!showMailing && (
+          <div style={{ background: C.bg, borderRadius: 8, padding: "12px 14px", marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ fontSize: 12, color: C.mutedGray, marginBottom: 4 }}>County mail goes to</div>
+            <div style={{ fontSize: 13.5, color: C.darkNavy, lineHeight: 1.5, marginBottom: 8 }}>
+              {propertyLine || "your property address"}
+            </div>
+            <button
+              type="button"
+              onClick={openMailing}
+              style={{ background: "none", border: "none", padding: 0, color: C.navy, fontSize: 13, fontWeight: 600, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Send it somewhere else
+            </button>
+          </div>
+        )}
+
+        {showMailing && (
+          <div style={{ background: C.bg, borderRadius: 8, padding: "14px 14px 4px", marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, color: C.bodyGray, marginBottom: 10, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.55 }}>
+              Where should the county send mail about this appeal? Use this if the
+              property is a rental, a second home, or you no longer live there.
+            </div>
+            <Field label="Mailing address" id="mail-street" value={data.mailStreet || ""} onChange={e => onChange("mailStreet", e.target.value)} placeholder="123 Main St" />
+            <Field label="City" id="mail-city" value={data.mailCity || ""} onChange={e => onChange("mailCity", e.target.value)} placeholder="Miami" />
+            <div className="two-col">
+              <Field label="State" id="mail-state" value={data.mailState || ""} onChange={e => onChange("mailState", e.target.value)} placeholder="FL" />
+              <Field label="ZIP" id="mail-zip" value={data.mailZip || ""} onChange={e => onChange("mailZip", e.target.value)} placeholder="33178" />
+            </div>
+            <div style={{ paddingBottom: 12 }}>
+              <button
+                type="button"
+                onClick={useProperty}
+                style={{ background: "none", border: "none", padding: 0, color: C.mutedGray, fontSize: 12.5, textDecoration: "underline", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Use the property address instead
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* NO PASSWORD FIELD. It is offered on /success after the signature — see
             the header of this component and lib/noPassword.js. */}
         <button style={primaryBtn} onClick={go}>Continue →</button>
@@ -2479,6 +2579,11 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
     if (!allAgreed) return;
     setCheckingOut(true);
 
+    // Resolved once, here, rather than inline at the payload — the same value has
+    // to reach the order row and both petition renders, and three inline copies of
+    // "unless they gave us one" is how they drift apart.
+    const ownerMail = resolveOwnerMailing(account, property);
+
     // The petition is NOT regenerated with a signature here any more - there is no
     // signature yet. propData.letterKey holds the unsigned preview, which is what
     // /success shows the owner to read and sign. processOrder's
@@ -2552,10 +2657,14 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           districtCity: pd.appraisalDistrict?.city || null,
           districtState: pd.appraisalDistrict?.state || null,
           districtZip: pd.appraisalDistrict?.zip || null,
-          ownerStreet: property.street,
-          ownerCity: property.city,
-          ownerState: property.state,
-          ownerZip: property.zip,
+          // The MAILING address, which is the property unless the owner said
+          // otherwise — see resolveOwnerMailing. `stateCode` below stays the
+          // PROPERTY's state: it selects the filing rules and the destination
+          // board, and an owner living out of state must not change either.
+          ownerStreet: ownerMail.street,
+          ownerCity: ownerMail.city,
+          ownerState: ownerMail.state,
+          ownerZip: ownerMail.zip,
           stateCode: property.state ? property.state.trim().toUpperCase() : '',
           // FL: the SIGNED petition (re-rendered after the owner read and signed it).
           // Other states: the generated protest letter.
@@ -2917,6 +3026,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
 
   const run = async () => {
     setLoading(true); setErrMsg(""); setErrTransient(false); setLetter(""); setPropData(null);
+    const ownerMail = resolveOwnerMailing(account, property);
     try {
       const res = await fetch("/api/lookup", {
         method: "POST",
@@ -3220,10 +3330,10 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             ownerFirstName: account.firstName,
             ownerLastName: account.lastName,
             ownerEmail: account.email,
-            ownerStreet: property.street,
-            ownerCity: property.city,
-            ownerState: property.state,
-            ownerZip: property.zip,
+            ownerStreet: ownerMail.street,
+            ownerCity: ownerMail.city,
+            ownerState: ownerMail.state,
+            ownerZip: ownerMail.zip,
             comps: flComps,
             compsSource: flCompsSource,
             // Which ground supports the ask, and how much of it the priced
@@ -3277,10 +3387,10 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             ownerFirstName: account.firstName,
             ownerLastName: account.lastName,
             ownerEmail: account.email,
-            ownerStreet: property.street,
-            ownerCity: property.city,
-            ownerState: property.state,
-            ownerZip: property.zip,
+            ownerStreet: ownerMail.street,
+            ownerCity: ownerMail.city,
+            ownerState: ownerMail.state,
+            ownerZip: ownerMail.zip,
             propertyAddress: addr,
             county,
             assessedValue,
@@ -4169,7 +4279,7 @@ function ApplyFunnel() {
         <UnsupportedState stateCode={unsupportedState} onBack={() => { clearHandoff(); setUnsupportedState(null); }} account={account} property={property} />
       ) : (
         <>
-          {step === "account" && <StepAccount data={account} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} vabFeeCents={flAccountVabFee} />}
+          {step === "account" && <StepAccount data={account} property={property} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} vabFeeCents={flAccountVabFee} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => {
             const sc = property.state.trim().toUpperCase();
             /*
