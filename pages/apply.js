@@ -923,11 +923,34 @@ function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
   };
   return (
     <div className="page-grid">
-      <div>
+      {/*
+        ======================================================================
+        THIS COLUMN COMES AFTER THE FORM ON A PHONE. 25 Aug 2026.
+        ======================================================================
+        On desktop .page-grid is two columns and the form sits beside this, so
+        none of it is in the way. At 768px the grid collapses to one column and
+        this stacks ON TOP — putting 200+ words of marketing between a customer
+        who is already three steps in and the three fields they came to fill.
+
+        They have typed their address, been told they qualify, and chosen to
+        continue. Re-selling them the homepage at that point is the same mistake
+        /check was making this morning: words where a control should be.
+
+        `apply-sell` is ordered second inside the mobile media query rather than
+        hidden, because the reassurance below is worth having — just not before
+        the form.
+      */}
+      <div className="apply-sell">
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it for you</div>
         {/* An <h1> while this was step one. It is step three now, and the page's
-            heading belongs to the screen the visitor actually lands on. */}
-        <h2 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>We fight your property tax bill. You keep the savings.</h2>
+            heading belongs to the screen the visitor actually lands on.
+
+            It also read "We fight your property tax bill. You keep the savings."
+            — the HOMEPAGE headline, to somebody who is already inside the funnel
+            and has already been told their property qualifies. Replaced with a
+            line about where they actually are, and clamped: fontSize 38 was a
+            hardcoded pixel value in a file with no clamp() and no vw units. */}
+        <h2 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.6rem, 5.2vw, 2.375rem)", color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>Last step before we prepare your filing.</h2>
         <p style={{ fontSize: 20, fontWeight: 700, color: "#1B3A6B", marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. You sign it — we do the rest.</p>
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
         <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
@@ -953,17 +976,25 @@ function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
           </div>
           <div style={{ background: C.lightBlue, borderRadius: 6, padding: "8px 12px", fontSize: 11, color: C.navy, fontFamily: "'DM Sans', sans-serif" }}>⚖️ Aligned with Texas §41.41 · Georgia §48-5-311 · Florida §194.011 · Arkansas Code §26-27-317 · Alabama Code §40-3-20</div>
         </div>
-        <div className="price-flex" style={{ background: C.amber, border: `1.5px solid #FFD97A`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 4 }}>ONE-TIME FEE</div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: C.darkNavy }}>$89</div>
-            <div style={{ fontSize: 12, color: C.gold, fontFamily: "'DM Sans', sans-serif" }}>Flat rate. No hidden cuts.</div>
-          </div>
-          <div style={{ borderLeft: `2px solid #FFD97A`, paddingLeft: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, marginBottom: 4, fontFamily: "'DM Sans', sans-serif" }}>vs. the other guys</div>
-            <div style={{ fontSize: 12, color: C.bodyGray, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>Up to 50% of your savings — on a $2,000 win, that's $1,000 gone before it ever reaches you.</div>
-          </div>
-        </div>
+        {/*
+          THE "$89 / Flat rate. No hidden cuts." BOX IS GONE. 25 Aug 2026.
+
+          It contradicted the real total sixty lines below it in this same
+          component, which correctly reads `$89 + vabFeeCents/100` and names the
+          county fee. A Florida customer on this screen is paying $104-$139, and
+          this box told them $89 with "no hidden cuts" written underneath — on
+          the screen immediately before checkout, which is a worse place for that
+          claim than the homepage, where the identical wording was removed
+          earlier today.
+
+          Not replaced with a corrected version: the honest figure is already on
+          this screen, in the form card, derived rather than typed. Two price
+          displays is how they came to disagree.
+
+          The competitor comparison went with it. It belongs on a page where
+          somebody is deciding whether to buy, not on the one where they are
+          entering their email to complete a purchase they have already chosen.
+        */}
         {[["You sign it — we mail it for you", "You review and sign your filing, then we mail it in your name"], ["We send you the proof", "We email you when it is dispatched, with the tracking details we hold"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we do the rest"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
           <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
             <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.navy, flexShrink: 0, marginTop: 2 }}>✓</div>
@@ -1055,6 +1086,10 @@ function StepAccount({ data, onChange, onNext, onBack, vabFeeCents }) {
 }
 
 function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onClosedWindow }) {
+  // The optional TRIM-notice override is disclosed on demand — see the comment at
+  // the block itself. It used to sit between the last field and the Continue
+  // button, 441px below the fold on a phone.
+  const [showTaxBill, setShowTaxBill] = useState(false);
   const [err, setErr] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [checkedState, setCheckedState] = useState(null);
@@ -1174,6 +1209,33 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
             </div>
             <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
           </div>
+          {/*
+            ======================================================================
+            OPTIONAL, SO IT NO LONGER STANDS BETWEEN THE FIELDS AND THE BUTTON.
+            ======================================================================
+            Measured 25 Aug on a 390x844 phone: the last required field ended at
+            688px and the "Look up my property & continue" button sat at 1285px —
+            441px BELOW the fold, with this 560px optional panel in between.
+
+            So a customer who had typed everything asked of them could not see the
+            control that moves them forward. Same disease as /check this morning:
+            content where a control should be, on a screen reached by paid traffic.
+
+            Collapsed behind a link rather than moved or deleted. It is genuinely
+            useful — a TRIM notice overrides our lookup — but it is for the
+            minority who have the notice in front of them, and it should cost the
+            majority nothing. Same pattern as the ZIP disclosure on /check.
+          */}
+          {!showTaxBill && (
+            <button
+              type="button"
+              onClick={() => setShowTaxBill(true)}
+              style={{ marginTop: 12, padding: 0, fontSize: 13, color: C.navy, background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              Have your tax bill handy? Enter the values yourself
+            </button>
+          )}
+          {showTaxBill && (
           <div style={{ background: "#FAFBFC", border: `1.5px dashed #C5D0E0`, borderRadius: 10, padding: 20, marginTop: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 16 }}>📋</span>
@@ -1228,6 +1290,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
               </select>
             </div>
           </div>
+          )}
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             {/* NO BACK BUTTON ON STEP ONE. This rendered unconditionally while the
                 account step sat above it. The account step moved below on 23 Aug
@@ -2011,6 +2074,21 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
 
 function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes, onNotesChange, property, costOverrides, onCostChange }) {
   const count = selectedIssues.length;
+  /*
+    The customer's OWN deadline, for the banner below. Derived rather than
+    written down: Florida has no statewide date — Hillsborough closes on 7 Sept
+    and Miami-Dade on the 18th — so a single printed date is wrong for most
+    counties. Falls back to the receipt rule, which is true everywhere in Florida,
+    when the county is not resolved yet.
+  */
+  const issuesCounty = String(property?.county || '').replace(/\s+County$/i, '').trim();
+  let issuesDeadline = null;
+  try {
+    const w = issuesCounty ? getFilingWindowStatus('FL', issuesCounty) : null;
+    if (w?.hardDeadline) {
+      issuesDeadline = new Date(w.hardDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+  } catch { issuesDeadline = null; }
   const [parcel, setParcel] = useState(null);
   const [parcelState, setParcelState] = useState('idle');
 
@@ -2045,7 +2123,21 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         <div style={{ background: C.amber, border: `1px solid #FFD97A`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 10 }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
           <div style={{ fontSize: 13, color: "#7A5C10", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            <strong>Don't wait — deadlines are firm.</strong> The Texas protest deadline is May 15 or 30 days after your appraisal notice, whichever is later. Georgia, Florida, Arkansas, and Alabama have firm deadlines too. File now to protect your right to appeal.
+            {/*
+              THIS SAID "The Texas protest deadline is May 15 or 30 days after
+              your appraisal notice" — on the second screen of a FLORIDA-ONLY
+              funnel, in an amber alert, as the first thing on the page. 25 Aug.
+
+              It also named Arkansas and Alabama, which apply.js refuses at step
+              one, and it was static: the component already receives `property`
+              and therefore knows the county, and getFilingWindowStatus knows
+              that county's real date. It was urging urgency using somebody
+              else's calendar.
+            */}
+            <strong>Don&apos;t wait — deadlines are firm.</strong>{' '}
+            {issuesDeadline
+              ? <>Your petition must be <em>received</em> by {issuesCounty ? `${issuesCounty} County` : 'your county'} on {issuesDeadline} — Florida counts receipt, not postmark, so we mail well ahead of it. Finish now to protect your right to appeal.</>
+              : <>Florida counts a petition as filed when it is physically received, not when it is postmarked, so the useful deadline is earlier than the published one. Finish now to protect your right to appeal.</>}
           </div>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>💡 Optional but strengthens your case</div>
@@ -3228,21 +3320,21 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
               ? 'On comparable sales alone, an appeal wouldn’t be worth filing'
               : 'An appeal wouldn’t lower your tax bill'}
           </h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.body, marginBottom: 18 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
             {noSavings.message}
           </p>
           <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
               <span>Market (just) value</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.jv)}</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
               <span>Your assessment is capped at</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.breakEven)}</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.body }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
               <span>Capped below market by</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.differential)}</strong>
             </div>
           </div>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.muted, marginBottom: 20 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 20 }}>
             You haven&rsquo;t been charged. Check these figures against your TRIM notice — they come
             straight from your county&rsquo;s own records and should match exactly. This can change:
             buying or selling resets the cap, and a falling market brings your market value back
@@ -3256,7 +3348,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
               action has to be "tell us about the condition", not "go away". */}
           {noSavings.rescuable && onAddIssues && (
             <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.body, marginBottom: 12 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 12 }}>
                 <strong>This answer assumes your home is in average condition.</strong> Cost to cure —
                 what it would take to put right a failed roof, a dead air conditioner, an original
                 kitchen, active damage — reduces what your property is worth <em>on top of</em> what
@@ -4025,6 +4117,10 @@ function ApplyFunnel() {
         .price-flex { display: flex; align-items: center; gap: 20px; }
         @media (max-width: 768px) {
           .page-grid, .page-grid-sm, .page-grid-issues, .page-grid-letter { grid-template-columns: 1fr !important; padding: 20px 16px !important; gap: 20px !important; }
+          /* The form before the pitch, once the two columns become one.
+             See the comment at .apply-sell in StepAccount. */
+          .page-grid > .apply-sell { order: 2; }
+          .page-grid > .card-padding { order: 1; }
           .mob-hide { display: none !important; }
           .three-col { grid-template-columns: 1fr 1fr !important; }
           .three-col-equal { grid-template-columns: 1fr 1fr !important; }
