@@ -30,6 +30,8 @@ const TX_DEADLINE = deadlineShort(TX_TAX_YEAR);
 // Renders only for Texas counties whose certified roll we actually hold, and
 // returns null for every other page. See the file header: pages follow data.
 import CountyRollFacts from '../../components/CountyRollFacts';
+import SeasonNotice from '../../components/SeasonNotice';
+import { stateSaleStatus } from '../../lib/stateService';
 
 const C = {
   navy: "#1B2A4A",
@@ -58,6 +60,29 @@ const termsFor = (county) => stateTerms[county.code] || DEFAULT_TERMS;
 /* countyData.js stores `deadline: "May 15"` on all 254 Texas records — no year, and
    wrong from 2027 on. Read through this, never off the record directly. */
 const deadlineFor = (county) => (county.code === 'TX' ? TX_DEADLINE : county.deadline);
+
+/**
+ * ARKANSAS AND ALABAMA COUNTY PAGES WERE SELLING A STATE THE FUNNEL REFUSES.
+ *
+ * 93 of the 572 pages this template renders are AR or AL counties, and every one
+ * of them carried a schema.org Offer with a price, two "$89" buy links to /apply,
+ * a "$89 — Flat fee, never a %" tile and a description promising we would mail
+ * their appeal "for $89 flat". pages/apply.js refuses both states on sight
+ * (SERVING_FROM in lib/stateService.js), so each of those links led to a state
+ * selector that rejected the visitor — after an account and a full address.
+ *
+ * The gate is per COUNTY because this one file serves five states. Florida,
+ * Texas and Georgia are absent from SERVING_FROM, so `selling` is true for them
+ * and every branch below takes the path it took before this change. That is
+ * asserted rather than assumed: scripts/verify-state-service.mjs byte-compares
+ * the 480 prerendered FL/TX/GA county pages against the pre-change build.
+ *
+ * The 2026 deadline literals for AR and AL that the file header calls out as
+ * outstanding are a SEPARATE defect and are still outstanding — this change does
+ * not touch `stateTerms`. It removes the price and the buy button, which is what
+ * could take money we cannot honour.
+ */
+const saleStatusFor = (county) => stateSaleStatus(county.code);
 
 const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" };
 
@@ -221,6 +246,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
   if (!county) return <div style={{ padding: 40, color: C.text }}>County not found.</div>;
 
   const t = termsFor(county);
+  const svc = saleStatusFor(county);
   const action = county.code === "TX" ? "Protest" : "Appeal";
   const target = filingTargetFor(county, fl);
   /**
@@ -252,7 +278,9 @@ export default function CountyPage({ county, fl, contentRevised }) {
   const title = `${county.name} County, ${county.state} Property Tax ${action} ${t.year} | TaxAppeal USA`;
   const description = county.code === "FL" && fl
     ? `${county.name} County, Florida VAB petition for 2026 — deadline ${fl.deadlineText}, county filing fee ${fl.feeText}. TaxAppeal USA prepares your DR-486, pays the fee and mails it to the Clerk of the Value Adjustment Board for $89 flat.`
-    : `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`;
+    : svc.selling
+      ? `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`
+      : `How to ${t.verb} your ${county.name} County, ${county.state} property taxes — the deadline, the ${county.district} and what evidence the board wants. TaxAppeal USA is not filing ${svc.name} appeals this season; we open for the ${svc.servingFrom} season.`;
   const canonicalUrl = `https://www.taxappealusa.com/counties/${county.slug}`;
   const stateHref = `/${county.state.toLowerCase()}`;
 
@@ -311,14 +339,22 @@ export default function CountyPage({ county, fl, contentRevised }) {
     description: `Preparation, county fee payment and tracked mail filing of a ${county.name} County, ${county.state} property tax ${t.noun} under ${county.statute}.`,
     provider: { "@type": "Organization", name: "TaxAppeal USA", url: "https://www.taxappealusa.com" },
     areaServed: { "@type": "AdministrativeArea", name: `${county.name} County, ${county.state}` },
-    offers: {
-      "@type": "Offer",
-      price: fl ? String(89 + fl.feeDollars) : "89",
-      priceCurrency: "USD",
-      description: fl
-        ? `$89 service fee plus the ${county.name} County VAB filing fee of ${fl.feeText}, which TaxAppeal USA pays on the customer's behalf.`
-        : "$89 flat service fee. No percentage of savings.",
-    },
+    /* A schema.org Offer is not decoration — Google reads it as a live commercial
+       offer and can surface it as a price. Emitting one for a county in a state
+       apply.js refuses advertised, across 93 pages, something that could not be
+       bought. Spread rather than a null key, because `offers: undefined` survives
+       JSON.stringify as an absent key only by accident of the serialiser, and an
+       accident is not a gate. */
+    ...(svc.selling ? {
+      offers: {
+        "@type": "Offer",
+        price: fl ? String(89 + fl.feeDollars) : "89",
+        priceCurrency: "USD",
+        description: fl
+          ? `$89 service fee plus the ${county.name} County VAB filing fee of ${fl.feeText}, which TaxAppeal USA pays on the customer's behalf.`
+          : "$89 flat service fee. No percentage of savings.",
+      },
+    } : {}),
   };
 
   return (
@@ -357,9 +393,15 @@ export default function CountyPage({ county, fl, contentRevised }) {
             <div style={{ width: 36, height: 36, background: `linear-gradient(135deg,${C.gold},${C.goldDim})`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: C.white }}>⚖</div>
             <span style={{ color: C.white, fontSize: 18, fontWeight: 700, letterSpacing: "0.03em" }}>TaxAppeal USA</span>
           </Link>
-          <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
-            Start My {action} — $89
-          </Link>
+          {svc.selling ? (
+            <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
+              Start My {action} — $89
+            </Link>
+          ) : (
+            <a href="#notify" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
+              {svc.name} opens {svc.servingFrom} — notify me
+            </a>
+          )}
         </nav>
 
         {/* BREADCRUMB — matches breadcrumbSchema above. Mirrors the pattern already
@@ -397,9 +439,15 @@ export default function CountyPage({ county, fl, contentRevised }) {
                   We prepare your DR-486 petition, pull comparable sales in {county.name} County, and mail it with the county filing fee paid to the <strong style={{ color: C.gold }}>{target}</strong> — $89 flat{fl ? <> plus the {fl.feeText} county fee, <strong style={{ color: C.gold }}>{fl.allInText} all in</strong></> : null}. No percentage of your savings.
                 </>
               ) : (
-                <>
-                  We write your protest letter, pull comparable sales in {county.name} County, and send it via trackable USPS mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
-                </>
+                svc.selling ? (
+                  <>
+                    We write your protest letter, pull comparable sales in {county.name} County, and send it via trackable USPS mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
+                  </>
+                ) : (
+                  <>
+                    Your {t.noun} goes to the <strong style={{ color: C.gold }}>{county.district}</strong>. Everything below explains how that works and what the board wants to see. We are not filing {svc.name} appeals ourselves this season — we open for {svc.servingFrom}.
+                  </>
+                )
               )}
             </p>
             {/* FLORIDA ONLY. The line is a promise about the savings gate in
@@ -413,13 +461,22 @@ export default function CountyPage({ county, fl, contentRevised }) {
               </p>
             )}
             <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
-                File My {action} — $89 Flat
-              </Link>
+              {svc.selling && (
+                <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
+                  File My {action} — $89 Flat
+                </Link>
+              )}
               <a href="#how-it-works" style={{ background: "rgba(255,255,255,0.08)", color: C.white, padding: "16px 28px", borderRadius: 8, fontSize: 15, fontWeight: 500, textDecoration: "none", border: "1px solid rgba(255,255,255,0.2)", fontFamily: "Arial,sans-serif" }}>
                 How It Works ↓
               </a>
             </div>
+            {/* The nav link anchors here. Renders nothing for a state we sell, so
+                Florida, Texas and Georgia pages are unchanged. */}
+            {!svc.selling && (
+              <div style={{ marginTop: 28 }}>
+                <SeasonNotice stateCode={county.code} variant="dark" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -469,7 +526,9 @@ export default function CountyPage({ county, fl, contentRevised }) {
               // fee comes from the same table checkout charges from, and the deadline
               // from the same window the funnel gates on. Neither can drift from what
               // we actually do without the build failing.
-              { num: "$89", label: "Flat fee — never a %" },
+              svc.selling
+                ? { num: "$89", label: "Flat fee — never a %" }
+                : { num: String(svc.servingFrom), label: `Season we open in ${svc.name}` },
               fl
                 ? { num: fl.feeText, label: `${county.name} County VAB fee — we pay it` }
                 : { num: "0%", label: "Of your savings taken" },

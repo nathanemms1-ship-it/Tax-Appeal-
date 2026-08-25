@@ -2,6 +2,27 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { STATS, OUTCOME_DISCLAIMER } from '../lib/stats';
+import { sellingStates, pendingStates, nameList, stateSaleStatus } from '../lib/stateService';
+
+/**
+ * THE HOMEPAGE CLAIMED FIVE STATES AND THE FUNNEL SELLS THREE.
+ *
+ * Until 25 Aug 2026 this page carried its OWN Organization schema — a second one,
+ * separate from the site-wide block in pages/_app.js, which had already been
+ * corrected to Texas/Georgia/Florida on 21 Aug. This copy still read
+ * `areaServed: ["Texas","Georgia","Florida","Arkansas","Alabama"]` with an Offer
+ * at $89, a FAQ answer saying "Currently Texas, Georgia, Florida, Arkansas, and
+ * Alabama", and five "Currently available in" pills. pages/apply.js refuses
+ * Arkansas and Alabama on sight.
+ *
+ * That is the same one-fact-two-places failure that put a $89 Alabama offer on
+ * /alabama while the funnel rejected it. So the list is now DERIVED: add or open
+ * a state in lib/stateService.js and this page follows. There is no state name
+ * typed into the markup below.
+ */
+const SELLING = sellingStates();
+const PENDING = pendingStates();
+const SELLING_TEXT = nameList(SELLING);
 
 const C = {
   navy:     "#1B3A6B",
@@ -37,9 +58,9 @@ export default function Landing() {
     ["Do I have to do anything after I pay?", "One thing: right after you pay, we show you the complete filing and you sign it yourself — it goes in your name, and in Florida your signature is what makes the petition valid. After that we handle the rest: printing, paying any county filing fee, and mailing it to the correct authority. We email you as soon as it is on its way."],
     ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
     ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."],
-    ["What states do you serve?", "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon — enter your email during signup to be notified when your state launches."],
+    ["What states do you serve?", `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} filing season — we are confirming the exact office every appeal has to reach in those states before we take an order there.` : ""} More states are coming soon — enter your email during signup to be notified when your state launches.`],
     ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
-    ["How do you mail my filing?", "It depends on your state. In Texas, Georgia, Arkansas and Alabama we use USPS certified mail, which creates a signed record that your protest was sent and received. Florida VAB petitions go out as a check to the county with the petition attached, which USPS carries as tracked First Class mail — certified is not offered on that product. Either way we mail it for you and tell you when it is on its way."],
+    ["How do you mail my filing?", "It depends on your state. In Texas and Georgia we use USPS certified mail, which creates a signed record that your protest was sent and received. Florida VAB petitions go out as a check to the county with the petition attached, which USPS carries as tracked First Class mail — certified is not offered on that product. Either way we mail it for you and tell you when it is on its way."],
     ["Can I file in multiple counties?", "Yes — each property requires a separate filing. You can run the process multiple times, once for each property address."],
   ];
 
@@ -70,7 +91,7 @@ export default function Landing() {
             { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "Right after you pay, we show you the complete filing and you sign it yourself — it goes in your name. After that we handle printing, paying any county filing fee, and mailing it to the correct authority." }},
             { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
             { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
-            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": "Currently Texas, Georgia, Florida, Arkansas, and Alabama. More states are coming soon." }},
+            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} filing season.` : ""} More states are coming soon.` }},
             { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
           ]
         })}} />
@@ -81,8 +102,8 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": "Property tax protest and appeal service for homeowners in Texas, Georgia, Florida, Arkansas, and Alabama. Flat $89 fee, tracked USPS mailing.",
-          "areaServed": ["Texas", "Georgia", "Florida", "Arkansas", "Alabama"],
+          "description": `Property tax protest and appeal service for homeowners in ${SELLING_TEXT}. Flat $89 fee, tracked USPS mailing.`,
+          "areaServed": SELLING.map((c) => ({ TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" }[c])),
           "offers": {
             "@type": "Offer",
             "price": "89",
@@ -651,17 +672,26 @@ export default function Landing() {
       <section className="section" style={{ textAlign: "center" }}>
         <div className="section-inner">
           <div className="section-title">Currently available in</div>
-          <div className="section-sub">We've launched in five states — Texas, Georgia, Florida, Arkansas, and Alabama.</div>
+          {/* THE PILLS ARE DERIVED AND THE ARKANSAS ONE WAS ALSO OUT OF DATE.
+              This block listed five states with a live deadline each, including
+              "Arkansas — Deadline: Aug 17 (third Monday in August)", which on 25
+              August was a date eight days gone in a state apply.js refuses. Both
+              the membership and the deadline text now come from
+              lib/stateService.js. */}
+          {/* One expression, not three JSX children: React inserts a space
+              between siblings on separate lines, which rendered "…and Florida ."  */}
+          <div className="section-sub">
+            {`We prepare and mail property tax appeals in ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((x) => x.code))} open for the ${PENDING[0].servingFrom} filing season.` : ""}`}
+          </div>
           <div className="state-pills">
-            {[
-              ["Texas", "Deadline: May 15 or 30 days after notice"],
-              ["Georgia", "Deadline: 45 days after assessment notice"],
-              ["Florida", "Deadline: ~Sept 18 (25 days after TRIM notice)"],
-              ["Arkansas", "Deadline: Aug 17 (third Monday in August)"],
-              ["Alabama", "Deadline: 30 days from Notice of Valuation"],
-            ].map(([state, note]) => (
-              <div key={state} className="state-pill">
-                📍 <strong>{state}</strong> — <span style={{ fontSize: 12, color: C.bodyGray }}>{note}</span>
+            {SELLING.map((c) => (
+              <div key={c} className="state-pill">
+                📍 <strong>{stateSaleStatus(c).name}</strong> — <span style={{ fontSize: 12, color: C.bodyGray }}>Deadline: {stateSaleStatus(c).deadlineRule}</span>
+              </div>
+            ))}
+            {PENDING.map((p) => (
+              <div key={p.code} className="state-pill" style={{ opacity: 0.72 }}>
+                🕐 <strong>{p.name}</strong> — <span style={{ fontSize: 12, color: C.bodyGray }}>Opens for the {p.servingFrom} season</span>
               </div>
             ))}
           </div>

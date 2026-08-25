@@ -1622,19 +1622,40 @@ const t2 = (label, ok, detail) => {
     console.error(`  FAIL  shared-schema check inspected only ${flPages.length} Florida pages — expected 150+; the path selector has drifted`);
   }
 
-  // NOT a failure, but it must not be invisible: the /arkansas and /alabama pages,
-  // the AR/AL metro pages and some blog posts still advertise those states in their
-  // own right, with live $89 CTAs against deadlines apply.js will not file. That is a
-  // decision about ~159 indexed pages — delete, or convert to waitlist — not a copy
-  // fix, and it is tracked in the open-items queue.
-  const stillAdvertising = built.filter((f) => {
-    const ld = [...fs.readFileSync(f, 'utf8').matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)]
-      .map((m) => m[1]).join(' ');
-    return /Arkansas|Alabama/i.test(ld);
+  /**
+   * A PRICE IN THE SCHEMA OF A STATE WE REFUSE.
+   *
+   * This warning used to fire on any page whose JSON-LD contained the word
+   * "Arkansas" or "Alabama" — 177 of them — and its text said those pages
+   * "advertise those states with live $89 CTAs". On 25 Aug 2026 that stopped
+   * being true: the eleven AR/AL pages and the 20-page suburb template were
+   * converted to season copy, and their FAQPage answers now say, in schema, that
+   * we are NOT filing there. Under the old predicate that honest sentence counted
+   * as advertising, so the number would never reach zero however much was fixed.
+   *
+   * A warning that cannot go green is a warning people stop reading, and this
+   * file already says so in the note above AR_AL_COVERAGE. So it now measures the
+   * thing it names: structured data that couples one of those states to a PRICE.
+   * That is what Google can surface as a live commercial offer, and it is what
+   * must not exist while pages/apply.js refuses the state.
+   *
+   * The site-wide Service block from pages/_app.js is excluded by name: it
+   * carries the $89–$139 range legitimately and its areaServed was corrected to
+   * Texas/Georgia/Florida on 21 Aug. Without that exclusion this fires on all
+   * 1,079 pages and means nothing.
+   */
+  const SITE_WIDE_SERVICE_LD = '"name":"Property Tax Dispute Filing"';
+  const pricedArAl = built.filter((f) => {
+    const blocks = [...fs.readFileSync(f, 'utf8')
+      .matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    return blocks.some((b) =>
+      !b.includes(SITE_WIDE_SERVICE_LD)
+      && /Arkansas|Alabama/i.test(b)
+      && /"@type"\s*:\s*"Offer"|priceRange|"price"\s*:/.test(b));
   });
-  if (stillAdvertising.length) {
+  if (pricedArAl.length) {
     warnings++;
-    console.warn(`  WARN  ${stillAdvertising.length} pages still name Arkansas or Alabama in their own schema — apply.js refuses both. Tracked as an open item, not fixed here.`);
+    console.warn(`  WARN  ${pricedArAl.length} page(s) put a price in the same structured data as a state apply.js refuses: ${pricedArAl.slice(0, 5).map((f) => path.relative(DIR, f)).join(', ')}`);
   }
 
   /**
