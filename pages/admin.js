@@ -872,6 +872,27 @@ export default function Admin() {
     if (!partnerData && !partnersLoading) fetchPartners();
   };
 
+  /**
+   * ORDERS RE-FETCH ON EVERY VISIT, UNLIKE THE OTHER TABS. 25 Aug 2026.
+   *
+   * The tab button used to call setView('orders') and nothing else, so orders were
+   * loaded exactly once — at login — and never again unless the ↻ button was
+   * pressed. Reported as "the orders never refresh, all of the other categories
+   * do", which is precisely right: the other four load on first visit, and since
+   * they are always visited AFTER login their data is always newer.
+   *
+   * NO `if (!orders.length)` GUARD HERE, deliberately, and this is the difference
+   * from showPartners above. Those tabs guard because a partner refresh costs a
+   * Stripe round-trip. Orders is one indexed Supabase select, it is the tab an
+   * operator opens to answer "did that order go out", and a stale answer to that
+   * question is what sent a paying customer an apology today. Cheap query, high
+   * cost of being wrong — so it always re-reads.
+   */
+  const showOrders = () => {
+    setView('orders');
+    if (!loading) fetchOrders();
+  };
+
   const fetchWaitlist = async (pw) => {
     setWaitlistLoading(true);
     setWaitlistError('');
@@ -968,6 +989,44 @@ export default function Admin() {
       setPreviewMsg('✗ Failed to reach the server');
     }
   };
+
+  /**
+   * RE-READ THE ACTIVE TAB WHEN THE OPERATOR COMES BACK TO IT.
+   *
+   * This page had NO useEffect at all. Nothing ran on mount, nothing ran on focus,
+   * nothing polled — every fetch was tied to a click. So an admin tab left open
+   * beside the Supabase table editor showed whatever it held when it was last
+   * clicked, for as long as it stayed open, which is exactly the situation the
+   * 25 Aug report describes: switching to Supabase, seeing the new row there, and
+   * coming back to a page that had not moved.
+   *
+   * Fires on focus and on visibilitychange, not on a timer: an operator alt-tabbing
+   * back is the moment the data matters, and a poll would run queries all night
+   * against a tab nobody is looking at.
+   */
+  useEffect(() => {
+    if (!authenticated) return undefined;
+
+    const refreshActiveView = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      if (view === 'orders') { if (!loading) fetchOrders(); }
+      else if (view === 'partners') { if (!partnersLoading) fetchPartners(); }
+      else if (view === 'waitlist') { if (!waitlistLoading) fetchWaitlist(); }
+      else if (view === 'traffic') { if (!trafficLoading) fetchTraffic(); }
+      else if (view === 'funnel') { if (!funnelLoading) fetchFunnel(); }
+    };
+
+    window.addEventListener('focus', refreshActiveView);
+    document.addEventListener('visibilitychange', refreshActiveView);
+    return () => {
+      window.removeEventListener('focus', refreshActiveView);
+      document.removeEventListener('visibilitychange', refreshActiveView);
+    };
+    // `view` is the dependency that matters — the listener has to know which tab is
+    // on screen. The loading flags are read inside the handler rather than depended
+    // on, so a fetch settling does not tear down and rebuild the listeners.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, view]);
 
   const handleLogin = () => {
     if (!password) return;
@@ -1100,9 +1159,16 @@ export default function Admin() {
         <div style={{ padding: "24px 32px", maxWidth: 1400, margin: "0 auto" }}>
           {/* View switch. Partners were previously visible only by curling
               /api/referral-stats or opening the Supabase table editor. */}
+          {/*
+            The Orders arm of this used to read `: setView('orders')` — switch the
+            view, fetch nothing. That was the bug reported on 25 Aug, "the orders
+            never refresh, all of the other categories do": the other four go
+            through a show*() wrapper that loads on first visit, and Orders alone
+            re-rendered whatever had been fetched at login.
+          */}
           <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
             {[['orders', '📦 Orders'], ['partners', '🤝 Partners'], ['waitlist', '📋 Captured leads'], ['traffic', '📈 Traffic'], ['funnel', '🔻 Funnel']].map(([key, label]) => (
-              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : key === 'traffic' ? showTraffic() : key === 'funnel' ? showFunnel() : setView('orders'))}
+              <button key={key} onClick={() => (key === 'partners' ? showPartners() : key === 'waitlist' ? showWaitlist() : key === 'traffic' ? showTraffic() : key === 'funnel' ? showFunnel() : showOrders())}
                 style={{ background: view === key ? C.navy : C.white, color: view === key ? C.white : C.bodyGray, border: `1.5px solid ${view === key ? C.navy : C.border}`, borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
                 {label}
               </button>
