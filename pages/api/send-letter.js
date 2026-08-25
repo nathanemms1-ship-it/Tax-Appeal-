@@ -14,7 +14,7 @@
 import crypto from 'crypto';
 import { Redis } from '@upstash/redis';
 import { getFlVabFee } from '../../lib/flCountyFees';
-import { getFlVabAddress } from '../../lib/flVabAddresses';
+import { getFlVabAddress, flVabMailingLines } from '../../lib/flVabAddresses';
 import { checkSpend } from '../../lib/spendGuard';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { alertOps } from '../../lib/alertOps';
@@ -149,12 +149,36 @@ export default async function handler(req, res) {
       const feeInfo = getFlVabFee(county);
       const vabAddr = getFlVabAddress(county);
 
+      /**
+       * The recipient lines Lob will actually accept. Computed HERE, before any
+       * of the expensive work below, so a county that cannot be addressed fails
+       * on the same 400 as one with no address at all rather than throwing from
+       * inside the Lob call after a cheque has been composed.
+       */
+      const mailLines = flVabMailingLines(county);
+
       if (!vabAddr) {
         console.error(`send-letter: refusing to mail — no verified VAB address for ${county} County, FL`);
         return res.status(400).json({
           error: `No verified Value Adjustment Board address for ${county} County. Refusing to mail.`,
           code: 'FL_COUNTY_UNSUPPORTED',
         });
+      }
+      /**
+       * Only reachable if line 1 ALONE exceeds Lob's cap, which no confirmed
+       * county does — scripts/verify-fl-dispatch.mjs fails the build otherwise.
+       * Refusing beats truncating: a cut street line names a real address that is
+       * the wrong one, and this envelope carries a sworn petition and a cheque.
+       */
+      if (!mailLines) {
+        console.error(`send-letter: refusing to mail — ${county} County VAB address cannot fit Lob's 50-character line budget`);
+        return res.status(400).json({
+          error: `The Value Adjustment Board address for ${county} County cannot be formatted for mailing. Refusing to mail.`,
+          code: 'FL_COUNTY_ADDRESS_TOO_LONG',
+        });
+      }
+      if (mailLines.shed) {
+        console.log(`FL order: ${county} VAB address shortened for Lob's 50-char line budget — shed ${mailLines.shed}`);
       }
       if (!feeInfo || !feeInfo.vabFee || feeInfo.vabFee <= 0) {
         return res.status(400).json({ error: `No verified VAB filing fee for ${county} County. Refusing to mail.` });
@@ -218,8 +242,20 @@ export default async function handler(req, res) {
         description: `${String(county || '').replace(/\s+County$/i, '').trim()} County VAB Filing Fee — ${propertyAddress}`,
         to: {
           name: feeInfo.payableTo,
-          address_line1: vabAddr.street,
-          address_line2: vabAddr.attn || undefined,
+          /**
+           * NOT vabAddr.street / vabAddr.attn DIRECTLY. 25 Aug.
+           *
+           * Lob caps address_line1 + address_line2 at 50 characters COMBINED and
+           * measures AFTER its own USPS normalisation, so the strings in
+           * lib/flVabAddresses.js do not tell you whether an order will mail.
+           * Hillsborough came to 51 and threw on the first paying customer, after
+           * the card was charged. 23 of 61 confirmed counties were over.
+           *
+           * flVabMailingLines sheds the least load-bearing text until it fits and
+           * never truncates — see the header there.
+           */
+          address_line1: mailLines.line1,
+          address_line2: mailLines.line2,
           address_city: vabAddr.city,
           address_state: vabAddr.state,
           address_zip: vabAddr.zip,

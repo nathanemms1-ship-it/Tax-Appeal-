@@ -180,6 +180,59 @@ async function call(body, { authed = true } = {}) {
 
     // Destination. A petition delivered to the property appraiser is not filed.
     t('street is the verified VAB street', sent.body.to?.address_line1 === addr.street, sent.body.to?.address_line1);
+
+    /**
+     * THE PAYLOAD ITSELF MUST FIT LOB'S CAP. 25 Aug.
+     *
+     * The assertions further down prove the flVabMailingLines LADDER is correct.
+     * They do not prove send-letter USES it — and that gap is exactly the shape of
+     * the bug that charged the first customer and then failed. Reverting
+     * send-letter to `vabAddr.attn` left all 48 checks passing.
+     *
+     * So this measures the body that was actually captured on its way to Lob.
+     * INJECTION: restore `address_line2: vabAddr.attn` in send-letter.js and run
+     * the suite against a county that needs shedding -> this fails.
+     */
+    {
+      const { lobLineLength, LOB_ADDRESS_LINE_BUDGET, flVabMailingLines, getFlVabAddress: gv } =
+        await import('../lib/flVabAddresses.js');
+
+      const len = lobLineLength(sent.body.to?.address_line1, sent.body.to?.address_line2);
+      t("the dispatched payload is inside Lob's combined line budget",
+        len <= LOB_ADDRESS_LINE_BUDGET,
+        `${len} > ${LOB_ADDRESS_LINE_BUDGET}: "${sent.body.to?.address_line1}" + "${sent.body.to?.address_line2}"`);
+
+      /**
+       * AND IT HAS TO BE A COUNTY THAT ACTUALLY NEEDS SHEDDING.
+       *
+       * Broward's stored attn is already "Value Adjustment Board" with no "Attn:"
+       * prefix and comes to 46, so it passes whether send-letter uses the ladder or
+       * the raw fields. Asserting on Broward alone proved nothing — the first
+       * version of this check passed with the fix REVERTED.
+       *
+       * Hillsborough is the county that charged a customer and failed, so
+       * Hillsborough is what gets dispatched here.
+       */
+      const hillsAddr = gv('Hillsborough');
+      const hillsExpected = flVabMailingLines('Hillsborough');
+      const { sent: hillsSent } = await call(flBody({
+        county: 'Hillsborough',
+        propertyAddress: '4401 579 Hwy, Seffner, FL 33584',
+        ownerCity: 'Seffner',
+        ownerZip: '33584',
+      }));
+
+      t('a shedding county is actually dispatched, so this test can fail',
+        hillsAddr.attn !== hillsExpected.line2, `${hillsAddr.attn} vs ${hillsExpected.line2}`);
+      t('Hillsborough dispatches inside the budget',
+        lobLineLength(hillsSent?.body?.to?.address_line1, hillsSent?.body?.to?.address_line2) <= LOB_ADDRESS_LINE_BUDGET,
+        `"${hillsSent?.body?.to?.address_line1}" + "${hillsSent?.body?.to?.address_line2}"`);
+      t('Hillsborough sends the shed line 2, not the raw attn field',
+        hillsSent?.body?.to?.address_line2 === hillsExpected.line2,
+        `sent "${hillsSent?.body?.to?.address_line2}" vs raw "${hillsAddr.attn}"`);
+      t('and its street line is untouched',
+        hillsSent?.body?.to?.address_line1 === hillsAddr.street, hillsSent?.body?.to?.address_line1);
+    }
     t('city/state/zip come from the verified table',
       sent.body.to?.address_city === addr.city && sent.body.to?.address_state === addr.state && sent.body.to?.address_zip === addr.zip);
 
@@ -327,6 +380,74 @@ async function call(body, { authed = true } = {}) {
   console.log(`  ${sellable} of 67 counties currently sellable (confirmed fee AND confirmed address)`);
   t('at least 50 counties are sellable', sellable >= 50, sellable);
   t('the sellable count has not gone BACKWARDS since 6 Aug', sellable >= 56, sellable);
+}
+
+/**
+ * ============================================================================
+ * EVERY SELLABLE COUNTY MUST FIT LOB'S 50-CHARACTER LINE BUDGET. 25 Aug 2026.
+ * ============================================================================
+ * Order db86d957, the first paying customer, Hillsborough:
+ *
+ *   The sum (51) of to.address_line1 (601 E KENNEDY BLVD FL 12) and
+ *   to.address_line2 (ATTN VALUE ADJUSTMENT BOARD) cannot surpass 50 characters
+ *
+ * Card charged, fulfilment threw, order to needs_review, petition not mailed,
+ * thirteen days to a receipt-not-postmark deadline.
+ *
+ * 23 of the 61 confirmed counties were over. It was not a bad record — it was
+ * every county nobody had happened to buy in yet. This block is what makes that
+ * impossible to repeat: a new or edited VAB address that cannot be addressed now
+ * fails the BUILD, rather than an order after the card is charged.
+ *
+ * Lob measures AFTER its own USPS normalisation, so this cannot be checked by
+ * reading lib/flVabAddresses.js — Hillsborough is 58 characters as stored and 51
+ * as Lob counts it.
+ */
+{
+  const { flVabMailingLines, lobLineLength, LOB_ADDRESS_LINE_BUDGET, FL_COUNTY_NAMES } =
+    await import('../lib/flVabAddresses.js');
+
+  const unaddressable = [];
+  const overBudget = [];
+  let shedCount = 0;
+
+  for (const county of FL_COUNTY_NAMES) {
+    if (!getFlVabAddress(county)) continue;      // unconfirmed — not sellable anyway
+    const m = flVabMailingLines(county);
+    if (!m) { unaddressable.push(county); continue; }
+    const len = lobLineLength(m.line1, m.line2);
+    if (len > LOB_ADDRESS_LINE_BUDGET) overBudget.push(`${county} (${len})`);
+    if (m.shed) shedCount++;
+  }
+
+  t('every sellable county produces mailable recipient lines', unaddressable.length === 0, unaddressable);
+  t("no sellable county exceeds Lob's combined line budget", overBudget.length === 0, overBudget);
+  console.log(`  ${shedCount} counties shed attention-line text to fit Lob's ${LOB_ADDRESS_LINE_BUDGET}-char budget`);
+
+  // THE LIVE ONE. It must fit, and it must fit by dropping "Attn:" rather than by
+  // cutting the street — a truncated street line names a real address that is the
+  // wrong one, and this envelope carries a sworn petition and a cheque.
+  const hills = flVabMailingLines('Hillsborough');
+  t('Hillsborough now fits', lobLineLength(hills.line1, hills.line2) <= LOB_ADDRESS_LINE_BUDGET,
+    lobLineLength(hills.line1, hills.line2));
+  t('and it fits by dropping "Attn:", not by cutting the street',
+    hills.line1 === getFlVabAddress('Hillsborough').street && hills.line2 === 'Value Adjustment Board',
+    JSON.stringify(hills));
+
+  // Pinellas is the worst case — a 67-character attention line — and the one where
+  // dropping line 2 outright would cost real routing ("c/o Board Records Department").
+  const pin = flVabMailingLines('Pinellas');
+  t('Pinellas keeps its c/o routing rather than losing line 2',
+    /Board Records/i.test(pin.line2 || ''), JSON.stringify(pin));
+
+  // No county's street line may be altered by the ladder, ever.
+  const altered = FL_COUNTY_NAMES.filter((c) => {
+    const a = getFlVabAddress(c);
+    if (!a) return false;
+    const m = flVabMailingLines(c);
+    return m && m.line1 !== a.street;
+  });
+  t('the ladder never alters line 1', altered.length === 0, altered);
 }
 
 global.fetch = realFetch;
