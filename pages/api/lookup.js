@@ -52,7 +52,7 @@
  */
 
 import { Redis } from '@upstash/redis';
-import { getCountyPortal } from './county_portals';
+import { getCountyPortal } from '../../lib/countyPortals';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
 import { checkSpend } from '../../lib/spendGuard';

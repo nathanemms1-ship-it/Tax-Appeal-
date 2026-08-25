@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LOADED_COUNTIES } from '../lib/dor/coverage';
+import { getCountyPortal } from '../lib/countyPortals';
 import Head from 'next/head';
 import Link from 'next/link';
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -302,6 +303,7 @@ export default function CheckPage() {
 
   const d = state.data;
 
+
   /**
    * THE COUNTY'S WINDOW, RESOLVED ONCE AND USED BY EVERYTHING BELOW.
    *
@@ -321,6 +323,14 @@ export default function CheckPage() {
   if (checkedCounty) {
     try { win = getFilingWindowStatus('FL', checkedCounty); } catch { win = null; }
   }
+  /*
+    THE COUNTY'S OWN PROPERTY APPRAISER, for the "check us against your county"
+    link on the refusal screen. Reuses checkedCounty above rather than adding a
+    field to /api/check. Null for the 27 counties with no portal on file, and the
+    link is then simply not rendered — see the warning in lib/countyPortals.js
+    about guessing a URL on the one invitation that asks to be verified.
+  */
+  const checkedPortal = checkedCounty ? getCountyPortal('FL', checkedCounty) : null;
   /**
    * THE SECOND REASON WE CANNOT SELL, AND IT IS NOT THE CALENDAR.
    *
@@ -803,8 +813,22 @@ export default function CheckPage() {
               {/* ESTIMATES. Visually separated, and every figure carries the
                   approximation. The millage rate is not yet held per-district,
                   so these are ±30% and must never read as computed for them. */}
-              {d.estimates && (
-                <div style={{ background: '#FAFBFD', border: `1px dashed ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }}>
+              {/*
+                ON A CAPPED-OUT PARCEL ALL THREE SCENARIOS ARE ZERO, AND THIS PANEL
+                LABELLED THEM "Approximate only". 25 Aug.
+
+                The panel was gated on `d.estimates` alone, so a refused homeowner read
+                "Rough savings estimate / Approximate only / about $0/yr" three times.
+                That $0 is not approximate — it is exact at any millage, which is the
+                whole reason the refusal holds. Labelling the one certain number on the
+                page as a rough guess undercut the finding it was there to prove.
+
+                Gated on the figures rather than on d.eligible, deliberately: a
+                saving_below_cost verdict has small but real estimates and should still
+                show the scale it is refusing on.
+              */}
+              {d.estimates && (d.estimates.conservative > 0 || d.estimates.likely > 0 || d.estimates.optimistic > 0) ? (
+                <div style={{ background: '#FAFBFD', border: `1px dashed ${C.border}`, borderRadius: 12, padding: 'clamp(18px, 4vw, 24px)', marginBottom: 20 }}>
                   <h2 style={{ fontSize: 18, margin: '0 0 4px' }}>Rough savings estimate</h2>
                   <p style={{ fontSize: 13, color: C.muted, margin: '0 0 18px' }}>
                     Approximate only. These use an average Florida tax rate, not your exact
@@ -814,7 +838,17 @@ export default function CheckPage() {
                   <Row label="If a 15% reduction is won" value={`about ${fmt(d.estimates.likely)}/yr`} />
                   <Row label="If a 25% reduction is won" value={`about ${fmt(d.estimates.optimistic)}/yr`} last />
                 </div>
-              )}
+              ) : d.estimates ? (
+                <div style={{ background: '#FAFBFD', border: `1px dashed ${C.border}`, borderRadius: 12, padding: 'clamp(18px, 4vw, 24px)', marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 18, margin: '0 0 4px' }}>What a win would be worth</h2>
+                  <p style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6, margin: 0 }}>
+                    <strong style={{ color: C.darkNavy }}>Nothing — $0 a year</strong>, at a 10%,
+                    15% or 25% reduction alike. That is not an estimate and it does not depend on
+                    your tax rate. Your bill is calculated from the smaller capped figure above, and
+                    none of those reductions gets the county&rsquo;s market value below it.
+                  </p>
+                </div>
+              ) : null}
 
               {/* Next step. Different for each outcome, honest in both. */}
               {d.eligible ? (
@@ -1141,40 +1175,103 @@ export default function CheckPage() {
                   )}
                 </div>
               ) : (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
-                  <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We&rsquo;ll tell you when that changes</h2>
-                  <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>
-                    This can change. Buying or selling resets the cap, and if market values fall
-                    far enough, your just value drops toward your assessed value and an appeal
-                    starts to be worth filing. We re-check every roll and will email you the year
-                    yours crosses that line. Nothing else — no marketing.
-                  </p>
-                  {emailState === 'done' ? (
-                    <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
-                      Done. We&rsquo;ll be in touch only if it becomes worth filing.
+                /*
+                  ============================================================================
+                  THE REFUSAL SCREEN. NO EMAIL CAPTURE. 25 AUG.
+                  ============================================================================
+                  This card used to read "We'll tell you when that changes" over an email box
+                  and the promise "We re-check every roll and will email you the year yours
+                  crosses that line."
+
+                  Nothing kept that promise. The form wrote blocked_reason 'fl_not_eligible'
+                  (the default at :260, since joinList was called with no second argument), and
+                  cron/notify-waitlist.js:315 hard-skips exactly that reason. Nothing anywhere
+                  computes "just value falling toward the capped value". So the largest single
+                  outcome this product produces — about 4 in 10 Florida homes — ended in a
+                  promise with no implementation behind it, on the one page whose whole claim
+                  is that we tell people the truth.
+
+                  It was removed rather than implemented, on Nathan's call, 25 Aug, and the
+                  reasoning is worth keeping because it is the right reasoning: the gap closes
+                  three ways and none of them is a business. Market values falling far enough
+                  is rare. A sale resets the cap but hands the opportunity to the NEXT owner,
+                  not this one. And assessed value grinding up 3%/CPI a year against flat
+                  market values takes six or seven years to close a typical gap. A list of
+                  people waiting on that is not an asset, which is presumably why nothing was
+                  ever built to send to it.
+
+                  What replaces it costs us nothing and is actually useful to someone we have
+                  just turned away: where the money really is for a capped-out homeowner
+                  (exemptions, which their county administers free), permission to do nothing,
+                  and the means to check our arithmetic against the county's own record.
+
+                  DO NOT add a capture back here without building the thing it promises first.
+                */
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 'clamp(18px, 4vw, 24px)' }}>
+                  <h2 style={{ fontSize: 'clamp(1.15rem, 4.4vw, 1.25rem)', margin: '0 0 14px' }}>What to do instead</h2>
+
+                  <div style={{ display: 'flex', gap: 13, marginBottom: 16 }}>
+                    <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: C.navy, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>1</div>
+                    <div>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, color: C.darkNavy, marginBottom: 3 }}>Make sure you have every exemption</div>
+                      <div style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6 }}>
+                        For a home like yours this is where the money actually is. There is the
+                        homestead exemption, and extra ones for people over 65, veterans, widows
+                        and widowers, and some disabilities. Each one comes straight off your
+                        bill. Plenty of people qualify for one they never claimed. Your county
+                        handles it, it is free, and we do not charge for it either.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 13, marginBottom: 16 }}>
+                    <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: C.navy, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>2</div>
+                    <div>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, color: C.darkNavy, marginBottom: 3 }}>Nothing else, this year</div>
+                      <div style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6 }}>
+                        There is no form to send and no deadline you are about to miss. Keep your
+                        money.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 13, marginBottom: 4 }}>
+                    <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: C.navy, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>3</div>
+                    <div>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, color: C.darkNavy, marginBottom: 3 }}>Come back if you buy</div>
+                      <div style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6 }}>
+                        A sale wipes out this protection. Whoever buys next starts at full market
+                        value, and an appeal can be worth filing for them from the first year —
+                        including if that buyer is you, somewhere else.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/*
+                    CHECK US. The file header calls the refusal "the only claim in this market
+                    that survives being checked" — and until now the screen told the homeowner
+                    to check it against their TRIM notice while giving them nothing to check it
+                    with from the device in their hand. 40 of 67 counties have a portal on file;
+                    the rest get the sentence without the link rather than a guessed URL.
+                  */}
+                  <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 20, paddingTop: 18 }}>
+                    <div style={{ fontSize: 15.5, fontWeight: 700, color: C.darkNavy, marginBottom: 5 }}>Check us against your county</div>
+                    <p style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6, margin: '0 0 10px' }}>
+                      These are your county&rsquo;s own numbers, not ours
+                      {d.parcel?.parcelId ? <> — parcel <span style={{ fontFamily: 'ui-monospace, monospace' }}>{d.parcel.parcelId}</span></> : null}.
+                      The same figures are on the notice your county mailed you in August.
                     </p>
-                  ) : (
-                    <form onSubmit={joinList} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        aria-label="Email address"
-                        style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
-                      />
-                      <button
-                        type="submit"
-                        disabled={emailState === 'loading'}
-                        style={{ flex: '1 1 150px', padding: '13px 20px', fontSize: 16, fontWeight: 600, background: C.navy, color: C.white, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                    {checkedPortal && (
+                      <a
+                        href={checkedPortal.searchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: 'inline-block', fontSize: 15, fontWeight: 600, color: C.navy, textDecoration: 'underline', textUnderlineOffset: 3 }}
                       >
-                        {emailState === 'loading' ? 'Saving…' : 'Watch my assessment'}
-                      </button>
-                    </form>
-                  )}
-                  {emailState === 'error' && (
-                    <p style={{ color: C.amber, fontSize: 14, marginTop: 10 }}>That didn&rsquo;t save — please try again.</p>
-                  )}
+                        Look it up at the {checkedPortal.name} &rarr;
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
 
