@@ -138,6 +138,18 @@ const unsigned = {
   t('only paid orders', /payment_status=eq\.paid/.test(url), url);
   t('only ones created before a cutoff', /created_at=lt\./.test(url), url);
   t('only ones not already reminded', /signature_reminder_sent_at=is\.null/.test(url), url);
+  /**
+   * AND ONLY ONES WITH NO SIGNATURE ON FILE.
+   *
+   * dispute_status is a proxy for "has not signed" and it can lag the fact:
+   * finalize-order writes signed_at, THEN calls attemptMail to advance the row.
+   * If attemptMail throws — Lob down, DR-486 regeneration failed, the address bug
+   * that hit the first paying customer this morning — the signature is saved and
+   * the status is not, and the row sits in awaiting_signature. On the status
+   * filter alone, that customer is told ten minutes later that they have not
+   * signed, when they have, while their order is already in trouble.
+   */
+  t('only ones with no signature on file', /signed_at=is\.null/.test(url), url);
 
   // THE TEN MINUTES, read off the URL rather than trusted from the constant.
   const m = url.match(/created_at=lt\.([^&]+)/);
@@ -211,6 +223,44 @@ const unsigned = {
   t('a missing column does not fail the cron', res.statusCode === 200, res.statusCode);
   t('it reports the migration as pending', res.payload?.skipped === 'migration_pending', res.payload);
   t('and it sends nothing', calls.emails.length === 0, calls.emails.length);
+}
+
+// ── 6b. The PAYMENT receipt must not ask for a signature ─────────────────────
+/**
+ * Nathan, 25 Aug: "They sign the petition on the web page after purchase. They
+ * don't need to sign again when they get the receipt."
+ *
+ * Right, and the first version of this fix got it wrong — it kept a "Sign my
+ * petition" button on the receipt for the closed-tab case, which is the same
+ * nudge at the same wrong moment and is redundant with the reminder below it.
+ *
+ * Asserted on the RENDERED email, because that is where a stray ctaLabel or a
+ * leaked signingUrl would actually show up.
+ */
+{
+  const { confirmationEmailTemplate, confirmationSubject } = await import('../pages/api/email-templates.js');
+  const base = {
+    firstName: 'Raquel', lastName: 'Zapata', address: '4401 579 HWY, Seffner, FL 33584',
+    county: 'Hillsborough County', sessionId: 'cs_live_abc', amountPaid: 13900,
+    stateCode: 'FL', vabFee: 5000,
+  };
+
+  // The receipt, rendered exactly as fulfillOrder sends it: no signingUrl.
+  const receipt = confirmationEmailTemplate({ ...base, orderStatus: 'awaiting_signature' });
+  t('the payment receipt has no signing button', !/Sign my/i.test(receipt), (receipt.match(/Sign my[^<]*/) || [])[0]);
+  t('the payment receipt leaks no session link', !receipt.includes('session_id='), true);
+  t('its subject does not ask for a signature', !/sign/i.test(confirmationSubject({ stateCode: 'FL', orderStatus: 'awaiting_signature' })),
+    confirmationSubject({ stateCode: 'FL', orderStatus: 'awaiting_signature' }));
+
+  // Even if a caller passes one, the receipt must not render a button — the
+  // absence of ctaLabel is what governs, not the absence of a URL.
+  const receiptWithUrl = confirmationEmailTemplate({ ...base, orderStatus: 'awaiting_signature', signingUrl: 'https://x.example/success?session_id=cs_live_abc' });
+  t('and it stays button-free even if a signingUrl is handed to it', !/Sign my/i.test(receiptWithUrl));
+
+  // The reminder is the one that asks, and it must have the button.
+  const reminder = confirmationEmailTemplate({ ...base, orderStatus: 'signature_reminder', signingUrl: 'https://x.example/success?session_id=cs_live_abc' });
+  t('the ten-minute reminder DOES carry a signing button', /Sign my/i.test(reminder));
+  t('and its button points at the signing page', reminder.includes('success?session_id=cs_live_abc'));
 }
 
 // ── 7. Orders with nothing to link to are skipped, not half-mailed ───────────

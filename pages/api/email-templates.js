@@ -96,16 +96,22 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
      *
      * The chase now lives in 'signature_reminder' below, sent by
      * pages/api/cron/signature-reminder.js only to people who genuinely have not
-     * signed ten minutes later. This one says the money arrived and what is next.
+     * signed ten minutes later.
+     *
+     * NO ctaLabel HERE, DELIBERATELY. The first version of this fix kept a "Sign
+     * my petition" button on the receipt "in case they closed the tab" — which is
+     * the same nudge at the same wrong moment, only quieter, and it is redundant:
+     * the person who closed the tab is exactly who the ten-minute reminder exists
+     * for. The customer signs on the confirmation page they are already looking
+     * at. This email is a RECORD OF PAYMENT and asks for nothing.
      */
     case 'awaiting_signature':
       return {
-        subject: '✅ Payment received — your property tax petition is ready to sign',
+        subject: '✅ Payment received — TaxAppeal USA',
         banner: '#1B2A4A',
         heading: 'Payment Received',
-        subheading: `Your ${docWord} is prepared — signing it is the last step`,
-        intro: `Thank you — your payment is in and your ${docWord} is written and ready. The last step is your signature, which you do online in about a minute; there is nothing to print. If you still have the confirmation page open you can sign there now, or use the button below.`,
-        ctaLabel: `Sign my ${docWord}`,
+        subheading: `Your ${docWord} is prepared and your filing is under way`,
+        intro: `Thank you — your payment is in and your ${docWord} is written and ready. You sign it on the confirmation page in your browser, which takes about a minute and completes your filing. This email is just your record of the payment; there is nothing you need to do here.`,
       };
 
     /**

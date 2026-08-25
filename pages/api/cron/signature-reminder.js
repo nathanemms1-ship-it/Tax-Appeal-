@@ -77,6 +77,27 @@ export default async function handler(req, res) {
     .select('id, customer_name, customer_email, property_address, county, state_code, amount_paid, vab_fee, stripe_session_id, created_at')
     .eq('dispute_status', 'awaiting_signature')
     .eq('payment_status', 'paid')
+    /**
+     * THE SIGNATURE ITSELF, NOT ONLY THE STATUS. Added 25 Aug after review.
+     *
+     * dispute_status is a proxy for "has not signed", and the proxy can lag the
+     * fact. pages/api/finalize-order.js writes signed_at and THEN calls
+     * fulfillAfterSignature -> attemptMail, which is what actually advances the
+     * row to queued / filed / needs_review. If that second step throws — a Lob
+     * outage, a DR-486 regeneration failure, the address bug that hit the first
+     * paying customer this morning — the signature is saved and the status is
+     * not. finalize-order returns 500 and the row sits in awaiting_signature.
+     *
+     * With only the status filter, that customer gets an email ten minutes later
+     * telling them they have not signed. They have. It is the same class of
+     * false statement this whole job was written to stop making, and it would
+     * land on someone whose order is ALREADY in trouble.
+     *
+     * signed_at is written by finalize-order for every state, so this is a
+     * reliable read of the fact. Both filters are kept: the status is what makes
+     * the query cheap, and this is what makes it true.
+     */
+    .is('signed_at', null)
     .lt('created_at', cutoff)
     .is('signature_reminder_sent_at', null)
     .order('created_at', { ascending: true })
