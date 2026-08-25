@@ -341,17 +341,50 @@ t('a hash unit does NOT match a different unit', !rowMatches('17400 GULF BLVD # 
 t('a hash unit does NOT match a different building', !rowMatches('17402 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 GULF BLVD # J-9'))));
 
 /**
- * KNOWN LIMITATION, asserted so that it is a decision rather than a surprise.
+ * ============================================================================
+ * THE THREE FAMILIES THAT STILL MISSED AFTER THE '#' FIX. 25 Aug 2026.
+ * ============================================================================
+ * 24 of 59 checks that day ended in "we have no record for this address" — 41%,
+ * and the largest single leak in the funnel. Stress-testing the matcher against
+ * 28 realistic Florida address shapes found 8 failures, in exactly three
+ * families, every one of them common in this state specifically.
  *
- * normalizeAddr maps '.' to a SPACE, not to nothing, because "ST. JOHNS" must
- * not become "STJOHNS". The cost is that a dotted abbreviation splits: "N.W."
- * becomes "N W", which does not match a customer typing "NW". This is symmetric
- * — it was equally true of the customer's side before 25 Aug — so it is not a
- * regression, and it is only reachable if a Florida roll actually spells a
- * quadrant with dots. If a customer reports it, the fix is a targeted rewrite of
- * single-letter runs, NOT deleting '.' outright.
+ * The dotted-quadrant case below was asserted as a KNOWN MISS earlier the same
+ * day, with a note that the fix would be a targeted rewrite of single-letter
+ * runs. That is what shipped, so the assertion is inverted rather than deleted —
+ * the behaviour changed deliberately and the test records which way.
+ *
+ * INJECTION: remove saintVariants, roadVariants or directionalVariants from
+ * addressVariants -> the matching family below fails.
  */
-t('dotted quadrant abbreviations are a known miss', !rowMatches('55 N.W. 2 AVE', addressVariants(normalizeAddr('55 NW 2 AVE'))));
+t('SAINT in the roll matches ST. typed', rowMatches('100 SAINT AUGUSTINE RD', addressVariants(normalizeAddr('100 St. Augustine Rd'))));
+t('ST. in the roll matches SAINT typed', rowMatches('100 ST AUGUSTINE RD', addressVariants(normalizeAddr('100 Saint Augustine Rd'))));
+t('a dotted quadrant now matches', rowMatches('55 N.W. 2 AVE', addressVariants(normalizeAddr('55 NW 2 Ave'))));
+/**
+ * The first paying customer's own address is "4401 579 HWY, Seffner" — the route
+ * number BEFORE the word. A roll writing "4401 HIGHWAY 579" would not have found
+ * her.
+ */
+t('route number before the road word matches', rowMatches('4401 HIGHWAY 579', addressVariants(normalizeAddr('4401 579 Hwy'))));
+t('HWY matches HIGHWAY', rowMatches('4401 HIGHWAY 579', addressVariants(normalizeAddr('4401 Highway 579'))));
+t('SR matches State Road', rowMatches('4401 SR 579', addressVariants(normalizeAddr('4401 State Road 579'))));
+t('COUNTY ROAD matches County Rd', rowMatches('123 COUNTY ROAD 30', addressVariants(normalizeAddr('123 County Rd 30'))));
+t('CR matches County Road', rowMatches('123 CR 30', addressVariants(normalizeAddr('123 County Road 30'))));
+
+/**
+ * AND THE EXTRA SPELLINGS MUST NOT REACH ANOTHER PROPERTY.
+ *
+ * This is the half that matters. Every variant added above widens what the query
+ * retrieves, and a loose match here puts somebody else's assessment on a sworn
+ * petition. The codebase has made this trade badly once before — the ZIP hard
+ * filter fix — so each new family gets a paired negative.
+ */
+t('a different route number does NOT match', !rowMatches('4401 HIGHWAY 580', addressVariants(normalizeAddr('4401 579 Hwy'))));
+t('SR 30 does NOT match County Road 30', !rowMatches('123 SR 30', addressVariants(normalizeAddr('123 County Road 30'))));
+t('NE does NOT match NW', !rowMatches('55 NE 2 AVE', addressVariants(normalizeAddr('55 NW 2 Ave'))));
+t('N does NOT match NW', !rowMatches('55 N 2 AVE', addressVariants(normalizeAddr('55 NW 2 Ave'))));
+t('the house number is not read as a route number', !rowMatches('579 HWY 4401', addressVariants(normalizeAddr('4401 579 Hwy'))));
+t('SAINT does not swallow a street named Augustine', !rowMatches('100 ST AUGUSTINE RD', addressVariants(normalizeAddr('100 Augustine Rd'))));
 
 /**
  * THE OTHER HOUSE. These are the assertions that stop the fix becoming a worse
