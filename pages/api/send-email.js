@@ -44,6 +44,10 @@ export default async function handler(req, res) {
     // Dropped until 6 Aug 2026: without it the template cannot tell a queued
     // pre-order from a filed one and claimed "Has Been Filed" for both.
     orderStatus,
+    // The /success?session_id=... signing link. Forwarded, not rebuilt here: the
+    // caller knows the session id, and a parameter silently dropped in this file is
+    // exactly how stateCode and orderStatus were both lost before it.
+    signingUrl,
     vabFee,
     scheduledFileDate,
     type = 'confirmation',
@@ -89,7 +93,7 @@ export default async function handler(req, res) {
         lobId,
         sessionId,
         letter, amountPaid,
-        orderStatus, vabFee, scheduledFileDate });
+        orderStatus, vabFee, scheduledFileDate, signingUrl });
     }
 
     const emailPayload = {

@@ -9,6 +9,10 @@
       "schedule": "0 * * * *"
     },
     {
+      "path": "/api/cron/signature-reminder",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/cron/notify-waitlist",
       "schedule": "0 14 * * *"
     },

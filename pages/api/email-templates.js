@@ -79,13 +79,57 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         intro: `Your property tax ${docWord} is complete, signed, and held ready. The ${authority} does not accept filings yet${when ? ` — the window opens on ${when}` : ''}. We will send it by ${mailClass} on the first day we can, well ahead of your deadline, and email you the moment it goes out. There is nothing further for you to do.`,
       };
 
+    /**
+     * ========================================================================
+     * SENT AT PAYMENT. IT IS A RECEIPT, NOT A CHASE. Reworded 25 Aug 2026.
+     * ========================================================================
+     * This read "One Step Left — Your Signature" / "needs your signature before
+     * we can file it", and it is sent by lib/fulfillOrder.js from the Stripe
+     * webhook — in the same instant the customer is redirected to /success,
+     * which IS the signing page.
+     *
+     * So it landed in the inbox of someone already looking at the thing it told
+     * them to go and do, phrased as though they had failed to do it. On 25 Aug
+     * the first paying customer had it sitting in her inbox reading "one step
+     * left" AFTER she had signed, while her portal said the order needed
+     * attention. She could not tell which was true, and wrote in to ask.
+     *
+     * The chase now lives in 'signature_reminder' below, sent by
+     * pages/api/cron/signature-reminder.js only to people who genuinely have not
+     * signed ten minutes later. This one says the money arrived and what is next.
+     */
     case 'awaiting_signature':
       return {
-        subject: '✍️ One step left — sign your property tax petition',
+        subject: '✅ Payment received — your property tax petition is ready to sign',
+        banner: '#1B2A4A',
+        heading: 'Payment Received',
+        subheading: `Your ${docWord} is prepared — signing it is the last step`,
+        intro: `Thank you — your payment is in and your ${docWord} is written and ready. The last step is your signature, which you do online in about a minute; there is nothing to print. If you still have the confirmation page open you can sign there now, or use the button below.`,
+        ctaLabel: `Sign my ${docWord}`,
+      };
+
+    /**
+     * ========================================================================
+     * SENT BY THE CRON, TEN MINUTES LATER, ONLY IF STILL UNSIGNED.
+     * ========================================================================
+     * This is the email the one above used to pretend to be. By the time it goes
+     * out, "you have not signed yet" is a fact rather than a race with the
+     * customer's own browser.
+     *
+     * It carries a working link, which the old version did not: that one said
+     * "use the link from your confirmation page, or reply to this email and we
+     * will resend it" — to a person whose defining characteristic is that they no
+     * longer have that page. The one email whose entire job was "go and sign" had
+     * nothing in it to click.
+     */
+    case 'signature_reminder':
+      return {
+        subject: '✍️ Your property tax petition is still waiting for your signature',
         banner: '#8a6d1f',
-        heading: 'One Step Left — Your Signature',
-        subheading: `Your ${docWord} is ready and needs your signature before we can file it`,
-        intro: `Your payment is received and your ${docWord} is prepared. It cannot be filed until you sign it — you sign online, there is nothing to print. Use the link from your confirmation page, or reply to this email and we will resend it.`,
+        heading: 'Still Waiting On Your Signature',
+        subheading: `We have your payment — we cannot file your ${docWord} until you sign it`,
+        intro: `Your ${docWord} is written and ready to go, but it has not been signed yet, and by law it has to be signed by you before it can be filed. It takes about a minute and there is nothing to print. If something is stopping you, reply to this email and a person will help.`,
+        ctaLabel: `Sign my ${docWord} now`,
       };
 
     default:
@@ -110,7 +154,7 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   }).subject;
 }
 
-export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode, orderStatus, vabFee, scheduledFileDate }) {
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode, orderStatus, vabFee, scheduledFileDate, signingUrl = null }) {
   const fullName = `${firstName} ${lastName}`;
   const year = new Date().getFullYear();
 
@@ -143,7 +187,9 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
   const reviewer = isFL ? 'The Value Adjustment Board' : 'The appraisal district';
   const filedOn = formatDate(scheduledFileDate);
 
-  const steps = orderStatus === 'awaiting_signature'
+  // 'signature_reminder' is the same point in the journey as 'awaiting_signature' —
+  // unsigned — so it gets the same four steps. Added with the cron on 25 Aug.
+  const steps = (orderStatus === 'awaiting_signature' || orderStatus === 'signature_reminder')
     ? [
         `You sign your ${docWord} online — nothing to print`,
         `We mail it by ${mailClass} to the ${authority}`,
@@ -211,6 +257,31 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
                 ${h(claim.intro)}
               </p>
+
+              ${claim.ctaLabel && signingUrl ? `
+              <!--
+                THE BUTTON THAT WAS NOT THERE. 25 Aug 2026.
+                Both signature emails told the customer to sign and gave them
+                nothing to click — "use the link from your confirmation page, or
+                reply to this email and we will resend it", sent to someone whose
+                whole problem is that the page is gone. /success?session_id=... IS
+                the signing page and /api/verify-payment authenticates on that id,
+                so the link was always constructible; it simply was not built.
+              -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                <tr>
+                  <td align="center">
+                    <a href="${h(signingUrl)}" style="display:inline-block;background:#1B2A4A;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:6px;">
+                      ${h(claim.ctaLabel)}
+                    </a>
+                    <div style="margin-top:10px;font-size:12px;color:#8596AF;">
+                      Or paste this into your browser:<br/>
+                      <span style="color:#5A6B82;word-break:break-all;">${h(signingUrl)}</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
 
               <!-- Order Summary Box -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fc;border:1px solid #e5e8ef;border-radius:6px;margin-bottom:28px;">
