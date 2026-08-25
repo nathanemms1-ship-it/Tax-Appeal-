@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { normalizeAttribution } from '../../lib/attribution';
 import bcrypt from 'bcryptjs';
 import { getFlVabFee } from '../../lib/flCountyFees';
 import { isFlCountySupported } from '../../lib/flVabAddresses';
@@ -27,6 +28,7 @@ address, county, parcelId, assessedValue, targetReduction, savings,
 letter, letterKey,
 districtName, districtAddress, districtCity, districtState, districtZip,
 ownerStreet, ownerCity, ownerState, ownerZip,
+  gclid, utm,
 stateCode,
 flSignatureName,
 flSignatureTimestamp,
@@ -38,6 +40,9 @@ scheduledFileDate,
 refCode,
 perkCode,
 } = req.body;
+
+  // Trimmed and length-capped before it can reach Stripe. See lib/attribution.js.
+  const attribution = normalizeAttribution({ gclid, utm });
 
 /**
  * ==========================================================================
@@ -311,6 +316,14 @@ agentAuthTimestamp: agentAuthTimestamp || '',
 // listed an 'Unknown' referrer. Length-capped so it can't be used to stuff
 // Stripe metadata or a Supabase filter.
 refCode: String(refCode || '').trim().toUpperCase().slice(0, 64),
+      // WHICH AD CLICK PAID FOR THIS ORDER, IF ANY.
+      //
+      // normalizeAttribution caps both values; that cap is load-bearing rather
+      // than cosmetic, because Stripe rejects a metadata value over 500
+      // characters and would fail the entire checkout session. A crafted
+      // ?gclid=<10kb> would otherwise have been a way to stop anyone buying.
+      gclid: attribution.gclid,
+      utm: attribution.utm,
       // The coupon, and the key holding its reservation. lib/fulfillOrder.js
       // needs BOTH: the code to stamp on the order (which cancels the referral
       // commission) and the key to confirm the reservation against. Confirming

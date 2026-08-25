@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import { captureAttribution } from '../lib/attribution';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -97,23 +98,18 @@ const go = () => {
     ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'].forEach(k => {
       if (src.get(k)) params.set(k, src.get(k));
     });
-    // Store UTMs in sessionStorage so they survive across /apply steps
-    if (src.get('utm_source')) {
-      try { sessionStorage.setItem('taxappeal_utm', src.toString()); } catch(_) {}
-    }
+    // Storing the whole query string under the utm key wrote `state=FL&gclid=...`
+    // into it, so the utm blob held a click id and no campaign. captureAttribution
+    // separates them and is first-write-wins. See lib/attribution.js.
+    captureAttribution(window.location.search);
   }
   router.push(`/apply?${params.toString()}`);
 };
 
-// Capture gclid for Google Ads attribution on first load
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  const src = new URLSearchParams(window.location.search);
-  const gclid = src.get('gclid');
-  if (gclid) {
-    try { sessionStorage.setItem('taxappeal_gclid', gclid); } catch(_) {}
-  }
-}, []);
+// Capture the ad click on first load, before any navigation can lose it.
+// gbraid/wbraid are captured too — those are what Google sends instead of gclid
+// on iOS traffic, which this campaign's audience is heavily weighted towards.
+useEffect(() => { captureAttribution(); }, []);
 
 return (
 <>

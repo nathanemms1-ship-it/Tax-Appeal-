@@ -8,6 +8,7 @@ import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus } from '../lib/filingWindows';
 import { SERVING_FROM } from '../lib/stateService';
 import { resolveOwnerMailing } from '../lib/ownerMailing';
+import { captureAttribution, attributionPayload } from '../lib/attribution';
 import { readVerdict } from '../lib/checkHandoff';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
@@ -2627,6 +2628,9 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Which ad click, if any, brought them here. Omitted entirely when
+          // they did not arrive on one — see attributionPayload().
+          ...attributionPayload(),
           email: account.email,
           firstName: account.firstName,
           lastName: account.lastName,
@@ -4193,13 +4197,17 @@ function ApplyFunnel() {
     if (ref) localStorage.setItem('taxappeal_ref', ref);
     const stateParam = params.get('state');
     if (stateParam) setProperty(p => ({ ...p, state: stateParam.toUpperCase() }));
-    // Store UTM params for attribution
-    const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
-    const hasUtm = utmKeys.some(k => params.get(k));
-    if (hasUtm) {
-      const utmStr = utmKeys.filter(k => params.get(k)).map(k => `${k}=${params.get(k)}`).join('&');
-      try { sessionStorage.setItem('taxappeal_utm', utmStr); } catch(_) {}
-    }
+    /**
+     * ATTRIBUTION. This used to write the gclid and utm params into
+     * sessionStorage and stop there — nothing ever read them back, so from the
+     * day the ads launched there was no way to tell whether any order came from
+     * one. See the header of lib/attribution.js.
+     *
+     * It also lumped `gclid` in with the utm keys, so a click id arriving with
+     * no utm params was stored as the string "gclid=..." inside the utm blob and
+     * was not separately retrievable. captureAttribution keeps them apart.
+     */
+    captureAttribution(window.location.search);
   }, []);
 
   return (
