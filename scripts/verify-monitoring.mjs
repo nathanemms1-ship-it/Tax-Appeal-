@@ -635,6 +635,78 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
     t('a persistent HTTP error still reports critical and names the status',
       http401.res.status === 'critical' && /HTTP 401/.test(http401.res.detail));
 
+    /**
+     * ========================================================================
+     * THE SAME PROPERTY FOR STUCK ORDERS. 25 Aug.
+     * ========================================================================
+     * At 15:00:27Z: `[WARN] Stuck orders — check failed: timeout after 6000ms`,
+     * with Database, Schema, Filing deadlines, Lead capture, Visitor counter and
+     * Check outcomes all OK in the same report. The 24 Aug retry was applied to
+     * checkDatabase alone, so the contention simply moved to the next probe — and
+     * this is structurally the most exposed one, because it is one of fifteen
+     * fired through a single Promise.all AND issues two requests of its own.
+     *
+     * Executed, not matched, for the reason given above.
+     */
+    const { checkStuckOrders } = await import('../lib/healthChecks.js');
+    const runStuck = async (responder) => {
+      const realFetch = globalThis.fetch;
+      const realUrl = process.env.SUPABASE_URL;
+      const realKey = process.env.SUPABASE_SERVICE_KEY;
+      process.env.SUPABASE_URL = 'https://stub.supabase.invalid';
+      process.env.SUPABASE_SERVICE_KEY = 'stub-key';
+      let calls = 0;
+      globalThis.fetch = async () => responder(++calls);
+      try {
+        return { res: await checkStuckOrders(), calls };
+      } finally {
+        globalThis.fetch = realFetch;
+        if (realUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = realUrl;
+        if (realKey === undefined) delete process.env.SUPABASE_SERVICE_KEY; else process.env.SUPABASE_SERVICE_KEY = realKey;
+      }
+    };
+    const emptyRows = () => ({ ok: true, status: 200, json: async () => [] });
+
+    // Healthy path untouched: two requests (the check's own pair), no retry, and the
+    // same detail the daily all-clear has always printed.
+    const sHealthy = await runStuck(emptyRows);
+    t('a healthy stuck-orders check still answers ok', sHealthy.res.status === 'ok');
+    t('it costs exactly its own two requests when nothing fails', sHealthy.calls === 2, sHealthy.calls);
+    t('the healthy stuck-orders detail is unchanged', sHealthy.res.detail === 'no paid order is stuck');
+
+    // THE 25 AUG CASE. One stall in the pair, then fine.
+    const sFlap = await runStuck((n) => {
+      if (n === 1) throw new Error('timeout after 6000ms');
+      return emptyRows();
+    });
+    t('a single stalled stuck-orders request no longer warns', sFlap.res.status === 'ok', sFlap.res.detail);
+    t('the whole pair is retried once', sFlap.calls === 4, sFlap.calls);
+    t('the recovered stuck-orders probe NAMES the failed attempt, so a flap is not hidden',
+      /earlier attempts failed: timeout after 6000ms/.test(sFlap.res.detail), sFlap.res.detail);
+
+    // A REAL finding must still get through, and must still be critical.
+    const sReal = await runStuck(() => ({
+      ok: true, status: 200, json: async () => [{ id: 'ord_1', created_at: '2026-08-20T00:00:00Z' }],
+    }));
+    t('a genuine needs_review order still reports critical', sReal.res.status === 'critical');
+    t('and still names the order it found',
+      /ord_1/.test(sReal.res.detail) && /PAID BUT NOT MAILED/.test(sReal.res.detail));
+
+    /**
+     * THE WORDING. This check's real firing is CRITICAL "PAID BUT NOT MAILED", and
+     * the old exhausted text — "check failed: timeout after 6000ms" — reads in an
+     * inbox as a finding about orders rather than a statement about the probe. A
+     * warn that resembles the critical one spends the attention the critical one
+     * needs. It has to say the answer is UNKNOWN.
+     */
+    const sDown = await runStuck(() => { throw new Error('fetch failed'); });
+    t('a genuinely unreadable orders table still warns — never ok', sDown.res.status === 'warn');
+    t('every configured attempt is really made', sDown.calls === DB_PROBE_ATTEMPTS * 2, sDown.calls);
+    t('the exhausted stuck-orders alert says the answer is UNKNOWN, not that orders are stuck',
+      /UNKNOWN, not clear/.test(sDown.res.detail) && !/^check failed/.test(sDown.res.detail), sDown.res.detail);
+    t('and it points the reader at the Database check to tell contention from an outage',
+      /Database check in this same report/.test(sDown.res.detail));
+
     // The retry must live in the PROBE, not in the alerting layer — a retry in
     // health-monitor.js would be a second RUN by another name, which is the rejected
     // rule wearing a different hat. Comments stripped first: this file's own history
