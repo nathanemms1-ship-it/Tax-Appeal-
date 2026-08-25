@@ -422,6 +422,35 @@ async function call(body, { authed = true } = {}) {
 
   t('every sellable county produces mailable recipient lines', unaddressable.length === 0, unaddressable);
   t("no sellable county exceeds Lob's combined line budget", overBudget.length === 0, overBudget);
+
+  /**
+   * AND EVERY COUNTY KEEPS THE SAFETY MARGIN.
+   *
+   * lobNormalizeLine infers Lob's normalisation and is validated against exactly
+   * one real sample — the Hillsborough failure, which it reproduces character for
+   * character. Aiming at exactly 50 left Collier, Pasco and Pinellas on 50 with
+   * no headroom, so one mis-guessed token would have reproduced this incident in
+   * another county, after another card was charged.
+   */
+  const { LOB_LINE_TARGET } = await import('../lib/flVabAddresses.js');
+  const tight = [];
+  for (const county of FL_COUNTY_NAMES) {
+    if (!getFlVabAddress(county)) continue;
+    const m = flVabMailingLines(county);
+    if (!m) continue;
+    const len = lobLineLength(m.line1, m.line2);
+    if (len > LOB_LINE_TARGET) tight.push(`${county} (${len} > ${LOB_LINE_TARGET})`);
+  }
+  t('every sellable county keeps the safety margin under the hard cap', tight.length === 0, tight);
+
+  // No county may fall all the way through to a bare line 1. The "c/o <desk>"
+  // clause is what gets a petition to the right desk inside a large clerk's office.
+  const noLine2 = FL_COUNTY_NAMES.filter((c) => {
+    if (!getFlVabAddress(c)) return false;
+    const m = flVabMailingLines(c);
+    return m && !m.line2;
+  });
+  t('no sellable county loses its attention line entirely', noLine2.length === 0, noLine2);
   console.log(`  ${shedCount} counties shed attention-line text to fit Lob's ${LOB_ADDRESS_LINE_BUDGET}-char budget`);
 
   // THE LIVE ONE. It must fit, and it must fit by dropping "Attn:" rather than by
