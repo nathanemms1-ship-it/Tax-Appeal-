@@ -160,7 +160,7 @@ export default async function handler(req, res) {
         const subject = await findParcel({ street, zip, city });
         // findParcel returns a MISS OBJECT now, not null — see its header. A
         // truthy miss read as a parcel would put nulls into the comps subject.
-        if (subject?.noMatch) return res.status(200).json({ comps: [], reason: 'no_parcel' });
+        if (subject?.noMatch || subject?.lookupFailed) return res.status(200).json({ comps: [], reason: subject.lookupFailed ? 'lookup_failed' : 'no_parcel' });
         if (subject && !subject.ambiguous) {
           const r = await findDorComps(subject, { rollYear: ROLL_YEAR });
           if (r.sufficient) {

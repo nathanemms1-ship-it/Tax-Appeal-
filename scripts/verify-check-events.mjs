@@ -112,6 +112,38 @@ t(`every reason returned by the check pipeline has an entry in checkOutcomes${mi
  * `error` are synthesised by the handler rather than returned as `reason:`
  * literals, so they are exempt by name.
  */
+/**
+ * ============================================================================
+ * A DATABASE FAILURE MUST NOT BE REPORTED AS A MISSING PROPERTY. 25 Aug 2026.
+ * ============================================================================
+ * findParcel returned null on a Supabase error — the same value a genuine miss
+ * returns — so every timeout, connection failure and rate limit was told to the
+ * homeowner as "We do not have a record for this address on the current tax
+ * roll", and counted in the funnel as a property that does not exist.
+ *
+ * That made the largest bucket in the funnel unreadable: it moved when the
+ * database moved and nothing said which. On 25 Aug, Supabase was measurably slow
+ * twice and the no-finding share rose from 41% to 46% across the same afternoon,
+ * with no way to attribute it.
+ *
+ * The two things asserted here are the two that were wrong: the outcome is its
+ * own value, and the sentence shown to the customer is about US.
+ */
+{
+  const parcels = readFileSync(new URL('../lib/dor/parcels.js', import.meta.url), 'utf8');
+  const code = parcels.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  t('a database error no longer returns the same value as a genuine miss',
+    /lookupFailed:\s*true/.test(code) && !/console\.error\('\[parcels\] lookup failed[\s\S]{0,80}return null/.test(code));
+  t('it has its own outcome in the vocabulary', isKnownOutcome('lookup_failed'));
+  t('and that outcome reaches no finding, not a refusal', OUTCOMES.lookup_failed.group === 'no_answer');
+
+  const msg = (code.match(/reason: 'lookup_failed'[\s\S]{0,400}?message: '([^']+)'/) || [])[1] || '';
+  t('the customer is told it is OUR problem', /our problem|could not reach/i.test(msg), msg);
+  t('...and is NOT told we have no record of their property',
+    !/no record for this address|do not have a record/i.test(msg), msg);
+}
+
 const SYNTHESISED = new Set(['bad_input', 'error']);
 const orphans = Object.keys(OUTCOMES).filter((o) => !reasonLiterals.has(o) && !SYNTHESISED.has(o));
 t(`no outcome in the vocabulary is unreachable${orphans.length ? ` — orphaned: ${orphans.join(', ')}` : ''}`,
