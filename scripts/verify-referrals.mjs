@@ -571,13 +571,34 @@ t('the refused customer is recorded so the notify promise can be kept',
   'the screen promises an email when the county opens; without this row there is nobody to write to');
 const coverage = getServiceCoverage();
 
-// The marketing page must not outrun the checkout gate. pages/apply.js is the gate.
+/**
+ * The marketing surface must not outrun the checkout gate.
+ *
+ * This used to scrape `servingFrom: 2027` out of pages/apply.js with a regex and
+ * compare it against serviceCoverage's own copy. It was a real check and it
+ * earned its keep: when lib/stateService.js was introduced on 25 Aug 2026 and
+ * apply.js stopped carrying a literal, this is the assertion that fired.
+ *
+ * But reconciling two copies is a weaker thing than having one, and the right
+ * response to it firing was to delete the second copy rather than teach the regex
+ * a new shape. So it is now aimed at the property that actually matters: that
+ * serviceCoverage and the funnel read the SAME object, and that no hand-written
+ * year survives anywhere near the gate.
+ */
 const apply = read('pages/apply.js');
-const gatedStates = [...apply.matchAll(/(\w{2}):\s*\{[^}]*servingFrom:\s*(\d{4})/g)].map(m => [m[1], Number(m[2])]);
-t('lib/serviceCoverage agrees with apply.js on which states are gated',
-  gatedStates.length === Object.keys(NOT_YET_SERVING).length &&
-    gatedStates.every(([code, year]) => NOT_YET_SERVING[code] === year),
-  `apply.js gates ${JSON.stringify(gatedStates)}, serviceCoverage says ${JSON.stringify(NOT_YET_SERVING)}`);
+const { SERVING_FROM } = await import('../lib/stateService.js');
+
+t('serviceCoverage does not keep its own copy of the gated states',
+  NOT_YET_SERVING === SERVING_FROM,
+  "NOT_YET_SERVING must BE lib/stateService.js's map, not a duplicate that happens to agree with it today");
+
+t('apply.js has no hand-written servingFrom year',
+  !/servingFrom:\s*\d{4}/.test(apply),
+  'a literal year in SUPPORTED_STATES is a fourth copy of a fact that already has a home');
+
+t('apply.js takes every gated year from the map',
+  Object.keys(SERVING_FROM).every((code) => new RegExp(`servingFrom:\\s*SERVING_FROM\\.${code}\\b`).test(apply)),
+  `SERVING_FROM names ${JSON.stringify(Object.keys(SERVING_FROM))}; each must be wired into SUPPORTED_STATES or the funnel will sell a state the pages have stopped advertising`);
 
 t('no gated state is listed as currently serving',
   !SERVING_STATES.some(s => s in NOT_YET_SERVING));

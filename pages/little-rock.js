@@ -1,28 +1,58 @@
 import Head from 'next/head';
 import { useState } from 'react';
-import { useRouter } from 'next/router';
+import SeasonNotice, { SeasonNavCta } from '../components/SeasonNotice';
+import { stateSaleStatus } from '../lib/stateService';
+
+/**
+ * ARKANSAS IS NOT ON SALE, AND THIS PAGE'S DEADLINE HAD ALREADY PASSED.
+ *
+ * Two untruths were live here on 25 Aug 2026: three "$89" buy buttons in a state
+ * pages/apply.js refuses on sight (SERVING_FROM.AR = 2027), each one leading to a
+ * state selector that rejected Arkansas only after an account and a full property
+ * address; and "August 17, 2026" urgency in the title, hero, stat tiles, banner,
+ * steps, closing CTA and footer — a date eight days gone. Both are derived now:
+ * the CTA from stateSaleStatus('AR'), the deadline from the statutory rule rather
+ * than a second hand-written date (lib/filingWindows.js owns those). Deleting
+ * Arkansas's SERVING_FROM line sells this page again with no copy edit.
+ */
+
 const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
 const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap";
+
+// Module scope: the faqs array below is also emitted as schema.org FAQPage
+// markup, so one shared value keeps the markup and the visible page in step.
+const SVC = stateSaleStatus('AR');
+
+// The statutory rule, true every year. The concrete date is deliberately not
+// written here — Ark. Code §26-27-317 sets it, lib/filingWindows.js owns it.
+// Sourced from lib/stateService.js rather than typed here. Six Arkansas pages
+// carried their own copy of this string for about an hour on 25 Aug 2026, and
+// two of them had already drifted into "the the third Monday in August" — the
+// same one-fact-many-places failure this whole patch exists to end.
+const DEADLINE_RULE = SVC.deadlineRule;
+
 const faqs = [
-  ["What is the deadline to appeal Little Rock property taxes?","The Pulaski County Board of Equalization deadline is the third Monday in August — August 17, 2026. Postmark by this date. TaxAppeal files via USPS certified mail."],
+  ["What is the deadline to appeal Little Rock property taxes?", SVC.selling
+    ? "The Pulaski County Board of Equalization deadline is the third Monday in August — August 17, 2026. Postmark by this date. TaxAppeal files via USPS certified mail."
+    : `Arkansas Code §26-27-317 sets the Pulaski County Board of Equalization deadline at ${DEADLINE_RULE} each year, and the postmark date is what counts. The 2026 window has closed; the next one opens in August ${SVC.servingFrom}.`],
   ["How does Arkansas assess property taxes?","Arkansas assesses at 20% of fair market value. A home worth $215,000 has an assessed value of $43,000. You are appealing the market value — a 10% reduction means 10% less assessed value and tax."],
-  ["How much can Little Rock homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat — you keep 100% of savings."],
+  ["How much can Little Rock homeowners save?", SVC.selling
+    ? "Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat — you keep 100% of savings."
+    : `Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. When we open for the ${SVC.servingFrom} season our fee will be a flat $89 with no percentage of your savings, but nothing is being sold on this page today.`],
   ["What is the Pulaski County Board of Equalization?","The Pulaski County Board of Equalization hears property tax appeals every August. Three members appointed by the county judge hear evidence and issue decisions."],
   ["Does postmark count in Arkansas?","Yes. Arkansas only requires your appeal be postmarked by the third Monday in August. TaxAppeal uses USPS certified mail for a documented postmark."],
   ["Can I appeal every year?","Yes. Arkansas homeowners can file a new Board of Equalization appeal every August."],
   ["Do I need to attend a hearing?","Your representative can attend. TaxAppeal files your written protest with evidence — many counties accept it without a personal appearance."],
 ];
 export default function LittleRock() {
-  const router = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
-  const go = () => router.push('/apply');
   return (
     <>
       <Head>
-        <title>Little Rock Property Tax Appeal Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Appeal your Little Rock property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." />
+        <title>{SVC.selling ? "Little Rock Property Tax Appeal Service | File for $89 | TaxAppeal USA" : `Little Rock Property Tax Appeals | Opening for the ${SVC.servingFrom} season | TaxAppeal USA`}</title>
+        <meta name="description" content={SVC.selling ? "Appeal your Little Rock property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." : `How a Little Rock property tax appeal works: ${DEADLINE_RULE} deadline under Ark. Code §26-27-317, the Pulaski County Board of Equalization and the 20% assessment ratio. TaxAppeal USA is not filing Arkansas appeals this season — we open for the ${SVC.servingFrom} season and will email you the day it does.`} />
         <link rel="canonical" href="https://www.taxappealusa.com/little-rock" key="canonical" />
-        <meta property="og:title" content="Little Rock Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" key="og:title" />
+        <meta property="og:title" content={SVC.selling ? "Little Rock Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" : `Little Rock Property Tax Appeals — opening ${SVC.servingFrom} | TaxAppeal USA`} key="og:title" />
         <meta property="og:url" content="https://www.taxappealusa.com/little-rock" key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@type":"FAQPage","mainEntity":faqs.map(([q,a])=>( {"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}}))})}} />
@@ -30,36 +60,40 @@ export default function LittleRock() {
       <style>{`@import url('${FONT}');*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;}.btn:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:26px!important;}}`}</style>
       <div style={{background:C.white,borderBottom:"1.5px solid "+C.border,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.darkNavy}}>TaxAppeal USA</div><div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:C.mutedGray}}>Property Tax Dispute</div></div></a>
-        <button className="btn" style={{padding:"10px 22px",fontSize:14}} onClick={go}>Start my appeal</button>
+        {SVC.selling
+          ? <button className="btn" style={{padding:"10px 22px",fontSize:14}}>Start my appeal</button>
+          : <SeasonNavCta stateCode="AR" />}
       </div>
       <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Little Rock, Arkansas</div>
-          <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Little Rock Property Tax Appeal — $89 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Little Rock homeowners can appeal their Pulaski County assessment to the Board of Equalization every August. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail before the August 17 deadline — all for $89 flat.</p>
-          <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>{[["Aug 17","2026 Deadline"],["0%","Of your savings taken"],["$89","Flat fee"],["Pulaski County","Service area"]].map(([n,l]) => (<div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>))}</div>
-          <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Little Rock Appeal — $89</button>
-          <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. Won't be charged until your letter is ready.</div>
+          <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{SVC.selling ? "Little Rock Property Tax Appeal — $89 Flat Fee" : "How to appeal your Little Rock property taxes"}</h1>
+          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{SVC.selling ? "Little Rock homeowners can appeal their Pulaski County assessment to the Board of Equalization every August. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail before the August 17 deadline — all for $89 flat." : `Little Rock homeowners can appeal their Pulaski County assessment to the Board of Equalization every August, and Ark. Code §26-27-317 sets the deadline at ${DEADLINE_RULE}. Everything below explains how that works. We are not filing Arkansas appeals ourselves this season — we open for ${SVC.servingFrom}.`}</p>
+          <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>{(SVC.selling ? [["Aug 17","2026 Deadline"],["0%","Of your savings taken"],["$89","Flat fee"],["Pulaski County","Service area"]] : [["3rd Mon","Of August — deadline"],["0%","Of your savings taken"],[String(SVC.servingFrom),"Season we open"],["Pulaski County","Where we will file"]]).map(([n,l]) => (<div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>))}</div>
+          {SVC.selling
+            ? <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}}>File My Little Rock Appeal — $89</button>
+            : <SeasonNotice stateCode="AR" variant="dark" />}
+          {SVC.selling && <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. Won't be charged until your letter is ready.</div>}
         </div>
       </section>
       <section style={{padding:"24px 40px",background:"#FFF8E6",borderBottom:"1.5px solid #FFD97A"}}>
         <div style={{maxWidth:800,margin:"0 auto",display:"flex",alignItems:"center",gap:16}}>
           <div style={{fontSize:28}}>📅</div>
-          <div><div style={{fontWeight:700,fontSize:16,color:C.darkNavy}}>2026 Deadline: August 17 — Pulaski County Board of Equalization</div><div style={{fontSize:14,color:C.bodyGray,marginTop:4}}>Per Arkansas Code §26-27-317, your appeal must be postmarked by the third Monday in August. TaxAppeal files via USPS certified mail. Orders close August 10.</div></div>
+          <div><div style={{fontWeight:700,fontSize:16,color:C.darkNavy}}>{SVC.selling ? "2026 Deadline: August 17 — Pulaski County Board of Equalization" : "The 2026 Pulaski County appeal window has closed"}</div><div style={{fontSize:14,color:C.bodyGray,marginTop:4}}>{SVC.selling ? "Per Arkansas Code §26-27-317, your appeal must be postmarked by the third Monday in August. TaxAppeal files via USPS certified mail. Orders close August 10." : `Per Arkansas Code §26-27-317, an appeal to the Pulaski County Board of Equalization must be postmarked by ${DEADLINE_RULE} — that date has passed for 2026, and the next window opens in August ${SVC.servingFrom}. Postmark counts in Arkansas, so file with a few days in hand.`}</div></div>
         </div>
       </section>
       <section style={{padding:"56px 40px",background:C.white}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Little Rock Homeowners Should Appeal</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Pulaski County is the most populous county in Arkansas. The county uses mass-appraisal models that frequently overestimate values in rapidly changing neighborhoods and undersell condition-related discounts.</p>
-          <div style={{display:"grid",gap:24}}>{[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Pulaski County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill."],["📅","The August 17 Deadline Is Firm","Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you wait a full year. TaxAppeal files early via USPS certified mail."],["⚖️","No Percentage Fees — Ever","Most Arkansas consultants charge 25-40% of savings. On a $1,000 reduction that's up to $400 gone. TaxAppeal charges $89 flat — you keep everything."]].map(([icon,title,desc]) => (<div key={title} style={{display:"flex",gap:16}}><div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div><div><h3 style={{fontSize:17,fontWeight:500,marginBottom:6}}>{title}</h3><p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</p></div></div>))}</div>
+          <div style={{display:"grid",gap:24}}>{[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Pulaski County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill."],["📅",SVC.selling ? "The August 17 Deadline Is Firm" : "The Third Monday In August Is Firm",SVC.selling ? "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you wait a full year. TaxAppeal files early via USPS certified mail." : "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you wait a full year — and the 2026 date has already passed."],["⚖️","No Percentage Fees — Ever",SVC.selling ? "Most Arkansas consultants charge 25-40% of savings. On a $1,000 reduction that's up to $400 gone. TaxAppeal charges $89 flat — you keep everything." : `Most Arkansas consultants charge 25-40% of savings. On a $1,000 reduction that's up to $400 gone. When we open for the ${SVC.servingFrom} season our fee will be a flat $89 — you keep everything.`]].map(([icon,title,desc]) => (<div key={title} style={{display:"flex",gap:16}}><div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div><div><h3 style={{fontSize:17,fontWeight:500,marginBottom:6}}>{title}</h3><p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</p></div></div>))}</div>
         </div>
       </section>
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:10}}>How TaxAppeal Works in Little Rock</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Four minutes of your time. You sign it, we do the rest.</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20}}>{[["1","Enter your address","We pull your Pulaski County property data — assessed value, square footage, year built, and comparable sales."],["2","We build your case","Our system generates a professional appeal letter citing Arkansas Code §26-27-317 and §26-26-1901 with comparable sales from your area."],["3","We file via certified mail","Your appeal is mailed to the Pulaski County Board of Equalization secretary via USPS certified mail before August 17."]].map(([n,t,d]) => (<div key={n} style={{background:C.white,borderRadius:12,padding:24,border:"1.5px solid "+C.border}}><div style={{width:34,height:34,background:C.navy,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:500,color:C.white,marginBottom:14}}>{n}</div><h3 style={{fontSize:15,fontWeight:500,marginBottom:8}}>{t}</h3><p style={{fontSize:13,color:C.bodyGray,lineHeight:1.65}}>{d}</p></div>))}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20}}>{[["1","Enter your address","We pull your Pulaski County property data — assessed value, square footage, year built, and comparable sales."],["2","We build your case","Our system generates a professional appeal letter citing Arkansas Code §26-27-317 and §26-26-1901 with comparable sales from your area."],["3","We file via certified mail",`Your appeal is mailed to the Pulaski County Board of Equalization secretary via USPS certified mail before ${SVC.selling ? "August 17" : DEADLINE_RULE}.`]].map(([n,t,d]) => (<div key={n} style={{background:C.white,borderRadius:12,padding:24,border:"1.5px solid "+C.border}}><div style={{width:34,height:34,background:C.navy,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:500,color:C.white,marginBottom:14}}>{n}</div><h3 style={{fontSize:15,fontWeight:500,marginBottom:8}}>{t}</h3><p style={{fontSize:13,color:C.bodyGray,lineHeight:1.65}}>{d}</p></div>))}</div>
         </div>
       </section>
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
@@ -69,13 +103,15 @@ export default function LittleRock() {
         </div>
       </section>
       <div style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
-        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>File Before August 17, 2026</h2>
-        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>Don't miss the Pulaski County Board of Equalization deadline. You sign it, we file it — $89 flat.</p>
-        <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer"}} onClick={go}>Start My Little Rock Appeal — $89</button>
+        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>{SVC.selling ? "File Before August 17, 2026" : `We open for Arkansas in ${SVC.servingFrom}`}</h2>
+        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>{SVC.selling ? "Don't miss the Pulaski County Board of Equalization deadline. You sign it, we file it — $89 flat." : `The Pulaski County Board of Equalization deadline is ${DEADLINE_RULE} and it goes by quietly. Leave your email and we will tell you the day filing opens, with time to spare.`}</p>
+        {SVC.selling
+          ? <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer"}}>Start My Little Rock Appeal — $89</button>
+          : <SeasonNotice stateCode="AR" id="notify-foot" variant="dark" compact />}
       </div>
       <footer style={{background:C.darkNavy,padding:"24px 40px",textAlign:"center"}}>
         <p style={{fontSize:13,color:C.mutedGray,lineHeight:1.8}}>© 2026 TaxAppeal USA · <a href="mailto:customerservice@taxappealusa.com" style={{color:C.mutedGray}}>customerservice@taxappealusa.com</a></p>
-        <p style={{fontSize:13,color:C.mutedGray}}>Serving Pulaski County, Arkansas · Deadline: August 17, 2026 · Arkansas Code §26-27-317</p>
+        <p style={{fontSize:13,color:C.mutedGray}}>{SVC.selling ? "Serving Pulaski County, Arkansas · Deadline: August 17, 2026 · Arkansas Code §26-27-317" : `Pulaski County, Arkansas from the ${SVC.servingFrom} season · Deadline: ${DEADLINE_RULE} · Arkansas Code §26-27-317`}</p>
         <p style={{marginTop:8,fontSize:13}}><a href="/" style={{color:C.mutedGray,marginRight:16}}>Home</a><a href="/arkansas" style={{color:C.mutedGray,marginRight:16}}>Arkansas</a><a href="/terms" style={{color:C.mutedGray,marginRight:16}}>Terms</a><a href="/privacy" style={{color:C.mutedGray}}>Privacy</a></p>
       </footer>
     </>

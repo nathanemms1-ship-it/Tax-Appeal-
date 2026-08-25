@@ -6,6 +6,7 @@ import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus } from '../lib/filingWindows';
+import { SERVING_FROM } from '../lib/stateService';
 import { readVerdict } from '../lib/checkHandoff';
 import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
@@ -59,19 +60,27 @@ const SUPPORTED_STATES = {
   FL: { name: "Florida", deadlineNote: "25 days after your TRIM notice (typically mid-September)", filingNote: "⚠️ Florida requires RECEIPT by deadline — not just postmark. File 7+ days early.", board: "Value Adjustment Board (VAB)", statute: "Florida Statute §194.011" },
   // servingFrom: we are NOT taking Arkansas or Alabama orders yet.
   //
-  // Both windows are open right now (AR closes 10 Aug, AL 17 Aug) and both would
-  // have mailed immediately — but the destination address for every non-Florida
-  // state is obtained by asking a model in pages/api/lookup.js and is then cached
-  // for 180 days, with no verification and no confidence gate. Florida solved this
-  // with lib/flVabAddresses.js: 67 addresses confirmed by phone, and send-letter.js
-  // refuses to mail an unconfirmed one. That gate lives inside `if (isFL)`.
+  // Both windows were open until days ago (AR closed 10 Aug, AL 17 Aug) and both
+  // would have mailed immediately — but the destination address for every
+  // non-Florida state is obtained by asking a model in pages/api/lookup.js and is
+  // then cached for 180 days, with no verification and no confidence gate. Florida
+  // solved this with lib/flVabAddresses.js: 67 addresses confirmed by phone, and
+  // send-letter.js refuses to mail an unconfirmed one. That gate lives inside
+  // `if (isFL)`.
   //
   // So rather than sell into a state where we cannot vouch for the envelope, we
   // capture the homeowner and tell them the truth: we will serve them next season.
-  // Remove servingFrom once that state has a verified address table AND
-  // send-letter.js gates on it.
-  AR: { name: "Arkansas", servingFrom: 2027, deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
-  AL: { name: "Alabama", servingFrom: 2027, deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
+  //
+  // THE YEAR IS NOT WRITTEN HERE ANY MORE. It lives in lib/stateService.js, which
+  // pages/api/join-waitlist.js and the eleven Arkansas/Alabama marketing pages also
+  // read. It used to be a literal in this object, a second literal in the waitlist
+  // route, and nowhere at all in the pages — so /alabama shipped a schema.org Offer
+  // at $89 and a badge reading "Now Serving All 67 Alabama Counties" while this line
+  // refused every one of those orders. To open a state, delete its entry there; do
+  // that only once the state has a verified address table AND send-letter.js gates
+  // on it.
+  AR: { name: "Arkansas", servingFrom: SERVING_FROM.AR, deadlineNote: "Third Monday in August (August 17, 2026)", filingNote: "Postmark by deadline counts in Arkansas", board: "County Board of Equalization", statute: "Arkansas Code §26-27-317" },
+  AL: { name: "Alabama", servingFrom: SERVING_FROM.AL, deadlineNote: "30 days from your Notice of Valuation (April–August)", filingNote: "File 7+ days before window closes — treat as receipt deadline.", board: "Board of Equalization", statute: "Code of Alabama §40-3-20" }
 };
 
 const ISSUE_CATEGORIES = [

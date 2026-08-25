@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from './supabase';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { alertOps } from '../../lib/alertOps';
 import { WAITLIST_BLOCKED_REASONS } from '../../lib/waitlistReasons';
+import { waitlistFilingYear } from '../../lib/stateService';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -44,14 +45,27 @@ export default async function handler(req, res) {
       if (stateUpper === 'GA' && today > gaClose) filingYear = currentYear + 1;
     }
 
-    // AR and AL are marked servingFrom: 2027 in pages/apply.js — we are deliberately
-    // not filing in either this season, whatever their window says. Without this they
-    // would be stamped with the CURRENT year, and cron/notify-waitlist.js would email
-    // them the moment their window looked open — which is precisely the promise we
-    // are not in a position to keep. Anyone signing up now is a 2027 filer.
-    if (stateUpper === 'AR' || stateUpper === 'AL') {
-      filingYear = currentYear + 1;
-    }
+    /**
+     * A state we are not serving yet post-dates to the season we WILL serve.
+     *
+     * Without this, Arkansas and Alabama signups are stamped with the CURRENT year
+     * and cron/notify-waitlist.js emails them the moment their window looks open —
+     * precisely the promise we are not in a position to keep.
+     *
+     * This used to read `if (stateUpper === 'AR' || stateUpper === 'AL') filingYear
+     * = currentYear + 1`, a second hand-written copy of a fact whose first copy was
+     * a literal in pages/apply.js. It also only happened to be right: `currentYear
+     * + 1` is the 2027 season only while today is 2026, and it would have quietly
+     * become wrong on 1 January. waitlistFilingYear() reads the year off the same
+     * map the sale gate does, so the two cannot disagree and neither drifts with
+     * the calendar.
+     *
+     * Math.max, not assignment: the block above has already pushed a Texas or
+     * Georgia signup made after that state's window closed into next season, and
+     * this must not undo that. Both rules only ever move the year FORWARD, so the
+     * later of the two answers is the right one.
+     */
+    filingYear = Math.max(filingYear, waitlistFilingYear(stateUpper, new Date()));
 
     // Check if already on waitlist for this state + year
     const { data: existing } = await supabase

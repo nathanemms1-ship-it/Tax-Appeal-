@@ -1,5 +1,32 @@
 import Head from 'next/head';
-import { useRouter } from 'next/router';
+import SeasonNotice, { SeasonNavCta } from '../components/SeasonNotice';
+import { stateSaleStatus } from '../lib/stateService';
+
+/**
+ * ARKANSAS IS NOT ON SALE, AND THE DATE ON THIS PAGE HAD ALREADY PASSED.
+ *
+ * Two separate untruths were live here on 25 Aug 2026:
+ *
+ *   1. Three "File My Appeal — $89" buttons, in a state pages/apply.js refuses on
+ *      sight (SERVING_FROM.AR = 2027 — we cannot yet vouch for the destination
+ *      address outside Florida). Every one of them led to a state selector that
+ *      rejected Arkansas, but only after an account and a full property address.
+ *
+ *   2. "Deadline: August 17, 2026" — in the title, the og:description, the hero
+ *      trust row, a yellow deadline banner, two step descriptions, the counties
+ *      section and the footer. On 25 August that is not a deadline, it is a date
+ *      eight days gone, and the page was still telling homeowners to beat it.
+ *
+ * THE FIX FOR (2) IS THE RULE, NOT A NEW NUMBER. Arkansas Code §26-27-317 sets
+ * the deadline as the third Monday in August — a rule that is true every year.
+ * The concrete date is 17 Aug in 2026 and 16 Aug in 2027, and this file has no
+ * business deriving that: lib/filingWindows.js owns filing dates, its AR entry is
+ * hard-coded to the current year, and inventing a second copy here is how Florida
+ * ended up with one county's deadline standing in for the whole state. So while
+ * we are not selling, the page states the rule and says plainly that the 2026
+ * window has closed. When Arkansas opens, the year-specific line comes back — and
+ * it has to come from filingWindows, not from here.
+ */
 
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
@@ -9,13 +36,32 @@ const C = {
 
 const FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 
+// Module scope: stateSaleStatus is pure, so the FAQ answers (which are also
+// emitted as schema.org FAQPage markup and therefore have to be true), the Head
+// block and the body all read one value and cannot disagree.
+const SVC = stateSaleStatus('AR');
+
+// The statutory rule, which is true every year. The concrete date is not written
+// in this file on purpose — see the note at the top.
+// Sourced from lib/stateService.js rather than typed here. Six Arkansas pages
+// carried their own copy of this string for about an hour on 25 Aug 2026, and
+// two of them had already drifted into "the the third Monday in August" — the
+// same one-fact-many-places failure this whole patch exists to end.
+const DEADLINE_RULE = SVC.deadlineRule;
+
 const faqs = [
-  ["What is the deadline to appeal property taxes in Arkansas?", "The deadline is the third Monday in August each year — August 17, 2026. Appeals must be filed with your county Board of Equalization by this date. Postmark by the deadline counts in Arkansas."],
+  ["What is the deadline to appeal property taxes in Arkansas?", SVC.selling
+    ? "The deadline is the third Monday in August each year — August 17, 2026. Appeals must be filed with your county Board of Equalization by this date. Postmark by the deadline counts in Arkansas."
+    : `Arkansas Code §26-27-317 sets the deadline at ${DEADLINE_RULE} each year. Appeals go to your county Board of Equalization, and the postmark date is what counts. The 2026 window has closed; the next one opens in August ${SVC.servingFrom}.`],
   ["How does property assessment work in Arkansas?", "Arkansas assesses residential property at 20% of its fair market value. So a home worth $200,000 would have an assessed value of $40,000. Your tax bill is based on this assessed value multiplied by the local millage rate. When you appeal, you are arguing about the full market value — not the 20% figure."],
-  ["How much can I save by appealing my Arkansas property taxes?", "The average Arkansas homeowner who successfully appeals saves $200–$800 per year depending on their county's millage rate. With TaxAppeal's flat $89 fee, you keep every dollar of those savings."],
+  ["How much can I save by appealing my Arkansas property taxes?", SVC.selling
+    ? "The average Arkansas homeowner who successfully appeals saves $200–$800 per year depending on their county's millage rate. With TaxAppeal's flat $89 fee, you keep every dollar of those savings."
+    : `Your saving is the reduction in assessed value multiplied by your county's millage rate, so it depends on the property — typically a few hundred dollars a year, every year the lower value holds. When we open for the ${SVC.servingFrom} season our fee will be a flat $89 with no percentage of your savings, but nothing is being sold on this page today.`],
   ["Do I need to attend a hearing to appeal my Arkansas property taxes?", "You can send a representative. TaxAppeal files your written protest via certified mail to your county Board of Equalization on your behalf. Many counties also accept written evidence without requiring a personal appearance."],
   ["What evidence does TaxAppeal use in my Arkansas appeal?", "We analyze comparable sales from your area, current market conditions in your county, and any property-specific defects you report. Every letter cites Arkansas Code §26-27-317 (appeal rights) and §26-26-1901 (market value standard)."],
-  ["Which Arkansas counties does TaxAppeal serve?", "TaxAppeal serves all 75 Arkansas counties including Benton, Pulaski, Washington, Sebastian, Faulkner, Saline, Craighead, Garland, White, Lonoke, and every other county in the state."],
+  ["Which Arkansas counties does TaxAppeal serve?", SVC.selling
+    ? "TaxAppeal serves all 75 Arkansas counties including Benton, Pulaski, Washington, Sebastian, Faulkner, Saline, Craighead, Garland, White, Lonoke, and every other county in the state."
+    : `None yet. We are not filing Arkansas appeals this season — we open for the ${SVC.servingFrom} season and will file in all 75 counties. Before we file in a state we confirm the exact office every appeal has to reach; we have done that work for Florida and are doing it for Arkansas now. Leave your email on this page and we will tell you the day it opens.`],
   ["Can my assessment increase if I appeal?", "Arkansas law does not have a statutory prohibition on increases, but the Board of Equalization's role is equalization — not raising values on appealing homeowners. TaxAppeal reviews all comparable data before filing to ensure your appeal is well-supported."],
   ["What is the Board of Equalization in Arkansas?", "Each of Arkansas's 75 counties has a Board of Equalization that hears property valuation appeals. The Board meets in August and is made up of three members appointed by the county judge. It is an informal process — you present your evidence and the Board decides."],
   ["How does the Arkansas 20% assessment ratio affect my appeal?", "Your appeal argues that the market value is too high. A 10% reduction in market value means a 10% reduction in your assessed value (20% of market) and a corresponding reduction in your tax bill. Even small market value reductions translate to real savings every year."],
@@ -56,17 +102,14 @@ const cities = [
 ];
 
 export default function Arkansas() {
-  const router = useRouter();
-  const go = () => router.push('/apply');
-
   return (
     <>
       <Head>
-        <title>Arkansas Property Tax Appeal Service | File for $89 — TaxAppeal</title>
-        <meta name="description" content="Appeal your Arkansas property taxes for a flat $89 fee. We draft your protest letter with comparable sales data and file via certified mail before the August 17 deadline. All 75 Arkansas counties." />
+        <title>{SVC.selling ? "Arkansas Property Tax Appeal Service | File for $89 — TaxAppeal" : `Arkansas Property Tax Appeals | Opening for the ${SVC.servingFrom} season — TaxAppeal`}</title>
+        <meta name="description" content={SVC.selling ? "Appeal your Arkansas property taxes for a flat $89 fee. We draft your protest letter with comparable sales data and file via certified mail before the August 17 deadline. All 75 Arkansas counties." : `How Arkansas property tax appeals work: ${DEADLINE_RULE} deadline under Ark. Code §26-27-317, the 20% assessment ratio and Amendment 79. TaxAppeal USA is not filing Arkansas appeals this season — we open for the ${SVC.servingFrom} season and will email you the day it does.`} />
         <link rel="canonical" href="https://www.taxappealusa.com/arkansas" key="canonical" />
-        <meta property="og:title" content="Arkansas Property Tax Appeal — $89 Flat Fee | TaxAppeal" key="og:title" />
-        <meta property="og:description" content="Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $89 flat. Deadline: August 17, 2026." key="og:description" />
+        <meta property="og:title" content={SVC.selling ? "Arkansas Property Tax Appeal — $89 Flat Fee | TaxAppeal" : `Arkansas Property Tax Appeals — opening ${SVC.servingFrom} | TaxAppeal`} key="og:title" />
+        <meta property="og:description" content={SVC.selling ? "Stop overpaying on Arkansas property taxes. We file your Board of Equalization appeal via certified mail for $89 flat. Deadline: August 17, 2026." : `Arkansas appeals are due ${DEADLINE_RULE} each year. The 2026 window has closed. TaxAppeal USA opens for Arkansas in ${SVC.servingFrom} — leave your email and we will tell you the day filing opens.`} key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com/arkansas" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -131,18 +174,26 @@ export default function Arkansas() {
       {/* Nav */}
       <nav className="nav">
         <a href="/" className="logo-name">TaxAppeal USA</a>
-        <button className="btn-gold" onClick={go} style={{ padding: '10px 20px', fontSize: 14 }}>File My Appeal — $89</button>
+        {SVC.selling
+          ? <button className="btn-gold" style={{ padding: '10px 20px', fontSize: 14 }}>File My Appeal — $89</button>
+          : <SeasonNavCta stateCode="AR" />}
       </nav>
 
       {/* Hero */}
       <div className="hero">
         <div className="hero-eyebrow">🏠 Arkansas Property Tax Appeal Service</div>
-        <h1>Stop overpaying on Arkansas property taxes</h1>
-        <p className="hero-sub">We draft your Board of Equalization appeal letter with comparable sales data and file via USPS certified mail. Flat $89 fee — you keep every dollar you save.</p>
-        <button className="btn-gold" onClick={go}>File My Appeal — $89 →</button>
+        <h1>{SVC.selling ? "Stop overpaying on Arkansas property taxes" : "How to appeal your Arkansas property taxes"}</h1>
+        <p className="hero-sub">
+          {SVC.selling
+            ? "We draft your Board of Equalization appeal letter with comparable sales data and file via USPS certified mail. Flat $89 fee — you keep every dollar you save."
+            : `Arkansas appeals are due ${DEADLINE_RULE} each year, under Ark. Code §26-27-317. Everything below explains how that works. We are not filing Arkansas appeals ourselves this season — we open for ${SVC.servingFrom}.`}
+        </p>
+        {SVC.selling
+          ? <button className="btn-gold">File My Appeal — $89 →</button>
+          : <SeasonNotice stateCode="AR" variant="dark" />}
         <div className="trust-row">
           <span className="trust-item">✓ All 75 Arkansas counties</span>
-          <span className="trust-item">✓ Deadline: August 17, 2026</span>
+          <span className="trust-item">{SVC.selling ? "✓ Deadline: August 17, 2026" : `✓ Deadline: ${DEADLINE_RULE}`}</span>
           <span className="trust-item">✓ Postmark counts</span>
           <span className="trust-item">✓ No percentage fees</span>
         </div>
@@ -154,8 +205,8 @@ export default function Arkansas() {
           <div className="deadline-banner">
             <div style={{ fontSize: 32 }}>📅</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: C.darkNavy, marginBottom: 4 }}>2026 Arkansas Appeal Deadline: August 17, 2026</div>
-              <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6 }}>Per Arkansas Code §26-27-317, the deadline to file with your county Board of Equalization is the third Monday in August. Postmark by this date counts — file early to ensure delivery. Missing this deadline means waiting until next year.</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: C.darkNavy, marginBottom: 4 }}>{SVC.selling ? "2026 Arkansas Appeal Deadline: August 17, 2026" : "The 2026 Arkansas appeal window has closed"}</div>
+              <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6 }}>{SVC.selling ? "Per Arkansas Code §26-27-317, the deadline to file with your county Board of Equalization is the third Monday in August. Postmark by this date counts — file early to ensure delivery. Missing this deadline means waiting until next year." : `Per Arkansas Code §26-27-317, appeals to your county Board of Equalization are due ${DEADLINE_RULE} — that date has passed for 2026, and the next window opens in August ${SVC.servingFrom}. Postmark counts in Arkansas, so file with a few days in hand. Check your own county's Board of Equalization for its exact meeting dates; some hear appeals earlier than the statutory cut-off.`}</div>
             </div>
           </div>
 
@@ -164,7 +215,7 @@ export default function Arkansas() {
           <div className="steps">
             <div className="step"><div className="step-num">1</div><h3>Enter your address</h3><p>We pull your property data from county records — assessed value, square footage, year built, and more.</p></div>
             <div className="step"><div className="step-num">2</div><h3>We build your case</h3><p>Our system generates a professional protest letter using comparable sales data and cites Arkansas Code §26-27-317 and §26-26-1901.</p></div>
-            <div className="step"><div className="step-num">3</div><h3>We file via certified mail</h3><p>Your protest is mailed via USPS certified mail to your county Board of Equalization secretary before the August 17 deadline.</p></div>
+            <div className="step"><div className="step-num">3</div><h3>We file via certified mail</h3><p>Your protest is mailed via USPS certified mail to your county Board of Equalization secretary, well before the {SVC.selling ? "August 17 deadline" : `${DEADLINE_RULE} deadline`}.</p></div>
           </div>
         </div>
       </section>
@@ -177,7 +228,7 @@ export default function Arkansas() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
             {[
               ['20% Assessment Ratio', 'Arkansas assesses property at 20% of fair market value. Your appeal targets the full market value — a 10% market value reduction means 10% less in your tax bill.'],
-              ['Third Monday in August', 'The statewide deadline is the third Monday in August every year (August 17, 2026). This is one of the earliest deadlines in the country — don\'t wait.'],
+              ['Third Monday in August', SVC.selling ? 'The statewide deadline is the third Monday in August every year (August 17, 2026). This is one of the earliest deadlines in the country — don\'t wait.' : 'The statewide deadline is the third Monday in August every year — one of the earliest in the country, and early enough that many homeowners find out about it after it has gone. The 2026 date has passed.'],
               ['Postmark Counts', 'Unlike Florida, Arkansas only requires your appeal be postmarked by the deadline — not physically received. TaxAppeal files via certified mail to document your postmark.'],
               ['Amendment 79 Protection', 'Even if your appeal is denied, Arkansas Amendment 79 caps homestead assessment increases at 5% per year. For seniors 65+, the assessed value is frozen entirely.'],
             ].map(([title, desc]) => (
@@ -193,7 +244,7 @@ export default function Arkansas() {
       {/* Cities */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-          <div className="section-title">Major Arkansas markets we serve</div>
+          <div className="section-title">{SVC.selling ? "Major Arkansas markets we serve" : "Major Arkansas markets"}</div>
           <div className="cities">
             {cities.map(c => (
               <div key={c.name} className="city-card">
@@ -210,8 +261,8 @@ export default function Arkansas() {
       {/* Price comparison */}
       <section className="section">
         <div className="section-inner">
-          <div className="section-title">$89 flat vs. percentage-based firms</div>
-          <div className="section-sub">Most Arkansas tax agents charge 25–40% of your first-year savings. Here\'s the math.</div>
+          <div className="section-title">{SVC.selling ? "$89 flat vs. percentage-based firms" : `$89 flat vs. percentage-based firms, from ${SVC.servingFrom}`}</div>
+          <div className="section-sub">Most Arkansas tax agents charge 25–40% of your first-year savings. Here\'s the math{SVC.selling ? "" : " — for when we open. Nothing is being sold on this page today"}.</div>
           <div style={{ background: C.white, border: '1.5px solid ' + C.border, borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead><tr style={{ background: C.bg }}><th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Savings</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: C.navy }}>TaxAppeal ($89 flat)</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#888' }}>Contingency firm (33%)</th></tr></thead>
@@ -233,7 +284,7 @@ export default function Arkansas() {
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
           <div className="section-title">All 75 Arkansas counties</div>
-          <div className="section-sub">TaxAppeal files appeals in every Arkansas county before the August 17 deadline.</div>
+          <div className="section-sub">{SVC.selling ? "TaxAppeal files appeals in every Arkansas county before the August 17 deadline." : `Every Arkansas county has its own Board of Equalization, and all 75 work to the same ${DEADLINE_RULE} deadline. When we open for ${SVC.servingFrom} we will file in all of them.`}</div>
           <div className="county-grid">
             {counties.map(c => <div key={c} className="county-item">📍 {c}</div>)}
           </div>
@@ -257,14 +308,16 @@ export default function Arkansas() {
 
       {/* Footer CTA */}
       <div className="footer-cta">
-        <h2>File before August 17, 2026</h2>
-        <p>Don\'t miss the Arkansas Board of Equalization deadline. You sign it, we file it — $89 flat.</p>
-        <button className="btn-gold" onClick={go}>Start my Arkansas appeal — $89 →</button>
+        <h2>{SVC.selling ? "File before August 17, 2026" : `We open for Arkansas in ${SVC.servingFrom}`}</h2>
+        <p>{SVC.selling ? "Don\'t miss the Arkansas Board of Equalization deadline. You sign it, we file it — $89 flat." : `Arkansas's deadline is ${DEADLINE_RULE} and it goes by quietly. Leave your email and we will tell you the day filing opens, with time to spare.`}</p>
+        {SVC.selling
+          ? <button className="btn-gold">Start my Arkansas appeal — $89 →</button>
+          : <SeasonNotice stateCode="AR" id="notify-foot" variant="dark" compact />}
       </div>
 
       <footer className="footer">
         <p>© 2026 TaxAppeal USA · <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a></p>
-        <p>Serving all 75 Arkansas counties · Deadline: August 17, 2026 · Arkansas Code §26-27-317</p>
+        <p>{SVC.selling ? "Serving all 75 Arkansas counties · Deadline: August 17, 2026 · Arkansas Code §26-27-317" : `All 75 Arkansas counties from the ${SVC.servingFrom} season · Deadline: ${DEADLINE_RULE} · Arkansas Code §26-27-317`}</p>
         <p style={{ marginTop: 8 }}><a href="/" style={{ marginRight: 16 }}>Home</a><a href="/texas" style={{ marginRight: 16 }}>Texas</a><a href="/georgia" style={{ marginRight: 16 }}>Georgia</a><a href="/florida" style={{ marginRight: 16 }}>Florida</a><a href="/terms" style={{ marginRight: 16 }}>Terms</a><a href="/privacy">Privacy</a></p>
       </footer>
     </>
