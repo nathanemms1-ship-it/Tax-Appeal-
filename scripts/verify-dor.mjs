@@ -304,6 +304,56 @@ t('a roll row with leading/trailing space matches', rowMatches('  1610 SEAGRAPE 
 t('an exact roll row still matches', rowMatches('1610 SEAGRAPE WAY', addressVariants(normalizeAddr('1610 Seagrape Way'))));
 
 /**
+ * ============================================================================
+ * PUNCTUATION IN THE ROLL. Reported by a customer, 25 Aug 2026.
+ * ============================================================================
+ * "17400 GULF BLVD # J-9", Redington Shores, Pinellas — a condominium, with the
+ * unit written into PHY_ADDR1 the way the county writes it.
+ *
+ * normalizeAddr removes '.' and '#' from the CUSTOMER'S text. normSpace, which
+ * was what rowMatches ran over the ROLL ROW, did not. So the row kept a '#' the
+ * typed side had lost, and the two were compared as strings:
+ *
+ *     rowMatches('17400 GULF BLVD # J-9',
+ *                addressVariants(normalizeAddr('17400 GULF BLVD # J-9')))  ->  false
+ *
+ * A roll address did not match ITSELF, and the customer was told we had no
+ * record of their property.
+ *
+ * The autocomplete turned that from likely into certain. suggestAddresses
+ * returns `street: r.phy_addr1` — the raw roll string, '#' included — and
+ * onSelect writes it into the box. Picking the suggestion took a customer whose
+ * shorter typing WOULD have matched and guaranteed that it no longer did.
+ *
+ * INJECTION: revert rowMatches to normSpace -> the first three FAIL.
+ */
+t('a roll row with a hash unit matches itself', rowMatches('17400 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 GULF BLVD # J-9'))));
+t('a hash unit matches when the customer omits it', rowMatches('17400 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 Gulf Blvd'))));
+t('a hash unit matches with no space after the hash', rowMatches('17400 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 Gulf Blvd #J-9'))));
+t('a period in the roll matches text typed without one', rowMatches('1200 ST. JOHNS BLUFF RD', addressVariants(normalizeAddr('1200 St Johns Bluff Rd'))));
+t('a period typed matches a roll row without one', rowMatches('1200 ST JOHNS BLUFF RD', addressVariants(normalizeAddr('1200 St. Johns Bluff Rd'))));
+
+/**
+ * And the punctuation fix must not have loosened the other-house rule.
+ * Stripping '#' and '.' changes nothing about the word-boundary test.
+ */
+t('a hash unit does NOT match a different unit', !rowMatches('17400 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 GULF BLVD # K-9'))));
+t('a hash unit does NOT match a different building', !rowMatches('17402 GULF BLVD # J-9', addressVariants(normalizeAddr('17400 GULF BLVD # J-9'))));
+
+/**
+ * KNOWN LIMITATION, asserted so that it is a decision rather than a surprise.
+ *
+ * normalizeAddr maps '.' to a SPACE, not to nothing, because "ST. JOHNS" must
+ * not become "STJOHNS". The cost is that a dotted abbreviation splits: "N.W."
+ * becomes "N W", which does not match a customer typing "NW". This is symmetric
+ * — it was equally true of the customer's side before 25 Aug — so it is not a
+ * regression, and it is only reachable if a Florida roll actually spells a
+ * quadrant with dots. If a customer reports it, the fix is a targeted rewrite of
+ * single-letter runs, NOT deleting '.' outright.
+ */
+t('dotted quadrant abbreviations are a known miss', !rowMatches('55 N.W. 2 AVE', addressVariants(normalizeAddr('55 NW 2 AVE'))));
+
+/**
  * THE OTHER HOUSE. These are the assertions that stop the fix becoming a worse
  * bug than the one it replaced: a loose match would put another household's
  * assessment on somebody's sworn petition.
