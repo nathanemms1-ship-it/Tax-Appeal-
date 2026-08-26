@@ -206,7 +206,27 @@ export default async function handler(req, res) {
        * ambiguous count is people being asked a question they may not answer,
        * which looks identical to disinterest from every other angle.
        */
-      await recordCheckOutcome({ outcome: result.reason || 'no_parcel', source });
+      /*
+        COUNTY AND NEAR-MISS COUNT ON A MISS. 26 Aug 2026.
+
+        These rows were written with neither, so the 26 Aug reading -- 7 near
+        misses and 9 ambiguous in one day -- could be counted and not investigated:
+        every one came back `county: null`, because this call did not pass one.
+
+        `no_parcel` still records null, correctly: nothing was retrieved, so there
+        is nothing to read a county off. The other two carry the county the ROLL
+        gave for the rows it returned. Diagnostic only; it never reaches a petition.
+
+        nearMisses is the size of the rejected candidate set. "Our matcher turned
+        down 1 row" and "our matcher turned down 40" are different bugs and were
+        being recorded as the same row.
+      */
+      await recordCheckOutcome({
+        outcome: result.reason || 'no_parcel',
+        source,
+        county: result.county || null,
+        nearMisses: result.nearMisses,
+      });
       return res.status(200).json({
         found: false,
         // Inside Florida but no parcel. Could be a county we have not loaded, or

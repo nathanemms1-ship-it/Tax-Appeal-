@@ -96,6 +96,12 @@ create table if not exists check_events (
   -- wherever the arithmetic never ran.
   required_cut_pct  int,
 
+  -- Rows the roll returned for this address that the matcher then REJECTED.
+  -- Set only on no_parcel_near_miss. Null everywhere else, including no_parcel,
+  -- where zero retrieved is what makes it no_parcel -- 0 and null would be
+  -- confusable in a sum. See scripts/sql/check_events_near_misses.sql.
+  near_misses       int,
+
   created_at        timestamptz not null default now()
 );
 
