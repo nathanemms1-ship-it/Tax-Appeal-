@@ -637,8 +637,8 @@ export default function CheckPage() {
           {!d && (
             <p style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6, marginBottom: 34 }}>
               On top of the $89 there is your county&rsquo;s own filing fee — <strong style={{ color: C.darkNavy }}>$15
-              to $50</strong>, set by the county, not by us. If the Board lowers your value, Florida
-              law requires the county to give that fee back.
+              to $50</strong>, set by the county, not by us. The county keeps that fee either way,
+              which is why we tell you whether an appeal can lower your bill before you pay.
             </p>
           )}
 

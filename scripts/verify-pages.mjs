@@ -228,6 +228,22 @@ const BANNED = [
     why: 'the VAB filing fee is not refundable' },
   { re: /net\s+cost\s+of\s+a\s+successful\s+appeal\s+is\s+(zero|\$0)/i,
     why: 'rests on the filing fee being refunded, which it is not' },
+
+  // "GIVE THAT FEE BACK" — the same false claim without the word "refund".
+  //
+  // The three patterns above were written on 25 Aug against every phrasing I
+  // could find by grepping for "refund", and they caught seventeen. They missed
+  // an eighteenth, live on /check above the fold, because it said "Florida law
+  // requires the county to GIVE THAT FEE BACK". A guard keyed on one word only
+  // ever finds the sentences that use it.
+  //
+  // Found the next day by loading the page in a browser and reading it — which
+  // is the lesson, not this regex. Verifying a claim is gone from the source is
+  // not the same as verifying it is gone from the page.
+  { re: /\bgives?\s+(that|the|your)\s+(filing\s+)?fee\s+back/i,
+    why: 'the VAB filing fee is not refundable, however the sentence phrases it' },
+  { re: /(get|got|gets)\s+(that|the|your)\s+(filing\s+)?fee\s+back/i,
+    why: 'the VAB filing fee is not refundable, however the sentence phrases it' },
 ];
 
 /**
