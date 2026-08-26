@@ -84,6 +84,21 @@ export default async function handler(req, res) {
       refused: Number(r.refused) || 0,
       eligible: Number(r.eligible) || 0,
       rescuable: Number(r.rescuable) || 0,
+      /*
+        THE GREY BAR WAS A RESIDUAL, AND A RESIDUAL CANNOT BE ACTED ON. 26 Aug 2026.
+
+        /admin computed "no finding" as checks minus the three findings, which merged
+        an out-of-state visitor (never a customer) with a database outage (drop
+        everything). These two columns are read from the RPC instead of subtracted,
+        so the chart states what happened rather than inferring what did not.
+
+        Defaulted to 0 rather than left undefined: until
+        scripts/sql/check_events_daily_split.sql has been run the RPC returns the old
+        five columns, and the chart must show two empty segments rather than NaN
+        heights.
+      */
+      ourFailure: Number(r.our_failure) || 0,
+      noAnswer: Number(r.no_answer) || 0,
     }));
 
     // Ordered newest-first by the RPC. The chart wants oldest-first.

@@ -14,6 +14,18 @@ const C = {
   green:    "#2E7D52",
   red:      "#C0392B",
   amber:    "#FFF8E6",
+  /*
+    OUR-FAILURE VIOLET. Not red: red already means `refused`, which is a correct,
+    healthy answer -- a homeowner an appeal genuinely cannot help. Painting our own
+    bugs the same colour as our most common legitimate outcome is how they hide.
+
+    Checked with the palette validator against the other four at ΔE: it is never the
+    worst adjacent pair under normal vision or either CVD simulation. The palette's
+    pre-existing complaints (gold sits above the lightness band, red↔green is 7.0 in
+    deutan) are unchanged by it -- the red↔green adjacency is why the stack now
+    carries 2px gaps, which is the secondary encoding that pair requires.
+  */
+  violet:   "#6B4FA8",
 };
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
@@ -386,8 +398,11 @@ function FunnelView({ data, loading, error, onRetry }) {
           Checks a day
         </div>
         <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 18 }}>
-          Last {data.chartDays} days, Central time. Red is refused, green can be helped, gold is a condition case,
-          grey reached no finding.
+          Last {data.chartDays} days, Central time. Red is refused, green can be helped, gold is a condition case.
+          <strong style={{ color: C.violet }}> Violet is our own failure</strong> — the roll had the property and our
+          matcher refused it, the database did not answer, or the form broke. Grey reached no answer for reasons
+          outside the code: not in Florida, genuinely not on the roll, or several parcels matched and they were
+          asked to pick. Hover any day for the full split.
         </div>
 
         {series.length === 0 ? (
@@ -395,20 +410,45 @@ function FunnelView({ data, loading, error, onRetry }) {
         ) : (
           <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 180, borderBottom: `1.5px solid ${C.border}`, paddingBottom: 2 }}>
             {series.map((d) => {
-              const other = Math.max(0, d.checks - d.refused - d.eligible - d.rescuable);
+              /*
+                READ, NOT SUBTRACTED. `ourFailure` and `noAnswer` come from the RPC.
+                `unaccounted` is what is left over once all five are removed, and it
+                should always be zero -- a non-zero value means check_events holds an
+                outcome lib/checkOutcomes.js does not know, which that file silently
+                groups as no_answer (line 107). Shown in the tooltip rather than
+                folded into a segment, because a bucket that quietly absorbs unknowns
+                is the thing this whole change exists to stop.
+              */
+              const unaccounted = Math.max(0, d.checks - d.refused - d.eligible - d.rescuable - d.ourFailure - d.noAnswer);
               const px = (n) => Math.round((n / peak) * 150);
+              const pct = (n) => (d.checks > 0 ? Math.round((n / d.checks) * 100) : 0);
+              const title =
+                `${d.date} — ${d.checks} checks\n` +
+                `${d.refused} refused · ${d.eligible} can be helped · ${d.rescuable} condition case\n` +
+                `${d.ourFailure} our failure (${pct(d.ourFailure)}%) · ${d.noAnswer} no answer (${pct(d.noAnswer)}%)` +
+                (unaccounted > 0 ? `\n${unaccounted} unrecognised outcome — see the table below` : '');
+              // 2px surface gaps between segments: the mark spec, and the secondary
+              // encoding the red↔green adjacency needs to stay legible in deutan.
+              const seg = { marginTop: 2 };
               return (
-                <div key={d.date} title={`${d.date} — ${d.checks} checks: ${d.refused} refused, ${d.eligible} eligible, ${d.rescuable} condition, ${other} no finding`}
+                <div key={d.date} title={title}
                      style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
                   <div style={{ fontSize: 10, color: C.mutedGray, marginBottom: 3 }}>{d.checks > 0 && d.checks === peak ? d.checks : ''}</div>
                   {/* Stacked, so the shape of a day is legible without a legend
                       lookup. A single total bar would hide the only thing worth
-                      seeing here, which is the ratio. */}
+                      seeing here, which is the ratio.
+
+                      Our failure sits directly above the findings and below the grey,
+                      so the eye reads the bar as: answered / we broke / no answer to
+                      give. Only five segments -- at 45 days each bar is ~20px wide and
+                      a seven-way stack is unreadable, so the rest is in the tooltip. */}
                   <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                    <div style={{ height: `${px(other)}px`, background: C.mutedGray }} />
-                    <div style={{ height: `${px(d.rescuable)}px`, background: C.gold }} />
-                    <div style={{ height: `${px(d.eligible)}px`, background: C.green }} />
-                    <div style={{ height: `${px(d.refused)}px`, background: C.red, borderRadius: "0 0 3px 3px" }} />
+                    <div style={{ ...seg, height: `${px(unaccounted)}px`, background: C.border }} />
+                    <div style={{ ...seg, height: `${px(d.noAnswer)}px`, background: C.mutedGray }} />
+                    <div style={{ ...seg, height: `${px(d.ourFailure)}px`, background: C.violet }} />
+                    <div style={{ ...seg, height: `${px(d.rescuable)}px`, background: C.gold }} />
+                    <div style={{ ...seg, height: `${px(d.eligible)}px`, background: C.green }} />
+                    <div style={{ ...seg, height: `${px(d.refused)}px`, background: C.red, borderRadius: "0 0 3px 3px" }} />
                   </div>
                   {d.checks === 0 && <div style={{ width: "100%", height: 2, background: C.border }} />}
                 </div>
