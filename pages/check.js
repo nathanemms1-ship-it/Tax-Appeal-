@@ -212,8 +212,20 @@ export default function CheckPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  async function runCheck(e) {
-    e.preventDefault();
+  /**
+   * `override` runs the check against an address supplied by the caller rather
+   * than by form state.
+   *
+   * WHY IT HAS TO EXIST. The "Did you mean one of these?" buttons used to call
+   * setForm and stop, because calling runCheck straight after would have read the
+   * PREVIOUS form value -- a setState is not applied synchronously, so the click
+   * would have re-run the very address that just failed. Passing the roll's own
+   * strings sidesteps the state entirely.
+   */
+  async function runCheck(e, override) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const street = (override?.street ?? form.street) || '';
+    const zip = (override?.zip ?? form.zip) || '';
     /*
      * ZIP WAS REQUIRED HERE AND NOTHING SAID SO.
      *
@@ -226,7 +238,7 @@ export default function CheckPage() {
      * ZIP is now a hint that narrows and never excludes, so the honest requirement
      * is the street alone.
      */
-    if (!form.street.trim()) return;
+    if (!street.trim()) return;
     setState({ status: 'loading', data: null, error: null });
     try {
       const r = await fetch('/api/check', {
@@ -236,7 +248,7 @@ export default function CheckPage() {
         // endpoint again at the property step, for somebody already inside the
         // funnel — blending the two would dilute the top-of-funnel refusal rate
         // with re-checks from people who had already cleared the gate.
-        body: JSON.stringify({ street: form.street.trim(), zip: form.zip.trim(), source: 'check' }),
+        body: JSON.stringify({ street: street.trim(), zip: zip.trim(), source: 'check' }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Something went wrong.');
@@ -704,9 +716,27 @@ export default function CheckPage() {
                       key={c.parcelId || i}
                       type="button"
                       onClick={() => {
-                        setForm({ street: c.street || c.full || '', zip: c.zip || '' });
-                        setState({ status: 'idle', data: null, error: null });
+                        /*
+                          THIS USED TO REFILL THE FORM AND STOP. 26 Aug 2026.
+
+                          It set the field, cleared the result the visitor was reading,
+                          and scrolled them to the top -- leaving them to find the button
+                          and press it again, immediately after being told we could not
+                          find their house. On 26 Aug this list was shown 9 times in a
+                          day, and whether anybody completed that second step is not
+                          knowable: a candidate re-check records source 'check', exactly
+                          like a first-time visitor.
+
+                          Every candidate is a parcel we already hold -- the comment
+                          above says clicking one "cannot lead anywhere we lack data" --
+                          so there is nothing to confirm. Run it.
+                        */
+                        const street = c.street || c.full || '';
+                        const zip = c.zip || '';
+                        setForm({ street, zip });
+                        setZipOpen(false);
                         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                        runCheck(null, { street, zip });
                       }}
                       style={{
                         display: 'block', width: '100%', textAlign: 'left', marginBottom: 8,

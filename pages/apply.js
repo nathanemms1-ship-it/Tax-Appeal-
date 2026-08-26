@@ -1705,7 +1705,28 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
   // returns every candidate with its `phy_addr2`, so we can show them the actual
   // unit list from the county roll rather than a generic "try again".
   if (state.status === 'ambiguous') {
-    const units = (state.data?.candidates || []).map(c => c.unit).filter(Boolean);
+    /*
+      TWO SHAPES OF AMBIGUITY, AND THIS SCREEN ONLY KNEW ONE. 26 Aug 2026.
+
+      It read `unit` off every candidate and told the visitor to add a unit number.
+      That is right for a condo. It is wrong, and unfollowable, for the other case
+      lib/dor/parcels.js names in its own comment: once a ZIP miss retries without
+      the ZIP, one street name can match rows in two different Florida towns, and
+      "`unit` alone is null for both, which would hand the UI a choice between two
+      identical blanks". Here it did worse than that -- the list rendered empty and
+      the copy still said to add a unit number they do not have, with no way forward.
+
+      That case got MORE likely today: stripTrailingLocality cuts the locality off
+      the pattern, which is exactly what lets one street match two towns.
+
+      The candidates already carry city, zip and full. Use them.
+    */
+    const candidates = state.data?.candidates || [];
+    const units = candidates.map(c => c.unit).filter(Boolean);
+    const isUnitCase = units.length > 0;
+    const addresses = [...new Set(
+      candidates.map(c => c.full || [c.street, c.city, 'FL', c.zip].filter(Boolean).join(', ')).filter(Boolean)
+    )];
     return (
       <div style={{ maxWidth: 620, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
@@ -1715,10 +1736,11 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
           </h2>
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
             The county roll has more than one parcel at <strong style={{ color: C.darkNavy }}>{property.street}</strong>.
-            That usually means a unit or apartment number is missing. Each unit is assessed separately, so
-            we need to know which one is yours before we can petition on it.
+            {isUnitCase
+              ? ' That usually means a unit or apartment number is missing. Each unit is assessed separately, so we need to know which one is yours before we can petition on it.'
+              : ' These are separate properties in different places, not units in one building — the same street name exists in more than one Florida town. We need to know which one is yours before we can petition on it.'}
           </p>
-          {units.length > 0 && (
+          {isUnitCase && (
             <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 18, textAlign: 'left' }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.mutedGray, marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
                 Units the county lists at this address
@@ -1728,11 +1750,25 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
               </div>
             </div>
           )}
+          {!isUnitCase && addresses.length > 0 && (
+            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 18, textAlign: 'left' }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.mutedGray, marginBottom: 8, fontFamily: "'DM Sans', sans-serif" }}>
+                Properties the county lists for that street
+              </div>
+              <div style={{ fontSize: 13, color: C.darkNavy, lineHeight: 1.8, fontFamily: "'DM Sans', sans-serif" }}>
+                {addresses.slice(0, 6).map((a) => <div key={a}>{a}</div>)}
+                {addresses.length > 6 && <div style={{ color: C.mutedGray }}>+{addresses.length - 6} more</div>}
+              </div>
+            </div>
+          )}
           <p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
-            Go back and add your unit number to the street address &mdash; for example
-            &ldquo;{property.street}{units[0] ? `, ${units[0]}` : ', Unit 4B'}&rdquo;.
+            {isUnitCase
+              ? <>Go back and add your unit number to the street address &mdash; for example &ldquo;{property.street}{units[0] ? `, ${units[0]}` : ', Unit 4B'}&rdquo;.</>
+              : <>Go back and enter yours exactly as the county has it above, including the town and ZIP.</>}
           </p>
-          <button style={primaryBtn} onClick={onBack}>&larr; Add my unit number</button>
+          <button style={primaryBtn} onClick={onBack}>
+            {isUnitCase ? <>&larr; Add my unit number</> : <>&larr; Correct my address</>}
+          </button>
         </div>
       </div>
     );
