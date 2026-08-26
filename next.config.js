@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const legacyRedirects = require('./lib/legacyRedirects');
 
 /**
  * Security headers.
@@ -84,6 +85,10 @@ const nextConfig = {
       // value and the Board of Equalization escalation path. The longer one wins.
       // Atlanta and Augusta have no city twin, so Savannah was the only overlap.
       { source: '/savannah', destination: '/georgia/savannah-ga', permanent: true },
+      // 26 URLs Search Console reports as Not found (404): retired -fl-suffixed
+      // Florida city pages and two dead state-level blog guides. Last, so any
+      // entry above wins on a collision.
+      ...legacyRedirects,
     ];
   },
 };
