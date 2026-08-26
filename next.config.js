@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const legacyRedirects = require('./lib/legacyRedirects');
+const legacyRedirects = require('./redirects.config');
 
 /**
  * Security headers.

@@ -1,5 +1,5 @@
 /**
- * lib/legacyRedirects.js
+ * redirects.config.js
  *
  * Permanent redirects for URLs Google still crawls that no longer resolve.
  *

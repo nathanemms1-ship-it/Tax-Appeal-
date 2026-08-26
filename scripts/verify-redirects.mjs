@@ -18,7 +18,7 @@
  * it is a 404 Search Console will not show you under "Not found".
  */
 
-import legacyRedirects from '../lib/legacyRedirects.js'
+import legacyRedirects from '../redirects.config.js'
 
 const BASE = (process.argv[2] || 'https://www.taxappealusa.com').replace(/\/$/, '')
 const PERMANENT = new Set([301, 308])
