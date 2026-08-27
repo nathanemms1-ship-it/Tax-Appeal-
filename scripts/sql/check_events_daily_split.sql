@@ -63,7 +63,7 @@ as $$
     count(*) filter (where e.outcome in (
       'outside_coverage', 'no_parcel', 'ambiguous'))::bigint     as no_answer
   from check_events e
-  where e.checked_on >= (current_date - make_interval(days => days))
+  where e.checked_on > (current_date - make_interval(days => days))
   group by e.checked_on
   order by e.checked_on desc;
 $$;

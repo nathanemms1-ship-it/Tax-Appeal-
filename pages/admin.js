@@ -281,9 +281,26 @@ function FunnelView({ data, loading, error, onRetry, onWindowChange }) {
     return `${m}/${d}`;
   };
 
-  const GROUP_COLOR = { refused: C.red, rescuable: C.gold, eligible: C.green, no_answer: C.mutedGray };
+  /*
+    FIVE GROUPS, MATCHING THE CHART ABOVE. 27 Aug 2026.
+
+    These two maps had four entries while the chart has had five segments since
+    26 Aug, so `our_failure` fell through to undefined and rendered grey and
+    unlabelled — which reads as "No finding", the group this tab's own caption
+    defines as reasons OUTSIDE the code. A row reading "On the roll, but our
+    matcher missed it" was therefore filed under not-our-fault, four inches below
+    a chart drawing it in violet as ours.
+
+    The colour is C.violet, the same constant the bar uses, so the table and the
+    segment cannot say different things about the same row.
+  */
+  const GROUP_COLOR = {
+    refused: C.red, rescuable: C.gold, eligible: C.green,
+    our_failure: C.violet, no_answer: C.mutedGray,
+  };
   const GROUP_LABEL = {
-    refused: 'Refused', rescuable: 'Condition case', eligible: 'Can be helped', no_answer: 'No finding',
+    refused: 'Refused', rescuable: 'Condition case', eligible: 'Can be helped',
+    our_failure: 'Our failure', no_answer: 'No finding',
   };
 
   const rows = [...(data.byOutcome || [])].sort((a, b) => b.checks - a.checks);

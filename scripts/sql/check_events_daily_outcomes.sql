@@ -54,6 +54,33 @@
 -- scripts/sql/check_events.sql. This function must return an unrecognised
 -- outcome, not hide it.
 
+-- ============================================================================
+-- `days` MEANS `days`, NOT `days + 1`. 27 Aug 2026. RE-RUN ALL THREE FILES.
+-- ============================================================================
+-- Every window in this feature was `checked_on >= current_date - N days`, which
+-- covers N+1 dates: today, plus the N before it. At N=30 that is a rounding
+-- error nobody would notice. At N=1 -- the "Today" button added on 27 Aug -- it
+-- is today AND yesterday, a 100% error on the one window whose entire purpose is
+-- to isolate a single day.
+--
+-- It presented as the Funnel tab disagreeing with itself: the chart drew 8/27 at
+-- ~31 checks while the table beside it, set to Today, totalled 95 -- 8/27 plus
+-- 8/26. It was hard to see because group SHARES barely move between two adjacent
+-- days (48% no-finding in the table against 46% on the bar), so both readings
+-- looked plausible and only the volumes disagreed. The near-miss count gave it
+-- away: the table read 8, which was exactly the 30-day figure, on a day the
+-- chart's own tooltip said 1.
+--
+-- `>` rather than `>=` on a date column is exact: `checked_on > current_date - 1`
+-- is `checked_on = current_date`. Applied to all three functions in
+-- check_events.sql and to check_events_daily_split.sql too, because a window that
+-- means one thing in the chart and another in the table below it is the drift
+-- this tab keeps being rebuilt to remove.
+--
+-- ALL THREE FILES MUST BE RE-RUN. They are `create or replace` with unchanged
+-- return types, so nothing drops and nothing breaks while they are out of step --
+-- each function simply keeps its old window until its file is applied.
+
 create or replace function check_events_daily_outcomes(days int default 45)
 returns table (checked_on date, outcome text, checks bigint)
 language sql
@@ -64,7 +91,7 @@ as $$
     e.outcome,
     count(*)::bigint as checks
   from check_events e
-  where e.checked_on >= (current_date - make_interval(days => days))
+  where e.checked_on > (current_date - make_interval(days => days))
   group by e.checked_on, e.outcome
   -- Day descending to match check_events_daily(); within a day, largest first,
   -- so the tooltip renders in the order a reader wants without re-sorting.

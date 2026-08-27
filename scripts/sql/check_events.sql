@@ -169,7 +169,7 @@ as $$
       'clearable', 'no_cap_differential'))::bigint               as eligible,
     count(*) filter (where e.outcome = 'needs_condition_case')::bigint  as rescuable
   from check_events e
-  where e.checked_on >= (current_date - make_interval(days => days))
+  where e.checked_on > (current_date - make_interval(days => days))
   group by e.checked_on
   order by e.checked_on desc;
 $$;
@@ -188,7 +188,7 @@ as $$
     -- would drag an average until the whole column read as hopeless.
     percentile_cont(0.5) within group (order by e.required_cut_pct)::numeric as median_cut_pct
   from check_events e
-  where e.checked_on >= (current_date - make_interval(days => days))
+  where e.checked_on > (current_date - make_interval(days => days))
     and (src is null or e.source = src)
   group by e.outcome, e.source
   order by count(*) desc;
@@ -208,7 +208,7 @@ as $$
       'cap_absorbs_everything', 'saving_below_cost',
       'no_just_value', 'not_residential', 'no_taxable_value'))::bigint as refused
   from check_events e
-  where e.checked_on >= (current_date - make_interval(days => days))
+  where e.checked_on > (current_date - make_interval(days => days))
   group by 1
   order by 2 desc
   limit 50;

@@ -244,6 +244,18 @@ export default async function handler(req, res) {
       const rescuable = totalIn('rescuable', src);
       const eligible = totalIn('eligible', src);
       const noAnswer = totalIn('no_answer', src);
+      /**
+       * COUNTED SEPARATELY FROM 27 Aug, AND `checks` MUST STILL BE WHOLE.
+       *
+       * lib/checkOutcomes.js grew the fifth group the SQL has had since 26 Aug.
+       * Before that every non-finding landed in `no_answer`, so `findings +
+       * noAnswer` was the total. It no longer is, and leaving this out would
+       * have silently shrunk the denominator of every share on the panel — the
+       * refusal rate would have been untouched (it divides by findings) while
+       * the volume beside it fell, which is the kind of disagreement that gets
+       * read as a traffic drop.
+       */
+      const ourFailure = totalIn('our_failure', src);
       const findings = refused + rescuable + eligible;
 
       /**
@@ -270,9 +282,10 @@ export default async function handler(req, res) {
         rescuable,
         eligible,
         noAnswer,
+        ourFailure,
         // The honest denominator. See the header.
         findings,
-        checks: findings + noAnswer,
+        checks: findings + noAnswer + ourFailure,
         refusalRate: findings > 0 ? Math.round((refused / findings) * 1000) / 10 : null,
 
         // 95% Wilson bounds, as percentages. Null when nothing reached a finding.

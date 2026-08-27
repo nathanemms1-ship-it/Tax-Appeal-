@@ -70,7 +70,8 @@ const failures = [];
 const t = (name, cond) => (cond ? pass++ : failures.push(name));
 
 const outcomes = await import('../lib/checkOutcomes.js');
-const { OUTCOMES, outcomeGroup, isKnownOutcome, REFUSAL_OUTCOMES, ELIGIBLE_OUTCOMES } = outcomes;
+const { OUTCOMES, outcomeGroup, isKnownOutcome, REFUSAL_OUTCOMES, ELIGIBLE_OUTCOMES,
+  OUR_FAILURE_OUTCOMES, NO_ANSWER_OUTCOMES } = outcomes;
 
 const qualifySrc = read('lib/dor/qualify.js');
 const parcelsSrc = read('lib/dor/parcels.js');
@@ -136,7 +137,8 @@ t(`every reason returned by the check pipeline has an entry in checkOutcomes${mi
   t('a database error no longer returns the same value as a genuine miss',
     /lookupFailed:\s*true/.test(code) && !/console\.error\('\[parcels\] lookup failed[\s\S]{0,80}return null/.test(code));
   t('it has its own outcome in the vocabulary', isKnownOutcome('lookup_failed'));
-  t('and that outcome reaches no finding, not a refusal', OUTCOMES.lookup_failed.group === 'no_answer');
+  t('and that outcome is grouped as OUR failure, not the customer\'s coverage',
+    OUTCOMES.lookup_failed.group === 'our_failure');
 
   const msg = (code.match(/reason: 'lookup_failed'[\s\S]{0,400}?message: '([^']+)'/) || [])[1] || '';
   t('the customer is told it is OUR problem', /our problem|could not reach/i.test(msg), msg);
@@ -169,7 +171,28 @@ t('a rescuable condition case is NOT counted as a refusal',
 t('an address we hold no parcel for is not counted as a refusal',
   outcomeGroup('no_parcel') === 'no_answer' && outcomeGroup('outside_coverage') === 'no_answer');
 t('a failed lookup is not counted as a refusal',
-  outcomeGroup('error') === 'no_answer');
+  outcomeGroup('error') === 'our_failure');
+
+/**
+ * THE FIFTH GROUP, AND WHY THESE THREE ASSERTIONS EXIST. 27 Aug 2026.
+ *
+ * check_events_daily_split.sql grew `our_failure` on 26 Aug and lib/checkOutcomes.js
+ * was not told, so outcomeGroup() returned 'no_answer' for all seven non-findings
+ * while the chart drew five segments. The by-outcome table then filed "On the roll,
+ * but our matcher missed it" under "No finding" -- the group whose caption reads
+ * "reasons outside the code" -- directly below a chart drawing it as ours.
+ *
+ * A misgrouped outcome does not error. It moves a bug we caused into the bucket
+ * labelled not-our-fault, which is the one reading that stops it being worked on.
+ *
+ * INJECTION: put no_parcel_near_miss back in 'no_answer' -> FAILS.
+ */
+t('the roll holding a property our matcher refused is OUR failure, not a coverage gap',
+  outcomeGroup('no_parcel_near_miss') === 'our_failure');
+t('a broken form is our failure too -- bad_input means nothing was submitted',
+  outcomeGroup('bad_input') === 'our_failure');
+t('a condo owner asked which unit is theirs is NOT filed as our failure',
+  outcomeGroup('ambiguous') === 'no_answer');
 t('both sellable outcomes are grouped as eligible',
   outcomeGroup('clearable') === 'eligible' && outcomeGroup('no_cap_differential') === 'eligible');
 
@@ -191,6 +214,29 @@ t('every refusal list in the SQL matches REFUSAL_OUTCOMES exactly',
   sqlRefusalBlocks.filter((b) => b !== jsEligible).every((b) => b === jsRefusals));
 t('the eligible list in the SQL matches ELIGIBLE_OUTCOMES exactly',
   sqlRefusalBlocks.includes(jsEligible));
+
+/**
+ * AND THE SAME COMPARISON FOR THE GREY SPLIT, WHICH IS HOW IT DRIFTED.
+ *
+ * The two checks above have compared the refusal and eligible lists since this
+ * feature shipped. `our_failure` and `no_answer` were split apart in SQL on
+ * 26 Aug and had no JavaScript counterpart to be compared against, so nothing
+ * noticed for two days -- lib/checkOutcomes.js's own header claims the verify
+ * script asserts the two sides agree, and it did, for half the vocabulary.
+ *
+ * INJECTION: move 'bad_input' from the SQL our_failure filter to no_answer -> FAILS.
+ */
+const splitSrc = read('scripts/sql/check_events_daily_split.sql');
+const splitBlocks = [...splitSrc.matchAll(/filter \(where e\.outcome in \(([\s\S]*?)\)\)/g)]
+  .map((m) => [...m[1].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1]).sort().join(','));
+t('the our-failure list in the SQL matches OUR_FAILURE_OUTCOMES exactly',
+  splitBlocks.includes([...OUR_FAILURE_OUTCOMES].sort().join(',')));
+t('the no-answer list in the SQL matches NO_ANSWER_OUTCOMES exactly',
+  splitBlocks.includes([...NO_ANSWER_OUTCOMES].sort().join(',')));
+t('every outcome in the vocabulary is in exactly one of the four SQL group lists',
+  Object.keys(OUTCOMES).every((o) =>
+    [REFUSAL_OUTCOMES, ELIGIBLE_OUTCOMES, OUR_FAILURE_OUTCOMES, NO_ANSWER_OUTCOMES, ['needs_condition_case']]
+      .filter((l) => l.includes(o)).length === 1));
 
 // ── 3. NO CHECK CONSTRAINT ON `outcome` ───────────────────────────────────────
 /**
@@ -819,7 +865,64 @@ t('the per-day outcome RPC is grouped by day AND outcome, so a new outcome needs
  */
 t('the per-day outcome RPC filters on nothing but the date window',
   !/and e\.outcome/.test(dailyOutcomesSql) && !/check\s*\(/i.test(dailyOutcomesSql) &&
-  /where e\.checked_on >= \(current_date - make_interval\(days => days\)\)/.test(dailyOutcomesSql));
+  /where e\.checked_on > \(current_date - make_interval\(days => days\)\)/.test(dailyOutcomesSql));
+
+/**
+ * `days => 1` MUST MEAN TODAY, AND IT MEANT TODAY AND YESTERDAY. 27 Aug 2026.
+ *
+ * `checked_on >= current_date - N days` spans N+1 dates. At the 30-day default
+ * that is invisible. At N=1 -- the window the Today button on the Funnel tab
+ * asks for -- it doubles the answer, and the tab disagreed with itself: the
+ * chart drew 8/27 at ~31 checks while the table beside it totalled 95, which is
+ * 8/27 plus 8/26. Adjacent days have near-identical group SHARES, so both
+ * numbers looked plausible and only the volumes disagreed.
+ *
+ * Asserted across every window in the feature rather than the one that was
+ * noticed, because the chart and the tables reading the same word differently is
+ * the whole defect.
+ *
+ * INJECTION: put `>=` back in any of the four functions -> FAILS.
+ */
+const windowsSql = read('scripts/sql/check_events_windows.sql');
+const windowPredicates = [sqlSrc, splitSrc, dailyOutcomesSql, windowsSql]
+  .flatMap((src) => [...src.matchAll(/where e\.checked_on (>=?) \(current_date/g)].map((m) => m[1]));
+t('every date window is exclusive at the far end, so days => 1 is one day',
+  windowPredicates.length >= 9 && windowPredicates.every((op) => op === '>'));
+
+/**
+ * AND THE MIGRATION THAT ACTUALLY RUNS AGAINST THE LIVE DATABASE EXISTS.
+ *
+ * "Re-run the three files you edited" does not work here and fails in the worst
+ * available way. check_events.sql still declares the PRE-SPLIT check_events_daily,
+ * returning five columns; the database has the seven-column form from
+ * check_events_daily_split.sql. Postgres refuses a return-type change on `create
+ * or replace` (42P13), and run-sql.mjs sends each file as one implicit
+ * transaction -- so check_events.sql aborts and rolls back, silently taking the
+ * window fix for check_events_by_outcome and check_events_by_county with it.
+ * Those two are exactly what the Funnel tab's tables read.
+ *
+ * check_events_windows.sql replaces all four functions as they exist today, in
+ * one transaction, and must DROP check_events_daily first for the same arity
+ * reason.
+ *
+ * INJECTION: delete the drop from check_events_windows.sql -> FAILS.
+ */
+t('there is a windows migration that can run against the live database',
+  /create or replace function check_events_daily\(/.test(windowsSql) &&
+  /create or replace function check_events_by_outcome\(/.test(windowsSql) &&
+  /create or replace function check_events_by_county\(/.test(windowsSql) &&
+  /create or replace function check_events_daily_outcomes\(/.test(windowsSql));
+t('it drops check_events_daily first, because a replace cannot change arity',
+  windowsSql.indexOf('drop function if exists check_events_daily(int)') > -1 &&
+  windowsSql.indexOf('drop function if exists check_events_daily(int)') <
+    windowsSql.indexOf('create or replace function check_events_daily('));
+t('it recreates the SEVEN-column daily shape, not the pre-split five',
+  /our_failure  bigint/.test(windowsSql) && /no_answer    bigint/.test(windowsSql));
+t('it reloads the PostgREST schema cache after the functions',
+  windowsSql.indexOf("notify pgrst") > windowsSql.lastIndexOf('create or replace function'));
+t('it ends with a select that proves which database it hit',
+  windowsSql.lastIndexOf('select') > windowsSql.indexOf('notify pgrst') &&
+  /check_events_daily\(1\)/.test(windowsSql));
 t('the SQL function name matches the RPC the roster calls',
   /function (check_events_daily_outcomes)\(/.exec(dailyOutcomesSql)?.[1] ===
   /rpc\('(check_events_daily_outcomes)'/.exec(rosterSrc)?.[1]);
