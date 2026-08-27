@@ -46,6 +46,7 @@ import {
   normalizeAddr,
   normSpace,
   addressVariants,
+  addressVariantTiers,
   anchoredPattern,
   rowMatches,
   stripTrailingLocality,
@@ -133,6 +134,20 @@ const ROLL = [
   { phy_addr1: '1234 HOLLYWOOD BLVD',   phy_zipcd: '33020', phy_city: 'HOLLYWOOD' },
   // The neighbour that must never be returned for a shortened query.
   { phy_addr1: '12612 SW 28 AVE',       phy_zipcd: '33027', phy_city: 'MIRAMAR' },
+  /*
+    A CONDO TOWER, LONGER THAN THE CANDIDATE LIMIT. 27 Aug 2026.
+
+    The roll files these units in PHY_ADDR1. addressVariants offers both "1750 N
+    BAYSHORE DR 3204" and, via stripUnit, "1750 N BAYSHORE DR" -- and the second
+    matches every unit here. Under one query and one LIMIT 12, unit 3204 is the
+    fourteenth row and never survives retrieval, so the `exact` rule in
+    findParcel has nothing to select and a resolvable address returns
+    `ambiguous`. Deliberately ordered with 3204 last, because an unordered SQL
+    LIMIT gives no guarantee and the fix must not depend on one.
+  */
+  ...['1201','1401','1501','1601','1701','1801','1901','2001','2101','2201','2301','2401','2501']
+    .map((u) => ({ phy_addr1: `1750 N BAYSHORE DR ${u}`, phy_zipcd: '33132', phy_city: 'MIAMI' })),
+  { phy_addr1: '1750 N BAYSHORE DR 3204', phy_zipcd: '33132', phy_city: 'MIAMI' },
 ];
 
 /** ILIKE, as Postgres would apply it to the patterns anchoredPattern builds. */
@@ -156,8 +171,24 @@ function lookup(street, zip = null) {
   const addr = normalizeAddr(street);
   let variants = addressVariants(addr);
 
-  let data = query(variants, zip);
-  if (zip && !data.some((r) => rowMatches(r.phy_addr1, variants))) data = query(variants, null);
+  /*
+    TIERED RETRIEVAL, mirroring lib/dor/parcels.js as of 27 Aug. `variants` stays
+    the full list because it is what rowMatches and the `exact` rule judge
+    against; only the query narrows.
+  */
+  const tiers = addressVariantTiers(addr);
+  let retrieval = tiers.specific;
+
+  let data = query(retrieval, zip);
+  if (zip && !data.some((r) => rowMatches(r.phy_addr1, variants))) data = query(retrieval, null);
+
+  let usedBroad = false;
+  if (!data.length && tiers.broad.length) {
+    usedBroad = true;
+    retrieval = tiers.broad;
+    data = query(retrieval, zip);
+    if (zip && !data.some((r) => rowMatches(r.phy_addr1, variants))) data = query(retrieval, null);
+  }
 
   let usedFallback = false;
   if (!data.length) {
@@ -165,12 +196,17 @@ function lookup(street, zip = null) {
     if (trimmed && trimmed !== addr) {
       usedFallback = true;
       variants = addressVariants(trimmed);
-      data = query(variants, zip);
-      if (zip && !data.some((r) => rowMatches(r.phy_addr1, variants))) data = query(variants, null);
+      retrieval = variants;
+      data = query(retrieval, zip);
+      if (zip && !data.some((r) => rowMatches(r.phy_addr1, variants))) data = query(retrieval, null);
     }
   }
-  const matched = data.filter((r) => rowMatches(r.phy_addr1, variants));
-  return { retrieved: data.length, matched, usedFallback };
+  let matched = data.filter((r) => rowMatches(r.phy_addr1, variants));
+  // findParcel: an exact match beats a prefix match. Ambiguity is whatever
+  // survives BOTH filters, so the simulation has to apply this one too.
+  const exact = matched.filter((r) => variants.some((v) => normSpace(r.phy_addr1) === normSpace(v)));
+  if (exact.length) matched = exact;
+  return { retrieved: data.length, matched, usedFallback, usedBroad };
 }
 
 {
@@ -253,6 +289,89 @@ function lookup(street, zip = null) {
   t('it scans backwards for the LAST street type',
     /for \(let i = words\.length - 1; i >= 1; i--\)/.test(am),
     'a forward scan turns "100 ST AUGUSTINE RD" into "100 ST"');
+}
+
+
+// ---------------------------------------------------------------------------
+// 5. THE CONDO UNIT THAT WAS EVICTED FROM ITS OWN RESULT SET. 27 Aug 2026.
+// ---------------------------------------------------------------------------
+/**
+ * addressVariants returns the address as typed AND with its unit stripped, and
+ * both went into one `.or()` under one `.limit(12)`. For a tower the stripped
+ * spelling matches every unit in the building, so the customer's own unit is
+ * very unlikely to be among the twelve rows that come back — and `findParcel`'s
+ * "an exact match beats a prefix match" rule, whose own comment says it is what
+ * "makes unit stripping safe", can only ever prefer a row that survived
+ * retrieval. It never fired.
+ *
+ * The visible result was `ambiguous` — the largest no-finding outcome on the
+ * site, 18 checks on 27 Aug — shown to somebody whose exact address we hold, on
+ * a screen offering five units that were not theirs.
+ *
+ * These assertions are about RETRIEVAL, which is where the defect was. The
+ * decision layer is unchanged and asserted to be: `addressVariants` must still
+ * return both tiers, or rowMatches would start rejecting rows the broad query
+ * legitimately returned.
+ */
+{
+  const typed = '1750 N BAYSHORE DR 3204, Miami, FL';
+  const tiers = addressVariantTiers(normalizeAddr(typed));
+
+  t('the typed unit is in the specific tier',
+    tiers.specific.some((v) => normSpace(v) === '1750 N BAYSHORE DR 3204'));
+  t('the unit-stripped spelling is in the broad tier, not the specific one',
+    tiers.broad.some((v) => normSpace(v) === '1750 N BAYSHORE DR') &&
+    !tiers.specific.some((v) => normSpace(v) === '1750 N BAYSHORE DR'));
+  t('a plain house address produces no broad tier, so it still runs one query',
+    addressVariantTiers(normalizeAddr('8023 Marbella Creek Ave')).broad.length === 0);
+
+  /**
+   * THE DECISION LAYER MUST NOT NARROW WITH RETRIEVAL. Splitting the tiers and
+   * then judging rows against the specific tier alone would reject every row the
+   * broad query exists to find.
+   *
+   * INJECTION: `return addressVariants(addr) { return addressVariantTiers(addr).specific }` -> FAILS.
+   */
+  t('addressVariants is still the union of both tiers',
+    [...tiers.specific, ...tiers.broad].sort().join('|') ===
+    [...addressVariants(normalizeAddr(typed))].sort().join('|'));
+
+  const unit = lookup(typed);
+  t('the exact unit resolves to exactly one parcel, not an ambiguous list',
+    unit.matched.length === 1, `${unit.matched.length} matched`);
+  t('...and it is the unit that was typed',
+    unit.matched[0]?.phy_addr1 === '1750 N BAYSHORE DR 3204', unit.matched[0]?.phy_addr1);
+  t('...without ever widening to the unit-stripped query',
+    unit.usedBroad === false);
+
+  /**
+   * The building typed WITHOUT a unit is still ambiguous, and must be. This is
+   * the case the rewritten /check screen asks "Which one is yours?" about, and a
+   * fix that resolved it by guessing would put a neighbour's assessment on a
+   * petition.
+   */
+  const building = lookup('1750 N Bayshore Dr, Miami, FL');
+  t('the building without a unit is still ambiguous', building.matched.length > 1);
+
+  /**
+   * And the broad tier still rescues the case stripUnit was added for: a unit
+   * the roll does not carry in PHY_ADDR1 at all.
+   *
+   * INJECTION: delete the broad-tier widen in parcels.js -> FAILS here.
+   */
+  const notOnRoll = lookup('8023 Marbella Creek Ave Apt 7');
+  t('a unit the roll does not file still finds the building via the broad tier',
+    notOnRoll.matched.length === 1 && notOnRoll.usedBroad === true);
+
+  const parcels = src('lib/dor/parcels.js');
+  t('findParcel queries the specific tier first',
+    /let retrieval = tiers\.specific/.test(parcels));
+  t('and widens to the broad tier only when nothing was retrieved',
+    /if \(!error && !\(data \|\| \[\]\)\.length && tiers\.broad\.length\) \{/.test(parcels),
+    'gating on rowMatches instead would replace a real candidate set with a wider one');
+  t('suggestAddresses tops up from the broad tier rather than querying both at once',
+    /fetchTier\(tiers\.specific\)/.test(parcels) &&
+    parcels.indexOf('fetchTier(tiers.specific)') < parcels.indexOf('fetchTier(tiers.broad)'));
 }
 
 // ---------------------------------------------------------------------------
