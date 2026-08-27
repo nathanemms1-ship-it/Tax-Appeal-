@@ -255,7 +255,7 @@ function WaitlistView({ data, loading, error, onRetry }) {
  * that. If the observed rate runs far higher, the ads are reaching the wrong
  * homeowners, which is a targeting decision rather than a product one.
  */
-function FunnelView({ data, loading, error, onRetry }) {
+function FunnelView({ data, loading, error, onRetry, onWindowChange }) {
   if (loading) {
     return <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.mutedGray, fontSize: 14 }}>Loading funnel…</div>;
   }
@@ -402,7 +402,16 @@ function FunnelView({ data, loading, error, onRetry }) {
           <strong style={{ color: C.violet }}> Violet is our own failure</strong> — the roll had the property and our
           matcher refused it, the database did not answer, or the form broke. Grey reached no answer for reasons
           outside the code: not in Florida, genuinely not on the roll, or several parcels matched and they were
-          asked to pick. Hover any day for the full split.
+          asked to pick. <strong>Hover any day for the named outcomes</strong> — which of the three the grey was is
+          the whole question, and the segment alone cannot answer it.
+          {data.seriesOutcomesError && (
+            <>
+              {' '}<strong style={{ color: C.red }}>Hover detail is unavailable here</strong> — the per-day outcome
+              read failed, so tooltips show group totals only. Run{' '}
+              <code>scripts/sql/check_events_daily_outcomes.sql</code> on this database.{' '}
+              <span style={{ color: C.mutedGray }}>({data.seriesOutcomesError})</span>
+            </>
+          )}
         </div>
 
         {series.length === 0 ? (
@@ -422,10 +431,33 @@ function FunnelView({ data, loading, error, onRetry }) {
               const unaccounted = Math.max(0, d.checks - d.refused - d.eligible - d.rescuable - d.ourFailure - d.noAnswer);
               const px = (n) => Math.round((n / peak) * 150);
               const pct = (n) => (d.checks > 0 ? Math.round((n / d.checks) * 100) : 0);
+              /*
+                THE GROUP COUNTS SAY HOW BIG. THE NAMED LINES SAY WHICH.
+
+                The 26 Aug note that shipped the violet/grey split said "the full
+                breakdown is in the tooltip", and it was not — the tooltip carried
+                five group totals and nothing else, so "6 no answer (29%)" could
+                not be resolved into 6 people asked to pick a unit, 6 Texans, or 6
+                misses that are actually a retrieval bug. Those need three
+                different responses and one of them is urgent.
+
+                Both are kept. The group line is the at-a-glance read and carries
+                the percentages; the named lines underneath are the diagnosis.
+                Replacing the first with the second would have traded one missing
+                answer for another.
+
+                `outcomes` is [] until scripts/sql/check_events_daily_outcomes.sql
+                has been run, and this falls back to exactly the old tooltip. A
+                missing migration degrades the detail; it never blanks the day.
+              */
+              const named = (d.outcomes || []).map(
+                (o) => `  ${String(o.checks).padStart(3)} × ${o.label}${o.unrecognised ? '  ⚠ not in the vocabulary' : ''}`,
+              );
               const title =
                 `${d.date} — ${d.checks} checks\n` +
                 `${d.refused} refused · ${d.eligible} can be helped · ${d.rescuable} condition case\n` +
                 `${d.ourFailure} our failure (${pct(d.ourFailure)}%) · ${d.noAnswer} no answer (${pct(d.noAnswer)}%)` +
+                (named.length > 0 ? `\n\n${named.join('\n')}` : '') +
                 (unaccounted > 0 ? `\n${unaccounted} unrecognised outcome — see the table below` : '');
               // 2px surface gaps between segments: the mark spec, and the secondary
               // encoding the red↔green adjacency needs to stay legible in deutan.
@@ -469,11 +501,40 @@ function FunnelView({ data, loading, error, onRetry }) {
       </div>
 
       <div style={card}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy, marginBottom: 4 }}>
-          What we told them
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 4 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>
+            What we told them
+          </div>
+          {/*
+            THE WINDOW, AND WHY IT IS ON THIS CARD RATHER THAN THE PAGE HEADER.
+
+            It narrows this table and the county table under it. It does NOT
+            narrow the chart above, and putting it in the page header would imply
+            that it does. A day whose shape changed is averaged away by a
+            trailing month: the 26 Aug city-strip fix moved no_parcel from 35% to
+            10% in one day and the 30-day column still read 27%.
+          */}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }} data-testid="funnel-window">
+            <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray }}>Window</span>
+            {[['Today', 1], ['7 days', 7], ['30 days', 30]].map(([label, n]) => {
+              const active = data.breakdownDays === n;
+              return (
+                <button key={n} onClick={() => onWindowChange && onWindowChange(n)} disabled={loading}
+                        style={{ background: active ? C.navy : C.white, color: active ? C.white : C.bodyGray,
+                                 border: `1.5px solid ${active ? C.navy : C.border}`, borderRadius: 6,
+                                 padding: "5px 12px", fontSize: 12, cursor: loading ? "default" : "pointer",
+                                 fontFamily: "'DM Sans', sans-serif" }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 14 }}>
-          Last {data.breakdownDays} days. <strong>&ldquo;Capped below market&rdquo; is the Save Our Homes wall</strong> — the
+          {data.breakdownDays === 1 ? 'Today so far' : `Last ${data.breakdownDays} days`}
+          {data.breakdownDays === 1 && (
+            <span style={{ color: C.mutedGray }}> — a partial day, and small enough that two condos move every share on it</span>
+          )}. <strong>&ldquo;Capped below market&rdquo; is the Save Our Homes wall</strong> — the
           assessed value already sits so far under market that reducing market value changes no tax at all.
           <em>Typical gap</em> is how far the market value would have to fall before that owner&rsquo;s bill moves: a small
           number is a household a soft market rescues and worth an email, a large one never converts under any conditions.
@@ -508,6 +569,9 @@ function FunnelView({ data, loading, error, onRetry }) {
           </div>
           <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, marginBottom: 14 }}>
             If refusals concentrate in particular counties, that is an ad geo-targeting decision, not a product one.
+            Same window as the table above ({data.breakdownDays === 1 ? 'today' : `${data.breakdownDays} days`}).
+            <em> unknown</em> is every check that never matched a parcel — county is read off the roll rows, so a
+            miss has none to read.
           </div>
           <table>
             <thead><tr><th style={th}>County</th><th style={th}>Checks</th><th style={th}>Refused</th><th style={th}>Rate</th></tr></thead>
@@ -979,11 +1043,22 @@ export default function Admin() {
     if (!trafficData && !trafficLoading) fetchTraffic();
   };
 
-  const fetchFunnel = async (pw) => {
+  /**
+   * `days` narrows the two TABLES below the chart. See resolveBreakdownDays in
+   * pages/api/check-roster.js for why the chart itself is deliberately not
+   * narrowed with them.
+   *
+   * Passed as a query string on a POST, which looks odd and is correct: the
+   * password travels in the body because a secret in a URL lands in server logs
+   * and browser history, and the window is not a secret. Sanitised server-side
+   * regardless of what is sent -- this argument is a convenience, not the guard.
+   */
+  const fetchFunnel = async (pw, days) => {
     setFunnelLoading(true);
     setFunnelError('');
     try {
-      const res = await fetch('/api/check-roster', {
+      const qs = days ? `?days=${encodeURIComponent(days)}` : '';
+      const res = await fetch(`/api/check-roster${qs}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw || password }),
@@ -1475,7 +1550,7 @@ export default function Admin() {
           )}
 
           {view === 'funnel' && (
-            <FunnelView data={funnelData} loading={funnelLoading} error={funnelError} onRetry={fetchFunnel} />
+            <FunnelView data={funnelData} loading={funnelLoading} error={funnelError} onRetry={fetchFunnel} onWindowChange={(days) => fetchFunnel(null, days)} />
           )}
 
           {/* Operator tools. Deliberately at the bottom and visually quiet — used

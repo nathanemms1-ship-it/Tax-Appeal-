@@ -641,6 +641,293 @@ t('check_events dates use the same Central boundary as site_visits',
 t('the roster reports its timezone rather than leaving it implied',
   /timezone: 'America\/Chicago'/.test(rosterSrc));
 
+// ── 12. THE BREAKDOWN WINDOW IS A PARAMETER, AND A HOSTILE ONE CANNOT REACH SQL ─
+/**
+ * Added 27 Aug 2026, with section 13.
+ *
+ * The Funnel tab could not answer the question it gets opened for. The chart
+ * said "6 no answer (29%)" for the day and the only named breakdown in /admin
+ * was pinned to a trailing 30 days -- a window that averages away the exact
+ * thing being asked about. The 26 Aug city-strip fix took no_parcel from 35% to
+ * 10% in ONE DAY and the 30-day column still read 27%.
+ *
+ * RUN, NOT MATCHED. resolveBreakdownDays is lifted out of the real source and
+ * executed, because the defect this guards is a wrong VALUE reaching Postgres
+ * and a regex proving the function exists would pass on every one of them. The
+ * roster module is not imported directly -- that would drag in the Supabase
+ * client and adminAuth, and a guard that needs live env vars is a guard that
+ * gets commented out.
+ */
+const dayFnSrc = (rosterSrc.match(/export function resolveBreakdownDays\(raw\)\s*\{[\s\S]*?\n\}/) || [''])[0];
+const dayConstSrc = (rosterSrc.match(/^const (?:BREAKDOWN_DAYS|MAX_BREAKDOWN_DAYS) = \d+;$/gm) || []).join('\n');
+t('resolveBreakdownDays and its bounds were found in the roster source (the extractor still matches)',
+  dayFnSrc.length > 0 && /BREAKDOWN_DAYS = /.test(dayConstSrc) && /MAX_BREAKDOWN_DAYS = /.test(dayConstSrc));
+
+let resolveDays = null;
+try {
+  resolveDays = new Function(
+    `${dayConstSrc}\n${dayFnSrc.replace('export function', 'function')}\nreturn resolveBreakdownDays;`,
+  )();
+} catch { /* left null; the assertions below then fail rather than throw */ }
+
+/**
+ * The default holds for every shape of "nothing was asked for".
+ * INJECTION: drop the `raw == null` guard -> parseInt(String(undefined)) is NaN,
+ * which the next guard catches, so this pair is deliberately redundant.
+ */
+t('an absent ?days= falls back to the 30-day default',
+  resolveDays && resolveDays(undefined) === 30 && resolveDays(null) === 30 && resolveDays('') === 30);
+
+/**
+ * THE NaN GUARD. This is the whole reason the function exists.
+ *
+ * A non-numeric DOR_ROLL_YEAR reached SQL as NaN once already and produced a
+ * result "indistinguishable from a genuine miss, for every address in Florida"
+ * (No_Finding_Three_Causes_2026-08-25.md). ?days=abc must not become
+ * make_interval(days => NaN).
+ *
+ * INJECTION: replace the body with `return Number(raw) || BREAKDOWN_DAYS` ->
+ * this one PASSES and the negative-window assertion below FAILS. Both are here
+ * because neither catches that rewrite alone.
+ */
+t('a non-numeric ?days= cannot reach Postgres',
+  resolveDays && resolveDays('abc') === 30 && resolveDays('NaN') === 30 && resolveDays({}) === 30);
+
+/**
+ * A NUMERIC PREFIX IS NOT A NUMBER.
+ *
+ * parseInt('7abc') is 7 and parseInt('1,90') is 1 -- it answers a question
+ * nobody asked rather than falling back to a documented default, and it silently
+ * made the array branch below unreachable, which is how the whole-string match
+ * came to exist.
+ *
+ * INJECTION: swap the /^\d+$/ test for Number.parseInt(s, 10) -> FAILS.
+ */
+t('a partly-numeric ?days= is rejected rather than truncated to its prefix',
+  resolveDays && resolveDays('7abc') === 30 && resolveDays('1.5') === 30 && resolveDays('1,90') === 30);
+
+/**
+ * A NEGATIVE WINDOW IS A WINDOW IN THE FUTURE.
+ *
+ * current_date - make_interval(days => -5) selects five days ahead, which
+ * returns nothing and reads on the page as "nothing was recorded" rather than
+ * "you asked for a nonsense window". Same failure family as every other silent
+ * empty in this file.
+ *
+ * INJECTION: change `n < 1` to `n < 0`, or use `Number(raw) || DEFAULT` -> FAILS.
+ */
+t('a zero or negative ?days= falls back to the default rather than selecting the future',
+  resolveDays && resolveDays('0') === 30 && resolveDays('-5') === 30 && resolveDays('-1') === 30);
+
+/**
+ * INJECTION: delete the Math.min -> FAILS.
+ */
+t('an absurd ?days= is clamped rather than passed through',
+  resolveDays && resolveDays('99999') === 365 && resolveDays('366') === 365);
+
+/**
+ * Next parses a repeated query key into an array.
+ *
+ * This assertion is the reason the parse is a whole-string match. Under
+ * parseInt, String(['1','90']) is "1,90" and the prefix rule returns 1 -- the
+ * same answer the branch gives, so deleting the branch could not be made to
+ * fail and the guard was decorative. It is load-bearing now.
+ *
+ * INJECTION: delete the Array.isArray branch -> FAILS.
+ */
+t('a repeated ?days= key takes the first value',
+  resolveDays && resolveDays(['1', '90']) === 1 && resolveDays(['7', '1']) === 7);
+
+t('ordinary windows pass through unchanged',
+  resolveDays && resolveDays('1') === 1 && resolveDays('7') === 7 && resolveDays(30) === 30);
+
+/**
+ * The resolved value has to actually be USED. A sanitiser nothing calls is
+ * decoration, and this is exactly how the source field nearly shipped inert.
+ *
+ * INJECTION: revert either RPC argument to BREAKDOWN_DAYS -> FAILS.
+ */
+t('both breakdown RPCs are called with the resolved window, not the constant',
+  /check_events_by_outcome', \{ days: breakdownDays, src: null \}/.test(rosterSrc) &&
+  /check_events_by_county', \{ days: breakdownDays \}/.test(rosterSrc) &&
+  /resolveBreakdownDays\(req\.query\?\.days\)/.test(rosterSrc));
+
+/**
+ * THE CHART IS NOT NARROWED WITH THE TABLES.
+ *
+ * The chart is what you read to decide which day to narrow to. If the control
+ * reshaped it as well, choosing a day would destroy the comparison that made
+ * the day interesting -- and two readings taken a click apart would not be
+ * comparable to each other.
+ *
+ * INJECTION: pass breakdownDays to check_events_daily -> FAILS.
+ */
+t('the daily chart stays pinned at CHART_DAYS regardless of ?days=',
+  /check_events_daily', \{ days: CHART_DAYS \}/.test(rosterSrc) &&
+  /check_events_daily_outcomes', \{ days: CHART_DAYS \}/.test(rosterSrc));
+
+/**
+ * The panel prints the window. Printing the CONSTANT while querying the
+ * resolved value would label a one-day table "Last 30 days" -- a caption that
+ * lies is worse than no caption, and this panel exists to inform ad spend.
+ *
+ * INJECTION: restore `breakdownDays: BREAKDOWN_DAYS` -> FAILS.
+ */
+t('the roster returns the resolved window rather than the constant',
+  /\n      breakdownDays,/.test(rosterSrc) && /breakdownDaysDefault: BREAKDOWN_DAYS/.test(rosterSrc));
+t('the panel prints the window it was actually given, and reads correctly at one day',
+  /data\.breakdownDays === 1 \? 'Today so far'/.test(adminSrc) &&
+  !/Last \{data\.breakdownDays\} days\./.test(adminSrc));
+t('the window control is wired to a refetch rather than filtering client-side',
+  /onWindowChange/.test(adminSrc) && /fetchFunnel\(null, days\)/.test(adminSrc) &&
+  /\?days=\$\{encodeURIComponent\(days\)\}/.test(adminSrc));
+/**
+ * The password stays in the POST body. A secret in a query string lands in
+ * server logs, browser history and any proxy in between.
+ *
+ * INJECTION: move password into the query string -> FAILS.
+ */
+t('the window rides in the query string and the password does not',
+  /body: JSON\.stringify\(\{ password: pw \|\| password \}\)/.test(adminSrc) &&
+  !/\?password=/.test(adminSrc));
+
+// ── 13. THE TOOLTIP NAMES THE OUTCOMES, AND FAILS SOFT WHEN IT CANNOT ──────────
+/**
+ * The 26 Aug note that shipped the violet/grey split stated "the full breakdown
+ * is in the tooltip". It was not. The tooltip carried five GROUP totals, so
+ * "6 no answer (29%)" could not be resolved into six people asked to pick a
+ * unit, six out-of-state visitors, or six misses that are really a retrieval bug
+ * wearing a genuine miss's clothes -- which is what 25 Aug's 28 no_parcel rows
+ * turned out to be. Three causes, three responses, one of them urgent.
+ */
+const dailyOutcomesSql = read('scripts/sql/check_events_daily_outcomes.sql');
+
+/**
+ * LONG FORM, so the vocabulary lives in exactly one place. A column per outcome
+ * would need a DROP/CREATE migration every time lib/checkOutcomes.js grows a
+ * branch -- the waitlist CHECK constraint again, in DDL.
+ *
+ * INJECTION: group by checked_on alone -> FAILS.
+ */
+t('the per-day outcome RPC is grouped by day AND outcome, so a new outcome needs no migration',
+  /create or replace function check_events_daily_outcomes\(days int default 45\)/.test(dailyOutcomesSql) &&
+  /returns table \(checked_on date, outcome text, checks bigint\)/.test(dailyOutcomesSql) &&
+  /group by e\.checked_on, e\.outcome/.test(dailyOutcomesSql));
+/**
+ * INJECTION: add a `where e.outcome in (...)` allow-list -> FAILS. The function
+ * that exists to surface an unknown outcome must not be able to filter one out.
+ */
+t('the per-day outcome RPC filters on nothing but the date window',
+  !/and e\.outcome/.test(dailyOutcomesSql) && !/check\s*\(/i.test(dailyOutcomesSql) &&
+  /where e\.checked_on >= \(current_date - make_interval\(days => days\)\)/.test(dailyOutcomesSql));
+t('the SQL function name matches the RPC the roster calls',
+  /function (check_events_daily_outcomes)\(/.exec(dailyOutcomesSql)?.[1] ===
+  /rpc\('(check_events_daily_outcomes)'/.exec(rosterSrc)?.[1]);
+
+/**
+ * Labelled and grouped server-side, from lib/checkOutcomes.js. A second copy of
+ * the vocabulary in pages/admin.js is a copy that drifts -- the same shape as
+ * the middleware and the purge script disagreeing about what a probe is.
+ *
+ * INJECTION: build the labels in admin.js from a local map -> FAILS.
+ */
+t('per-day outcomes are labelled and grouped from the one vocabulary, in the roster',
+  /outcomesByDate/.test(rosterSrc) &&
+  /group: outcomeGroup\(r\.outcome\)/.test(rosterSrc) &&
+  /label: outcomeLabel\(r\.outcome\)/.test(rosterSrc) &&
+  /outcomes: outcomesByDate\.get\(r\.checked_on\) \|\| \[\]/.test(rosterSrc));
+/**
+ * Checked against the REAL vocabulary rather than one hand-picked example, and
+ * against quoted literals rather than the word "checkOutcomes" -- which appears
+ * in admin.js twice as prose telling the reader where the vocabulary lives, and
+ * should keep appearing.
+ *
+ * INJECTION: add `const LABELS = { cap_absorbs_everything: '...' }` to admin.js
+ * -> FAILS, naming the outcome it found.
+ */
+/**
+ * Matches a quoted literal OR a bare object key, because the first attempt only
+ * checked for quotes and the injection `{ cap_absorbs_everything: '...' }`
+ * walked straight past it.
+ *
+ * Restricted to the underscored outcome names. `error`, `ambiguous` and
+ * `clearable` are ordinary English words that appear in this file's prose and as
+ * unrelated identifiers, and a guard that cries wolf on `error:` gets deleted
+ * within the week. Every realistic copy of the vocabulary carries at least one
+ * underscored key, so the narrowing costs nothing a real defect would exploit.
+ */
+const leakedOutcomes = Object.keys(OUTCOMES).filter(
+  (o) => o.includes('_') && new RegExp(`(['"\`]${o}['"\`]|\\b${o}\\s*:)`).test(adminSrc),
+);
+t(`pages/admin.js does not carry its own copy of the outcome vocabulary${leakedOutcomes.length ? ` — found: ${leakedOutcomes.join(', ')}` : ''}`,
+  leakedOutcomes.length === 0 && !/from '.*checkOutcomes'/.test(adminSrc));
+/**
+ * outcomeGroup() defaults an unknown outcome to no_answer. Without this flag a
+ * brand-new outcome renders in the tooltip as an ordinary grey line and reads as
+ * a diagnosis instead of a gap.
+ *
+ * INJECTION: drop `unrecognised` from the per-day rows -> FAILS.
+ */
+/**
+ * SCOPED TO THE PER-DAY BLOCK, not to the file.
+ *
+ * The `byOutcome` rows carry a character-identical `unrecognised:` line, so a
+ * file-wide regex passed with the flag deleted from the per-day rows -- proven
+ * by running exactly that injection. Same class as the FunnelView rename in
+ * section 7: an assertion that matches somewhere else is not the assertion it
+ * looks like.
+ *
+ * INJECTION: delete `unrecognised` from the outcomesByDate push -> FAILS.
+ */
+const perDayBlock = rosterSrc.slice(
+  rosterSrc.indexOf('const outcomesByDate'),
+  rosterSrc.indexOf('const days = (daily.data'),
+);
+t('the per-day block was located (the slice still matches)',
+  perDayBlock.length > 100 && /outcomesByDate\.get\(r\.checked_on\)\.push\(\{/.test(perDayBlock));
+t('an unrecognised outcome is marked in the tooltip rather than passing as grey',
+  /unrecognised: !Object\.prototype\.hasOwnProperty\.call\(OUTCOMES, r\.outcome\)/.test(perDayBlock) &&
+  /o\.unrecognised \? '  ⚠ not in the vocabulary'/.test(adminSrc));
+
+/**
+ * BOTH lines. The group counts carry the percentages and are the at-a-glance
+ * read; the named lines are the diagnosis. Replacing the first with the second
+ * trades one missing answer for another.
+ *
+ * INJECTION: delete the group-count line from the title -> FAILS.
+ */
+t('the tooltip keeps the group counts AND adds the named outcomes',
+  /our failure \(\$\{pct\(d\.ourFailure\)\}%\) · \$\{d\.noAnswer\} no answer/.test(adminSrc) &&
+  /const named = \(d\.outcomes \|\| \[\]\)\.map\(/.test(adminSrc) &&
+  /o\.checks.*× \$\{o\.label\}/.test(adminSrc));
+
+/**
+ * FAILS SOFT. A missing migration must degrade the tooltip's detail, never blank
+ * a day -- and must SAY so, because a tooltip quietly showing group totals looks
+ * identical to a tooltip working correctly. That is the same silent degradation
+ * checkCheckOutcomeCapture exists to make visible.
+ *
+ * INJECTION: render the named block unconditionally -> FAILS.
+ * INJECTION: swallow dailyOutcomes.error -> FAILS.
+ */
+t('an empty per-day outcome list falls back to the old tooltip rather than rendering nothing',
+  /named\.length > 0 \? `\\n\\n\$\{named\.join\('\\n'\)\}` : ''/.test(adminSrc) &&
+  /if \(!dailyOutcomes\.error\) \{/.test(rosterSrc));
+t('a failed per-day outcome read is reported rather than swallowed',
+  /seriesOutcomesError: dailyOutcomes\.error \? dailyOutcomes\.error\.message : null/.test(rosterSrc) &&
+  /data\.seriesOutcomesError && \(/.test(adminSrc) &&
+  /check_events_daily_outcomes\.sql/.test(adminSrc));
+/**
+ * The panel's own instructions have to be true. The 26 Aug caption promised a
+ * full split the tooltip did not carry, and that promise is why nobody went
+ * looking for the breakdown elsewhere for a day.
+ *
+ * INJECTION: restore "Hover any day for the full split." -> FAILS.
+ */
+t('the chart caption describes the tooltip that actually exists',
+  /Hover any day for the named outcomes/.test(adminSrc) &&
+  !/Hover any day for the full split/.test(adminSrc));
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`verify-check-events: ${failures.length} FAILED, ${pass} passed`);

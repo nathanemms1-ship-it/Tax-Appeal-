@@ -51,6 +51,58 @@ export const config = { maxDuration: 60 };
 
 const CHART_DAYS = 45;
 const BREAKDOWN_DAYS = 30;
+const MAX_BREAKDOWN_DAYS = 365;
+
+/**
+ * THE BREAKDOWN WINDOW IS A PARAMETER BECAUSE ONE DAY IS THE QUESTION.
+ *
+ * `byOutcome` and `byCounty` were pinned at 30 days, and the daily chart could
+ * only ever say how BIG each group was, never which outcomes were in it. So the
+ * one question the Funnel tab gets opened to answer -- "the grey bar moved
+ * today, which of the three was it" -- had no answer anywhere in /admin. A
+ * trailing 30-day table cannot answer it: the 26 Aug city-strip fix took
+ * no_parcel from 35% to 10% in a single day and the trailing window still read
+ * 27%. Both numbers are true and only one of them is about today.
+ *
+ * `days` narrows the two TABLES only. The chart stays pinned at CHART_DAYS,
+ * because a control that silently reshapes the chart underneath the table turns
+ * one reading into two incomparable ones -- and the chart is the thing you look
+ * at to decide which day is worth narrowing to.
+ *
+ * ============================================================================
+ * WHY THIS IS A FUNCTION AND NOT `Number(req.query.days) || BREAKDOWN_DAYS`
+ * ============================================================================
+ * NaN is the failure this codebase has already been bitten by one layer down: a
+ * non-numeric DOR_ROLL_YEAR reached SQL as NaN and produced a miss that was
+ * "indistinguishable from a genuine miss, for every address in Florida"
+ * (No_Finding_Three_Causes_2026-08-25.md). `?days=abc` must not reach Postgres.
+ *
+ * `||` alone would not be enough either. It folds 0 into the default, which is
+ * harmless, but it PASSES -5, and `current_date - make_interval(days => -5)` is
+ * a window five days in the FUTURE: an empty table that reads as "nothing was
+ * recorded" rather than "you asked for a nonsense window". Every rejected value
+ * falls back to the documented default rather than erroring, because this is a
+ * query string on an internal dashboard and a 400 here helps nobody.
+ *
+ * WHOLE-STRING MATCH RATHER THAN parseInt. parseInt takes the longest numeric
+ * PREFIX, so `?days=7abc` becomes 7 and `?days=1,90` becomes 1 -- it answers a
+ * question nobody asked instead of falling back to a documented default. It also
+ * made the array branch below unreachable in practice, which is how this was
+ * found: the injection that deleted that branch could not be made to fail.
+ * Untestable and dead turned out to be the same defect.
+ */
+export function resolveBreakdownDays(raw) {
+  // Array when the query string repeats the key (?days=1&days=90). Take the
+  // first rather than letting "1,90" stringify into something unparseable.
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  if (first == null) return BREAKDOWN_DAYS;
+  const s = String(first).trim();
+  // Digits only, end to end. Rejects '', 'abc', '7abc', '1,90', '1.5', '-5'.
+  if (!/^\d+$/.test(s)) return BREAKDOWN_DAYS;
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 1) return BREAKDOWN_DAYS;
+  return Math.min(n, MAX_BREAKDOWN_DAYS);
+}
 
 export default async function handler(req, res) {
   // requireAdmin returns TRUE when it has REJECTED and already responded. This
@@ -64,10 +116,23 @@ export default async function handler(req, res) {
       return res.status(503).json({ error: 'Supabase is not configured.' });
     }
 
-    const [daily, byOutcome, byCounty] = await Promise.all([
+    const breakdownDays = resolveBreakdownDays(req.query?.days);
+
+    const [daily, byOutcome, byCounty, dailyOutcomes] = await Promise.all([
       supabase.rpc('check_events_daily', { days: CHART_DAYS }),
-      supabase.rpc('check_events_by_outcome', { days: BREAKDOWN_DAYS, src: null }),
-      supabase.rpc('check_events_by_county', { days: BREAKDOWN_DAYS }),
+      supabase.rpc('check_events_by_outcome', { days: breakdownDays, src: null }),
+      supabase.rpc('check_events_by_county', { days: breakdownDays }),
+      /**
+       * THE NAMED SPLIT, PER DAY. scripts/sql/check_events_daily_outcomes.sql.
+       *
+       * Pinned to CHART_DAYS, not breakdownDays: this feeds the chart's tooltip,
+       * and a tooltip that goes blank on the days outside the table's window
+       * would be a chart that stops explaining itself the moment you narrow it.
+       *
+       * Its failure is handled below rather than here, on purpose -- a missing
+       * migration must degrade the tooltip, never blank the tab.
+       */
+      supabase.rpc('check_events_daily_outcomes', { days: CHART_DAYS }),
     ]);
 
     if (daily.error) {
@@ -76,6 +141,38 @@ export default async function handler(req, res) {
         error: `Daily check read failed: ${daily.error.message}`,
         hint: 'If this says the function does not exist, scripts/sql/check_events.sql has not been run on this database.',
       });
+    }
+
+    /**
+     * WHICH outcomes, per day -- the thing the tooltip was missing.
+     *
+     * The chart's five segments say how big each group was. They cannot say
+     * whether today's grey was a condo owner picking a unit, a Texan, or a
+     * retrieval bug producing a miss that looks exactly like a house that is not
+     * on the roll. That last one is not hypothetical: it is what 25 Aug's 28
+     * `no_parcel` rows turned out to be.
+     *
+     * Labelled and grouped HERE rather than in pages/admin.js, so lib/checkOutcomes.js
+     * stays the single vocabulary and the panel never grows a second copy of it
+     * that can drift -- the same reason `byOutcome` rows carry label and group.
+     *
+     * `unrecognised` rides along for the same reason it does on byOutcome rows:
+     * outcomeGroup() defaults an unknown outcome to no_answer, so without this
+     * flag a brand-new outcome would appear in the tooltip as a plausible grey
+     * line and look like a diagnosis instead of a gap.
+     */
+    const outcomesByDate = new Map();
+    if (!dailyOutcomes.error) {
+      for (const r of dailyOutcomes.data || []) {
+        if (!outcomesByDate.has(r.checked_on)) outcomesByDate.set(r.checked_on, []);
+        outcomesByDate.get(r.checked_on).push({
+          outcome: r.outcome,
+          checks: Number(r.checks) || 0,
+          group: outcomeGroup(r.outcome),
+          label: outcomeLabel(r.outcome),
+          unrecognised: !Object.prototype.hasOwnProperty.call(OUTCOMES, r.outcome),
+        });
+      }
     }
 
     const days = (daily.data || []).map((r) => ({
@@ -99,6 +196,10 @@ export default async function handler(req, res) {
       */
       ourFailure: Number(r.our_failure) || 0,
       noAnswer: Number(r.no_answer) || 0,
+
+      // Empty whenever check_events_daily_outcomes.sql has not been run. The
+      // tooltip falls back to the group counts rather than rendering nothing.
+      outcomes: outcomesByDate.get(r.checked_on) || [],
     }));
 
     // Ordered newest-first by the RPC. The chart wants oldest-first.
@@ -201,7 +302,11 @@ export default async function handler(req, res) {
       generatedAt: new Date().toISOString(),
       timezone: 'America/Chicago',
       chartDays: CHART_DAYS,
-      breakdownDays: BREAKDOWN_DAYS,
+      // The RESOLVED window, not the constant. The panel prints this, so a
+      // rejected ?days= must be visible as the default it fell back to rather
+      // than as the value that was asked for.
+      breakdownDays,
+      breakdownDaysDefault: BREAKDOWN_DAYS,
 
       todayDate: todayCentral,
       today: days.find((d) => d.date === todayCentral)?.checks || 0,
@@ -226,6 +331,15 @@ export default async function handler(req, res) {
 
       byOutcome: rows,
       byOutcomeError: byOutcome.error ? byOutcome.error.message : null,
+
+      /**
+       * Reported rather than swallowed. If this is set, every day's `outcomes`
+       * is empty and the tooltip is showing group counts only -- which looks
+       * identical to the tooltip working, and is exactly the class of silent
+       * degradation the health check exists to make visible. Almost always means
+       * scripts/sql/check_events_daily_outcomes.sql has not been run here.
+       */
+      seriesOutcomesError: dailyOutcomes.error ? dailyOutcomes.error.message : null,
 
       byCounty: (byCounty.data || []).map((r) => ({
         county: r.county,
