@@ -187,7 +187,7 @@ function stashConditionIntent() {
 }
 
 export default function CheckPage() {
-  const [form, setForm] = useState({ street: '', zip: '' });
+  const [form, setForm] = useState({ street: '', unit: '', zip: '' });
 
   /**
    * ZIP carried from the landing page, so a Florida visitor types it once.
@@ -209,8 +209,43 @@ export default function CheckPage() {
   // ZIP is disclosed on demand rather than shown by default — see the comment at
   // the field itself. Reset to closed when a suggestion supplies the roll's own ZIP.
   const [zipOpen, setZipOpen] = useState(false);
+  /**
+   * ============================================================================
+   * UNIT IS DISCLOSED, NOT ASKED. 27 Aug 2026.
+   * ============================================================================
+   * A condo owner had nowhere to put the one value that identifies their parcel.
+   * They could type it into the address line — and once addressVariantTiers
+   * landed that finally WORKS, where before the unit-stripped spelling flooded
+   * the result set and typing a unit number changed nothing — but nothing on the
+   * page said so, and `ambiguous` was the largest no-finding outcome on the site.
+   *
+   * BEHIND A LINK, FOR THE REASON THE ZIP IS. A permanent second box on a form
+   * whose entire promise is "all we need is an address" costs every visitor to
+   * serve the minority who need it; the ZIP note below sets that precedent and
+   * gives the measurement behind it. This opens itself when a check comes back
+   * ambiguous — the one moment we KNOW the visitor needs it — so the common path
+   * never sees it and the path that needs it never has to find it.
+   */
+  const [unitOpen, setUnitOpen] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  /**
+   * The address as the ROLL would spell it: street line with the unit appended.
+   *
+   * Guarded against doubling, because picking a suggestion writes back the roll's
+   * own PHY_ADDR1 — which for these buildings already carries the unit — and a
+   * stale value in the unit box would otherwise produce "…DR 1201 1201" and match
+   * nothing at all. normCompare-free on purpose: this is a display-level guard,
+   * and the matcher's own variants handle spelling.
+   */
+  function composedStreet(f) {
+    const street = (f.street || '').trim();
+    const unit = (f.unit || '').trim().replace(/^#\s*/, '');
+    if (!unit) return street;
+    if (new RegExp(`\\b${unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i').test(street)) return street;
+    return `${street} ${unit}`;
+  }
 
   /**
    * `override` runs the check against an address supplied by the caller rather
@@ -224,7 +259,9 @@ export default function CheckPage() {
    */
   async function runCheck(e, override) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
-    const street = (override?.street ?? form.street) || '';
+    // `override` already carries the roll's own spelling, unit included, so the
+    // unit box must not be composed onto it — see composedStreet.
+    const street = override?.street != null ? override.street : composedStreet(form);
     const zip = (override?.zip ?? form.zip) || '';
     /*
      * ZIP WAS REQUIRED HERE AND NOTHING SAID SO.
@@ -252,6 +289,9 @@ export default function CheckPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+      // The one moment we KNOW a unit is what is missing. Opening it here is why
+      // the field can stay behind a link for everyone else — see unitOpen.
+      if (d && !d.found && d.reason === 'ambiguous') setUnitOpen(true);
       setState({ status: 'done', data: d, error: null });
     } catch (err) {
       setState({ status: 'idle', data: null, error: err.message });
@@ -303,7 +343,7 @@ export default function CheckPage() {
           email: email.trim(),
           state: 'FL',
           county: LOADED_COUNTIES[Number(state.data?.parcel?.coNo)] || '',
-          propertyAddress: state.data?.parcel?.address || `${form.street}, ${form.zip}`,
+          propertyAddress: state.data?.parcel?.address || `${composedStreet(form)}, ${form.zip}`,
           blockedReason: reason,
         }),
       });
@@ -521,15 +561,26 @@ export default function CheckPage() {
               <label htmlFor="ta-check-street" style={{ fontSize: 14, fontWeight: 600, color: C.darkNavy }}>
                 Your home address
               </label>
-              {!zipOpen && (
-                <button
-                  type="button"
-                  onClick={() => setZipOpen(true)}
-                  style={{ padding: 0, fontSize: 13, color: C.navy, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}
-                >
-                  Add a ZIP
-                </button>
-              )}
+              <span style={{ display: 'flex', gap: 14, whiteSpace: 'nowrap' }}>
+                {!unitOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setUnitOpen(true)}
+                    style={{ padding: 0, fontSize: 13, color: C.navy, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}
+                  >
+                    Add a unit
+                  </button>
+                )}
+                {!zipOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setZipOpen(true)}
+                    style={{ padding: 0, fontSize: 13, color: C.navy, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}
+                  >
+                    Add a ZIP
+                  </button>
+                )}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {/*
@@ -542,7 +593,9 @@ export default function CheckPage() {
                 id="ta-check-street"
                 value={form.street}
                 onChange={(v) => setForm((f) => ({ ...f, street: v }))}
-                onSelect={(s) => { setForm({ street: s.street || '', zip: s.zip || '' }); setZipOpen(false); }}
+                // The roll's own PHY_ADDR1 already carries the unit for these buildings,
+                  // so the unit box is cleared rather than left to compose onto it.
+                  onSelect={(s) => { setForm({ street: s.street || '', unit: '', zip: s.zip || '' }); setZipOpen(false); setUnitOpen(false); }}
                 zip={form.zip}
                 colors={C}
                 style={{ flex: '1 1 100%' }}
@@ -561,6 +614,23 @@ export default function CheckPage() {
               mean one of these?" — a better disambiguation than asking 100% of
               visitors for a ZIP to help the few percent who need it.
             */}
+            {unitOpen && (
+              <div style={{ marginTop: 10 }}>
+                <label htmlFor="ta-check-unit" style={{ display: 'block', fontSize: 13, color: C.body, marginBottom: 6 }}>
+                  Unit or apartment <span style={{ color: C.muted }}>(optional)</span>
+                </label>
+                <input
+                  id="ta-check-unit"
+                  value={form.unit}
+                  onChange={set('unit')}
+                  placeholder="3204"
+                  autoComplete="address-line2"
+                  autoCorrect="off"
+                  style={{ width: 150, maxWidth: '100%', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                />
+              </div>
+            )}
+
             {zipOpen && (
               <div style={{ marginTop: 10 }}>
                 <label htmlFor="ta-check-zip" style={{ display: 'block', fontSize: 13, color: C.body, marginBottom: 6 }}>
@@ -696,8 +766,90 @@ export default function CheckPage() {
             </div>
           )}
 
+          {/*
+            ============================================================================
+            AMBIGUOUS IS NOT A MISS, AND IT WAS WEARING A MISS'S CLOTHES. 27 Aug 2026.
+            ============================================================================
+            `ambiguous` fell into the branch below, so somebody whose building we hold
+            in full — every unit, every assessment — was shown the headline "We
+            couldn't find that property", the message, five of their neighbours, and
+            then a paragraph advising them to check their spelling because "a real miss
+            is usually a very new build or a parcel split". Three of those four things
+            are false on this screen. The one true thing, the unit list, was the least
+            prominent.
+
+            It is the largest no-finding outcome on the site: 18 checks on 27 Aug,
+            against 13 genuine misses. lib/dor/parcels.js has always called it "a UI
+            problem" in its own comment and pages/api/check.js repeats it — "the address
+            matched several parcels and the visitor has to pick. A rising ambiguous
+            count is people being asked a question they may not answer, which looks
+            identical to disinterest from every other angle."
+
+            They were being asked the question in the shape of a refusal. This is the
+            same screen /apply has had since 26 Aug, which asks it as a question.
+
+            WHY EVERY CANDIDATE, NOT FIVE. The list was capped at five with nothing
+            saying so and no way to reach the rest, so a tower's owner scanned five
+            units, did not find theirs, and had nowhere to go. lib/dor/parcels.js caps
+            retrieval at 12 — the honest number to show is however many came back, and
+            to say plainly what to do when it is not enough.
+          */}
+          {d && !d.found && d.reason === 'ambiguous' && (
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
+              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>Which one is yours?</h2>
+              <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>
+                Your county assesses more than one property at that address — each unit
+                separately. We hold all of them; we just need to know which is yours before
+                we can read your assessment.
+              </p>
+
+              <div style={{ marginTop: 16 }}>
+                {(d.candidates || []).map((c, i) => (
+                  <button
+                    key={c.parcelId || i}
+                    type="button"
+                    onClick={() => {
+                      const street = c.street || c.full || '';
+                      const zip = c.zip || '';
+                      setForm({ street, unit: '', zip });
+                      setZipOpen(false);
+                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      runCheck(null, { street, zip });
+                    }}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left', marginBottom: 8,
+                      padding: '11px 14px', fontSize: 15, fontFamily: 'inherit', cursor: 'pointer',
+                      background: C.white, color: C.darkNavy,
+                      border: `1px solid ${C.border}`, borderRadius: 8,
+                    }}
+                  >
+                    {[c.street, c.unit].filter(Boolean).join(' ') || c.full}
+                    <span style={{ display: 'block', fontSize: 12, color: C.muted, marginTop: 2 }}>
+                      {[c.city, 'FL', c.zip].filter(Boolean).join(', ')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/*
+                THE WAY OUT WHEN THE LIST IS NOT ENOUGH, STATED. Retrieval is capped at
+                12, and a Miami tower has hundreds of units — so for a real building this
+                list is a sample, and a visitor who cannot find themselves on it must be
+                told the one thing that resolves it rather than left to guess. This is
+                also now a query that WORKS: until today the unit-stripped spelling
+                flooded the result set and typing a unit number changed nothing. See
+                addressVariantTiers in lib/dor/addressMatch.js.
+              */}
+              <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
+                Not listed? Add your unit or apartment number to the address above — for
+                example &ldquo;{(d.candidates?.[0]?.street) || '1750 N Bayshore Dr'}
+                {d.candidates?.[0]?.unit ? ` ${d.candidates[0].unit}` : ''}&rdquo; — and check again.
+              </p>
+            </div>
+          )}
+
           {/* A genuine miss inside Florida. */}
-          {d && !d.found && d.reason !== 'outside_coverage' && (
+          {d && !d.found && d.reason !== 'outside_coverage' && d.reason !== 'ambiguous' && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t find that property</h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>
@@ -733,7 +885,7 @@ export default function CheckPage() {
                         */
                         const street = c.street || c.full || '';
                         const zip = c.zip || '';
-                        setForm({ street, zip });
+                        setForm({ street, unit: '', zip });
                         setZipOpen(false);
                         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
                         runCheck(null, { street, zip });
@@ -1431,7 +1583,7 @@ export default function CheckPage() {
           onClose={() => setContactOpen(false)}
           context={{
             step: 'check',
-            address: [form.street, form.zip].filter(Boolean).join(', '),
+            address: [composedStreet(form), form.zip].filter(Boolean).join(', '),
             county: LOADED_COUNTIES[Number(d?.parcel?.coNo)] || '',
             state: 'FL',
           }}

@@ -195,17 +195,50 @@ export default function AddressAutocomplete({
         />
       )}
 
+      {/*
+        ==========================================================================
+        THE LIST SAT ON TOP OF "CHECK MY PROPERTY", AND ATE THE CLICK. 27 Aug 2026.
+        ==========================================================================
+        It was `position: absolute; top: 100%; z-index: 60`, and the submit button
+        is the very next thing in the form. So the list rendered directly over the
+        button, and a visitor who typed their address and reached for the button
+        pressed a SUGGESTION instead — `onMouseDown` below fires first, calls pick(),
+        and replaces what they typed with whatever row happened to be under their
+        finger.
+
+        For a house that is invisible and harmless: the top suggestion is usually
+        their own address, so the wrong target produced the right answer and nobody
+        could see the difference. For a condo it silently swapped the unit. Typing
+        "1750 N BAYSHORE DR 3204" and pressing the button produced unit 1201 —
+        another household's parcel, its assessment, and the heading "Your property
+        is assessed at full market value". Reproduced from a clean page load.
+
+        IN FLOW, NOT OVERLAID. The list now takes its own space and pushes the
+        button down, so what is under the pointer is always what is on screen.
+        Reserving space under an absolute list would do the same thing with more
+        machinery and one more way to be wrong by a few pixels; a dropdown that can
+        cover a submit control is the bug, and not covering it is the fix.
+
+        The visitor's own typing is no longer at risk from a mis-aimed tap, which
+        also means the suggestion list is free to be as tall as it is useful.
+      */}
       {show && suggestions.length > 0 && (
         <ul
           role="listbox"
           style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, margin: '4px 0 0',
+            margin: '4px 0 0',
             padding: 0, listStyle: 'none', background: C.white,
             border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden',
             boxShadow: '0 10px 28px rgba(11,26,51,0.14)',
           }}
         >
-          {suggestions.slice(0, 6).map((s, i) => (
+          {/*
+            Was 6, while /api/suggest returns 8 — so two retrieved rows were
+            dropped on the floor, which for a condo is two units the owner might
+            have been looking for. Nothing is gained by hiding them now that the
+            list no longer covers anything.
+          */}
+          {suggestions.slice(0, 8).map((s, i) => (
             <li
               key={s.parcelId || i}
               role="option"
@@ -217,7 +250,7 @@ export default function AddressAutocomplete({
               style={{
                 padding: '11px 14px', cursor: 'pointer',
                 background: i === active ? C.bg : C.white,
-                borderBottom: i < Math.min(suggestions.length, 6) - 1 ? `1px solid ${C.border}` : 'none',
+                borderBottom: i < Math.min(suggestions.length, 8) - 1 ? `1px solid ${C.border}` : 'none',
               }}
             >
               <div style={{ fontSize: 14, color: C.darkNavy }}>{s.street}</div>

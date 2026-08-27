@@ -33,6 +33,7 @@
  * reads a green suite as broader coverage than it has.
  */
 import { register } from 'node:module';
+import { readFileSync } from 'node:fs';
 
 import { createRequire } from 'node:module';
 
@@ -115,6 +116,71 @@ for (const page of ['pages/index.js', 'pages/check.js', 'pages/apply.js']) {
     }
   }
 }
+
+/**
+ * ============================================================================
+ * THE SUGGESTION LIST MUST NOT COVER A CONTROL. 27 Aug 2026.
+ * ============================================================================
+ * components/AddressAutocomplete.js rendered its listbox `position: absolute;
+ * top: 100%; z-index: 60`, and the very next thing in the /check form is the
+ * submit button. So the list sat on the button, and `onMouseDown` on a row fires
+ * before the button ever sees the press: a visitor who typed their address and
+ * reached for "Check my property" pressed a SUGGESTION instead, and whatever
+ * they had typed was replaced by the row under their finger.
+ *
+ * On a house that was invisible — the top suggestion is usually their own
+ * address, so the wrong target gave the right answer. On a condo it swapped the
+ * unit silently. Typing "1750 N BAYSHORE DR 3204" and pressing the button
+ * produced unit 1201: another household's parcel, that household's assessment,
+ * and the heading "Your property is assessed at full market value". Reproduced
+ * from a clean page load on production.
+ *
+ * ASSERTED ON THE LISTBOX, not on the file, so a comment quoting the old CSS
+ * cannot satisfy it and an absolutely positioned SPINNER — which is fine, it
+ * covers nothing — does not trip it.
+ *
+ * INJECTION: restore `position: 'absolute'` on either listbox -> FAILS.
+ */
+{
+  const strip = (x) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const cases = [
+    ['components/AddressAutocomplete.js', /<ul\s+role="listbox"\s+style=\{\{([\s\S]*?)\}\}/],
+    ['pages/apply.js', /\{show && suggestions\.length > 0 && \(\s*<div style=\{\{([\s\S]*?)\}\}/],
+  ];
+  for (const [file, re] of cases) {
+    try {
+      const src = strip(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
+      const m = re.exec(src);
+      if (!m) throw new Error('could not find the suggestion list style');
+      if (/position:\s*["']absolute["']/.test(m[1])) {
+        throw new Error('the suggestion list is absolutely positioned and will cover the control beneath it');
+      }
+      ok(`${file}: the suggestion list takes its own space instead of covering the next control`);
+    } catch (e) { bad(`${file} suggestion list`, e); }
+  }
+}
+
+/**
+ * AMBIGUOUS IS A QUESTION, NOT A MISS.
+ *
+ * `ambiguous` shared a branch with `no_parcel`, so a condo owner whose building
+ * we hold in full was shown "We couldn't find that property" and then advised to
+ * check their spelling. It is the largest no-finding outcome on the site.
+ *
+ * INJECTION: drop `d.reason !== 'ambiguous'` from the miss branch -> FAILS.
+ */
+try {
+  const check = readFileSync(new URL('../pages/check.js', import.meta.url), 'utf8');
+  if (!/d\.reason === 'ambiguous'/.test(check)) throw new Error('no dedicated ambiguous branch');
+  if (!/d\.reason !== 'outside_coverage' && d\.reason !== 'ambiguous'/.test(check)) {
+    throw new Error('the miss branch still catches ambiguous');
+  }
+  const heading = /d\.reason === 'ambiguous'[\s\S]{0,900}?<h2[^>]*>([^<]+)</.exec(check)?.[1] || '';
+  if (/couldn|could not find|no record/i.test(heading)) {
+    throw new Error(`the ambiguous screen still reads as a failure: "${heading}"`);
+  }
+  ok(`ambiguous has its own screen, headed "${heading.trim()}"`);
+} catch (e) { bad('ambiguous screen', e); }
 
 console.log('');
 if (failures) {

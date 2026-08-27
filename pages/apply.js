@@ -302,8 +302,17 @@ function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
         {loading && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.navy}`, borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />}
       </div>
+      {/*
+        IN FLOW, NOT OVERLAID — the same change made to components/AddressAutocomplete.js
+        on 27 Aug and for the same reason. An absolutely positioned list covers whatever
+        follows it in the form, and `onMouseDown` below fires before that element ever
+        sees the press, so a tap aimed at the next control silently picks a suggestion
+        instead. On /check the covered element was the submit button and the result was
+        a stranger's parcel; here it is the City field, which is milder but the same
+        defect. What is under the pointer should be what is on the screen.
+      */}
       {show && suggestions.length > 0 && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: "0 0 8px 8px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
+        <div style={{ marginTop: 4, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
           {suggestions.map((s, i) => (
             <div key={i} onMouseDown={() => { onSelect(s); setShow(false); setSuggestions([]); }}
               style={{ padding: "11px 14px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? `1px solid ${C.border}` : "none", display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s" }}
