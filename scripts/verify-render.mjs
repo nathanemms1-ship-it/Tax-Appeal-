@@ -161,6 +161,35 @@ for (const page of ['pages/index.js', 'pages/check.js', 'pages/apply.js']) {
 }
 
 /**
+ * AND CLOSING IT MUST NOT REFLOW THE CONTROL BEING PRESSED.
+ *
+ * The in-flow list fixes the click going to the wrong element. It creates a
+ * second way to lose the same click: an outside-close on `mousedown` unmounts
+ * the list, the control below jumps up, `mouseup` lands elsewhere, and the
+ * browser fires `click` on the nearest common ancestor rather than on the
+ * button. Observed live — the first press of "Check my property" did nothing
+ * and the second worked.
+ *
+ * The two fixes are a pair. Asserting only the first would leave a dead button
+ * passing every check in this file.
+ *
+ * INJECTION: change either listener back to 'mousedown' -> FAILS.
+ */
+for (const file of ['components/AddressAutocomplete.js', 'pages/apply.js']) {
+  try {
+    const src = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    if (/addEventListener\(\s*['"]mousedown['"]/.test(src)) {
+      throw new Error('the outside-close still runs on mousedown, which reflows the button before its click lands');
+    }
+    if (!/addEventListener\(\s*['"]click['"]\s*,\s*handler\s*\)/.test(src)) {
+      throw new Error('no click-based outside-close found');
+    }
+    ok(`${file}: the suggestion list closes on click, so a press completes against what it hit`);
+  } catch (e) { bad(`${file} outside-close`, e); }
+}
+
+/**
  * AMBIGUOUS IS A QUESTION, NOT A MISS.
  *
  * `ambiguous` shared a branch with `no_parcel`, so a condo owner whose building

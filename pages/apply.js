@@ -252,10 +252,17 @@ function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
   const debounce = useRef(null);
   const wrapRef = useRef(null);
 
+  /*
+    `click`, not `mousedown` — same correction as components/AddressAutocomplete.js
+    and for the same reason. Now that the list is in flow, closing it on mousedown
+    reflows the control underneath before mouseup lands, and the browser fires
+    click on the common ancestor instead of the element that was pressed. The
+    press has to complete against what the visitor aimed at.
+  */
   useEffect(() => {
     const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setShow(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
   }, []);
 
   const handleChange = (e) => {

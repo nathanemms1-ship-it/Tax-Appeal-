@@ -100,14 +100,37 @@ export default function AddressAutocomplete({
   const debounce = useRef(null);
   const wrapRef = useRef(null);
 
-  // Close on an outside click. Without this the list survives a click into the
-  // ZIP box and covers the button underneath it.
+  /**
+   * ==========================================================================
+   * `click`, NOT `mousedown` — CLOSING EARLY ATE THE CLICK. 27 Aug 2026.
+   * ==========================================================================
+   * This listened on `mousedown` because the list used to be absolutely
+   * positioned: closing it before the press completed was how a click into the
+   * ZIP box stopped being swallowed by a list that covered the button.
+   *
+   * The list is now IN FLOW (see the listbox below), and that inverts the
+   * reasoning. A `mousedown` on the submit button removes the list, the button
+   * jumps up by the list's height, `mouseup` lands somewhere else — and the
+   * browser fires `click` on the nearest common ancestor of the two, which is
+   * no longer the button. The form never submits.
+   *
+   * Shipped that way for about twenty minutes and caught on the live site: with
+   * the list open, the FIRST press of "Check my property" did nothing at all
+   * and the second worked. Milder than the bug it was fixing, and on the same
+   * main path — a dead button reads as a broken site.
+   *
+   * On `click` the press completes against the element the visitor aimed at,
+   * React's onSubmit has already run by the time this bubbles to document, and
+   * the list closes immediately after. Nothing can now reflow between mousedown
+   * and mouseup, which is the property that actually matters here — not when
+   * the list closes.
+   */
   useEffect(() => {
     const handler = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setShow(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
   }, []);
 
   useEffect(() => () => { if (debounce.current) clearTimeout(debounce.current); }, []);
