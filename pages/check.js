@@ -202,6 +202,52 @@ export default function CheckPage() {
       setForm((f) => (f.zip ? f : { ...f, zip: z }));
     } catch { /* private mode — the field just starts empty */ }
   }, []);
+
+  /**
+   * ==========================================================================
+   * GIVE BACK WHAT THEY TYPED BEFORE REACT WOKE UP. 28 Aug 2026.
+   * ==========================================================================
+   * The address field is server-rendered, so it is typeable from about 760ms
+   * while hydration lands somewhere past 1.5s — and hydrating a CONTROLLED input
+   * writes `value = ''` over whatever is in it. Everything typed in that window
+   * is discarded, silently, on the one page whose entire instruction is "Type
+   * your address". Measurements and mechanism are in pages/_document.js.
+   *
+   * This effect runs at the hydration commit, which is the first moment the
+   * value has already been lost and the first moment we can put it back. A
+   * person cannot type between those two points, so restoring here cannot
+   * overwrite anything they are in the middle of.
+   *
+   * ONLY THE STREET FIELD. Unit and ZIP are behind disclosure links and are not
+   * in the server-rendered HTML, so nothing can be typed into them before
+   * hydration and restoring them would be a branch that never runs. The capture
+   * in _document is keyed by id and stays general; this consumer is not.
+   *
+   * Wrapped and optional-chained because the whole mechanism is best-effort: no
+   * script, an old cached shell, a browser that blocks inline script — the page
+   * then behaves exactly as it did before.
+   */
+  useEffect(() => {
+    let taken = null;
+    try { taken = window.__taPreHydrationInput?.take?.(); } catch { /* nothing captured */ }
+    const typed = taken?.values?.['ta-check-street'];
+    if (!typed) return;
+
+    setForm((f) => (f.street ? f : { ...f, street: typed }));
+
+    /**
+     * The caret, too. Restoring the text and leaving the cursor at position
+     * zero means their next keystroke lands in the middle of their own address
+     * — which reads as a worse bug than the one being fixed. Only if the field
+     * still has focus: if they have moved on, moving it back would be rude.
+     */
+    if (taken.lastId !== 'ta-check-street') return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById('ta-check-street');
+      if (!el || document.activeElement !== el) return;
+      try { el.setSelectionRange(el.value.length, el.value.length); } catch { /* not selectable */ }
+    });
+  }, []);
   const [state, setState] = useState({ status: 'idle', data: null, error: null });
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState('idle');

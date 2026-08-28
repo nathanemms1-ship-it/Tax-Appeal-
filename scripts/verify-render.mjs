@@ -211,6 +211,85 @@ try {
   ok(`ambiguous has its own screen, headed "${heading.trim()}"`);
 } catch (e) { bad('ambiguous screen', e); }
 
+/**
+ * ============================================================================
+ * THE PRE-HYDRATION CAPTURE, EXECUTED RATHER THAN GREPPED. 28 Aug 2026.
+ * ============================================================================
+ * /check server-renders its address field, so it is typeable from ~760ms while
+ * hydration lands past 1.5s — and hydrating a controlled input writes `value=''`
+ * over it. pages/_document.js captures what is typed in that window and
+ * pages/check.js puts it back.
+ *
+ * Asserting the script EXISTS would prove nothing; the whole mechanism is one
+ * listener and one closure, and a typo in either fails silently by design. So
+ * the script is pulled out of _document and run against a shim, and its actual
+ * behaviour is checked.
+ *
+ * INJECTION: drop the capture-phase `true`, or make take() non-idempotent,
+ * or key the store by name instead of id -> FAILS.
+ */
+try {
+  const doc = readFileSync(new URL('../pages/_document.js', import.meta.url), 'utf8');
+
+  const m = /const CAPTURE_PRE_HYDRATION_INPUT = `([\s\S]*?)`;/.exec(doc);
+  if (!m) throw new Error('no CAPTURE_PRE_HYDRATION_INPUT template in _document');
+  if (!/dangerouslySetInnerHTML=\{\{ __html: CAPTURE_PRE_HYDRATION_INPUT \}\}/.test(doc)) {
+    throw new Error('the capture script is not inlined into <Head> — next/script would run too late');
+  }
+
+  // A shim with just enough DOM to run the thing.
+  let bound = null;
+  let capturePhase = null;
+  const fakeDoc = {
+    addEventListener(type, fn, capture) { if (type === 'input') { bound = fn; capturePhase = capture; } },
+    removeEventListener(type) { if (type === 'input') bound = null; },
+  };
+  const fakeWin = {};
+  // eslint-disable-next-line no-new-func
+  new Function('document', 'window', m[1])(fakeDoc, fakeWin);
+
+  if (!bound) throw new Error('the script did not listen for input events on document');
+  if (capturePhase !== true) {
+    throw new Error('the input listener is not in the capture phase — a stopPropagation upstream would silence it');
+  }
+
+  bound({ target: { id: 'ta-check-street', tagName: 'INPUT', value: '1750 N Bayshore Dr 3204' } });
+  bound({ target: { id: 'no-id-here', tagName: 'DIV', value: 'ignored' } });
+
+  const first = fakeWin.__taPreHydrationInput.take();
+  if (first.values['ta-check-street'] !== '1750 N Bayshore Dr 3204') {
+    throw new Error(`take() lost the typed value: ${JSON.stringify(first.values)}`);
+  }
+  if (first.lastId !== 'ta-check-street') throw new Error('take() did not report the field last typed into');
+  if (bound !== null) throw new Error('take() left the listener attached');
+
+  const second = fakeWin.__taPreHydrationInput.take();
+  if (Object.keys(second.values).length !== 0) {
+    throw new Error('take() is not idempotent — a client-side return to /check would refill the field');
+  }
+
+  ok('the pre-hydration capture records a typed address, hands it over once, and detaches');
+} catch (e) { bad('pre-hydration capture', e); }
+
+/**
+ * And /check has to actually ask for it. The capture is useless unheld.
+ *
+ * INJECTION: delete the take() call from pages/check.js -> FAILS.
+ */
+try {
+  const check = readFileSync(new URL('../pages/check.js', import.meta.url), 'utf8');
+  if (!/__taPreHydrationInput\?\.take\?\.\(\)/.test(check)) {
+    throw new Error('/check never takes the captured input');
+  }
+  if (!/values\?\.\['ta-check-street'\]/.test(check)) {
+    throw new Error('/check does not read the street field out of the capture');
+  }
+  if (!/f\.street \? f :/.test(check)) {
+    throw new Error('the restore overwrites existing state instead of only filling an empty field');
+  }
+  ok('/check takes the captured address and only fills the field when it is empty');
+} catch (e) { bad('pre-hydration restore', e); }
+
 console.log('');
 if (failures) {
   console.error(`✗ ${failures} of ${checks} render checks failed.`);
