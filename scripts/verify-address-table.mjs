@@ -31,6 +31,7 @@ import {
   SOURCE_TYPES,
   POSTAGE_RESTRICTIONS,
   MAX_VERIFIED_AGE_DAYS,
+  sourceTypesFor,
   isAcceptableSource,
   hostOf,
   verifiedAgeDays,
@@ -82,10 +83,31 @@ function checkRow(state, county, row, now) {
     }
   }
 
+  /**
+   * --- the state's own source vocabulary ------------------------------------
+   *
+   * A state with no entry in STATE_SOURCE_TYPES fails rather than defaulting to
+   * something permissive. Adding a state means deciding what counts as strong
+   * evidence there, and the build is where that decision gets asked for.
+   */
+  const vocab = sourceTypesFor(state);
+  if (!vocab) {
+    fail(where, `no source vocabulary for state "${state}" — declare one in STATE_SOURCE_TYPES`);
+  }
+
   // --- source hygiene, applied to every row --------------------------------
   for (const src of row.sources ?? []) {
     if (!VALID_SOURCE_TYPES.has(src.type)) {
       fail(where, `source has unknown type "${src.type}"`);
+    } else if (vocab && !vocab.all.includes(src.type)) {
+      /**
+       * A real type, but not one that exists in this state. Almost always a row
+       * copied across states: a Georgia county citing `protest_form_pdf` is
+       * citing a Texas Form 50-132, which no Georgia board publishes. Left
+       * unchecked it also satisfies the two-source rule with a document that
+       * does not exist, which is the one thing that rule is for.
+       */
+      fail(where, `source type "${src.type}" does not exist in ${state} — expected one of [${vocab.all.join(', ')}]`);
     }
     if (!ISO_DATE_RE.test(src.checkedOn ?? '')) {
       fail(where, `source missing or malformed checkedOn: ${src.checkedOn}`);
@@ -145,10 +167,24 @@ function checkRow(state, county, row, now) {
     );
   }
 
-  // A confirmed row should rest on the strongest available source class.
-  const strong = [SOURCE_TYPES.APPEAL_FORM_PDF, SOURCE_TYPES.ASSESSMENT_NOTICE, SOURCE_TYPES.PHONE];
-  if (![...types].some((t) => strong.includes(t))) {
-    warn(where, 'confirmed on county_site/state_directory sources only — prefer the appeal form, the annual notice, or a phone call.');
+  /**
+   * A confirmed row should rest on the strongest available source class — and
+   * "strongest" is state-specific.
+   *
+   * This list was hardcoded to Georgia's three artefacts, so every Texas row
+   * warned the moment the TX types were added, including the thirteen already
+   * resting on a district's own Form 50-132 or a Notice of Appraised Value —
+   * which lib/appealAddresses.js calls BEST in its own comment. A guard that
+   * asks for evidence you already hold trains people to ignore it.
+   *
+   * Read from STATE_SOURCE_TYPES now, so the ranking and the vocabulary cannot
+   * drift apart again.
+   */
+  if (vocab && ![...types].some((t) => vocab.strong.includes(t))) {
+    warn(
+      where,
+      `confirmed on supporting sources only — prefer one of [${vocab.strong.join(', ')}].`
+    );
   }
 }
 
@@ -193,6 +229,23 @@ function selftest() {
     cassValidatedOn: '2026-08-01',
     notes: null,
   };
+  /**
+   * The Texas equivalent of `base`: a CAD, its own protest form, and the annual
+   * Notice of Appraised Value. Both of those are strong in Texas and neither
+   * exists in Georgia, which is what the vocabulary cases below turn on.
+   */
+  const txBase = {
+    ...base,
+    officialDomains: ['testcad.org'],
+    addressee: 'Test County Appraisal District',
+    stateAbbr: 'TX',
+    zip: '77002',
+    sources: [
+      { url: 'https://testcad.org/forms/50-132.pdf', type: SOURCE_TYPES.PROTEST_FORM_PDF, checkedOn: '2026-08-01' },
+      { url: 'https://testcad.org/notice', type: SOURCE_TYPES.APPRAISAL_NOTICE, checkedOn: '2026-08-01' },
+    ],
+  };
+
   const now = new Date('2026-08-27T00:00:00Z');
 
   const cases = [
@@ -237,20 +290,73 @@ function selftest() {
     ['a subdomain of a declared host passes (county CDN, the Chatham case)',
       { ...base, officialDomains: ['chathamcountyga.gov'],
         sources: [{ url: 'https://boa.chathamcountyga.gov/form.pdf', type: SOURCE_TYPES.APPEAL_FORM_PDF, checkedOn: '2026-08-01' }, base.sources[1]] }, false],
+
+    /* --- the per-state source vocabulary, added 28 Aug 2026 -----------------
+     *
+     * The Texas types went into SOURCE_TYPES and the verifier's `strong` list
+     * still named Georgia's three artefacts, so every Texas row warned —
+     * including the thirteen already resting on a Form 50-132 or a Notice of
+     * Appraised Value, which the vocabulary itself calls BEST.
+     *
+     * The warning cases are the point here, so these assert `warns` as well as
+     * `fails`. A guard that fires on evidence you already hold is not a passing
+     * guard, it is noise that teaches people to skip the output.
+     */
+    ['TX confirmed on its protest form + notice is strong, and is NOT warned',
+      { ...txBase }, false, 'TX', false],
+    ['TX confirmed on CAD site + directory only IS warned',
+      { ...txBase, sources: [
+        { url: 'https://testcad.org/protest', type: SOURCE_TYPES.CAD_SITE, checkedOn: '2026-08-01' },
+        { url: 'https://comptroller.texas.gov/taxes/property-tax/', type: SOURCE_TYPES.STATE_DIRECTORY, checkedOn: '2026-08-01' },
+      ] }, false, 'TX', true],
+    ['GA confirmed on county site + directory only IS warned (unchanged)',
+      { ...base, sources: [
+        base.sources[0],
+        { url: 'https://dor.georgia.gov/local-tax-officials', type: SOURCE_TYPES.STATE_DIRECTORY, checkedOn: '2026-08-01' },
+      ] }, false, 'GA', true],
+    ['a phone call is strong in either state',
+      { ...txBase, sources: [
+        { url: 'https://testcad.org/protest', type: SOURCE_TYPES.CAD_SITE, checkedOn: '2026-08-01' },
+        { phone: '555-0100', type: SOURCE_TYPES.PHONE, checkedOn: '2026-08-01', staffName: 'J. Smith' },
+      ] }, false, 'TX', false],
+
+    // A row copied across states cites a document that does not exist there.
+    ['a GA row citing a Texas protest form is rejected',
+      { ...base, sources: [
+        { url: 'https://testcounty.ga.gov/50-132.pdf', type: SOURCE_TYPES.PROTEST_FORM_PDF, checkedOn: '2026-08-01' },
+        base.sources[1],
+      ] }, true],
+    ['a TX row citing a Georgia appeal form is rejected',
+      { ...txBase, sources: [
+        { url: 'https://testcad.org/pt311a.pdf', type: SOURCE_TYPES.APPEAL_FORM_PDF, checkedOn: '2026-08-01' },
+        { phone: '555-0100', type: SOURCE_TYPES.PHONE, checkedOn: '2026-08-01', staffName: 'J. Smith' },
+      ] }, true, 'TX'],
+    ['a state with no declared vocabulary is rejected, not defaulted',
+      { ...base }, true, 'FL'],
   ];
 
   let passed = 0;
   let broken = 0;
-  for (const [label, row, shouldFail] of cases) {
-    const res = run({ GA: { Test: row } }, now);
+  for (const [label, row, shouldFail, state = 'GA', shouldWarn = null] of cases) {
+    const res = run({ [state]: { Test: row } }, now);
     const didFail = res.failures.length > 0;
-    if (didFail === shouldFail) {
+    const didWarn = res.warnings.length > 0;
+    // `shouldWarn` is opt-in: most cases are about failures and say nothing
+    // about warnings, and asserting a warning they never claimed would make
+    // every future warning a broken test rather than a new one.
+    const warnOk = shouldWarn === null || didWarn === shouldWarn;
+    if (didFail === shouldFail && warnOk) {
       passed += 1;
       console.log(`  ✓ ${label}`);
     } else {
       broken += 1;
-      console.log(`  ✗ ${label} — expected ${shouldFail ? 'FAIL' : 'PASS'}, got ${didFail ? 'FAIL' : 'PASS'}`);
+      console.log(
+        `  ✗ ${label} — expected ${shouldFail ? 'FAIL' : 'PASS'}`
+        + `${shouldWarn === null ? '' : shouldWarn ? ' + WARN' : ' + no warning'}`
+        + `, got ${didFail ? 'FAIL' : 'PASS'}${didWarn ? ' + WARN' : ''}`
+      );
       res.failures.forEach((f) => console.log(`      ${f}`));
+      res.warnings.forEach((x) => console.log(`      ! ${x}`));
     }
   }
 
