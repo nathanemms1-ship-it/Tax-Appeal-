@@ -286,7 +286,13 @@ export default function Landing() {
           align-items: center;
           gap: 24px;
         }
-        .price-left { flex-shrink: 0; }
+        /* Was flex-shrink: 0. The 24 Aug county-fee sentence below made this column's
+           max-content width 1174px inside an 820px .price-box; unable to shrink, it
+           overflowed and crushed .price-right to 59px, one word per line, 716px tall.
+           align-items: center then centred $89 in a 758px box. Shrink, and give the
+           right column a basis so it cannot be squeezed out again. */
+        .price-left { flex: 1 1 auto; min-width: 0; }
+        .price-right { flex: 0 0 260px; min-width: 0; }
         .price-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #B8860B; font-weight: 500; margin-bottom: 4px; }
         .price-amount { font-family: 'DM Serif Display', serif; font-size: 42px; color: ${C.darkNavy}; line-height: 1; }
         .price-note { font-size: 12px; color: #B8860B; margin-top: 4px; }
@@ -432,6 +438,8 @@ export default function Landing() {
           .stat-banner { flex-direction: column; text-align: center; gap: 12px; }
           .stat-big { font-size: 40px; }
           .price-box { flex-direction: column; gap: 16px; }
+          /* column direction turns flex-basis into a height — reset both columns */
+          .price-left, .price-right { flex: 0 0 auto; }
           .price-divider { width: 100%; height: 1.5px; }
           .trust-row { gap: 14px; }
           .footer { padding: 20px 16px; flex-direction: column; text-align: center; }
