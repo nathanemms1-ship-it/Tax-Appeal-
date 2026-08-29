@@ -90,7 +90,8 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
         <meta name="description" content="Real estate agents and HOA managers: earn $20 for every homeowner you refer to TaxAppeal USA. Share your unique link, we handle the rest. Paid monthly." />
         <link rel="canonical" href="https://www.taxappealusa.com/partners" key="canonical" />
       </Head>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
@@ -99,7 +100,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
         input:focus,select:focus{border-color:${C.navy};}
         label{font-size:13px;font-weight:500;color:${C.bodyGray};display:block;margin-bottom:6px;}
         @media(max-width:640px){.hero-grid{grid-template-columns:1fr!important;}.stat-grid{grid-template-columns:1fr 1fr!important;}}
-      `}</style>
+      ` }} />
       <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:'16px 40px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <Link href="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none'}}>
           <div style={{width:34,height:34,background:C.navy,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🏠</div>

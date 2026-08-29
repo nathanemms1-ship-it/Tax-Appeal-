@@ -155,7 +155,8 @@ export default function HealthDashboard() {
         <Head>
           <title>Service Health | TaxAppeal Admin</title>
           <meta name="robots" content="noindex, nofollow" />
-          <style>{FONT_IMPORT}</style>
+          {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+          <style dangerouslySetInnerHTML={{ __html: FONT_IMPORT }} />
         </Head>
         <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 32, maxWidth: 400, width: "100%" }}>
@@ -195,7 +196,8 @@ export default function HealthDashboard() {
       <Head>
         <title>Service Health | TaxAppeal Admin</title>
         <meta name="robots" content="noindex, nofollow" />
-        <style>{FONT_IMPORT}</style>
+        {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+        <style dangerouslySetInnerHTML={{ __html: FONT_IMPORT }} />
       </Head>
       <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.bg, minHeight: "100vh" }}>
 

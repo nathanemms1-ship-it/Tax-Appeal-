@@ -114,7 +114,8 @@ export default function BlogPost({ post, coverage }) {
         <meta property="article:published_time" content={post.publishDate} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       </Head>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
@@ -144,7 +145,7 @@ export default function BlogPost({ post, coverage }) {
           .side-cta { order: -1; }     /* the money box stays above the article */
           .side-extra { order: 1; }    /* related guides + trust drop below it */
         }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

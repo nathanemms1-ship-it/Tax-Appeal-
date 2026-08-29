@@ -113,7 +113,8 @@ export default function Landing() {
         }) }} />
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT_IMPORT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
@@ -449,7 +450,7 @@ export default function Landing() {
           .footer-cta h2 { font-size: 26px; }
           .ann-bar { font-size: 11px; padding: 8px 12px; }
         }
-      `}</style>
+      ` }} />
 
 {/* Announcement bar — TRIM countdown for Florida */}
       <div className="ann-bar">

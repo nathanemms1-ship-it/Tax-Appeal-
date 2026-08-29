@@ -122,7 +122,8 @@ export default function Arkansas() {
         })}} />
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT_IMPORT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
@@ -169,7 +170,7 @@ export default function Arkansas() {
         @media (max-width: 640px) {
           .hero h1 { font-size: 28px; } .steps { grid-template-columns: 1fr; } .cities { grid-template-columns: 1fr; } .county-grid { grid-template-columns: repeat(2, 1fr); }
         }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <nav className="nav">

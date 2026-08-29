@@ -118,7 +118,8 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             codebase already made and already enforces.) */}
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
@@ -133,7 +134,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
           .compare-grid{grid-template-columns:1fr !important;}
           .info-grid{grid-template-columns:1fr !important;}
         }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

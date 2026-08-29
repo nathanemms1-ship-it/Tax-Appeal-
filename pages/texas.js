@@ -117,7 +117,8 @@ export default function Texas() {
             codebase already made and already enforces.) */}
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT_IMPORT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
@@ -140,7 +141,7 @@ export default function Texas() {
         @media (max-width: 480px) {
           .cities-grid { grid-template-columns: 1fr !important; }
         }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

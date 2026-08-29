@@ -138,7 +138,8 @@ breadcrumbSchema([{ name: 'Home', href: '/' }, { name: 'Florida' }], 'https://ww
 "offers": { "@type": "AggregateOffer", "lowPrice": "104.00", "highPrice": "139.00", "priceCurrency": "USD", "offerCount": "67" }
 })}} />
 </Head>
-<style>{`
+{/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+<style dangerouslySetInnerHTML={{ __html: `
 ${FONT}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
@@ -156,7 +157,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 .included-grid { grid-template-columns: 1fr !important; }
 .fee-breakdown { grid-template-columns: 1fr !important; }
 }
-`}</style>
+` }} />
 
 {(() => {
   /*

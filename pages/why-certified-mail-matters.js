@@ -34,7 +34,8 @@ export default function WhyCertifiedMail() {
         <title>How We Make Sure Your Appeal Arrives On Time | TaxAppeal USA</title>
         <meta name="description" content="Property tax appeal deadlines are absolute, and Florida requires RECEIPT within 25 days -- not postmark. Here is exactly how we mail your filing in each state, and why we send it early." />
         <link rel="canonical" href="https://www.taxappealusa.com/why-certified-mail-matters" key="canonical" />
-        <style>{FONT}</style>
+        {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+        <style dangerouslySetInnerHTML={{ __html: FONT }} />
       </Head>
       <div style={{ fontFamily: "'DM Sans', sans-serif", background: C.bg, minHeight: "100vh" }}>
 

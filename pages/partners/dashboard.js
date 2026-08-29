@@ -249,11 +249,12 @@ export default function PartnerDashboard() {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
         @media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr!important;}.main-grid{grid-template-columns:1fr!important;}}
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: '14px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

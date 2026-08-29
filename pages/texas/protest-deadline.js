@@ -123,7 +123,8 @@ export default function TexasProtestDeadline({ taxYear, floorIso, floorLong, flo
             which is what answer engines read anyway. */}
       </Head>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         ${FONT}
         *{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
@@ -158,7 +159,7 @@ export default function TexasProtestDeadline({ taxYear, floorIso, floorLong, flo
           .cal{grid-template-columns:1fr;}
           .cal>div:nth-child(odd){border-bottom:none;}
         }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

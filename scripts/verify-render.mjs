@@ -33,7 +33,7 @@
  * reads a green suite as broader coverage than it has.
  */
 import { register } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 import { createRequire } from 'node:module';
 
@@ -289,6 +289,50 @@ try {
   }
   ok('/check takes the captured address and only fills the field when it is empty');
 } catch (e) { bad('pre-hydration restore', e); }
+
+/**
+ * CSS MUST NOT BE A TEXT CHILD OF <style>. 29 Aug 2026.
+ *
+ * React escapes text children: an apostrophe becomes &#x27;, an ampersand
+ * &amp;, a child combinator &gt;. The client sets the raw string. The two
+ * differ, React reports "Text content does not match server-rendered HTML"
+ * (#425), and because the mismatch is outside any Suspense boundary the
+ * entire root switches to client rendering (#423) — the server HTML is
+ * painted and then thrown away, on every load.
+ *
+ * pages/apply.js found and fixed this on one page and wrote the reason down.
+ * The sweep of 29 Aug found the other 41 blocks: 75 of 106 sampled live pages
+ * carried the escaped entities, including every state, city and blog page.
+ * `font-family: 'DM Sans'` alone is enough to trigger it.
+ *
+ * <style jsx> is exempt: styled-jsx compiles and injects its own CSS and does
+ * not go through text escaping — /check carries a `jsx global` block and
+ * serves zero entities.
+ *
+ * INJECTION: change any converted page back to <style>{`...`}</style> -> FAILS.
+ */
+try {
+  const roots = ['../pages', '../components'];
+  const offenders = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(new URL(dir + '/', import.meta.url), { withFileTypes: true })) {
+      const rel = `${dir}/${e.name}`;
+      if (e.isDirectory()) { if (!rel.endsWith('/api')) walk(rel); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = readFileSync(new URL(rel, import.meta.url), 'utf8');
+      // A bare (or `global`) <style> whose child is a JSX expression: the escaping case.
+      // <style jsx ...> is exempt, and <style dangerouslySetInnerHTML=... /> is self-closing
+      // and therefore cannot match — an earlier draft of this regex matched it via the `{`
+      // of the NEXT JSX expression on the page, and reported 18 already-fixed files.
+      if (/<style(\s+global)?>\s*\{/.test(src)) offenders.push(rel.replace('../', ''));
+    }
+  };
+  roots.forEach(walk);
+  if (offenders.length) {
+    throw new Error(`CSS rendered as a text child in: ${offenders.join(', ')}`);
+  }
+  ok('no page renders CSS as a text child of <style> (hydration stays intact)');
+} catch (e) { bad('style text-child escaping', e); }
 
 console.log('');
 if (failures) {
