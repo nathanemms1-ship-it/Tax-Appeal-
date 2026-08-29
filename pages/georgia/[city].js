@@ -140,14 +140,17 @@ export default function GeorgiaCityPage({ city }) {
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>$89 Flat vs. Contingency Firms</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Every other {city.name} property tax appeal service charges a percentage of your savings — every year.</p>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:15,background:C.white,borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`}}>
-            <thead><tr style={{background:C.navy,color:C.white}}><th style={{padding:"14px 20px",textAlign:"left"}}>Service</th><th style={{padding:"14px 20px",textAlign:"center"}}>Fee Structure</th><th style={{padding:"14px 20px",textAlign:"center"}}>Cost on $${fSavings} Win</th></tr></thead>
-            <tbody>
-              <tr style={{fontWeight:600}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,color:C.navy}}>✓ TaxAppeal USA</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>$89 flat fee</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#16a34a"}}>$89</td></tr>
-              <tr style={{background:C.bg}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`}}>Contingency Appeal Firm</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>25–35% of savings</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#dc2626"}}>$${Math.round(city.avgSavings*0.30).toLocaleString()}</td></tr>
-              <tr><td style={{padding:"14px 20px"}}>Property Tax Attorney</td><td style={{padding:"14px 20px",textAlign:"center"}}>40–50% of savings</td><td style={{padding:"14px 20px",textAlign:"center",color:"#dc2626"}}>$${Math.round(city.avgSavings*0.45).toLocaleString()}</td></tr>
-            </tbody>
-          </table>
+          {/* overflow-x so the table scrolls inside its own box instead of widening the page. */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:15,background:C.white,borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`}}>
+              <thead><tr style={{background:C.navy,color:C.white}}><th style={{padding:"14px 20px",textAlign:"left"}}>Service</th><th style={{padding:"14px 20px",textAlign:"center"}}>Fee Structure</th><th style={{padding:"14px 20px",textAlign:"center"}}>Cost on $${fSavings} Win</th></tr></thead>
+              <tbody>
+                <tr style={{fontWeight:600}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,color:C.navy}}>✓ TaxAppeal USA</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>$89 flat fee</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#16a34a"}}>$89</td></tr>
+                <tr style={{background:C.bg}}><td style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`}}>Contingency Appeal Firm</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>25–35% of savings</td><td style={{padding:"14px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`,color:"#dc2626"}}>$${Math.round(city.avgSavings*0.30).toLocaleString()}</td></tr>
+                <tr><td style={{padding:"14px 20px"}}>Property Tax Attorney</td><td style={{padding:"14px 20px",textAlign:"center"}}>40–50% of savings</td><td style={{padding:"14px 20px",textAlign:"center",color:"#dc2626"}}>$${Math.round(city.avgSavings*0.45).toLocaleString()}</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

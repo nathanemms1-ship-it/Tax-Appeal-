@@ -113,6 +113,11 @@ export default function WaitlistForm() {
           CSS is a constant in this file, not user input. */}
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
+        /* width:100% plus 14px of padding and a 1.5px border on content-box made every
+           control 31px wider than the form, which pushed the AR and AL county pages
+           into a horizontal scroll on a phone. Nothing here inherits a reset: this
+           component ships its own stylesheet. */
+        .wl-wrap input, .wl-wrap select, .wl-wrap button, .wl-wrap textarea { box-sizing: border-box; }
         input:focus, select:focus { border-color: ${C.navy} !important; }
         .wl-wrap { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
         @media (max-width: 640px) { .wl-wrap { padding: 32px 18px 64px; } }

@@ -654,7 +654,15 @@ export default function CountyPage({ county, fl, contentRevised }) {
             </div>
           )}
 
-          <div style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 32px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {/* Two columns on a desktop, one on a phone, without a media query — this file
+              has no stylesheet to put one in. `1fr` carries an implicit min-width:auto, so a
+              track could not shrink below its content: on a 390px screen the two tracks
+              resolved to 105px + 299px inside a 295px card and pushed the whole page 110px
+              wide. The max() keeps the desktop tracks at exactly (100% - gap)/2 — unchanged
+              at 385px each — and drops to one column once half the card is under 180px.
+              auto-fit with a plain 220px floor also fixed the overflow but made the card
+              three across on every desktop county page, which is a redesign, not a fix. */}
+          <div style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 32px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(max(180px,(100% - 24px)/2),1fr))", gap: 24 }}>
             <div>
               <div style={{ fontSize: 12, color: C.muted, fontFamily: "Arial,sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>{county.code === "FL" ? "Who Set Your Value" : "Appraisal Authority"}</div>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.navy }}>{county.district}</div>
@@ -698,7 +706,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
             {county.districtUrl && (
               <div>
                 <div style={{ fontSize: 12, color: C.muted, fontFamily: "Arial,sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Official Website</div>
-                <a href={county.districtUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.navy, fontSize: 15 }}>{county.districtUrl}</a>
+                <a href={county.districtUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.navy, fontSize: 15, overflowWrap: "anywhere" }}>{county.districtUrl}</a>
               </div>
             )}
           </div>

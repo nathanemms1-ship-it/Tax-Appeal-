@@ -46,41 +46,44 @@ export default function Privacy() {
             </ul>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>3. Third Parties We Share Data With</h2>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginTop: 8 }}>
-              <thead>
-                <tr style={{ background: '#f0f2f7' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Service</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Purpose</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Data Shared</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['Stripe', 'Payment processing', 'Name, email, payment amount'],
-                  ['Lob.com', 'Mail dispatch — certified (TX/GA) and First Class (FL)', 'Name, property address, letter content'],
-                  ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
-                  ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
-                  ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
-                  ['Google', 'Address autocomplete', 'Address input (partial)'],
-                  // Added 24 Aug. _app.js has loaded gtag with the Google Ads
-                  // conversion ID since the campaign started on 19 Aug, and fires
-                  // conversion events from apply.js and success.js. Google has been
-                  // receiving this data for five days and was not disclosed as a
-                  // recipient anywhere on this page.
-                  ['Google Analytics', 'Site usage measurement', 'Pages visited, IP address, device type'],
-                  ['Google Ads', 'Advertising and conversion measurement', 'Pages visited, whether an order completed, order value'],
-                  ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],
-                  ['Supabase', 'Order database storage', 'Full order record'],
-                  ['Vercel', 'Application hosting', 'Server logs, IP addresses'],
-                ].map(([svc, purpose, data], i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', fontWeight: 600, color: '#1B2A4A' }}>{svc}</td>
-                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{purpose}</td>
-                    <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{data}</td>
+            {/* overflow-x so the table scrolls inside its own box instead of widening the page. */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginTop: 8 }}>
+                <thead>
+                  <tr style={{ background: '#f0f2f7' }}>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Service</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Purpose</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid #e5e8ef', color: '#1B2A4A' }}>Data Shared</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[
+                    ['Stripe', 'Payment processing', 'Name, email, payment amount'],
+                    ['Lob.com', 'Mail dispatch — certified (TX/GA) and First Class (FL)', 'Name, property address, letter content'],
+                    ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
+                    ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
+                    ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
+                    ['Google', 'Address autocomplete', 'Address input (partial)'],
+                    // Added 24 Aug. _app.js has loaded gtag with the Google Ads
+                    // conversion ID since the campaign started on 19 Aug, and fires
+                    // conversion events from apply.js and success.js. Google has been
+                    // receiving this data for five days and was not disclosed as a
+                    // recipient anywhere on this page.
+                    ['Google Analytics', 'Site usage measurement', 'Pages visited, IP address, device type'],
+                    ['Google Ads', 'Advertising and conversion measurement', 'Pages visited, whether an order completed, order value'],
+                    ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],
+                    ['Supabase', 'Order database storage', 'Full order record'],
+                    ['Vercel', 'Application hosting', 'Server logs, IP addresses'],
+                  ].map(([svc, purpose, data], i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                      <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', fontWeight: 600, color: '#1B2A4A' }}>{svc}</td>
+                      <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{purpose}</td>
+                      <td style={{ padding: '9px 12px', border: '1px solid #e5e8ef', color: '#555' }}>{data}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <p style={{ marginTop: 12 }}>We do not sell your personal information to advertisers or third parties for marketing purposes.</p>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Data Retention</h2>

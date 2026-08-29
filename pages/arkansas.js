@@ -264,7 +264,7 @@ export default function Arkansas() {
         <div className="section-inner">
           <div className="section-title">{SVC.selling ? "$89 flat vs. percentage-based firms" : `$89 flat vs. percentage-based firms, from ${SVC.servingFrom}`}</div>
           <div className="section-sub">Most Arkansas tax agents charge 25–40% of your first-year savings. Here\'s the math{SVC.selling ? "" : " — for when we open. Nothing is being sold on this page today"}.</div>
-          <div style={{ background: C.white, border: '1.5px solid ' + C.border, borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ background: C.white, border: '1.5px solid ' + C.border, borderRadius: 12, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead><tr style={{ background: C.bg }}><th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Savings</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: C.navy }}>TaxAppeal ($89 flat)</th><th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#888' }}>Contingency firm (33%)</th></tr></thead>
               <tbody>
