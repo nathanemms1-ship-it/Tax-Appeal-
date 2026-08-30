@@ -32,6 +32,12 @@ const C = {
   green: '#2E7D52', red: '#C0392B',
 };
 
+/* The email, address and submit controls are width:100% with 14-22px of horizontal
+ * padding and a 1.5px border. This component ships no stylesheet and inherits no
+ * reset, so on content-box every control came out exactly 31px wider than its form
+ * and pushed the Arkansas and Alabama county pages, and /little-rock, into a
+ * horizontal scroll on a phone. Hence boxSizing on each of the three. 30 Aug 2026.
+ */
 export default function SeasonNotice({ stateCode, id = 'notify', variant = 'light', compact = false }) {
   const status = stateSaleStatus(stateCode);
   const [email, setEmail] = useState('');
@@ -131,7 +137,7 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
             inputMode="email"
             enterKeyHint="next"
             style={{
-              width: '100%', padding: '13px 14px', fontSize: 16, borderRadius: 8,
+              width: '100%', boxSizing: 'border-box', padding: '13px 14px', fontSize: 16, borderRadius: 8,
               border: `1.5px solid ${dark ? 'rgba(255,255,255,0.25)' : C.border}`,
               background: dark ? 'rgba(255,255,255,0.06)' : C.white,
               color: fg, fontFamily: 'inherit', outline: 'none', marginBottom: 14,
@@ -179,7 +185,7 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
             spellCheck={false}
             enterKeyHint="go"
             style={{
-              width: '100%', padding: '13px 14px', fontSize: 16, borderRadius: 8,
+              width: '100%', boxSizing: 'border-box', padding: '13px 14px', fontSize: 16, borderRadius: 8,
               border: `1.5px solid ${dark ? 'rgba(255,255,255,0.25)' : C.border}`,
               background: dark ? 'rgba(255,255,255,0.06)' : C.white,
               color: fg, fontFamily: 'inherit', outline: 'none', marginBottom: 6,
@@ -199,7 +205,7 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
             type="submit"
             disabled={state === 'sending'}
             style={{
-              width: '100%', padding: '15px 22px', fontSize: 16, fontWeight: 600,
+              width: '100%', boxSizing: 'border-box', padding: '15px 22px', fontSize: 16, fontWeight: 600,
               borderRadius: 8, border: 'none', cursor: state === 'sending' ? 'not-allowed' : 'pointer',
               background: C.gold, color: C.darkNavy, fontFamily: 'inherit',
             }}
