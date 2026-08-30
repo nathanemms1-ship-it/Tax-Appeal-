@@ -100,7 +100,7 @@ export default function BlogIndex() {
                     {post.intro.slice(0, 160)}…
                   </p>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, color: C.mutedGray }}>{new Date(post.publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                    <span style={{ fontSize: 12, color: C.mutedGray }}>{new Date(post.publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</span>
                     <span style={{ fontSize: 13, color: C.navy, fontWeight: 500 }}>Read guide →</span>
                   </div>
                 </a>

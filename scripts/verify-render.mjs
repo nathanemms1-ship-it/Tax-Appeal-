@@ -334,6 +334,34 @@ try {
   ok('no page renders CSS as a text child of <style> (hydration stays intact)');
 } catch (e) { bad('style text-child escaping', e); }
 
+/**
+ * BLOG DATES ARE UTC INSTANTS AND MUST BE FORMATTED AS SUCH. 30 Aug 2026.
+ *
+ * lib/blogPosts.js stores publishDate as "2026-08-08T00:00:00Z" — midnight UTC.
+ * toLocaleDateString without a timeZone formats in the RUNTIME's zone, so the
+ * server (UTC) rendered "August 8, 2026" and every US visitor's browser rendered
+ * "August 7, 2026". Two costs, and the smaller one is the one that showed up in
+ * the console: 192 text-content mismatches on /blog, one per post, taking the
+ * page to #425 and then #423. The larger cost is silent — every post on the blog
+ * was displayed a day early to every reader west of Greenwich.
+ *
+ * orlando, florida, miami, tampa, jacksonville and fort-lauderdale already pass
+ * timeZone: 'UTC' for exactly this reason. The blog was written without it.
+ *
+ * INJECTION: drop timeZone from either blog file -> FAILS.
+ */
+try {
+  for (const rel of ['../pages/blog/index.js', '../pages/blog/[slug].js']) {
+    const src = readFileSync(new URL(rel, import.meta.url), 'utf8');
+    const call = src.match(/new Date\(post\.publishDate\)\.toLocaleDateString\([^)]*\)/);
+    if (!call) throw new Error(`${rel} no longer formats post.publishDate`);
+    if (!/timeZone:\s*'UTC'/.test(call[0])) {
+      throw new Error(`${rel} formats publishDate in the runtime timezone, not UTC`);
+    }
+  }
+  ok('blog post dates are formatted in UTC, so server and client agree');
+} catch (e) { bad('blog date timezone', e); }
+
 console.log('');
 if (failures) {
   console.error(`✗ ${failures} of ${checks} render checks failed.`);

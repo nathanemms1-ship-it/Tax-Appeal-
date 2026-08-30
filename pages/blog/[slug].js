@@ -179,7 +179,7 @@ export default function BlogPost({ post, coverage }) {
             </span>
             <span style={{ fontSize: 12, color: "#5A7A9F" }}>{post.readTime}</span>
             <span style={{ fontSize: 12, color: "#5A7A9F" }}>
-              {new Date(post.publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              {new Date(post.publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
             </span>
           </div>
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, lineHeight: 1.2, marginBottom: 16, maxWidth: 720 }}>
