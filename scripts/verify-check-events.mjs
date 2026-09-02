@@ -1031,6 +1031,51 @@ t('the chart caption describes the tooltip that actually exists',
   /Hover any day for the named outcomes/.test(adminSrc) &&
   !/Hover any day for the full split/.test(adminSrc));
 
+/**
+ * THE WINDOW IS ANCHORED TO CENTRAL, BECAUSE THE COLUMN IS WRITTEN IN CENTRAL.
+ *
+ * `checked_on` is stamped with the CENTRAL date by lib/recordCheck.js, on
+ * purpose, so that the Funnel and Traffic tabs agree about what "today" is.
+ * `current_date` in Postgres is UTC. From 7pm Central until midnight the two
+ * disagree by a day, and the 27 Aug `>=` -> `>` correction -- right in itself --
+ * turned that disagreement into a nightly blackout:
+ *
+ *   >= current_date - 1  ->  >= yesterday-in-Central  ->  today included, by luck
+ *   >  current_date - 1  ->  >  today-in-Central      ->  EMPTY
+ *
+ * Measured 1 Sept 2026, 20:0x CT: the chart drew 3 checks for the day while
+ * REACHED A FINDING read 0 and the table beneath it read "Nothing recorded yet".
+ * The panel was right every morning and empty every evening, which reads as the
+ * business going quiet rather than as a bug -- the worst shape available.
+ *
+ * Asserted on the migration that runs against the live database. The three
+ * historical files keep `current_date` and are deliberately not touched: they
+ * are the record of what was applied when, and check_events_central_window.sql
+ * supersedes all of them.
+ *
+ * INJECTION: put `current_date` back in any of the four functions -> FAILS.
+ */
+const centralSql = read('scripts/sql/check_events_central_window.sql');
+t('there is a migration that anchors the check_events windows to Central',
+  /create or replace function check_events_daily\(/.test(centralSql) &&
+  /create or replace function check_events_by_outcome\(/.test(centralSql) &&
+  /create or replace function check_events_by_county\(/.test(centralSql) &&
+  /create or replace function check_events_daily_outcomes\(/.test(centralSql));
+t('every window in it is anchored to the Central date, not to UTC current_date',
+  [...centralSql.matchAll(
+    /where e\.checked_on > \(\(\(now\(\) at time zone 'America\/Chicago'\)::date\) - make_interval/g,
+  )].length === 4 &&
+  !/where e\.checked_on >=? \(current_date/.test(centralSql));
+/**
+ * The reload is what makes the replacement visible to PostgREST. Without it the
+ * functions are replaced in the database and the API keeps serving the old ones
+ * -- the 5 Aug failure, against a column that had been created correctly.
+ *
+ * INJECTION: delete the notify -> FAILS.
+ */
+t('the Central migration reloads the PostgREST schema cache',
+  /notify pgrst, 'reload schema'/.test(centralSql));
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`verify-check-events: ${failures.length} FAILED, ${pass} passed`);
