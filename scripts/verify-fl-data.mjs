@@ -223,25 +223,64 @@ for (const [variant, expected] of [
 
   // 6. strict WITH NO COUNTY MUST BE THE CONSERVATIVE ANSWER, NOT THE GENEROUS ONE.
   //    This is the property the whole option exists for.
+  //
+  //    ========================================================================
+  //    ASSERTED ON MONTH/DAY, NEVER ON THE ABSOLUTE DATE
+  //    ========================================================================
+  //    These four assertions used to compare `iso(...)` against a hardcoded 2026.
+  //    Every one of them was a dated fuse, and the first two burned down on
+  //    2 September 2026 while the code was working perfectly.
+  //
+  //    getFilingWindowStatus rolls the whole window to next season once today is
+  //    past closeDate. For a strict caller with no county, closeDate IS the
+  //    unknown-county fallback (2 Sept, Okaloosa). So from 2 Sept onward strict
+  //    correctly returns 2027-09-02 while loose still returns 2026-09-18 --
+  //    strict becomes numerically LATER precisely because it is more
+  //    conservative, and `tight >= loose` fires on a system doing its job.
+  //    lib/filingWindows.js predicted this in the rollover branch's own comment.
+  //
+  //    The other two were fuses with later dates on them: the loose 18 Sept
+  //    assertion would have blown on 19 September and the Hillsborough 7 Sept one
+  //    on 8 September -- both inside the filing season, both blocking every
+  //    deploy at the moment deploys matter most. That is how this suite came to
+  //    stand between a live customer's corrected cheque and production.
+  //
+  //    Month/day carries the same teeth and does not expire.
+  //    INJECTION: make strict fall back to the statewide 18 Sept -> FAILS.
+  //    INJECTION: make strict equal loose -> FAILS.
   {
     const loose  = getFilingWindowStatus('FL');
     const tight  = getFilingWindowStatus('FL', null, { strict: true });
     const fallbk = flPetitionDeadline('Notarealcounty', Y);
-    if (iso(tight.hardDeadline) !== iso(fallbk)) {
-      errors.push(`strict FL with no county gives ${iso(tight.hardDeadline)}, expected the unknown-county fallback ${iso(fallbk)}`);
+    /** [month, day] -- season position, independent of which season we are in. */
+    const md  = (d) => [d.getMonth() + 1, d.getDate()];
+    const shw = (d) => md(d).join('/');
+    /** Negative when a is earlier in the season than b. */
+    const cmp = (a, b) => (md(a)[0] - md(b)[0]) || (md(a)[1] - md(b)[1]);
+
+    if (cmp(tight.hardDeadline, fallbk) !== 0) {
+      errors.push(`strict FL with no county closes ${shw(tight.hardDeadline)}, expected the unknown-county fallback ${shw(fallbk)}`);
     }
-    if (tight.hardDeadline >= loose.hardDeadline) {
-      errors.push(`strict (${iso(tight.hardDeadline)}) is not earlier than loose (${iso(loose.hardDeadline)}) — strict is not doing anything`);
+    if (cmp(tight.hardDeadline, loose.hardDeadline) >= 0) {
+      errors.push(`strict (${shw(tight.hardDeadline)}) is not earlier in the season than loose (${shw(loose.hardDeadline)}) — strict is not doing anything`);
+    }
+    /**
+     * The invariant the date comparison was really standing in for: strict must
+     * never permit a sale loose would refuse. This one holds across the rollover
+     * and is the thing that would actually take money we cannot deliver on.
+     */
+    if (tight.canFile && !loose.canFile) {
+      errors.push('strict says canFile while loose does not — strict is the MORE permissive answer, which inverts its whole purpose');
     }
     // And it must not quietly change the copy path.
-    if (iso(loose.hardDeadline) !== `${Y}-09-18`) {
-      errors.push(`non-strict FL with no county moved to ${iso(loose.hardDeadline)}; apply.js:256 copy depends on the statewide 18 Sept`);
+    if (shw(loose.hardDeadline) !== '9/18') {
+      errors.push(`non-strict FL with no county moved to ${shw(loose.hardDeadline)}; apply.js:256 copy depends on the statewide 18 Sept`);
     }
     // A named county must win over both, in strict and loose alike.
     for (const mode of [undefined, { strict: true }]) {
       const w = getFilingWindowStatus('FL', 'Hillsborough', mode);
-      if (iso(w.hardDeadline) !== `${Y}-09-07`) {
-        errors.push(`Hillsborough (strict=${!!mode?.strict}) gives ${iso(w.hardDeadline)}, expected ${Y}-09-07`);
+      if (shw(w.hardDeadline) !== '9/7') {
+        errors.push(`Hillsborough (strict=${!!mode?.strict}) gives ${shw(w.hardDeadline)}, expected 9/7`);
       }
     }
   }
