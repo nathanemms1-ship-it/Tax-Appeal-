@@ -54,8 +54,16 @@ const compsResult = {
   disclosure: 'All six comparable properties are drawn from the appraisal district’s own certified roll.',
 };
 
+// Three defects the owner reported on the issues step, one of them with their
+// own contractor's quote, plus an incurable one to exercise the narrative block.
+const { COST_TO_CURE, INCURABLE_REASONS } = await import('../../lib/costToCure.js');
+const curable = Object.keys(COST_TO_CURE).filter((k) => COST_TO_CURE[k].curable !== false);
+const incurable = Object.keys(COST_TO_CURE).filter((k) => COST_TO_CURE[k].curable === false);
+const issues = [curable[1], curable[4], curable[7], incurable[0]].filter(Boolean);
+const costOverrides = curable[4] ? { [curable[4]]: '14750' } : {};
+
 const packet = buildProtest({
-  parcel, comps: compsResult, taxYear: 2026,
+  parcel, comps: compsResult, taxYear: 2026, issues, costOverrides,
   owner: { firstName: 'Maria', lastName: 'Delgado', phone: '915-555-0148',
     email: 'maria.delgado@example.com',
     mailing: '8023 Marbella Creek Ave, El Paso, TX 79907' },
@@ -74,5 +82,11 @@ console.log(`  subject          ${parcel.living_area} sqft   $${compsResult.subj
 console.log(`  comp median      ${comps.length} properties   $${compsResult.medianAppraisedPerSqft}/sqft`);
 console.log(`  indicated value  $${compsResult.indicatedAppraised.toLocaleString()}`);
 console.log(`  we ask for       $${packet.requestedValue.toLocaleString()}   (reduction $${packet.reductionSought.toLocaleString()})`);
-console.log(`  confidence       ${packet.grid.confidence} — ${packet.grid.level} tier\n`);
+console.log(`  confidence       ${packet.grid.confidence} — ${packet.grid.level} tier`);
+if (packet.conditionExhibit) {
+  const c = packet.conditionExhibit;
+  console.log(`  cost to cure     $${c.cureDollars.toLocaleString()} across ${c.priced.length} priced defect(s), ${c.narrative.length} incurable`);
+  console.log(`  condition code   ${c.conditionCode || 'none on the roll'} -> ${c.conditionRisk}`);
+}
+console.log('');
 console.log(`  wrote ${out}\n`);

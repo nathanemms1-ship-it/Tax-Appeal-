@@ -42,7 +42,12 @@ const goodComps = {
   comps: compRows, compCount: 6, confidence: 'high',
   medianAppraisedPerSqft: 123.2, medianMarketPerSqft: 123.2,
   subjectAppraisedPerSqft: 150, subjectMarketPerSqft: 150,
-  indicatedAppraised: 246400, indicatedMarket: 246400,
+  // DELIBERATELY DIFFERENT. They were both 246400, which made the fixture
+  // degenerate: subtracting the cure from the equity ground instead of the
+  // market ground produced an identical answer, so the assertion that the grid
+  // is untouched passed while the defect was live. A fixture whose two branches
+  // agree cannot tell them apart.
+  indicatedAppraised: 246400, indicatedMarket: 258000,
   cappedCompCount: 0, cappedCompShare: 0,
   adjustments: 'size within 10%, age within 15 years',
   disclosure: 'Comparables drawn from the district neighborhood code.',
@@ -359,6 +364,159 @@ t('the in-person default is stated as conditional on the hearing going ahead',
   t(`the shared renderer hardcodes no district${named.length ? ` — found: ${named.join(', ')}` : ''}`,
     named.length === 0);
 }
+
+// ── 4. CONDITION, AND THE ADAPTER THAT NEARLY WASN'T ─────────────────────────
+/**
+ * lib/costToCure.js reads FLORIDA roll columns. Handed a Texas row it does not
+ * throw: Number(undefined || 0) is 0, so both multipliers fall back to 1.00 and
+ * every defect prices as if the house were the 2,000 sqft reference home.
+ *
+ * The adapter's FIRST version had this bug too, in a file written to prevent it
+ * — it matched finishMultiplier's camelCase PARAMETER ({ jv, lndVal,
+ * totLvgArea }) when curePriceFor actually reads a snake_case ROLL ROW
+ * (parcel.jv, parcel.lnd_val, parcel.tot_lvg_area). Same silent 1.00.
+ *
+ * This is the guard, and it is behavioural: two houses of very different size
+ * and finish must not price the same defect identically.
+ *
+ * INJECTION: rename lnd_val/tot_lvg_area back to lndVal/totLvgArea in
+ * toCureShape -> FAILS.
+ */
+const cure = await import('../lib/tx/costToCure.js');
+const flCure = await import('../lib/costToCure.js');
+{
+  const label = Object.keys(flCure.COST_TO_CURE)
+    .find((k) => flCure.COST_TO_CURE[k].curable !== false
+      && flCure.COST_TO_CURE[k].scale !== undefined);
+  const big = cure.toCureShape({ market_value: 1400000, land_value: 180000, living_area: 4300 });
+  const small = cure.toCureShape({ market_value: 150000, land_value: 30000, living_area: 1150 });
+  const pBig = flCure.curePriceFor(label, big);
+  const pSmall = flCure.curePriceFor(label, small);
+
+  t('the adapter hands cost-to-cure the field names it actually reads',
+    'lnd_val' in big && 'tot_lvg_area' in big && 'jv' in big);
+  t('a defect prices differently on a large expensive house than a small cheap one',
+    pBig && pSmall && pBig.asked > pSmall.asked);
+  t('...and neither falls back to the un-adjusted reference-home multipliers',
+    pBig.sizeMultiplier !== 1 && pBig.finishMultiplier !== 1);
+}
+
+/**
+ * ADDING CONDITION MUST NOT CHANGE A PACKET THAT HAS NONE.
+ *
+ * This lands in a pipeline that already carries orders. Empty issues has to be
+ * byte-identical to the behaviour before the feature existed.
+ *
+ * INJECTION: default `issues` to a non-empty array -> FAILS.
+ */
+t('no issues reported means no condition exhibit at all', ok.conditionExhibit === null);
+t('and the requested value is unchanged by the feature existing',
+  ok.requestedValue === Math.min(goodComps.indicatedMarket, goodComps.indicatedAppraised));
+
+/**
+ * CURE ADJUSTS THE MARKET GROUND, NEVER THE EQUITY GRID.
+ *
+ * § 41.43(b)(3) compares APPRAISED values. Condition is a § 41.41(a)(1)
+ * market-value argument. Subtracting a repair cost from the equity indication
+ * would be arguing that our neighbours' appraised values should be lower too.
+ *
+ * INJECTION: subtract cureDollars from `equity` in opinionOfValue -> FAILS.
+ */
+const issueLabels = Object.keys(flCure.COST_TO_CURE)
+  .filter((k) => flCure.COST_TO_CURE[k].curable !== false).slice(0, 2);
+const withIssues = buildProtest({ parcel: subject, comps: goodComps, taxYear: 2026,
+  issues: issueLabels, owner: { firstName: 'Jane', lastName: 'Doe' } });
+
+t('a packet with reported defects is still filable', withIssues.filable === true);
+t('the equity grid is untouched by the condition case',
+  withIssues.grid.indicatedAppraised === goodComps.indicatedAppraised);
+t('the condition exhibit exists and carries a total',
+  withIssues.conditionExhibit && withIssues.conditionExhibit.cureDollars > 0);
+t('cost to cure lowers the ask below the equity-only figure',
+  withIssues.requestedValue < ok.requestedValue);
+t('the ask is the lower of the equity ground and the cure-adjusted market ground',
+  withIssues.requestedValue === Math.min(
+    goodComps.indicatedAppraised,
+    goodComps.indicatedMarket - withIssues.conditionExhibit.cureDollars));
+
+/**
+ * THE ASSERTION THAT ACTUALLY CATCHES IT.
+ *
+ * The one above compares against a formula, so it holds whichever ground wins.
+ * This one pins the equity ground directly: with a cure small enough that the
+ * market ground stays above it, the answer must be the equity figure UNCHANGED.
+ * Subtract the cure from equity as well and it drops by exactly the cure.
+ *
+ * INJECTION: `const equity = n(comps.indicatedAppraised) - n(cureDollars)` -> FAILS.
+ */
+t('a cure that does not beat the equity ground leaves the ask exactly where it was',
+  opinionOfValue(subject, goodComps, 5000) === goodComps.indicatedAppraised);
+
+/**
+ * EVERY PRICED LINE CARRIES ITS PROVENANCE.
+ *
+ * lib/costToCure.js's own rule: "EVERY DOLLAR FIGURE CARRIES A SOURCE." It is
+ * the owner who has to defend the number in the room.
+ */
+t('every priced defect names a published source',
+  withIssues.conditionExhibit.priced.every((x) => x.source && x.sourceYear));
+
+/**
+ * THE FLOOR IS THE DISTRICT'S OWN LAND VALUE.
+ *
+ * A large enough cure would otherwise drive the ask below the value of the bare
+ * lot, which no board will entertain and which discredits the rest of the packet.
+ *
+ * INJECTION: drop the Math.max floor from opinionOfValue -> FAILS.
+ */
+{
+  const huge = opinionOfValue(subject, goodComps, 10 ** 7);
+  t('an enormous cure cannot drive the ask below the district’s own land value',
+    huge === subject.land_value && huge > 0);
+}
+
+/**
+ * THE DOUBLE-COUNT NOTE IS PRINTED ONLY WHERE THE CLAIM CAN BE MADE.
+ *
+ * BELOW_AVERAGE_CONDITION is unpopulated until the condition_code distribution
+ * is queried per district. Until then an unrecognised code returns 'unknown',
+ * and an unknown prints NOTHING — we do not warn a homeowner about an inference
+ * we could not draw. Inventing a code vocabulary would be the guessed-URL error
+ * from scripts/tx/sources.json in another file.
+ *
+ * INJECTION: return BELOW_AVERAGE for unknown codes -> FAILS.
+ */
+t('an unrecognised condition code is reported as unknown, not guessed',
+  cure.conditionDiscountRisk({ cad_id: 71, condition_code: 'AV' })
+    === cure.CONDITION_RISK.UNKNOWN);
+t('a parcel the district publishes no condition for cannot have been discounted for one',
+  cure.conditionDiscountRisk({ cad_id: 71, condition_code: null })
+    === cure.CONDITION_RISK.NOT_BELOW_AVERAGE);
+t('and no double-count note is printed while the risk is unknown',
+  withIssues.conditionExhibit.doubleCountDisclosure === null);
+
+/**
+ * ⚠️ THE COST BASES ARE STILL FLORIDA'S, AND THIS ASSERTION SAYS SO OUT LOUD.
+ *
+ * The Cost vs. Value source in lib/costToCure.js is pinned to the South
+ * Atlantic region. Texas is West South Central. Its own comment says the source
+ * is tier 1 because it is "regional rather than national" — so the property
+ * that makes it strong is the property that is wrong here.
+ *
+ * This assertion is written to FAIL THE DAY IT IS FIXED, on purpose. Right now
+ * it asserts the mismatch is DETECTED. When the bases are re-derived from the
+ * West South Central report, `regionMismatch` goes false, this fails, and
+ * whoever did the work deletes it and flips it to the real assertion below it.
+ * A known defect that no test mentions is a defect that ships.
+ */
+t('the Florida-region cost basis is still detected on a Texas packet',
+  withIssues.conditionExhibit.regionMismatch === true);
+t('an owner-supplied contractor figure is never counted as a region mismatch',
+  cure.sourceRegionMismatch([{ ownerSupplied: true, sourceUrl:
+    'https://www.jlconline.com/cost-vs-value/2025/south-atlantic/' }]) === false);
+t('a West South Central citation would clear the flag',
+  cure.sourceRegionMismatch([{ sourceUrl:
+    'https://www.jlconline.com/cost-vs-value/2025/west-south-central/' }]) === false);
 
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
