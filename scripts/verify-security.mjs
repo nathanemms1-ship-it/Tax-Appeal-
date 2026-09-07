@@ -103,10 +103,55 @@ for (const [file, src] of sources) {
     fail(file, 'calls Anthropic on an unauthenticated route with no enforceRateLimit(). This is a free Sonnet proxy billed to us.');
   }
 
-  // Next's default body limit is 1 MB ~= 190k input tokens ~= $0.57 of input per
-  // request. Any route that interpolates a body into a prompt must cap the body.
-  if (!isCron && !isLib && !src.includes('PROMPT_ROUTE_CONFIG') && !src.includes('bodyParser')) {
-    fail(file, 'builds a prompt from req.body but does not set PROMPT_ROUTE_CONFIG — the 1 MB default body limit applies. See lib/inputLimits.js');
+  /**
+   * Next's default body limit is 1 MB ~= 190k input tokens ~= $0.57 of input per
+   * request. Any route that interpolates a body into a prompt must cap it.
+   *
+   * ⚠️ THIS TEST USED TO ACCEPT THE STRING "PROMPT_ROUTE_CONFIG" AND THAT WAS
+   * WORTHLESS. 7 Sept 2026.
+   *
+   * The routes all read `export const config = PROMPT_ROUTE_CONFIG;`, the check
+   * passed, and Next silently discarded every one of them:
+   *
+   *   ⚠ Next.js can't recognize the exported `config` field in route "…":
+   *     Unknown identifier "PROMPT_ROUTE_CONFIG" at "config".
+   *     The default config will be used instead.
+   *
+   * The config export must be a statically analysable object LITERAL — an
+   * imported identifier cannot be followed, and neither can a spread. So the
+   * 1 MB default was in force on every prompt route for as long as this guard
+   * has existed, while the guard reported the opposite.
+   *
+   * It now requires the literal, which is the thing Next can actually read.
+   */
+  const hasLiteralCap = /export const config = \{[^}]*bodyParser:\s*\{\s*sizeLimit:\s*'[0-9]+kb'/.test(src);
+  if (!isCron && !isLib && !hasLiteralCap) {
+    fail(file, 'builds a prompt from req.body without a LITERAL body cap. `export const config = PROMPT_ROUTE_CONFIG` does not work — Next cannot follow an identifier or a spread and falls back to the 1 MB default. Inline the object. See lib/inputLimits.js');
+  }
+}
+
+/**
+ * And the inlined literals must not drift from the value they were copied out
+ * of. Inlining traded one failure mode for another; this closes it.
+ */
+{
+  const { PROMPT_ROUTE_CONFIG } = await import('../lib/inputLimits.js');
+  const want = PROMPT_ROUTE_CONFIG?.api?.bodyParser?.sizeLimit;
+  for (const [file, src] of sources) {
+    const m = src.match(/export const config = \{[^}]*sizeLimit:\s*'([0-9]+kb)'/);
+    if (!m) continue;
+    /**
+     * TIGHTER IS FINE. pages/api/contact.js caps at 16kb deliberately — a
+     * contact form has no business carrying 64. The first version of this
+     * compared for equality and failed that route, which would have pushed
+     * somebody to LOOSEN a limit to satisfy a test about limits.
+     *
+     * Only a cap LOOSER than the shared value is drift.
+     */
+    const kb = (v) => Number(String(v).replace(/kb$/i, ''));
+    if (kb(m[1]) > kb(want)) {
+      fail(file, `inlined body cap '${m[1]}' is looser than PROMPT_ROUTE_CONFIG '${want}' in lib/inputLimits.js`);
+    }
   }
 }
 

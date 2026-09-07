@@ -28,7 +28,30 @@ import { checkSpend } from '../../../lib/spendGuard';
 import { countyNoFromName } from '../../../lib/dor/coverage';
 import { millageForCounty, MILLAGE_YEAR } from '../../../lib/dor/millage';
 
-export const config = PROMPT_ROUTE_CONFIG;
+/**
+ * INLINED, NOT IMPORTED. 7 Sept 2026.
+ *
+ * This was `export const config = PROMPT_ROUTE_CONFIG;`. Next.js requires the
+ * config export to be a statically analysable object LITERAL — it cannot follow
+ * an imported identifier, and it says so at build time:
+ *
+ *   ⚠ Next.js can't recognize the exported `config` field in route "…":
+ *     Unknown identifier "PROMPT_ROUTE_CONFIG" at "config".
+ *     The default config will be used instead.
+ *
+ * "The default config will be used instead" means the 1 MB body limit was in
+ * force on every prompt route, which is the exact thing lib/inputLimits.js was
+ * written to prevent — its own comment says the default "made a $0.57 request
+ * possible".
+ *
+ * scripts/verify-security.mjs passed throughout, because it checked that the
+ * file CONTAINS the string PROMPT_ROUTE_CONFIG. It did. The guard tested for a
+ * mention rather than an effect.
+ *
+ * Keep the value identical to PROMPT_ROUTE_CONFIG in lib/inputLimits.js; the
+ * verify script now compares them.
+ */
+export const config = { api: { bodyParser: { sizeLimit: '64kb' } } };
 
 // Constructed lazily, INSIDE the handler, after authentication.
 //
