@@ -496,21 +496,49 @@ t('and no double-count note is printed while the risk is unknown',
   withIssues.conditionExhibit.doubleCountDisclosure === null);
 
 /**
- * ⚠️ THE COST BASES ARE STILL FLORIDA'S, AND THIS ASSERTION SAYS SO OUT LOUD.
+ * ============================================================================
+ * FIXED, AND THE ASSERTION FLIPPED AS IT WAS WRITTEN TO. 7 Sept 2026.
+ * ============================================================================
+ * This block used to assert `regionMismatch === true` — that the Florida-region
+ * cost basis was still DETECTED — with a note saying it would fail the day the
+ * bases were re-derived, and that whoever did the work should flip it.
  *
- * The Cost vs. Value source in lib/costToCure.js is pinned to the South
- * Atlantic region. Texas is West South Central. Its own comment says the source
- * is tier 1 because it is "regional rather than national" — so the property
- * that makes it strong is the property that is wrong here.
+ * That is exactly what happened: entering the West South Central figures turned
+ * regionMismatch false and this test went red on a correct change. The
+ * mechanism did its job — a known defect that no test mentions is a defect that
+ * ships, and this one could not be forgotten because the build would not go
+ * green while it was open.
  *
- * This assertion is written to FAIL THE DAY IT IS FIXED, on purpose. Right now
- * it asserts the mismatch is DETECTED. When the bases are re-derived from the
- * West South Central report, `regionMismatch` goes false, this fails, and
- * whoever did the work deletes it and flips it to the real assertion below it.
- * A known defect that no test mentions is a defect that ships.
+ * It now asserts the real property, in both directions.
+ *
+ * INJECTION: point txCostToCure back at the default region -> FAILS.
  */
-t('the Florida-region cost basis is still detected on a Texas packet',
-  withIssues.conditionExhibit.regionMismatch === true);
+t('a Texas packet no longer carries a Florida-region cost basis',
+  withIssues.conditionExhibit.regionMismatch === false);
+t('every priced line cites West South Central, the region the figures came from',
+  withIssues.conditionExhibit.priced
+    .filter((x) => !x.ownerSupplied && /cost-vs-value/.test(x.sourceUrl || ''))
+    .every((x) => /west-south-central/.test(x.sourceUrl)));
+t('...and the printed label agrees with the URL it was taken from',
+  withIssues.conditionExhibit.priced
+    .filter((x) => /west-south-central/.test(x.sourceUrl || ''))
+    .every((x) => /West South Central/.test(x.source)));
+
+/**
+ * Florida must be untouched. The region is an opt-in argument, so every FL
+ * caller passes nothing and gets South Atlantic exactly as before.
+ */
+{
+  const flc = await import('../lib/costToCure.js');
+  const shape = { jv: 312500, lnd_val: 42000, tot_lvg_area: 2040 };
+  const roof = 'Roof damage or age (leaks, missing shingles, sagging)';
+  const fl = flc.curePriceFor(roof, shape);
+  const wsc = flc.curePriceFor(roof, shape, { region: 'west-south-central' });
+  t('Florida still prices from South Atlantic by default',
+    /South Atlantic/.test(fl.source) && fl.asked > wsc.asked);
+  t('the two regions genuinely differ — this is not a relabel',
+    fl.asked !== wsc.asked);
+}
 t('an owner-supplied contractor figure is never counted as a region mismatch',
   cure.sourceRegionMismatch([{ ownerSupplied: true, sourceUrl:
     'https://www.jlconline.com/cost-vs-value/2025/south-atlantic/' }]) === false);
