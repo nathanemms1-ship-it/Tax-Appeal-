@@ -124,13 +124,50 @@ export default async function handler(req, res) {
     // roll's own column names -- see the seam note in lib/tx/parcels.js.
     const parcel = data[0];
     const comps = await findComps(parcel, { rollYear: taxYear, db });
-    const packet = buildProtest({ parcel, comps, taxYear, owner: b.owner || {} });
+    /**
+     * ISSUES AND COST OVERRIDES WERE BEING DISCARDED HERE.
+     *
+     * pages/apply.js has sent `issues` and `costOverrides` in this body since
+     * the Texas branch was written. This route never read either one — the
+     * words did not appear in the file. So every defect a Texas customer
+     * reported was posted, received, and dropped: the condition exhibit existed
+     * only in scripts/tx/preview-protest.mjs and had never once reached a real
+     * packet. Same shape as `pd.cadId` above — a field the sender sets and the
+     * receiver never reads.
+     */
+    const issues = Array.isArray(b.issues) ? b.issues : [];
+    const costOverrides = (b.costOverrides && typeof b.costOverrides === 'object')
+      ? b.costOverrides : {};
+
+    const packet = buildProtest({
+      parcel, comps, taxYear, issues, costOverrides, owner: b.owner || {},
+    });
 
     // A refusal is a 200. It is a finding, not an error, and the caller has to
     // show it to the customer rather than retry.
     if (!packet.filable) {
-      return res.status(200).json({ success: false, filable: false,
-        reason: packet.reason, message: packet.message || null });
+      // The caller renders this as a FINDING, not an error, so it needs the
+      // numbers behind the sentence — otherwise the screen can only repeat our
+      // prose back at the customer with nothing to check it against.
+      const v = packet.verdict || {};
+      return res.status(200).json({
+        success: false, filable: false, isTX: true,
+        reason: packet.reason,
+        message: packet.message || null,
+        county: LOADED_CADS[cadId] || null,
+        accountNumber,
+        taxYear,
+        marketValue: v.marketValue ?? null,
+        appraisedValue: v.appraisedValue ?? null,
+        requiredReduction: v.requiredReduction ?? null,
+        breakEvenMarketValue: v.breakEvenMarketValue ?? null,
+        isCapped: v.isCapped ?? null,
+        capStatement: v.capStatement || null,
+        compCount: comps?.comps?.length ?? 0,
+        // True when the owner has reported nothing yet, so a condition case is
+        // still an untried route rather than one that has already been costed.
+        issuesUntried: issues.length === 0,
+      });
     }
 
     const html = renderProtestHtml(packet);

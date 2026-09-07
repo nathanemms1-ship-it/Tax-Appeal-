@@ -3057,6 +3057,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // Non-null when the county's own figures show an appeal cannot reduce this
   // owner's tax. See the block in run() for why this stops the sale outright.
   const [noSavings, setNoSavings] = useState(null);
+  // Non-null when a Texas packet could not be built from the roll as it stands.
+  // A FINDING, never an error — see the branch in run() and the screen below.
+  const [txFinding, setTxFinding] = useState(null);
   // Non-null when the owner's manual entry matches their capped assessed value
   // rather than just value. Blocks the step until they pick which they meant.
   const [valueConflict, setValueConflict] = useState(null);
@@ -3483,16 +3486,21 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
         if (!txRes.ok) throw new Error(txJson?.error || 'Could not prepare the Texas protest');
 
         /**
-         * A REFUSAL IS A 200 AND MUST NOT BE RENDERED AS A DOCUMENT.
+         * A REFUSAL IS A 200 AND IS NOT AN ERROR.
          *
-         * buildProtest refuses by name — capped_beyond_reach, not_over_appraised,
-         * cap_artifact_only, insufficient_comparables, nothing_to_ask_for. Those
-         * are findings, not errors, and the customer is owed the sentence rather
-         * than a blank petition.
+         * This used to `throw`, which landed in setErrMsg and rendered the error
+         * screen: a ⚠️ over the heading "Lookup failed", our sentence inside a
+         * red box, and a "Try Again" button for an operation that is fully
+         * deterministic and would return the same answer every time. Nothing had
+         * failed. The lookup had worked perfectly and told us something true.
+         *
+         * Findings now render as findings, on the same footing as the Florida
+         * noSavings screen, which got this right first.
          */
         if (txJson.filable === false) {
-          throw new Error(txJson.message
-            || 'Having looked at the appraisal roll, we do not think this protest is worth filing.');
+          setTxFinding(txJson);
+          setLoading(false);
+          return;
         }
 
         pd.letterContent = txJson.html || '';
@@ -3598,6 +3606,70 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
                 style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }}
                 onClick={onAddIssues}
               >
+                Tell us what&rsquo;s wrong with the property →
+              </button>
+            </div>
+          )}
+
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * TEXAS FINDING — deliberately not an error screen.
+   *
+   * Same footing as the Florida noSavings screen above: no warning glyph, no red,
+   * no "Try Again". The customer is being told something true about their own
+   * parcel, drawn from the district's own roll, before any charge.
+   *
+   * Where they have not yet reported condition, that route is offered — it is a
+   * real one: cost to cure feeds qualify(), and enough of it moves a parcel from
+   * capped_beyond_reach to capped_but_reachable.
+   */
+  if (txFinding) {
+    const fmtUsd = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
+    const rows = [
+      ['District market value', txFinding.marketValue],
+      ['You are taxed on', txFinding.appraisedValue],
+      txFinding.isCapped ? ['Capped below market by', txFinding.requiredReduction] : null,
+    ].filter(Boolean);
+    return (
+      <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
+        <div style={cardStyle}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
+            What the appraisal roll shows for this property
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
+            {txFinding.message}
+          </p>
+
+          {rows.length > 0 && (
+            <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 18 }}>
+              {rows.map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
+                  <span>{label}</span><strong style={{ color: C.darkNavy }}>{fmtUsd(value)}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 20 }}>
+            You haven&rsquo;t been charged. Every figure above is {txFinding.county
+              ? `${txFinding.county} Central Appraisal District's own` : "the appraisal district's own"}{' '}
+            published number for tax year {txFinding.taxYear} — check them against your notice of
+            appraised value; they should match exactly.
+          </p>
+
+          {txFinding.issuesUntried && onAddIssues && (
+            <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 12 }}>
+                <strong>This is what the roll says about a house in average condition.</strong> It
+                does not know about a failed roof, a dead air conditioner, or an original kitchen.
+                What those cost to put right is evidence the district has not accounted for.
+              </p>
+              <button style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }} onClick={onAddIssues}>
                 Tell us what&rsquo;s wrong with the property →
               </button>
             </div>

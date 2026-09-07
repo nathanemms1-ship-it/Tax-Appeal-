@@ -184,6 +184,56 @@ if (elPaso && !isMailable(elPaso)) {
     missing.length === 0);
 }
 
+/**
+ * WHAT ONE SIDE SENDS, THE OTHER SIDE MUST READ.
+ *
+ * apply.js has posted `issues` and `costOverrides` to /api/generate-50132 since
+ * the Texas branch was written. The route never read either — neither word
+ * appeared in the file — so every defect a Texas customer reported was posted,
+ * received and dropped, and the condition exhibit lived only in the preview
+ * script. Third instance of this shape (see `pd.cadId`), so it gets a guard
+ * that checks the RECEIVER, not the sender.
+ *
+ * INJECTION: drop `issues` from the buildProtest call in generate-50132 -> FAILS.
+ */
+{
+  const route = readFileSync(new URL('../pages/api/generate-50132.js', import.meta.url), 'utf8');
+  const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+
+  for (const field of ['issues', 'costOverrides']) {
+    t(`apply.js still sends ${field} to generate-50132`,
+      new RegExp(`${field}:`).test(apply));
+    t(`and generate-50132 reads ${field} off the body`,
+      new RegExp(`b\\.${field}`).test(route));
+    t(`and passes ${field} into buildProtest`,
+      new RegExp(`buildProtest\\(\\{[^}]*${field}`, 's').test(route));
+  }
+
+  /**
+   * A REFUSAL MUST NOT REACH THE CUSTOMER AS AN ERROR.
+   *
+   * `throw new Error(txJson.message)` landed in setErrMsg, which renders the
+   * heading "Lookup failed" over a red box and a Try Again button — for a
+   * deterministic result that would never change. Nothing had failed.
+   *
+   * INJECTION: restore the throw in the filable === false branch -> FAILS.
+   */
+  const branch = apply.slice(apply.indexOf('if (txJson.filable === false)'), apply.indexOf('pd.letterContent'));
+  t('a Texas finding is routed to state, not thrown as an error',
+    /setTxFinding\(/.test(branch) && !/throw/.test(branch));
+  t('and there is a screen that renders it',
+    /if \(txFinding\) \{/.test(apply));
+  t('which is not styled as a failure',
+    !/Lookup failed|Try Again/.test(
+      apply.slice(apply.indexOf('if (txFinding) {'), apply.indexOf('if (errMsg) {'))));
+
+  // The screen prints numbers, so the route has to send them.
+  for (const field of ['marketValue', 'appraisedValue', 'capStatement', 'issuesUntried']) {
+    t(`the refusal response carries ${field} for the finding screen`,
+      new RegExp(`${field}[,:]`).test(route.slice(route.indexOf('filable: false'))));
+  }
+}
+
 console.log(failures.length
   ? `verify-tx-dispatch: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-dispatch: ${pass} passed — no TX/GA protest can be mailed to an unconfirmed address`);
