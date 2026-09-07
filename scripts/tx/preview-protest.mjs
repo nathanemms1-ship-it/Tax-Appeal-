@@ -22,9 +22,13 @@ const parcel = {
   cad_id: 71, tax_year: 2026, account_number: 'E0142778',
   market_value: 312500, appraised_value: 312500,
   homestead_cap_loss: 0, nhs_cap_loss: 0,
-  living_area: 2040, year_built: 1998, effective_year_built: 1998, land_value: 42000,
+  living_area: 2040, year_built: 1998, land_value: 42000,
   situs_street: '8023 MARBELLA CREEK AVE', situs_city: 'EL PASO', situs_zip: '79907',
-  neighborhood_code: 'EP-1420', has_homestead: true, condition_code: 'AV',
+  neighborhood_code: 'EP-1420', has_homestead: true, quality_class: 'R3',
+  // effective_year_built and condition_code are NOT in the PACS 8.0.34 export
+  // and are null for every El Paso row. A fixture that fills them in produces a
+  // document the live pipeline can never produce. Leave them absent.
+  effective_year_built: null, condition_code: null,
 };
 
 const comps = [
@@ -32,26 +36,33 @@ const comps = [
   ['E0142822', 1955, 1996, 254900], ['E0142840', 2110, 2000, 276300],
   ['E0142866', 2020, 1998, 262700], ['E0142879', 1998, 1997, 257600],
 ].map(([account_number, living_area, year_built, v]) => ({
-  account_number, living_area, year_built, effective_year_built: year_built,
+  account_number, living_area, year_built, effective_year_built: null,
   appraised_value: v, market_value: v, homestead_cap_loss: 0, nhs_cap_loss: 0,
-  land_value: 41000, condition_code: 'AV',
+  land_value: 41000, condition_code: null, quality_class: 'R3',
+  neighborhood_code: 'EP-1420', cad_id: 71, tax_year: 2026,
 }));
 
-const psf = comps.map((c) => c.appraised_value / c.living_area).sort((a, b) => a - b);
-const medAppr = (psf[2] + psf[3]) / 2;
+// The medians, the basis, the cap share and BOTH narrative fields come from the
+// real producers in comps.js. Hand-writing them is how the previous version of
+// this script hid a renderer bug: describeAdjustments and disclosureFor return
+// string[], the fixture passed a single string, and the array path was never
+// exercised until it reached a customer.
+const { evaluateSet, describeAdjustments, disclosureFor, STRATA } =
+  await import('../../lib/tx/comps.js');
+
+const stratum = STRATA.find((t) => t.level === 'neighborhood');
+const bands = { size: 0.10, age: 15, land: 0.10 };
+const evaluated = evaluateSet(parcel, comps);
 
 const compsResult = {
-  sufficient: true, level: 'neighborhood', levelStrength: 'strong', basis: 'clean',
-  comps, confidence: 'high',
-  medianAppraisedPerSqft: Math.round(medAppr * 100) / 100,
-  medianMarketPerSqft: Math.round(medAppr * 100) / 100,
-  subjectAppraisedPerSqft: Math.round((parcel.appraised_value / parcel.living_area) * 100) / 100,
-  subjectMarketPerSqft: Math.round((parcel.market_value / parcel.living_area) * 100) / 100,
-  indicatedAppraised: Math.round(medAppr * parcel.living_area),
-  indicatedMarket: Math.round(medAppr * parcel.living_area),
-  cappedCompCount: 0, cappedCompShare: 0,
-  adjustments: 'Comparables were held within 10% of the subject’s living area and 15 years of its effective year built.',
-  disclosure: 'All six comparable properties are drawn from the appraisal district’s own certified roll.',
+  ...evaluated,
+  sufficient: true,
+  level: stratum.level,
+  levelStrength: stratum.strength,
+  comps,
+  confidence: 'high',
+  adjustments: describeAdjustments(stratum, bands, comps.length),
+  disclosure: disclosureFor(stratum, bands, evaluated, comps.length),
 };
 
 // Three defects the owner reported on the issues step, one of them with their

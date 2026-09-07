@@ -414,13 +414,20 @@ t('and the requested value is unchanged by the feature existing',
   ok.requestedValue === Math.min(goodComps.indicatedMarket, goodComps.indicatedAppraised));
 
 /**
- * CURE ADJUSTS THE MARKET GROUND, NEVER THE EQUITY GRID.
+ * THE CURE DOES NOT MOVE THE ASK AT ALL. IT IS EVIDENCE, NOT ARITHMETIC.
  *
- * § 41.43(b)(3) compares APPRAISED values. Condition is a § 41.41(a)(1)
- * market-value argument. Subtracting a repair cost from the equity indication
- * would be arguing that our neighbours' appraised values should be lower too.
+ * Changed 7 Sept 2026 on Nathan's call. `indicatedMarket - cureDollars` asserted
+ * that a repair's cost equals the value it destroys. It does not: a buyer may
+ * deduct more (deferred-maintenance stigma) or considerably less. That
+ * equivalence is a valuation judgment, and Occupations Code § 1103.003 defines
+ * an appraisal as "an opinion of value; or the act or process of developing an
+ * opinion of value" — which is precisely the heading over Section 4.
  *
- * INJECTION: subtract cureDollars from `equity` in opinionOfValue -> FAILS.
+ * The prose never claimed it. The subtraction did, and the subtraction was the
+ * signed number. So the defects stay in the packet as support for the value we
+ * ask; they generate none of it.
+ *
+ * INJECTION: restore `- n(cureDollars)` on either ground in opinionOfValue -> FAILS.
  */
 const issueLabels = Object.keys(flCure.COST_TO_CURE)
   .filter((k) => flCure.COST_TO_CURE[k].curable !== false).slice(0, 2);
@@ -432,25 +439,36 @@ t('the equity grid is untouched by the condition case',
   withIssues.grid.indicatedAppraised === goodComps.indicatedAppraised);
 t('the condition exhibit exists and carries a total',
   withIssues.conditionExhibit && withIssues.conditionExhibit.cureDollars > 0);
-t('cost to cure lowers the ask below the equity-only figure',
-  withIssues.requestedValue < ok.requestedValue);
-t('the ask is the lower of the equity ground and the cure-adjusted market ground',
+t('reported defects do not move the ask by one dollar',
+  withIssues.requestedValue === ok.requestedValue);
+t('the ask is the lower of the two grounds, neither of them cure-adjusted',
   withIssues.requestedValue === Math.min(
-    goodComps.indicatedAppraised,
-    goodComps.indicatedMarket - withIssues.conditionExhibit.cureDollars));
+    goodComps.indicatedAppraised, goodComps.indicatedMarket));
+t('and the cure is large enough that a subtraction would have shown',
+  withIssues.conditionExhibit.cureDollars > 1000);
 
 /**
- * THE ASSERTION THAT ACTUALLY CATCHES IT.
+ * opinionOfValue TAKES NO CURE ARGUMENT ANY MORE.
  *
- * The one above compares against a formula, so it holds whichever ground wins.
- * This one pins the equity ground directly: with a cure small enough that the
- * market ground stays above it, the answer must be the equity figure UNCHANGED.
- * Subtract the cure from equity as well and it drops by exactly the cure.
+ * A stray third argument at a call site must not silently start moving values
+ * again, so pass one and prove it is ignored.
  *
- * INJECTION: `const equity = n(comps.indicatedAppraised) - n(cureDollars)` -> FAILS.
+ * INJECTION: re-add a cureDollars parameter and subtract it -> FAILS.
  */
-t('a cure that does not beat the equity ground leaves the ask exactly where it was',
-  opinionOfValue(subject, goodComps, 5000) === goodComps.indicatedAppraised);
+// The first version passed 5000 and PASSED under injection: the fixture's
+// grounds are 246,400 and 258,000, so a 5,000 cure never beats the equity
+// ground and both calls return 246,400 whether or not it is subtracted. The
+// probe has to be bigger than the 11,600 gap between the two grounds or it
+// tests nothing. Fourth blind guard of the day, same shape as the others.
+{
+  const gap = goodComps.indicatedMarket - goodComps.indicatedAppraised;
+  t('the probe cure is large enough that a subtraction would change the answer',
+    gap > 0 && gap < 100000);
+  t('opinionOfValue ignores anything passed where cureDollars used to go',
+    opinionOfValue(subject, goodComps, 100000) === opinionOfValue(subject, goodComps)
+    && opinionOfValue(subject, goodComps) === Math.min(
+      goodComps.indicatedAppraised, goodComps.indicatedMarket));
+}
 
 /**
  * EVERY PRICED LINE CARRIES ITS PROVENANCE.
@@ -464,15 +482,16 @@ t('every priced defect names a published source',
 /**
  * THE FLOOR IS THE DISTRICT'S OWN LAND VALUE.
  *
- * A large enough cure would otherwise drive the ask below the value of the bare
- * lot, which no board will entertain and which discredits the rest of the packet.
+ * Less load-bearing since the cure stopped driving the ask down, but a comp set
+ * indicating below the bare lot would still discredit the packet.
  *
  * INJECTION: drop the Math.max floor from opinionOfValue -> FAILS.
  */
 {
-  const huge = opinionOfValue(subject, goodComps, 10 ** 7);
-  t('an enormous cure cannot drive the ask below the district’s own land value',
-    huge === subject.land_value && huge > 0);
+  const cheap = { ...goodComps, indicatedAppraised: 1, indicatedMarket: 1 };
+  const floored = opinionOfValue(subject, cheap);
+  t('an indication below the district’s own land value is floored at it',
+    floored === subject.land_value && floored > 0);
 }
 
 /**
@@ -612,8 +631,8 @@ t('a West South Central citation would clear the flag',
     ex.includes(withIssues.conditionExhibit.cureDollars.toLocaleString()));
   t('every priced line shows its source on the page',
     withIssues.conditionExhibit.priced.every((x) => ex.includes(x.source)));
-  t('and the packet states we never inspected the property',
-    /has not inspected the property/i.test(ex));
+  t('and the packet states plainly that nobody inspected the property',
+    /No inspection of the property was performed/i.test(ex));
 }
 
 /**
@@ -628,6 +647,173 @@ t('a West South Central citation would clear the flag',
 t('the property address on the form carries the state',
   /,\s*TX\s+\d{5}/.test(ok.form50132.propertyAddress)
   && html.includes(ok.form50132.propertyAddress));
+
+/**
+ * THE NARRATIVE FIELDS ARE ARRAYS AND THE RENDERER MUST KNOW IT.
+ *
+ * comps.js returns describeAdjustments() and disclosureFor() as string[].
+ * protestHtml interpolated them straight into a template literal, which runs
+ * String() over the array and comma-joins with no space:
+ *
+ *   "...code for this property.,All comparables share the subject's..."
+ *
+ * The preview script hid this for the whole build because its fixture passed a
+ * single hand-written sentence, so the array path was never rendered once. The
+ * assertion below feeds the REAL producers' output through the REAL renderer,
+ * which is the only shape that would have caught it.
+ *
+ * INJECTION: change sentences(g.adjustments) back to e(g.adjustments) -> FAILS.
+ */
+{
+  const { describeAdjustments, disclosureFor, STRATA, COUNTY_TIER } =
+    await import('../lib/tx/comps.js');
+
+  const nb = STRATA.find((x) => x.level === 'neighborhood');
+  const adj = describeAdjustments(nb, { size: 0.1, age: 15, land: 0.1 }, 6);
+  t('describeAdjustments returns a list, not a sentence', Array.isArray(adj) && adj.length > 1);
+
+  const rendered = renderProtestHtml({
+    ...ok,
+    grid: { ...ok.grid, adjustments: adj, disclosure: [] },
+  });
+  t('every adjustment sentence reaches the page',
+    adj.every((line) => rendered.includes(line)));
+  t('and no two of them are jammed together by a comma',
+    !/[a-z%)]\.,[A-Z]/.test(rendered));
+
+  // The disclosure is a warning to the OWNER about a weak comp set. It was
+  // being printed inside the "How these comparables were selected" footer,
+  // where it reads as methodology rather than as a caution.
+  const weak = disclosureFor(COUNTY_TIER, { size: 0.25, age: 40, land: 0.25 },
+    { basis: 'clean', cappedCompShare: 0 }, 5);
+  t('a last-resort comp tier produces an owner warning', weak.length > 0);
+
+  const warned = renderProtestHtml({ ...ok, grid: { ...ok.grid, disclosure: weak } });
+  t('the warning reaches the page in full',
+    weak.every((line) => warned.includes(line)));
+  // indexOf returns -1 when absent and -1 is less than every real offset, so
+  // an ordering assertion alone PASSES when the block is deleted outright.
+  // That is the bug this pair of assertions exists to catch, so prove the
+  // block is present before comparing where it sits.
+  const atWarn = warned.indexOf('Before you sign');
+  const atFoot = warned.indexOf('How these comparables were selected');
+  t('the warning gets its own block, not a footnote clause', atWarn > 0 && atFoot > 0);
+  t('and that block sits above the selection footnote', atWarn > 0 && atWarn < atFoot);
+  t('and a clean comp set prints no warning block',
+    !renderProtestHtml({ ...ok, grid: { ...ok.grid, disclosure: [] } }).includes('Before you sign'));
+}
+
+/**
+ * SECTION 4 MUST CITE EVERY EXHIBIT ITS NUMBER RESTS ON.
+ *
+ * opinionOfValue floors the market indication by the cost to cure, so the
+ * moment an owner reports a defect the Section 4 figure drops BELOW the median
+ * the grid page shows. Section 4 said "supported by the comparable-property
+ * analysis on the following page" unconditionally, which then pointed a board
+ * member at a page carrying a different, higher number — a credibility problem
+ * on the first turn of the packet, and a false sentence on its own terms.
+ *
+ * INJECTION: make the Section 4 citation unconditional again -> FAILS.
+ */
+{
+  const cured = renderProtestHtml(withIssues);
+  t('the Section 4 number is not moved by the cure',
+    withIssues.conditionExhibit.cureDollars > 0
+    && withIssues.form50132.opinionOfValue === ok.form50132.opinionOfValue);
+  t('so Section 4 cites the condition exhibit as well as the comps',
+    /property-condition\s+exhibit on the following pages/.test(cured));
+  t('and with no defects reported it cites the comps page alone',
+    /comparable-property analysis on the following page/.test(html)
+    && !/property-condition\s+exhibit/.test(html));
+}
+
+/**
+ * SECTION 5 MUST NOT INVENT A MANDATORY FORM.
+ *
+ * The copy said each remote option "requires a notarised Form 50-283 affidavit"
+ * in four places. Tax Code § 41.45(k) says the opposite: an owner is NOT
+ * required to use the comptroller's affidavit form. Printing "required" next to
+ * a form number on a document the owner signs sends them looking for paperwork
+ * they do not need, and it is the hearing election we deliberately leave blank —
+ * so this copy is the only thing they have to go on months later.
+ *
+ * INJECTION: restore "requires a notarised Form 50-283 affidavit" -> FAILS.
+ */
+{
+  // The first version of this read /notaris?zed/, which matches "notarized" and
+  // "notariszed" but NOT "notarised" — the exact spelling being removed. It also
+  // had no \s+ for the line break the phrase wraps on. Both were proven by
+  // injection; only the spelling guard fired, and that was luck.
+  t('Section 5 does not present Form 50-283 as mandatory',
+    !/requires?\s+a\s+notari[sz]ed\s+Form\s+50-283/i.test(html)
+    && !/Form 50-283 affidavit/i.test(html));
+  t('and says plainly that the comptroller form is optional',
+    /not<\/b>? ?required to use the comptroller’s Form 50-283/i.test(html)
+    && html.includes('41.45(k)'));
+  t('while still stating the affidavit must be sworn and timely',
+    html.includes('41.45(i)') && /before the hearing begins/i.test(html));
+}
+
+/**
+ * NOTHING ON THE FILED DOCUMENT NAMES THE BUSINESS.
+ *
+ * Nathan's call, 7 Sept 2026: the owner protests pro se, so the packet the
+ * appraisal district receives must carry no business name, no business email,
+ * no business address and no branding. A document that disclaims agency in our
+ * own name still puts our name on the district's file.
+ *
+ * The disclaiming SUBSTANCE stays — it protects the owner — but stated
+ * impersonally: no agent is appointed, no one else may act, no inspection was
+ * performed. Rendered across all three pages, with and without an exhibit.
+ *
+ * INJECTION: put "TaxAppeal" or a contact address back in any note -> FAILS.
+ */
+{
+  const pages = [html, renderProtestHtml(withIssues)];
+  for (const doc of pages) {
+    const hits = doc.match(/taxappeal|tax appeal usa|@[a-z0-9.-]+\.(com|net|org)|www\.|https?:\/\//gi);
+    t('the filed document names no business and carries no contact',
+      !hits, hits && [...new Set(hits)].join(', '));
+  }
+
+  // Prove the probe can actually see a name — otherwise the assertion above is
+  // just a regex that never matches anything, which is how the last four blind
+  // guards read too.
+  t('and that check would catch one if it were there',
+    /taxappeal|@[a-z0-9.-]+\.(com|net|org)/i.test(
+      html.replace('This form is not filed until you sign it.',
+        'Prepared by TaxAppeal USA — customerservice@taxappealusa.com.')));
+
+  // The substance the name used to carry must survive its removal.
+  t('the packet still says no agent appointment exists',
+    /No Form 50-162 appointment of agent has been filed/i.test(html));
+  t('and still says no one else may act on the protest',
+    /no one other than you is authorized to act/i.test(html));
+  t('and the exhibit still discloses that nobody inspected the property',
+    /No inspection of the property was performed/i.test(renderProtestHtml(withIssues)));
+}
+
+/**
+ * This is a Texas filing. British spellings in owner- and board-facing copy
+ * read as boilerplate lifted from somewhere else, and "authorised" in Section 6
+ * misquotes the comptroller's own Form 50-132 wording.
+ *
+ * INJECTION: restore "neighbourhood" in describeAdjustments -> FAILS.
+ */
+{
+  const { describeAdjustments, disclosureFor, STRATA, COUNTY_TIER } =
+    await import('../lib/tx/comps.js');
+  const facing = [
+    html,
+    ...STRATA.flatMap((x) => describeAdjustments(x, { size: 0.1, age: 15, land: 0.1 }, 6)),
+    ...describeAdjustments(COUNTY_TIER, { size: 0.2, age: 40, land: 0.25 }, 5),
+    ...disclosureFor(COUNTY_TIER, { size: 0.25, age: 40, land: 0.25 },
+      { basis: 'cap_artifact', cappedCompShare: 0.8 }, 5),
+  ].join('\n');
+  const british = facing.match(
+    /neighbourhood|authorised|notarised|recognise|organisation|licence|centre\b/gi);
+  t('owner-facing copy uses American spelling', !british, british && british.join(', '));
+}
 
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
