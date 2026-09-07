@@ -263,9 +263,46 @@ function lookup(street, zip = null) {
   t('parcels.js imports the helper', /stripTrailingLocality/.test(parcels));
   t('parcels.js calls it', /stripTrailingLocality\(addr\)/.test(parcels));
 
+  /**
+   * Loosened 7 Sept 2026 from `/let variants = addressVariants\(addr\)/`, which
+   * pinned the initialiser rather than the property it cares about. Adding the
+   * spelled-out variant union broke it while `let` was still correct — the
+   * assertion was testing the shape of one line, not the thing that matters.
+   * The thing that matters is that the binding is reassignable, because the
+   * locality fallback reassigns it.
+   */
   t('variants is reassignable',
-    /let variants = addressVariants\(addr\)/.test(parcels),
+    /\blet variants\b/.test(parcels) && !/\bconst variants\b/.test(parcels),
     'const would throw at the reassignment, and only on the fallback path — a crash nobody sees in testing');
+
+  /**
+   * ============================================================================
+   * FLORIDA SEARCHES BOTH SUFFIX SPELLINGS. 7 Sept 2026.
+   * ============================================================================
+   * Measured, not inferred: scripts/fl/lookup-probe.mjs put 300 real PHY_ADDR1
+   * values back through findParcel. 15 contained an interior suffix word and 13
+   * of those failed — "815 MAPLE RIDGE RD", "900 COVE CAY DR # 1E", "17708 LONG
+   * POINT DR", all returning zero rows for houses on our own roll. About 4.3% of
+   * every Florida lookup, telling a homeowner we have no record of them.
+   *
+   * INJECTION: delete the `spelled` line from lib/dor/parcels.js -> FAILS.
+   */
+  t('parcels.js computes the spelled-out spelling',
+    /normalizeAddr\(street, \{ interiorSuffixes: false \}\)/.test(parcels));
+  t('...and unions it into the DECISION set, so a retrieved row is not rejected',
+    /addressVariants\(spelled\)/.test(parcels));
+  t('...and into the RETRIEVAL tiers, so it is retrieved in the first place',
+    /altTiers\.specific/.test(parcels) && /altTiers\.broad/.test(parcels));
+  t('the locality fallback strips the locality from BOTH spellings',
+    /stripTrailingLocality\(spelled\)/.test(parcels));
+
+  /**
+   * The tiering must survive. Merging the alternate spelling into `broad` would
+   * make it unreachable until the specific tier had already failed — which for
+   * these addresses it always does, with zero rows, because that is the bug.
+   */
+  t('the specific tier stays specific — the alternate spelling is not demoted to broad',
+    /specific: \[\.\.\.new Set\(\[\.\.\.baseTiers\.specific, \.\.\.altTiers\.specific\]\)\]/.test(parcels));
 
   /**
    * THE GATE. `!(data || []).length` is zero rows RETRIEVED. If this is ever
