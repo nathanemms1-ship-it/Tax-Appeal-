@@ -1,10 +1,35 @@
 #!/usr/bin/env node
 /**
  * ============================================================================
- * DOES THIS DISTRICT ACTUALLY DISCOUNT FOR CONDITION?
+ * DOES A ROLL FIELD CARRY SIGNAL? — profile any code column against $/sqft
  * ============================================================================
  *
  *   node scripts/tx/condition-codes.mjs --cad 71
+ *   node scripts/tx/condition-codes.mjs --cad 71 --field quality_class
+ *
+ * Started as a condition_code probe and generalised on the day it was written,
+ * because the answer for condition_code turned out to be "the column is empty"
+ * and the interesting question moved one column over.
+ *
+ * WHAT EL PASO ACTUALLY PUBLISHES, established 7 Sept 2026:
+ *
+ *   condition_code   NOT PUBLISHED. Absent from PACS export layout 8.0.34,
+ *                    absent from 2026_Codes (no condition vocabulary at all),
+ *                    and absent from the Improvements relational dump, whose
+ *                    14 columns carry class and sub-class but no condition.
+ *                    100% of 228,190 A1 parcels are null.
+ *
+ *   quality_class    PUBLISHED AND LOADED. It is `Imprv_det_class_cd` from
+ *                    APPRAISAL_IMPROVEMENT_DETAIL, mapped in lib/tx/pacs.js at
+ *                    F(76,85) and written by both loaders. EPCAD's own code
+ *                    table defines RES CLASS 003 through 013, each with + and -
+ *                    grade variants.
+ *
+ * That matters for lib/tx/comps.js: similarity() applies a flat penalty when
+ * quality OR condition codes differ, and NONE when either side is null. Condition
+ * is null everywhere, so that half is inert — but quality is populated, so the
+ * comp engine is NOT blind to build quality. Whether the penalty does real work
+ * depends on how quality_class is distributed, which is what --field answers.
  *
  * WHAT THIS IS FOR
  *
@@ -93,8 +118,21 @@ const rawCad = arg('cad');
 const cad = Number(rawCad);
 const year = Number(arg('year', '2026'));
 const classPrefix = arg('class', 'A1');   // same default as county-stats.mjs
+
+/**
+ * Whitelisted, not interpolated freely: this value goes into SQL. Only columns
+ * that are code-like are worth profiling this way, so the list is short and
+ * explicit rather than a sanitiser someone has to trust.
+ */
+const PROFILABLE = ['condition_code', 'quality_class', 'state_class_code',
+  'neighborhood_code', 'abs_subdv_cd', 'source_format'];
+const field = arg('field', 'condition_code');
+if (!PROFILABLE.includes(field)) {
+  console.error(`✗ --field must be one of: ${PROFILABLE.join(', ')}`);
+  process.exit(2);
+}
 if (rawCad === null || !Number.isFinite(cad) || cad <= 0) {
-  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026] [--class A1]');
+  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026] [--class A1] [--field condition_code]');
   process.exit(2);
 }
 
@@ -108,7 +146,7 @@ await client.connect();
 
 const { rows } = await client.query(`
   select
-    coalesce(nullif(trim(condition_code), ''), '(none)') as code,
+    coalesce(nullif(trim(${field}), ''), '(none)') as code,
     count(*)::int as parcels,
     percentile_cont(0.5) within group (
       order by (market_value::numeric / nullif(living_area, 0))::double precision
@@ -159,7 +197,7 @@ await client.end();
 const total = dist.parcels;
 const overall = Number(dist.median_psf);
 
-console.log(`\n${LOADED_CADS[cad] || 'cad ' + cad} — condition_code on ${classPrefix} parcels, tax year ${year}`);
+console.log(`\n${LOADED_CADS[cad] || 'cad ' + cad} — ${field} on ${classPrefix} parcels, tax year ${year}`);
 console.log(`${total.toLocaleString()} parcels, district median $${overall.toFixed(2)}/sqft\n`);
 console.log('  code        parcels     share   median $/sqft   vs district   median built');
 console.log('  ' + '-'.repeat(74));
@@ -210,19 +248,28 @@ const onlyNone = rows.length === 1 && rows[0].code === '(none)';
 const noneShare = (rows.find((r) => r.code === '(none)')?.parcels || 0) / total;
 
 if (onlyNone || noneShare > 0.98) {
-  console.log(`\n  NO CONDITION DATA. ${(noneShare * 100).toFixed(1)}% of parcels carry no condition_code.`);
+  console.log(`\n  NO DATA IN ${field}. ${(noneShare * 100).toFixed(1)}% of parcels carry no value.`);
   console.log('  This is not a finding about how the district values condition — it is the');
   console.log('  absence of the field. PACS export layout 8.0.34 has no condition column, and');
   console.log('  scripts/tx/push.mjs never writes one.\n');
-  console.log('  CONSEQUENCES, worth knowing before trusting a comp set:');
-  console.log('   - lib/tx/comps.js similarity() adds a condition penalty only when BOTH sides');
-  console.log('     are non-null, so it is inert for every Texas comparison.');
-  console.log('   - ageYear() falls back to year_built for subject and comps alike. Consistent,');
-  console.log('     so no asymmetry — but the district\'s own effective age is not being used.');
-  console.log('   - the double-count gate in lib/tx/costToCure.js cannot fire, which is correct:');
-  console.log('     BELOW_AVERAGE_CONDITION stays empty because there is nothing to classify.\n');
-  console.log('  To change that you need a data source the export does not carry — the Mass');
-  console.log('  Appraisal Report, or a direct request to the district.\n');
+  if (field === 'condition_code') {
+    console.log('  CONSEQUENCES, worth knowing before trusting a comp set:');
+    console.log('   - lib/tx/comps.js similarity() penalises a quality OR condition mismatch and');
+    console.log('     skips the term when either side is null, so the CONDITION half is inert.');
+    console.log('     The quality half is not: quality_class is populated from');
+    console.log('     Imprv_det_class_cd. Run --field quality_class to see whether it has spread.');
+    console.log('   - ageYear() falls back to year_built for subject and comps alike. Consistent,');
+    console.log('     so no asymmetry — but the district\'s own effective age is not being used.');
+    console.log('   - the double-count gate in lib/tx/costToCure.js cannot fire, which is correct:');
+    console.log('     BELOW_AVERAGE_CONDITION stays empty because there is nothing to classify.\n');
+    console.log('  Condition is not published: absent from PACS layout 8.0.34, absent from the');
+    console.log('  2026 code tables, and absent from the Improvements relational dump. Getting it');
+    console.log('  needs the Mass Appraisal Report or a direct request to the district.\n');
+  } else {
+    console.log(`  Nothing populates ${field} for this district, so anything keyed on it is inert.`);
+    console.log('  Check scripts/tx/push.mjs COLS and lib/tx/pacs.js before assuming the field is');
+    console.log('  simply unused — the schema declaring a column is not evidence anything writes it.\n');
+  }
   process.exit(0);
 }
 
