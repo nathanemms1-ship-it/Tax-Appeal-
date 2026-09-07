@@ -375,6 +375,60 @@ function lookup(street, zip = null) {
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * ============================================================================
+ * INTERIOR SUFFIX WORDS — the El Paso round-trip failure. 7 Sept 2026.
+ * ============================================================================
+ * SUFFIXES is applied to EVERY word, and it holds COURT, COVE, POINT, NORTH and
+ * WEST. The TERMINAL_SUFFIXES comment in lib/dor/addressMatch.js names this
+ * hazard precisely — "KINGS LANDING DR would become KINGS LNDG DR and stop
+ * matching a roll that spells the name out" — and these five sit in the wrong
+ * table.
+ *
+ * scripts/tx/lookup-probe.mjs measured it: 200 situs addresses taken from El
+ * Paso's own roll and fed back through findParcel returned 9 no_parcel with
+ * ZERO rows retrieved. Houses in our database, reported as not on the roll.
+ *
+ * `interiorSuffixes: false` is opt-in and Texas-only for now. The first block
+ * asserts the default is untouched, because Florida is live and every existing
+ * caller passes nothing.
+ *
+ * INJECTION: default the option to false -> the first two assertions FAIL.
+ */
+{
+  const D = (a) => normalizeAddr(a);
+  const S = (a) => normalizeAddr(a, { interiorSuffixes: false });
+
+  t('the default still abbreviates interior suffix words — Florida is unchanged',
+    D('11137 VOYAGER COVE DR') === '11137 VOYAGER CV DR', D('11137 VOYAGER COVE DR'));
+  t('passing no options equals passing an empty object',
+    D('3128 MOON POINT PL') === normalizeAddr('3128 MOON POINT PL', {}));
+
+  for (const [raw, spelled] of [
+    ['11137 VOYAGER COVE DR', '11137 VOYAGER COVE DR'],
+    ['3128 MOON POINT PL', '3128 MOON POINT PL'],
+    ['5840 SUN COURT CIR', '5840 SUN COURT CIR'],
+    ['7858 NORTH LOOP DR', '7858 NORTH LOOP DR'],
+    ['7836 WEST DR', '7836 WEST DR'],
+    ['11113 REDSTONE COVE DR', '11113 REDSTONE COVE DR'],
+    ['14341 PACIFIC POINT DR', '14341 PACIFIC POINT DR'],
+  ]) {
+    t(`interiorSuffixes:false preserves the roll spelling of "${raw}"`, S(raw) === spelled, S(raw));
+  }
+
+  /**
+   * The flag must not disable the TERMINAL rewrite. A street TYPE at the end is
+   * terminal by construction and abbreviating it is the whole point; only
+   * interior words are names.
+   */
+  t('a terminal street type is still abbreviated with the flag off',
+    S('123 OAK COURT') === '123 OAK CT', S('123 OAK COURT'));
+  t('a directional PREFIX is still abbreviated — it is not an interior name word',
+    S('12612 SW 28TH ST') === '12612 SW 28TH ST', S('12612 SW 28TH ST'));
+  t('TERMINAL_SUFFIXES still applies with the flag off',
+    S('400 BAYSIDE PLAZA') === '400 BAYSIDE PLZ', S('400 BAYSIDE PLAZA'));
+}
+
 console.log(`\nverify-address-match: ${pass} passed, ${failures.length} failed`);
 if (failures.length) {
   for (const f of failures) console.log(`  ✗ ${f}`);
