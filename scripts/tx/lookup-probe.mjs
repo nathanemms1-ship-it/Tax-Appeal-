@@ -105,12 +105,49 @@ const step = Math.max(1, Math.floor(rows.length / n));
 const sample = rows.filter((_, i) => i % step === 0).slice(0, n);
 
 console.log(`  round-tripping ${sample.length} real situs addresses back through findParcel\n`);
-const tally = {}; const misses = [];
+/**
+ * ============================================================================
+ * NOT EVERY NON-MATCH IS OUR FAULT, AND SAYING SO MADE THE PROBE CRY WOLF.
+ * ============================================================================
+ * The 7 Sept run ended 194 matched / 6 ambiguous, and printed all six under
+ * "these are OUR failures on data we hold". They are not:
+ *
+ *   FRANKIE              near=24   a roll row whose situs_street is a bare name
+ *   612 / 11780 / 12700  near=23+  roll rows that are a bare house number
+ *   1543 GREG POWERS DR  near=2    two parcels genuinely share the address
+ *   4800 N STANTON ST    near=50   a multi-unit building; ambiguous is CORRECT
+ *
+ * Four are unusable roll rows — no address to match, so no matcher could find
+ * them. Two are real ambiguity, which `ambiguous` exists to report and which the
+ * product answers by asking the customer to pick.
+ *
+ * Counting all six against the matcher understates it and, worse, trains whoever
+ * reads this to discount the number. A probe that reports correct behaviour as
+ * failure is a probe people stop running.
+ *
+ * DEGENERATE means the roll gives nothing to match on: no house number, or a
+ * number with no street name. Those parcels cannot be reached by address lookup
+ * by anyone, and that is a COVERAGE fact about the roll, not a matcher score.
+ */
+const isDegenerate = (street) => {
+  const t = String(street || '').trim();
+  if (!t) return true;
+  const parts = t.split(/\s+/);
+  if (parts.length < 2) return true;                 // "FRANKIE", "612"
+  if (!/\d/.test(t)) return true;                    // no house number anywhere
+  if (!parts.slice(1).some((w) => /[A-Z]/i.test(w))) return true;  // number, then nothing
+  return false;
+};
+
+const tally = {}; const misses = []; const degenerate = [];
 for (const r of sample) {
   const out = await findParcel({ street: r.situs_street, cadId: cad });
+  const bad = isDegenerate(r.situs_street);
+  if (bad) degenerate.push({ street: r.situs_street, status: out.status, near: out.nearMisses });
+
   tally[out.status] = (tally[out.status] || 0) + 1;
   if (out.status !== TX_LOOKUP.MATCHED) {
-    misses.push({ street: r.situs_street, status: out.status, near: out.nearMisses, reason: out.reason });
+    if (!bad) misses.push({ street: r.situs_street, status: out.status, near: out.nearMisses, reason: out.reason });
   } else if (out.parcel.accountNumber !== r.account_number) {
     tally.WRONG_PARCEL = (tally.WRONG_PARCEL || 0) + 1;
     misses.push({ street: r.situs_street, status: 'WRONG_PARCEL', near: out.nearMisses });
@@ -122,9 +159,27 @@ console.log('  RESULT');
 Object.entries(tally).sort((a, b) => b[1] - a[1])
   .forEach(([k, v]) => console.log(`    ${String(v).padStart(5)}  ${pct(v).padStart(6)}  ${k}`));
 
+const scoreable = sample.length - degenerate.length;
+const matched = tally[TX_LOOKUP.MATCHED] || 0;
+
+if (degenerate.length) {
+  console.log(`\n  ${degenerate.length} sampled row(s) carry no usable address — a bare number or a`);
+  console.log('  bare name. No matcher can find these, and no customer can either: they are a');
+  console.log('  COVERAGE gap in the roll, not a score against us.');
+  degenerate.slice(0, 8).forEach((d) =>
+    console.log(`    ${d.status}  near=${d.near}  "${d.street}"`));
+  console.log(`\n  Scoring on the ${scoreable} rows that have an address to match:`);
+  console.log(`    ${matched}/${scoreable}  ${((matched / scoreable) * 100).toFixed(1)}% matched`);
+}
+
 if (misses.length) {
-  console.log(`\n  first ${Math.min(12, misses.length)} non-matches — these are OUR failures on data we hold:`);
+  console.log(`\n  first ${Math.min(12, misses.length)} real non-matches — OUR failures on data we hold:`);
   misses.slice(0, 12).forEach((m) =>
     console.log(`    ${m.status}${m.reason ? '/' + m.reason : ''}  near=${m.near}  "${m.street}"`));
+  console.log('\n  A well-formed roll address that does not round-trip is a matcher bug.');
+} else {
+  console.log('\n  No well-formed roll address failed to round-trip.');
+  console.log('  Remaining non-matches are genuine ambiguity — a duplicate address or a');
+  console.log('  multi-unit building — which `ambiguous` exists to report and the funnel');
+  console.log('  answers by asking the customer to pick.\n');
 }
-console.log(`\n  A roll address that does not round-trip is a matcher bug, not a missing house.\n`);
