@@ -259,6 +259,53 @@ if (elPaso && !isMailable(elPaso)) {
     unread.length === 0);
 }
 
+/**
+ * THE CONSENT RECORD SURVIVES THE WHOLE CHAIN.
+ *
+ * The "we told them, they decided" model is only as good as the evidence that we
+ * told them. Five hops have to hold: the review screen shows cautions -> the
+ * packet response carries their codes -> applyTxPacket puts them on the order ->
+ * checkout sends them as Stripe metadata -> fulfillOrder writes the column.
+ *
+ * A break anywhere is silent and only discovered in a dispute. This was found by
+ * grepping for what READS `txCautions` after I added it: at that point the
+ * answer was nothing, in any file. Fourth instance of that shape today.
+ *
+ * INJECTION: drop txCautions from the checkout body in apply.js -> FAILS.
+ */
+{
+  const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+  const checkout = readFileSync(new URL('../pages/api/checkout.js', import.meta.url), 'utf8');
+  const fulfil = readFileSync(new URL('../lib/fulfillOrder.js', import.meta.url), 'utf8');
+  const cols = readFileSync(new URL('../lib/orderColumns.js', import.meta.url), 'utf8');
+  const admin = readFileSync(new URL('../pages/admin.js', import.meta.url), 'utf8');
+  const getOrders = readFileSync(new URL('../pages/api/get-orders.js', import.meta.url), 'utf8');
+
+  t('applyTxPacket records the cautions on the order',
+    /txCautions:\s*\(j\.cautions/.test(apply));
+  t('and the checkout body carries them', /txCautions:\s*pd\.txCautions/.test(apply));
+  t('checkout accepts the field rather than dropping it silently',
+    /^txCautions,$/m.test(checkout) && /txCautions:\s*Array\.isArray/.test(checkout));
+  t('fulfillOrder writes them to the column',
+    /tx_cautions:\s*m\.txCautions/.test(fulfil));
+  t('the column is declared, so verify-schema and checkSchema know about it',
+    /'tx_cautions'/.test(cols));
+  t('get-orders selects it', /'tx_cautions'/.test(getOrders));
+  t('and admin shows an operator what the customer was warned about',
+    /tx_cautions/.test(admin));
+
+  // Codes only. A caution MESSAGE is prose we may reword; a code is stable and
+  // is what a dispute would actually turn on.
+  t('what is stored is codes, not the sentences shown',
+    /\.map\(\(c\) => c\.code\)/.test(apply));
+
+  const migration = new URL('../scripts/migrations/2026-09-07-tx-cautions.sql', import.meta.url);
+  let sql = '';
+  try { sql = readFileSync(migration, 'utf8'); } catch { /* reported below */ }
+  t('the migration that creates the column is in the repo', sql.length > 0);
+  t('and it is safe to re-run', /ADD COLUMN IF NOT EXISTS tx_cautions/.test(sql));
+}
+
 console.log(failures.length
   ? `verify-tx-dispatch: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-dispatch: ${pass} passed — no TX/GA protest can be mailed to an unconfirmed address`);

@@ -1495,6 +1495,12 @@ export default function Admin() {
                     ["Target Reduction", selectedOrder.target_reduction ? '$' + Number(selectedOrder.target_reduction).toLocaleString() : '—'],
                     ["Reduction %", selectedOrder.reduction_pct ? selectedOrder.reduction_pct + '%' : '—'],
                     ["Est. Savings", selectedOrder.estimated_savings ? '$' + Number(selectedOrder.estimated_savings).toLocaleString() : '—'],
+                    // What this customer was warned about and filed anyway. The
+                    // whole "the decision is theirs" model rests on being able to
+                    // show this, so it belongs on the order, not only in a log.
+                    ["Warned about", Array.isArray(selectedOrder.tx_cautions) && selectedOrder.tx_cautions.length
+                      ? selectedOrder.tx_cautions.join(', ').replace(/_/g, ' ')
+                      : '—'],
                   ].map(([label, val]) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
                       <span style={{ color: C.mutedGray }}>{label}</span>

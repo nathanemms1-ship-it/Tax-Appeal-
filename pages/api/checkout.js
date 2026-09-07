@@ -26,6 +26,9 @@ const {
 email, firstName, lastName, password,
 address, county, parcelId, assessedValue, targetReduction, savings,
 letter, letterKey,
+// Which cautions the Texas review screen showed before this customer chose to
+// go ahead. See the tx_cautions block below.
+txCautions,
 districtName, districtAddress, districtCity, districtState, districtZip,
 ownerStreet, ownerCity, ownerState, ownerZip,
   gclid, utm,
@@ -288,6 +291,20 @@ county,
 parcelId: String(parcelId || '').trim().slice(0, 60),
 assessedValue: assessedValue ? String(assessedValue) : '',
 targetReduction: targetReduction ? String(targetReduction) : '',
+/**
+ * WHAT THE CUSTOMER WAS WARNED ABOUT BEFORE THEY PAID.
+ *
+ * Texas packets are never refused any more — a weak case is shown to the owner
+ * as named cautions and they decide. That design only holds up if there is a
+ * record of it: without this, we show someone "the cap means this will not lower
+ * your bill", take $89 when they proceed, and keep no evidence that they were
+ * told. It is the same job orders.owner_ack and fl_will_not_attend already do
+ * for Florida.
+ *
+ * Codes only, comma-joined — short, stable, and far inside Stripe's 500-char
+ * metadata limit even if every caution fires at once.
+ */
+txCautions: Array.isArray(txCautions) ? txCautions.join(',').slice(0, 400) : '',
 savings: savings ? String(savings) : '',
 districtName: districtName || '',
 districtAddress: districtAddress || '',

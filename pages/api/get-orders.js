@@ -17,6 +17,7 @@ const ADMIN_FIELDS = [
   'customer_name', 'customer_email',
   'property_address', 'county', 'state', 'state_code',
   'assessed_value', 'market_value', 'target_reduction', 'reduction_pct',
+  'tx_cautions',
   'estimated_savings', 'actual_savings',
   'district_name', 'district_address', 'district_city', 'district_state', 'district_zip',
   'lob_letter_id', 'lob_tracking_number', 'lob_status',

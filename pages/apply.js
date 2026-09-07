@@ -2707,6 +2707,17 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           assessedValue: pd.assessedValue,
           targetReduction: pd.targetReduction,
           savings: pd.savings,
+          /**
+           * The cautions this owner read before choosing to go ahead.
+           *
+           * Set by applyTxPacket from the packet response, so it records what
+           * was actually SHOWN rather than what we would recompute later — the
+           * roll can move between purchase and filing, and the thing that has to
+           * be defensible is what the customer saw on the screen. Empty on a
+           * clean packet and on every non-Texas order. Lands in
+           * orders.tx_cautions via checkout metadata and lib/fulfillOrder.js.
+           */
+          txCautions: pd.txCautions || [],
           letter: null,
           districtName: pd.appraisalDistrict?.districtName || null,
           districtAddress: pd.appraisalDistrict?.mailingAddress || null,
