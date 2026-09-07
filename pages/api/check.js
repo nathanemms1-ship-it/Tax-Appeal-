@@ -52,6 +52,11 @@ import { LIMITS, cap } from '../../lib/inputLimits';
 import { lookupAndQualify } from '../../lib/dor/parcels';
 import { DEFAULT_MILLAGE } from '../../lib/dor/qualify';
 import { isFloridaZip, LOADED_COUNTY_NAMES, LOADED_COUNTIES } from '../../lib/dor/coverage';
+// Texas routing. See the ROUTING block below — findParcel needs a cadId and the
+// Census geocoder is what supplies it, via the county name.
+import { coveredCadFromName, isCovered, LOADED_CADS } from '../../lib/tx/coverage';
+import { resolveCounty } from './resolve-county';
+import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { recordCheckOutcome } from '../../lib/recordCheck';
 /**
  * SERVER-SIDE ONLY, AND THAT IS THE POINT. canFileInFlCounty reads the 67-entry
@@ -163,6 +168,96 @@ export default async function handler(req, res) {
     // homeowner we have no record of their property reads as "your house does
     // not exist", which is both wrong and the fastest way to lose a lead we
     // could have captured.
+    /**
+     * ========================================================================
+     * ROUTING. THE ZIP IS A FAST PATH, NOT THE ANSWER.
+     * ========================================================================
+     * This branch used to be the whole of it: `if (zip && !isFloridaZip(zip))`.
+     * The ZIP is optional, so a Texan who omitted it fell straight past here,
+     * missed the Florida roll, and was told we have no record of their
+     * property. Measured on check_events, 21 Aug - 7 Sept: 114 of ~468 checks
+     * retrieved ZERO rows, which is what an address that is not on the Florida
+     * roll looks like.
+     *
+     * A Florida ZIP still short-circuits with no network call, so the common
+     * case is exactly as fast as it was. Everything else asks the Census
+     * geocoder, which is authoritative, free, and already cached for 180 days
+     * by pages/api/resolve-county.js.
+     */
+    let txCad = null;
+    let txCounty = null;
+    if (!(zip && isFloridaZip(zip))) {
+      let place = null;
+      try {
+        place = await resolveCounty({ street, city, zip });
+      } catch (e) {
+        // A geocoder outage must not become "your house does not exist". Fall
+        // through to the Florida roll, which is what happened before this
+        // branch existed and is the honest degradation.
+        console.error('[check] county resolution failed:', e.message);
+      }
+
+      if (place && place.found && place.state === 'TX') {
+        txCounty = place.county;
+        txCad = coveredCadFromName(place.county);
+
+        /**
+         * A Texas address in a district we have not loaded. NOT `no_parcel` —
+         * we never asked a roll, because we hold none for it. Naming the county
+         * is deliberate: it is what tells us which district to load next.
+         */
+        /**
+         * A TEXAS DISTRICT WE DO HOLD — and the window is shut until April.
+         *
+         * Not a savings check. FILING_WINDOWS.TX opens 1 April and pre-orders
+         * open 1 February; today nothing can be filed, so running a verdict and
+         * quoting a saving would be selling against a deadline that does not
+         * exist yet. The honest answer is the date, plus the one genuinely
+         * reassuring fact we have: we already hold their county's roll.
+         *
+         * When the window opens this branch becomes the Texas lookup —
+         * findParcel({ street, cadId: txCad, zip }) into lib/tx/qualify.js. The
+         * cadId that made that possible is resolved above, which was the whole
+         * blocker.
+         */
+        if (txCad && isCovered(txCad)) {
+          const w = getFilingWindowStatus('TX', null, { strict: true });
+          const opens = w && w.openDate
+            ? new Date(w.openDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+            : null;
+          await recordCheckOutcome({ outcome: 'outside_coverage', source, county: txCounty });
+          return res.status(200).json({
+            found: false,
+            reason: 'outside_coverage',
+            state: 'TX',
+            county: txCounty,
+            message: `Texas protests are filed between 1 April and 15 May, so nothing can be filed today${opens ? ` — the window opens ${opens}` : ''}. We already hold ${txCounty} County's appraisal roll, so leave your email and we will check your property and tell you the day it opens.`,
+          });
+        }
+
+        if (!txCad || !isCovered(txCad)) {
+          await recordCheckOutcome({ outcome: 'not_covered', source, county: txCounty });
+          return res.status(200).json({
+            found: false,
+            reason: 'not_covered',
+            state: 'TX',
+            county: txCounty,
+            message: `We do not yet hold the appraisal roll for ${txCounty} County, Texas, so we cannot check this property. Tell us your email and we will let you know the moment we do.`,
+          });
+        }
+      } else if (place && place.found && place.state && place.state !== 'FL') {
+        // A state we know we are not selling in today. Same answer the ZIP
+        // branch gave, now reached without needing the visitor to type a ZIP.
+        await recordCheckOutcome({ outcome: 'outside_coverage', source });
+        return res.status(200).json({
+          found: false,
+          reason: 'outside_coverage',
+          state: place.state,
+          message: 'Your state\'s filing window is closed right now — there is nothing that can be filed until it reopens. Tell us your state and we\'ll email you the moment it does, with time to spare before the deadline.',
+        });
+      }
+    }
+
     if (zip && !isFloridaZip(zip)) {
       // No county: this branch answers before touching the roll, on the ZIP
       // alone. Counting these as refusals would blend "we cannot help you" into

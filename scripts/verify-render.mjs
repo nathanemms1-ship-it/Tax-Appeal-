@@ -201,8 +201,21 @@ for (const file of ['components/AddressAutocomplete.js', 'pages/apply.js']) {
 try {
   const check = readFileSync(new URL('../pages/check.js', import.meta.url), 'utf8');
   if (!/d\.reason === 'ambiguous'/.test(check)) throw new Error('no dedicated ambiguous branch');
-  if (!/d\.reason !== 'outside_coverage' && d\.reason !== 'ambiguous'/.test(check)) {
-    throw new Error('the miss branch still catches ambiguous');
+  /**
+   * Loosened 7 Sept 2026. This pinned the exact condition string, so adding
+   * `not_covered` to the exclusions broke it while the property it cares about
+   * — that the miss branch does not swallow a reason with its own screen — was
+   * still true. Same mistake as `variants is reassignable` in
+   * verify-address-match.mjs: testing a line, not a behaviour.
+   *
+   * The miss branch must exclude EVERY reason that has a dedicated branch.
+   */
+  const missCond = (check.match(/\{d && !d\.found && (d\.reason !== [^&]+&&\s*)+\(/) || [''])[0];
+  const excluded = [...missCond.matchAll(/d\.reason !== '([a-z_]+)'/g)].map((m) => m[1]);
+  const dedicated = [...check.matchAll(/d\.reason === '([a-z_]+)'/g)].map((m) => m[1]);
+  const swallowed = [...new Set(dedicated)].filter((r) => !excluded.includes(r));
+  if (swallowed.length) {
+    throw new Error(`the miss branch still catches ${swallowed.join(', ')}`);
   }
   const heading = /d\.reason === 'ambiguous'[\s\S]{0,900}?<h2[^>]*>([^<]+)</.exec(check)?.[1] || '';
   if (/couldn|could not find|no record/i.test(heading)) {

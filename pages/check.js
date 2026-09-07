@@ -354,6 +354,9 @@ export default function CheckPage() {
       // The one moment we KNOW a unit is what is missing. Opening it here is why
       // the field can stay behind a link for everyone else — see unitOpen.
       if (d && !d.found && d.reason === 'ambiguous') setUnitOpen(true);
+      // The server resolved this from the Census geocoder; it beats a default
+      // of 'FL' on a branch reached precisely because the address is not there.
+      if (d && d.state) setLeadState(d.state);
       setState({ status: 'done', data: d, error: null });
     } catch (err) {
       setState({ status: 'idle', data: null, error: err.message });
@@ -797,9 +800,20 @@ export default function CheckPage() {
               These two were one branch, so a Texas homeowner was told
               "We couldn't find that property" above a message explaining their
               filing window. Two different facts, and the wrong one on top. */}
-          {d && !d.found && d.reason === 'outside_coverage' && (
+          {/*
+            `not_covered` shares this branch, not the no-match one below.
+            "We couldn't find that property" would be false: for a Texas county
+            whose roll we have not loaded we never looked, and saying we did
+            invites the homeowner to re-check an address that was never wrong.
+            The heading follows the reason; the capture form is the same.
+          */}
+          {d && !d.found && (d.reason === 'outside_coverage' || d.reason === 'not_covered') && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
-              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>Your filing window is closed right now</h2>
+              <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>
+                {d.reason === 'not_covered'
+                  ? `We don${'\u2019'}t cover ${d.county ? `${d.county} County` : 'that county'} yet`
+                  : 'Your filing window is closed right now'}
+              </h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>{d.message}</p>
               {emailState === 'done' ? (
                 <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
@@ -930,7 +944,7 @@ export default function CheckPage() {
           )}
 
           {/* A genuine miss inside Florida. */}
-          {d && !d.found && d.reason !== 'outside_coverage' && d.reason !== 'ambiguous' && (
+          {d && !d.found && d.reason !== 'outside_coverage' && d.reason !== 'not_covered' && d.reason !== 'ambiguous' && (
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>We couldn&rsquo;t find that property</h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: 0 }}>{d.message}</p>

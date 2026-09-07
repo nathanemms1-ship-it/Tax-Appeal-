@@ -163,7 +163,24 @@ async function countyFromZipCentroid(zip, expectState) {
  * mailed to the wrong government office. If all three fail the caller shows the
  * customer a county picker rather than proceeding on a guess.
  */
-async function resolveCounty({ street, city, state, zip }) {
+/**
+ * EXPORTED, AND `state` IS NOW OPTIONAL. 7 Sept 2026.
+ *
+ * pages/api/check.js needs to route an address whose state it does NOT know —
+ * that is the entire problem. It answers out-of-state on the ZIP, the ZIP is
+ * optional, and 114 of ~468 checks between 21 Aug and 7 Sept fell through to
+ * the Florida roll and were told their property does not exist.
+ *
+ * Exported rather than reimplemented. This function carries three geocoder
+ * attempts, a ZIP-centroid fallback and the reasons for each; a second copy in
+ * check.js would be two versions of the same logic that must agree, which is
+ * the drift this codebase keeps paying for.
+ *
+ * The oneline URL already filtered a falsy state out of its address string, so
+ * this mostly makes an existing tolerance explicit — and stops the structured
+ * URL sending the literal "undefined".
+ */
+export async function resolveCounty({ street, city, state, zip }) {
   const base = {
     benchmark: 'Public_AR_Current',
     vintage: 'Current_Current',
@@ -171,7 +188,7 @@ async function resolveCounty({ street, city, state, zip }) {
     format: 'json',
   };
   const structured = `${CENSUS_URL}?${new URLSearchParams({
-    street: String(street), city: String(city || ''), state: String(state),
+    street: String(street), city: String(city || ''), state: String(state || ''),
     zip: String(zip || ''), ...base,
   })}`;
   const oneline = `${CENSUS_ONELINE_URL}?${new URLSearchParams({
