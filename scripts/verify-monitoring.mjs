@@ -292,14 +292,48 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   t('a closed-season order is not counted in the safe waiting tally',
     !/1 waiting on a window that has not opened yet/.test(stale.detail || ''));
 
-  // Only worth having if it stays quiet for a legitimate pre-order — otherwise it is
-  // noise on every Florida order taken before 24 August.
-  const fresh = await withStubbedOrders(
-    [{ id: 'fl-preorder', county: 'Broward', state_code: 'FL', payment_status: 'paid', created_at: new Date().toISOString() }],
-    () => checkFilingDeadlines(),
-  );
-  t('a genuine Florida pre-order still reads as safely waiting',
-    fresh.status === 'ok' && /waiting on a window that has not opened yet/.test(fresh.detail || ''));
+  /**
+   * Only worth having if it stays quiet for a legitimate pre-order — otherwise it
+   * is noise on every order taken inside its pre-order window.
+   *
+   * ==========================================================================
+   * THE FIXTURE IS DERIVED FROM THE WINDOW, NOT FROM `new Date()`
+   * ==========================================================================
+   * This used to be a Broward order stamped `new Date()`, which asserted that a
+   * Florida order placed *today* reads as safely waiting. That was true in
+   * August, when Florida had not opened. It stopped being true on 7 September
+   * 2026: the window is open until the 18th, but daysUntilHard (11) is below
+   * minDays (12), so `canFile` is false and the order correctly lands in the
+   * `missed` bucket. The check was right and the fixture had expired — the same
+   * failure the FL window assertions had on 2 September, for the same reason.
+   *
+   * A fixture whose meaning depends on today's date is not a guard, it is a
+   * timer. So: find a state whose window is currently CLOSED, and stamp the
+   * order 30 days before that window's next opening — comfortably inside
+   * PRE_ORDER_DAYS (60). That is a legitimate pre-order by construction, in any
+   * month of any year.
+   *
+   * INJECTION: count a not-yet-open window as stale -> FAILS.
+   */
+  const { FILING_WINDOWS, getFilingWindowStatus } = await import('../lib/filingWindows.js');
+  const closedState = Object.keys(FILING_WINDOWS)
+    .map((st) => [st, getFilingWindowStatus(st, null, { strict: true })])
+    .find(([, w]) => w && !w.isOpen && w.openDate);
+
+  if (!closedState) {
+    // Every season open at once should be impossible with these five states. If it
+    // ever happens, this fixture needs rethinking rather than quietly passing.
+    t('a closed season exists to build the pre-order fixture from', false);
+  } else {
+    const [st, w] = closedState;
+    const created = new Date(new Date(w.openDate).getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fresh = await withStubbedOrders(
+      [{ id: 'preorder-fixture', county: null, state_code: st, payment_status: 'paid', created_at: created.toISOString() }],
+      () => checkFilingDeadlines(),
+    );
+    t('an order placed inside its pre-order window still reads as safely waiting',
+      fresh.status === 'ok' && /waiting on a window that has not opened yet/.test(fresh.detail || ''));
+  }
 
   const health = read('lib/healthChecks.js');
   t('the season-missed bucket is wired into the deadline check',
