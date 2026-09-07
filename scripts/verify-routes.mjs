@@ -42,6 +42,7 @@
  * exactly the six from 2 August.
  */
 import { register } from 'node:module';
+import { readFileSync } from 'node:fs';
 
 // The app imports without file extensions (webpack resolves them, Node does
 // not). Registered before any dynamic import below.
@@ -229,6 +230,56 @@ for (const route of ROUTES) {
     failures++;
     console.error(`  ✗ ${route.name.padEnd(16)} THREW: ${e.message.split('\n')[0]}`);
   }
+}
+
+/**
+ * ============================================================================
+ * resolve-county MUST HAND BACK THE STATE, AND KNOW EVERY STATE WE SELL IN.
+ * ============================================================================
+ * The Census county geography carries STATE (FIPS) beside BASENAME, and this
+ * route threw it away for months. It is the keystone for two things:
+ *
+ *   - lib/tx/parcels.js findParcel requires a cadId. Census county name ->
+ *     lib/tx/coverage.js coveredCadFromName -> CAD. No picker, no ZIP table.
+ *   - pages/api/check.js currently answers out-of-state on an OPTIONAL ZIP, so
+ *     114 of ~468 checks between 21 Aug and 7 Sept fell through to the Florida
+ *     roll and were told their property does not exist.
+ *
+ * INJECTION: drop a state from FIPS_TO_STATE -> the coverage assertion FAILS.
+ */
+{
+  const src = readFileSync(new URL('../pages/api/resolve-county.js', import.meta.url), 'utf8');
+  const { ALL_STATES } = await import('../lib/stateService.js');
+
+  const bump = (name, ok) => {
+    checks++;
+    if (ok) console.log(`  ✓ ${name}`);
+    else { failures++; console.error(`  ✗ ${name}`); }
+  };
+
+  console.log('');
+  bump('resolve-county reads STATE off the Census county geography',
+    /geo\?\.STATE|geo\.STATE/.test(src));
+  bump('...and returns it alongside the county', /state: place\.state/.test(src));
+
+  /**
+   * Every state stateService will sell must be resolvable, or resolve-county
+   * hands back `state: null` for it and the caller cannot route.
+   */
+  const mapped = [...src.matchAll(/'(\d{2})':\s*'([A-Z]{2})'/g)].map((m) => m[2]);
+  const missing = ALL_STATES.filter((c) => !mapped.includes(c));
+  bump(`FIPS_TO_STATE covers every state in ALL_STATES${missing.length ? ` — missing: ${missing.join(', ')}` : ''}`,
+    missing.length === 0);
+
+  /**
+   * The cached shape changed, so the key had to change with it. A 180-day entry
+   * written before this would answer without a state, on the addresses checked
+   * most often, invisibly.
+   */
+  bump('the county cache key was versioned when its shape changed',
+    /const cacheKey = `county:v\d+:/.test(src));
+  bump('...and the cached object carries the state it now returns',
+    /redis\.set\(cacheKey, \{[^}]*state: result\.state/.test(src));
 }
 
 console.log('');

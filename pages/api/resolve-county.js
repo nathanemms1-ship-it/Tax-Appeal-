@@ -40,14 +40,55 @@ const CENSUS_ONELINE_URL = 'https://geocoding.geo.census.gov/geocoder/geographie
 // Vercel default is 10s; three attempts at 7s each needs headroom.
 export const config = { maxDuration: 30 };
 
-function countyFromCensus(data) {
+/**
+ * ============================================================================
+ * THE STATE WAS IN THIS RESPONSE ALL ALONG. 7 Sept 2026.
+ * ============================================================================
+ * The Census county geography carries STATE (a 2-digit FIPS code) beside
+ * BASENAME, and this function threw it away. Confirmed against the live
+ * geocoder — Counties[0] holds GEOID, STATE, COUNTY, BASENAME, NAME and more.
+ *
+ * That matters twice over:
+ *
+ *   TEXAS. lib/tx/parcels.js findParcel REQUIRES a cadId and nothing supplies
+ *   one, which is the whole reason /check is not wired for Texas. Census gives
+ *   the county name; lib/tx/coverage.js coveredCadFromName turns it into a CAD.
+ *   No county picker, no ZIP-to-CAD table to invent.
+ *
+ *   THE 114. pages/api/check.js answers out-of-state on the ZIP, and the ZIP is
+ *   optional — so between 21 Aug and 7 Sept, 114 of ~468 checks fell through to
+ *   the Florida roll, retrieved nothing, and were told their property does not
+ *   exist. An authoritative state removes the guess entirely.
+ *
+ * Returns an object now rather than a bare string. Callers that only want the
+ * county read `.county`.
+ */
+const FIPS_TO_STATE = Object.freeze({
+  // Only the states we serve. FIPS codes are assigned alphabetically, so the
+  // rest are derivable — but a state name asserted from memory and printed to a
+  // homeowner is exactly the class of guess this file's header refuses. Anything
+  // else returns stateFips and no name, and the caller says "not a state we
+  // cover" without naming it wrongly.
+  '01': 'AL', '05': 'AR', '12': 'FL', '13': 'GA', '48': 'TX',
+});
+
+function placeFromCensus(data) {
   const match = data?.result?.addressMatches?.[0];
-  const raw = match?.geographies?.Counties?.[0]?.BASENAME
-    || match?.geographies?.['Counties']?.[0]?.NAME
-    || null;
-  if (!raw) return null;
-  // BASENAME is already bare ("Miami-Dade", "St. Johns"); strip defensively.
-  return String(raw).replace(/\s+County$/i, '').trim() || null;
+  const geo = match?.geographies?.Counties?.[0] || null;
+  const raw = geo?.BASENAME || geo?.NAME || null;
+  const stateFips = geo?.STATE ? String(geo.STATE).padStart(2, '0') : null;
+  if (!raw) return { county: null, state: null, stateFips: null };
+  return {
+    // BASENAME is already bare ("Miami-Dade", "St. Johns"); strip defensively.
+    county: String(raw).replace(/\s+County$/i, '').trim() || null,
+    state: stateFips ? (FIPS_TO_STATE[stateFips] || null) : null,
+    stateFips,
+  };
+}
+
+/** Kept for callers that only ever wanted the name. */
+function countyFromCensus(data) {
+  return placeFromCensus(data).county;
 }
 
 async function fetchJson(url, ms) {
@@ -148,9 +189,15 @@ async function resolveCounty({ street, city, state, zip }) {
   const errors = [];
   for (const a of attempts) {
     try {
-      const county = countyFromCensus(await fetchJson(a.url, a.ms));
+      const place = placeFromCensus(await fetchJson(a.url, a.ms));
+      const { county } = place;
       // Matched the actual street address - safe to use without asking.
-      if (county) return { found: true, county, source: a.via, confidence: 'address' };
+      // state/stateFips ride along. A ZIP-centroid fallback further down cannot
+      // supply them, and says so by leaving them null rather than guessing.
+      if (county) {
+        return { found: true, county, state: place.state, stateFips: place.stateFips,
+          source: a.via, confidence: 'address' };
+      }
       errors.push(`${a.via}: no match`);
     } catch (e) {
       errors.push(`${a.via}: ${e.message}`);
@@ -179,7 +226,16 @@ export default async function handler(req, res) {
   const { street, city, state, zip } = req.body || {};
   if (!street || !state) return res.status(400).json({ error: 'street and state are required' });
 
-  const cacheKey = `county:${String(street).toLowerCase().trim()}|${String(zip || city).toLowerCase().trim()}`;
+  /**
+   * VERSIONED, BECAUSE THE CACHED SHAPE CHANGED. `county:` -> `county:v2:`.
+   *
+   * Entries live 180 days. Adding state/stateFips without bumping this would
+   * have meant a warm key answering `{ county }` with no state while a cold one
+   * answered with it — for six months, on exactly the addresses checked most
+   * often, and invisibly. lib/providers keys carry a version for the same
+   * reason (`lookup:v5-fl-county-only:`).
+   */
+  const cacheKey = `county:v2:${String(street).toLowerCase().trim()}|${String(zip || city).toLowerCase().trim()}`;
 
   try {
     if (redis) {
@@ -199,7 +255,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (redis) await redis.set(cacheKey, { found: true, county: result.county, source: result.source, confidence: result.confidence }, { ex: 60 * 60 * 24 * 180 });
+    // The cached shape must carry the new fields too, or a cache hit silently
+    // answers without a state while a miss answers with one — the kind of split
+    // that only shows up months later on a warm key.
+    if (redis) await redis.set(cacheKey, { found: true, county: result.county, state: result.state ?? null, stateFips: result.stateFips ?? null, source: result.source, confidence: result.confidence }, { ex: 60 * 60 * 24 * 180 });
   } catch (e) { /* non-fatal */ }
 
   return res.status(200).json(result);
