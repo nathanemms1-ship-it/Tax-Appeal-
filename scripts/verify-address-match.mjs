@@ -429,6 +429,71 @@ function lookup(street, zip = null) {
     S('400 BAYSIDE PLAZA') === '400 BAYSIDE PLZ', S('400 BAYSIDE PLAZA'));
 }
 
+/**
+ * ============================================================================
+ * RETRIEVAL AND MATCHING MUST USE THE SAME VARIANT SET. 7 Sept 2026.
+ * ============================================================================
+ * Widening retrieval to search both suffix spellings fixed the query and moved
+ * the failure one step later: lib/tx/parcels.js rebuilt the MATCH list from
+ * `typed` alone, so the row the widened query had just found was rejected by
+ * rowMatches — which compares with normCompare, case and whitespace only, no
+ * suffix rewriting.
+ *
+ * The probe reported it as a status change rather than a fix: 9 no_parcel
+ * became 9 no_parcel_near_miss. Those two outcomes exist precisely to tell
+ * "retrieved nothing" from "retrieved and rejected", and they earned their keep.
+ *
+ * Two lists that must agree, recomputed independently, with no natural alarm.
+ * Same shape as lib/checkOutcomes.js drifting from the SQL group lists.
+ */
+{
+  const searchVariants = (plain, alt) => {
+    const v = addressVariants(plain);
+    if (!alt || alt === plain) return v;
+    return [...new Set([...v, ...addressVariants(alt)])];
+  };
+
+  // The seven El Paso roll spellings the probe surfaced, plus two controls that
+  // already worked and must keep working.
+  const rollSpellings = [
+    '11137 VOYAGER COVE DR', '7858 NORTH LOOP DR', '7836 WEST DR',
+    '3128 MOON POINT PL', '5840 SUN COURT CIR', '11113 REDSTONE COVE DR',
+    '14341 PACIFIC POINT DR', '8023 MARBELLA CREEK AVE', '12612 SW 28TH ST',
+  ];
+  for (const roll of rollSpellings) {
+    const typed = normalizeAddr(roll);
+    const spelled = normalizeAddr(roll, { interiorSuffixes: false });
+    t(`a roll row spelled "${roll}" is matched, not rejected`,
+      rowMatches(roll, searchVariants(typed, spelled)));
+  }
+
+  /**
+   * And the negative: widening the net must not make the matcher promiscuous.
+   * rowMatches is what stops a retrieved neighbour being handed to a customer.
+   */
+  t('a different house on the same street is still rejected',
+    !rowMatches('11139 VOYAGER COVE DR',
+      searchVariants(normalizeAddr('11137 VOYAGER COVE DR'),
+        normalizeAddr('11137 VOYAGER COVE DR', { interiorSuffixes: false }))));
+  t('a different street with the same number is still rejected',
+    !rowMatches('11137 MARBELLA CREEK AVE',
+      searchVariants(normalizeAddr('11137 VOYAGER COVE DR'),
+        normalizeAddr('11137 VOYAGER COVE DR', { interiorSuffixes: false }))));
+
+  /**
+   * The structural invariant, checked at source. Behaviour above proves the
+   * union works; this proves lib/tx/parcels.js still USES one list for both.
+   *
+   * INJECTION: restore `const variants = addressVariants(...)` in the matching
+   * path -> FAILS.
+   */
+  const txSrc = readFileSync(new URL('../lib/tx/parcels.js', import.meta.url), 'utf8');
+  t('lib/tx/parcels.js matches on the same set it retrieved with',
+    /const variants = usedVariants;/.test(txSrc));
+  t('...and does not rebuild the match list from the typed spelling alone',
+    !/const variants = addressVariants\(/.test(txSrc));
+}
+
 console.log(`\nverify-address-match: ${pass} passed, ${failures.length} failed`);
 if (failures.length) {
   for (const f of failures) console.log(`  ✗ ${f}`);
