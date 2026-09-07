@@ -29,8 +29,18 @@
  * That is a measurement, and it beats reading a district's documentation about
  * what it intends to do.
  *
- * A1* only, matching scripts/tx/county-stats.mjs, because the whole product is
- * single-family residential and commercial rows would swamp the medians.
+ * ── THE POPULATION MATCHES scripts/tx/county-stats.mjs, AND HAD TO BE FIXED ──
+ *
+ * `state_class_code like 'A1%'`, taken from that script's own CLASS_PREFIX and
+ * overridable with --class for the same reason.
+ *
+ * The first version of this file filtered `like 'A%'` while its comment claimed
+ * it matched county-stats. It did not. Texas PTAD class A covers more than
+ * single-family: A2 is mobile homes and A4 is condominium/townhome interests,
+ * and both carry $/sqft distributions nothing like A1's. Mixing them in would
+ * have moved every median in the table and made the numbers incomparable to the
+ * county statistics already published from the A1 population — while the header
+ * said otherwise, which is worse than no comment.
  */
 
 import { readFileSync } from 'node:fs';
@@ -82,8 +92,9 @@ const arg = (n, d = null) => {
 const rawCad = arg('cad');
 const cad = Number(rawCad);
 const year = Number(arg('year', '2026'));
+const classPrefix = arg('class', 'A1');   // same default as county-stats.mjs
 if (rawCad === null || !Number.isFinite(cad) || cad <= 0) {
-  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026]');
+  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026] [--class A1]');
   process.exit(2);
 }
 
@@ -100,30 +111,56 @@ const { rows } = await client.query(`
     coalesce(nullif(trim(condition_code), ''), '(none)') as code,
     count(*)::int as parcels,
     percentile_cont(0.5) within group (
-      order by market_value::numeric / nullif(living_area, 0)
+      order by (market_value::numeric / nullif(living_area, 0))::double precision
     ) as median_psf,
-    percentile_cont(0.5) within group (order by market_value::numeric) as median_value,
-    percentile_cont(0.5) within group (order by year_built::numeric) as median_year
+    percentile_cont(0.5) within group (
+      order by year_built::double precision) as median_year
   from tx_parcels
   where cad_id = $1 and tax_year = $2
-    and state_class_code like 'A%'
+    and state_class_code like $3
     and living_area > 0 and market_value > 0
   group by 1
   order by 2 desc
-`, [cad, year]);
-
-await client.end();
+`, [cad, year, `${classPrefix}%`]);
 
 if (!rows.length) {
-  console.error(`✗ no A1 rows for cad ${cad}, tax year ${year}`);
+  await client.end();
+  console.error(`✗ no ${classPrefix} rows for cad ${cad}, tax year ${year}`);
   process.exit(1);
 }
 
-const total = rows.reduce((s, r) => s + r.parcels, 0);
-const overall = rows.reduce((s, r) => s + Number(r.median_psf) * r.parcels, 0) / total;
+/**
+ * THE DISTRICT MEDIAN IS QUERIED, NOT DERIVED FROM THE TABLE ABOVE.
+ *
+ * The first version computed it as a parcel-weighted mean of the per-code
+ * medians and printed it as "weighted median". A weighted average of medians is
+ * not a median of anything — it is a different statistic wearing the name — and
+ * every "vs district" figure in the table hangs off it. On a distribution with
+ * one dominant code it happens to land close, which is exactly what would have
+ * kept it from being noticed.
+ */
+const { rows: [dist] } = await client.query(`
+  select
+    percentile_cont(0.5) within group (
+      order by (market_value::numeric / nullif(living_area, 0))::double precision
+    ) as median_psf,
+    count(*)::int as parcels
+  from tx_parcels
+  where cad_id = $1 and tax_year = $2
+    and state_class_code like $3
+    and living_area > 0 and market_value > 0
+`, [cad, year, `${classPrefix}%`]);
 
-console.log(`\n${LOADED_CADS[cad] || 'cad ' + cad} — condition_code on A1 parcels, tax year ${year}`);
-console.log(`${total.toLocaleString()} parcels, weighted median $${overall.toFixed(2)}/sqft\n`);
+// Both queries are done. Without this the pg client keeps the event loop alive
+// and the script prints its table and then hangs — it was lost when the two
+// queries were merged onto one connection.
+await client.end();
+
+const total = dist.parcels;
+const overall = Number(dist.median_psf);
+
+console.log(`\n${LOADED_CADS[cad] || 'cad ' + cad} — condition_code on ${classPrefix} parcels, tax year ${year}`);
+console.log(`${total.toLocaleString()} parcels, district median $${overall.toFixed(2)}/sqft\n`);
 console.log('  code        parcels     share   median $/sqft   vs district   median built');
 console.log('  ' + '-'.repeat(74));
 for (const r of rows) {
@@ -142,13 +179,48 @@ const spread = Math.max(...rows.map((r) => Number(r.median_psf)))
   - Math.min(...rows.map((r) => Number(r.median_psf)));
 const spreadPct = (spread / overall) * 100;
 
+/**
+ * A JUDGEMENT THRESHOLD, NOT A FINDING. 10% of the district median is where a
+ * per-code difference stops looking like noise and starts looking like a
+ * pricing decision. Nothing published supports the exact number — it is here so
+ * the script gives an opinion instead of a table, and so the opinion can be
+ * argued with rather than inferred from formatting.
+ */
+const FLAT_THRESHOLD_PCT = 10;
+
 console.log(`\n  Spread across codes: ${spreadPct.toFixed(1)}% of the district median.`);
-console.log(spreadPct < 10
+console.log(spreadPct < FLAT_THRESHOLD_PCT
   ? '  -> FLAT. This district records condition without pricing it, so subtracting\n'
     + '     cost to cure does not double-count. Leave BELOW_AVERAGE_CONDITION empty\n'
     + '     for this cad and say so in lib/tx/costToCure.js.'
-  : '  -> VALUES MOVE WITH THE CODE. The district is pricing condition. Add the\n'
-    + '     codes below the district median to BELOW_AVERAGE_CONDITION for this cad\n'
-    + '     so the packet discloses the overlap.');
+  : '  -> VALUES MOVE WITH THE CODE. The district is pricing condition.');
+
+if (spreadPct >= FLAT_THRESHOLD_PCT) {
+  /**
+   * "Codes below the district median" was the first version of this advice and
+   * it was wrong twice.
+   *
+   * It would have swept in '(none)' — but conditionDiscountRisk() treats an
+   * absent condition_code as NOT_BELOW_AVERAGE on purpose: a district that
+   * publishes no condition for a parcel cannot have discounted it for one.
+   * Putting '(none)' in the set would contradict the module it is populating.
+   *
+   * And "below the median" includes codes a percent or two under it, which is
+   * noise. The same threshold that decided the district prices condition at all
+   * is the one that should decide which codes carry it.
+   */
+  const candidates = rows.filter((r) => r.code !== '(none)'
+    && ((Number(r.median_psf) / overall - 1) * 100) <= -FLAT_THRESHOLD_PCT);
+  if (candidates.length) {
+    console.log('\n     Add to BELOW_AVERAGE_CONDITION in lib/tx/costToCure.js:\n');
+    console.log(`       ${cad}: new Set([${candidates.map((r) => `'${r.code}'`).join(', ')}]),\n`);
+    console.log('     Codes within ' + FLAT_THRESHOLD_PCT + '% of the median are left out as noise,');
+    console.log("     and '(none)' is excluded by design — a parcel the district publishes no");
+    console.log('     condition for cannot have been discounted for one.');
+  } else {
+    console.log('\n     ...but no single code sits more than ' + FLAT_THRESHOLD_PCT
+      + '% below the median, so the spread is\n     coming from the tails. Leave the set empty and look again with --class.');
+  }
+}
 console.log('\n  Age is printed because it is the confounder: if the low-$/sqft codes are\n'
   + '  also the oldest houses, some of that gap is age, not condition.\n');
