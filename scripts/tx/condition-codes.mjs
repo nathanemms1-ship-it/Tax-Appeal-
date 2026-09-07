@@ -132,17 +132,98 @@ if (!PROFILABLE.includes(field)) {
   process.exit(2);
 }
 if (rawCad === null || !Number.isFinite(cad) || cad <= 0) {
-  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026] [--class A1] [--field condition_code]');
+  console.error('usage: node scripts/tx/condition-codes.mjs --cad <code> [--year 2026] [--class A1] [--field condition_code] [--nulls]');
   process.exit(2);
 }
 
 const { LOADED_CADS } = await import('../../lib/tx/coverage.js');
+
+/**
+ * ============================================================================
+ * --nulls : ARE THE COMP ENGINE'S INPUTS ACTUALLY POPULATED?
+ * ============================================================================
+ *
+ *   node scripts/tx/condition-codes.mjs --cad 71 --nulls
+ *
+ * Three findings today came from the same question asked about one column at a
+ * time: condition_code is empty everywhere, effective_year_built is empty
+ * everywhere, and quality_class carries a placeholder on 9.5% of parcels that
+ * was being read as a grade. This asks it about every input at once.
+ *
+ * It exists because of a row in the quality_class profile: code EJDL, median
+ * year built 0. A zero year is not a year. lib/tx/comps.js ageYear() correctly
+ * returns null for it — but similarity() then falls to `dAge = 0.5`, a flat
+ * half-band penalty, and the same for landShare.
+ *
+ * THAT CONTRADICTS THE FILE'S OWN STATED PRINCIPLE, which is written three lines
+ * above the code that breaks it: quality and condition "add a flat penalty when
+ * they differ, and NONE when either side is null — a district that does not
+ * publish the field should not thereby make every comp look worse." Age and land
+ * share do exactly that.
+ *
+ * Whether it matters is a question of scale, not of principle:
+ *   - if the SUBJECT lacks a year, every comp takes 0.5 uniformly and the
+ *     ranking is unaffected.
+ *   - if a COMP lacks one, it is demoted against comps that have one — which is
+ *     arguably right (prefer defensible data) and arguably the bias the comment
+ *     forbids.
+ * Decide it on the numbers below, not in the abstract.
+ */
+async function nullReport(client, cad, year, classPrefix) {
+  const { rows: [r] } = await client.query(`
+    select
+      count(*)::int                                                      as parcels,
+      count(*) filter (where living_area is null or living_area <= 0)::int    as no_area,
+      count(*) filter (where year_built is null or year_built <= 0)::int      as no_year,
+      count(*) filter (where effective_year_built is null
+                          or effective_year_built <= 0)::int                  as no_eff_year,
+      count(*) filter (where land_value is null or land_value <= 0)::int      as no_land,
+      count(*) filter (where market_value is null or market_value <= 0)::int  as no_market,
+      count(*) filter (where appraised_value is null
+                          or appraised_value <= 0)::int                       as no_appraised,
+      count(*) filter (where quality_class is null
+                          or btrim(quality_class) in ('', '*', '**', '-', '--'))::int as no_quality,
+      count(*) filter (where condition_code is null
+                          or btrim(condition_code) = '')::int                 as no_condition,
+      count(*) filter (where neighborhood_code is null
+                          or btrim(neighborhood_code) = '')::int              as no_hood
+    from tx_parcels
+    where cad_id = $1 and tax_year = $2 and state_class_code like $3
+  `, [cad, year, `${classPrefix}%`]);
+
+  const n = r.parcels;
+  console.log(`\n  ${n.toLocaleString()} ${classPrefix} parcels\n`);
+  console.log('  input                      missing      share   used by');
+  console.log('  ' + '-'.repeat(68));
+  const line = (label, v, used) => console.log(
+    '  ' + label.padEnd(26) + String(v).padStart(8)
+    + ((v / n * 100).toFixed(1) + '%').padStart(11) + '   ' + used);
+  line('living_area', r.no_area, 'everything — no area, no $/sqft, no filing');
+  line('market_value', r.no_market, 'the market ground');
+  line('appraised_value', r.no_appraised, 'the § 41.43(b)(3) equity grid');
+  line('land_value', r.no_land, 'landShare(), and the ask floor');
+  line('neighborhood_code', r.no_hood, 'the top rung of the comp ladder');
+  line('quality_class (incl. *)', r.no_quality, 'similarity() — skipped when unknown');
+  line('year_built', r.no_year, 'ageYear() — 0.5 PENALTY when unknown');
+  line('effective_year_built', r.no_eff_year, 'ageYear() prefers it; absent from the export');
+  line('condition_code', r.no_condition, 'similarity() — not published by PACS');
+  console.log('\n  The last three lines are expected to be high; the first five are not.');
+  console.log('  year_built is the one to read: unlike quality, an unknown year does not');
+  console.log('  skip its term — it costs a flat half-band, so a comp missing a year is');
+  console.log('  demoted against comps that have one. See lib/tx/comps.js similarity().\n');
+}
 
 const client = new pg.Client({
   connectionString: CONN,
   ssl: isLocal ? false : { rejectUnauthorized: false },
 });
 await client.connect();
+
+if (process.argv.includes('--nulls')) {
+  await nullReport(client, cad, year, classPrefix);
+  await client.end();
+  process.exit(0);
+}
 
 const { rows } = await client.query(`
   select
