@@ -204,6 +204,162 @@ const camel = buildProtest({
 t('a camelCase parcel is refused, loudly, rather than quietly filed',
   camel.filable === false);
 
+// ── 3. WHAT THE DOCUMENT ACTUALLY SAYS ───────────────────────────────────────
+/**
+ * SECTION 5, AND THE TWO ERRORS NATHAN FOUND BY READING IT. 7 Sept 2026.
+ *
+ * The first draft said "we have deliberately left it blank" and, four lines
+ * above, "Tick one before you sign." A bare imperative next to its own
+ * contradiction, with no statement of what blank actually MEANS. His question
+ * was the right one: what happens if it is filed unticked?
+ *
+ * Nothing. § 41.44(d) makes a notice sufficient if it identifies the owner,
+ * identifies the property and indicates dissatisfaction -- the hearing box is
+ * not part of sufficiency, and the notice "need not be on an official form" at
+ * all. § 41.45(a) then requires the board to schedule a hearing regardless.
+ *
+ * The second error was worse because it was a legal claim, not a UX one: the
+ * draft said non-appearance means "your protest is dismissed and you may lose
+ * your right to appeal for this tax year." Dismissal is real ARB practice --
+ * Collin ARB states it outright -- but § 41.45(e-1) entitles an owner who misses
+ * a hearing to a NEW hearing on a written statement of good cause filed within
+ * four days. Printing the consequence without the cure overstates it on a
+ * document a homeowner relies on.
+ *
+ * These assertions exist so neither comes back.
+ */
+const { renderProtestHtml } = await import('../lib/tx/protestHtml.js');
+const html = renderProtestHtml(ok);
+
+t('the document never orders the owner to tick a box it also leaves blank',
+  !/Tick one before you sign/i.test(html));
+t('it says plainly that leaving the hearing box blank does not affect the filing',
+  /leaving it blank does not affect your filing/i.test(html));
+t('it cites the sufficiency rule that makes that true (§ 41.44(d))',
+  /41\.44\(d\)/.test(html));
+t('it says a hearing is scheduled regardless (§ 41.45(a))', /41\.45\(a\)/.test(html));
+t('it tells the owner they can still request telephone or video later',
+  /41\.45\(b-1\)/.test(html) && /10 days before/i.test(html));
+
+/**
+ * INJECTION: delete the § 41.45(e-1) sentence -> FAILS. A document may state the
+ * dismissal risk only if it also states the cure.
+ */
+const saysDismissed = /dismiss/i.test(html);
+t('the dismissal warning is never printed without the four-day cure beside it',
+  !saysDismissed || (/41\.45\(e-1\)/.test(html) && /four days/i.test(html)));
+t('and dismissal is attributed to boards\' practice, not claimed as statute',
+  !saysDismissed || /appraisal review\s+boards dismiss/i.test(html));
+
+/**
+ * THE REASSURANCE IN SECTION 5, AND THE TWO CLAIMS IT MUST NOT MAKE. 7 Sept 2026.
+ *
+ * Nathan asked for a line telling the owner they probably will not have to
+ * attend anything. He is right that they probably will not. The two phrasings
+ * proposed would each have printed something false on a filed document:
+ *
+ *   "decided without any type of formal or informal hearing" — EPCAD 2023:
+ *   41,154 protests filed, 16,656 resolved AT THE INFORMAL, 9,116 reached the
+ *   ARB. The informal is the largest single place a protest is resolved, and it
+ *   is the box we tick two lines above. The claim would contradict our own form.
+ *
+ *   "if by chance the county asks for one" — § 41.45(a) says the board SHALL
+ *   schedule a hearing on the filing of a protest. Not discretionary, not rare.
+ *   The paragraph directly below already says so, so this would contradict that
+ *   too. What is rare is the hearing HAPPENING, because the informal resolves it.
+ *
+ * INJECTION: reinstate either phrase -> the matching assertion FAILS.
+ */
+t('the document never claims protests are decided without an informal review',
+  !/without any (?:type of )?(?:formal or )?informal/i.test(html));
+t('it never frames the hearing as something the county might or might not ask for',
+  !/if (?:by chance )?the (?:county|district) (?:asks|requests)/i.test(html));
+t('it does say most protests resolve before a formal hearing, which the numbers support',
+  /resolved with the appraisal district before a formal hearing/i.test(html));
+t('and it points at the informal as the reason, rather than at our own results',
+  /that is what the informal review above is for/i.test(html));
+/**
+ * Scoped to the reassurance paragraph, not the whole document — the first
+ * version of this assertion failed on `width:100%` in the stylesheet and on
+ * "within 10% of the subject's living area" in the comps methodology note. Both
+ * are legitimate; the thing being kept out is an OUTCOME statistic. The model
+ * decision drops percentages from anything customer-facing, because a stat in
+ * that position becomes a marketing claim — which is what Texas Tax Protest is
+ * suing Ownwell over.
+ */
+const reassurance = (html.match(/You most likely will not have to attend[\s\S]*?<\/div>/) || [''])[0];
+t('the reassurance paragraph was found at all (the extractor still matches)',
+  reassurance.length > 200);
+t('it quotes no success rate, share or percentage',
+  !/\d{1,3}\s?%/.test(reassurance) && !/vast majority/i.test(reassurance)
+  && !/\b(?:one|1) in \d/i.test(reassurance));
+
+/**
+ * THE PER-DISTRICT FACT IS PRINTED ONLY WHERE WE HOLD IT.
+ *
+ * El Paso's informal is conducted entirely by email — EPCAD's own portal says
+ * you cannot meet an appraiser in person. That is worth telling a homeowner.
+ * Harris runs iSettle, Tarrant an automated valuation tool; printing El Paso's
+ * sentence for them would tell someone to expect an email that never comes.
+ *
+ * INJECTION: change INFORMAL_CHANNEL[cadId] to a default string -> FAILS.
+ */
+t('El Paso’s email-only informal is stated on an El Paso filing',
+  /handled entirely by email/i.test(html));
+{
+  const other = buildProtest({ parcel: { ...subject, cad_id: 999 },
+    comps: goodComps, taxYear: 2026, owner: { firstName: 'A', lastName: 'B' } });
+  t('a district we hold no informal-practice note for prints none',
+    other.filable === true && other.form50132.informalChannel === null);
+}
+
+/**
+ * THE INFORMAL REVIEW AND THE ARB HEARING ARE DIFFERENT PROCEEDINGS. 7 Sept 2026.
+ *
+ * Nathan read the rendered page: the top of Section 5 says El Paso's review is
+ * by email and you cannot meet an appraiser in person, and the bottom said
+ * "blank means the hearing is set as an in-person hearing." Both statements were
+ * true — of DIFFERENT proceedings — and the copy used "hearing" for both, so on
+ * the page it read as a flat contradiction.
+ *
+ * The informal review comes first and is where most protests settle. The formal
+ * ARB hearing is a separate, later step. The document now says so before it says
+ * anything about an in-person default.
+ *
+ * INJECTION: delete the "separate, later step" sentence -> FAILS.
+ */
+t('the document distinguishes the ARB hearing from the informal review',
+  /separate, later step from the informal review/i.test(html));
+t('the in-person default is stated as conditional on the hearing going ahead',
+  !/Blank means the hearing is set as an in-person hearing/i.test(html)
+  && /if the ARB\s+hearing does go ahead, it is an in-person hearing/i.test(html));
+
+/**
+ * AND THE RENDERER NAMES NO DISTRICT.
+ *
+ * Fixing the contradiction above, the first attempt wrote "in El Paso by email"
+ * into the shared renderer — which would print El Paso's practice on a Harris
+ * filing. That is the defect INFORMAL_CHANNEL exists to prevent, reintroduced in
+ * the act of fixing something else. Per-district facts are data; this file is
+ * prose that must hold for every district.
+ *
+ * INJECTION: put a county name back in the template -> FAILS.
+ */
+{
+  const { readFileSync } = await import('node:fs');
+  // Comments stripped first: the file's own header cites Travis's 15-minute
+  // hearing allotment as the reason for the layout, which is documentation, not
+  // something the document prints. Scanning raw source flagged it on the first
+  // run — a guard that fires on its own rationale trains people to ignore it.
+  const tmpl = readFileSync(new URL('../lib/tx/protestHtml.js', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const named = ['El Paso', 'Harris', 'Dallas', 'Tarrant', 'Travis', 'Bexar',
+    'Jefferson', 'Kaufman', 'Nueces', 'Taylor', 'Wichita']
+    .filter((c) => new RegExp(`\\b${c}\\b`).test(tmpl));
+  t(`the shared renderer hardcodes no district${named.length ? ` — found: ${named.join(', ')}` : ''}`,
+    named.length === 0);
+}
+
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-protest: ${pass} passed`);
