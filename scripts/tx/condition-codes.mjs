@@ -188,6 +188,44 @@ const spreadPct = (spread / overall) * 100;
  */
 const FLAT_THRESHOLD_PCT = 10;
 
+/**
+ * NO DATA IS NOT FLATNESS, AND SAYING SO WAS THE POINT OF RUNNING IT.
+ *
+ * El Paso came back as a single row: '(none)', 228,190 parcels, 100.0%. The
+ * flat/not-flat branch below read that as "the district records condition
+ * without pricing it" — a confident conclusion about a column that is entirely
+ * empty. Of course the spread is 0.0%: there is one row.
+ *
+ * The cause is upstream of the district. PACS export layout 8.0.34 has no
+ * condition field and no effective-year field anywhere in it —
+ * APPRAISAL_IMPROVEMENT_DETAIL carries 12 fields and none of them is condition
+ * — and scripts/tx/push.mjs's COLS never writes either column. The schema
+ * declares them; nothing has ever populated them. Condition lives in the
+ * district's internal PACS database, not in what it publishes.
+ *
+ * So this is a data-acquisition finding, not a valuation one, and it must not
+ * be reported as the latter.
+ */
+const onlyNone = rows.length === 1 && rows[0].code === '(none)';
+const noneShare = (rows.find((r) => r.code === '(none)')?.parcels || 0) / total;
+
+if (onlyNone || noneShare > 0.98) {
+  console.log(`\n  NO CONDITION DATA. ${(noneShare * 100).toFixed(1)}% of parcels carry no condition_code.`);
+  console.log('  This is not a finding about how the district values condition — it is the');
+  console.log('  absence of the field. PACS export layout 8.0.34 has no condition column, and');
+  console.log('  scripts/tx/push.mjs never writes one.\n');
+  console.log('  CONSEQUENCES, worth knowing before trusting a comp set:');
+  console.log('   - lib/tx/comps.js similarity() adds a condition penalty only when BOTH sides');
+  console.log('     are non-null, so it is inert for every Texas comparison.');
+  console.log('   - ageYear() falls back to year_built for subject and comps alike. Consistent,');
+  console.log('     so no asymmetry — but the district\'s own effective age is not being used.');
+  console.log('   - the double-count gate in lib/tx/costToCure.js cannot fire, which is correct:');
+  console.log('     BELOW_AVERAGE_CONDITION stays empty because there is nothing to classify.\n');
+  console.log('  To change that you need a data source the export does not carry — the Mass');
+  console.log('  Appraisal Report, or a direct request to the district.\n');
+  process.exit(0);
+}
+
 console.log(`\n  Spread across codes: ${spreadPct.toFixed(1)}% of the district median.`);
 console.log(spreadPct < FLAT_THRESHOLD_PCT
   ? '  -> FLAT. This district records condition without pricing it, so subtracting\n'
