@@ -162,7 +162,10 @@ export default async function handler(req, res) {
         requiredReduction: v.requiredReduction ?? null,
         breakEvenMarketValue: v.breakEvenMarketValue ?? null,
         isCapped: v.isCapped ?? null,
-        capStatement: v.capStatement || null,
+        // capStatement is NOT sent. qualify() already embeds it inside the
+        // messages that need it, and the finding screen renders the figures as
+        // a panel rather than as prose. Sending it would be one more field the
+        // receiver never reads — which is the bug this route was just fixed for.
         compCount: comps?.comps?.length ?? 0,
         // True when the owner has reported nothing yet, so a condition case is
         // still an untried route rather than one that has already been costed.

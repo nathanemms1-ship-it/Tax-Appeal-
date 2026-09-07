@@ -3630,11 +3630,18 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
    */
   if (txFinding) {
     const fmtUsd = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
+    // `no_value_on_roll` reaches here with no figures at all — the district
+    // publishes none, which is the whole finding. Filter on the VALUE, not just
+    // on the row: .filter(Boolean) dropped the null capped-row but happily kept
+    // ['District market value', null] and rendered an em-dash under it.
     const rows = [
       ['District market value', txFinding.marketValue],
       ['You are taxed on', txFinding.appraisedValue],
       txFinding.isCapped ? ['Capped below market by', txFinding.requiredReduction] : null,
-    ].filter(Boolean);
+      // The number that actually decides whether a protest can move the bill:
+      // below this, the cap stops absorbing the reduction.
+      txFinding.isCapped ? ['Your bill only changes below', txFinding.breakEvenMarketValue] : null,
+    ].filter((r) => r && Number.isFinite(Number(r[1])) && Number(r[1]) > 0);
     return (
       <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
         <div style={cardStyle}>
@@ -3653,6 +3660,13 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {txFinding.compCount > 0 && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 14 }}>
+              We found <strong>{txFinding.compCount}</strong> comparable{txFinding.compCount === 1 ? '' : 's'}{' '}
+              for this property in the appraisal district&rsquo;s own neighborhood grouping.
+            </p>
           )}
 
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 20 }}>

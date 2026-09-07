@@ -223,12 +223,27 @@ if (elPaso && !isMailable(elPaso)) {
     /setTxFinding\(/.test(branch) && !/throw/.test(branch));
   t('and there is a screen that renders it',
     /if \(txFinding\) \{/.test(apply));
+  // Every figure the route sends must be rendered by the screen. This is the
+  // send/read pairing stated as an assertion instead of as a hope.
+  {
+    const screen = apply.slice(apply.indexOf('if (txFinding) {'), apply.indexOf('if (errMsg) {'));
+    const sent = [...new Set([...route.slice(route.indexOf('filable: false'), route.indexOf('const html'))
+      .matchAll(/^\s{8}([a-zA-Z]+):/gm)].map((m) => m[1]))]
+      .filter((f) => !['success', 'filable', 'isTX', 'reason'].includes(f));
+    const unread = sent.filter((f) => !screen.includes(`txFinding.${f}`));
+    t(`every field the refusal sends is read by the screen${unread.length ? ` — unread: ${unread.join(', ')}` : ''}`,
+      unread.length === 0);
+  }
+
   t('which is not styled as a failure',
     !/Lookup failed|Try Again/.test(
       apply.slice(apply.indexOf('if (txFinding) {'), apply.indexOf('if (errMsg) {'))));
 
   // The screen prints numbers, so the route has to send them.
-  for (const field of ['marketValue', 'appraisedValue', 'capStatement', 'issuesUntried']) {
+  // capStatement deliberately absent: nothing renders it. Asserting a field is
+  // PRESENT in a payload proves nothing about whether anything consumes it —
+  // that is how `issues` survived unread for the whole build.
+  for (const field of ['marketValue', 'appraisedValue', 'issuesUntried']) {
     t(`the refusal response carries ${field} for the finding screen`,
       new RegExp(`${field}[,:]`).test(route.slice(route.indexOf('filable: false'))));
   }
