@@ -27,6 +27,34 @@ try {
 } catch (e) { console.log('Redis init failed:', e.message); }
 
 /** See the memo comment in the FL cheque payload for why this exists. */
+/**
+ * ============================================================================
+ * lib/appealAddresses.js WAS NOT IMPORTED BY ANYTHING. 7 Sept 2026.
+ * ============================================================================
+ * `grep -rln appealAddresses pages lib` returned exactly one file: itself.
+ *
+ * That module holds every TX and GA appeal address, and around it: a rule that
+ * `confirmed` needs TWO independent official sources of DIFFERENT type, CASS
+ * validation, a `verifiedOn` date that goes stale at 330 days, a blocked-domain
+ * list against look-alikes, and scripts/verify-address-table.mjs proving 25
+ * separate guard behaviours by reintroducing each bug. All of it, unreachable.
+ *
+ * Meanwhile the address this route actually mails to arrived in the REQUEST
+ * BODY — `pd.appraisalDistrict?.mailingAddress` from pages/apply.js, carried
+ * through checkout metadata into save-order and processOrder. Unverified, not
+ * CASS-validated, no confirmation gate, chosen by a property-data lookup.
+ *
+ * Florida has had a gate since the beginning: it refuses to mail when the VAB
+ * fee is not `confirmed`. Texas and Georgia had none. That is the St. Lucie
+ * failure — mail sent to an address nobody checked, petitions rejected, and the
+ * homeowner loses the year with no cure — with the safety rail built, tested,
+ * and never connected.
+ *
+ * EPCAD is `unverified` today. Before this, a live Texas order would have been
+ * mailed to it anyway.
+ */
+import { getAppealAddress, isMailable, formatEnvelope, verifiedAgeDays, MAX_VERIFIED_AGE_DAYS } from '../../lib/appealAddresses';
+
 function buildCheckMemo({ parcelId, ownerName, county }) {
   const parcel = String(parcelId || '').trim();
   if (parcel) return `VAB fee - Parcel ${parcel}`.slice(0, 40);
@@ -387,10 +415,53 @@ export default async function handler(req, res) {
       }));
     }
 
+    /**
+     * NON-FL: the address comes from the TABLE, not from the caller.
+     *
+     * Using the body's address even when a confirmed row exists would leave the
+     * verification decorative — the row would be checked and then ignored. The
+     * caller's district fields are still accepted for states with no table, so
+     * nothing that works today stops working.
+     */
+    const verifiedRow = getAppealAddress(stateCode, county);
+    let toName = districtName;
+    let toLine1 = districtAddress;
+    let toLine2 = null;
+    let toCity = districtCity;
+    let toState = districtState;
+    let toZip = districtZip;
+
+    if (verifiedRow) {
+      if (!isMailable(verifiedRow)) {
+        const age = verifiedAgeDays(verifiedRow);
+        const why = verifiedRow.confidence !== 'confirmed'
+          ? `its address is marked "${verifiedRow.confidence}"`
+          : !verifiedRow.verifiedOn ? 'its address carries no verification date'
+          : !verifiedRow.cassValidated ? 'its address has not been CASS-validated'
+          : age > MAX_VERIFIED_AGE_DAYS ? `its address was last verified ${Math.round(age)} days ago`
+          : 'its address is incomplete';
+        console.error(`send-letter: refusing to mail — ${county} County, ${stateCode}: ${why}`);
+        return res.status(400).json({
+          error: `We have not confirmed the filing address for ${county} County, ${stateCode}, so we will not mail this protest. A protest sent to the wrong office is not filed, and there is no cure for a missed deadline.`,
+          reason: 'address_not_confirmed',
+          county,
+          state: stateCode,
+        });
+      }
+      const env = formatEnvelope(verifiedRow);
+      toName = verifiedRow.addressee;
+      toLine1 = [verifiedRow.attnLine, verifiedRow.line1].filter(Boolean).join(', ');
+      toLine2 = verifiedRow.line2 || null;
+      toCity = verifiedRow.city;
+      toState = verifiedRow.stateAbbr;
+      toZip = verifiedRow.zip;
+      console.log(`send-letter: ${stateCode} ${county} — mailing to the verified address: ${env.join(' / ')}`);
+    }
+
     // Non-FL path: standard Lob certified letter (owner-signed, no agent form)
     const lobPayload = {
       description: `Property tax protest — ${propertyAddress}`,
-      to: { name: districtName, address_line1: districtAddress, address_city: districtCity, address_state: districtState, address_zip: districtZip, address_country: 'US' },
+      to: { name: toName, address_line1: toLine1, address_line2: toLine2 || undefined, address_city: toCity, address_state: toState, address_zip: toZip, address_country: 'US' },
       from: { name: ownerName, address_line1: ownerStreet, address_city: ownerCity, address_state: ownerState, address_zip: ownerZip, address_country: 'US' },
       file: letterHtml,
       merge_variables: { letter_content: letterContent },
