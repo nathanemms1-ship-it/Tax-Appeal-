@@ -3460,8 +3460,12 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accountNumber: pd.parcelId || property.parcelId || '',
-            cadId: pd.cadId || property.cadId || null,
+            // The route resolves these from the address itself — see its header.
+            // Sending a client-held account number would put the field the whole
+            // petition hangs on in the browser's gift.
+            street: addr,
+            city: property.city || '',
+            zip: property.zip || '',
             taxYear: Number(taxYear) || undefined,
             owner: {
               firstName: account.firstName,

@@ -32,8 +32,9 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { getSupabaseAdmin } from './supabase';
 import { buildProtest } from '../../lib/tx/protest';
 import { findComps } from '../../lib/tx/comps';
-import { isCovered, LOADED_CADS } from '../../lib/tx/coverage';
-import { ROLL_YEAR } from '../../lib/tx/parcels';
+import { isCovered, LOADED_CADS, coveredCadFromName } from '../../lib/tx/coverage';
+import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
+import { resolveCounty } from './resolve-county';
 import { renderProtestHtml } from '../../lib/tx/protestHtml';
 
 let redis = null;
@@ -52,12 +53,57 @@ export default async function handler(req, res) {
   if (await enforceRateLimit(req, res, 'p50132', 60, 3600)) return;
 
   const b = req.body || {};
-  const cadId = Number(b.cadId);
-  const accountNumber = typeof b.accountNumber === 'string' ? b.accountNumber.trim() : '';
+  let cadId = Number(b.cadId);
+  let accountNumber = typeof b.accountNumber === 'string' ? b.accountNumber.trim() : '';
   const taxYear = Number(b.taxYear) || ROLL_YEAR;
 
+  /**
+   * ========================================================================
+   * AN ADDRESS IS ENOUGH. Added 7 Sept 2026, before this shipped broken.
+   * ========================================================================
+   * pages/apply.js was wired to send `pd.cadId` and `pd.parcelId`. Neither
+   * exists: `cadId` appeared in exactly one place in that file — the line that
+   * reads it — and `parcelId` comes from the Florida property lookup, which
+   * has no Texas account number. Every Texas order would have arrived here as
+   * `{ accountNumber: '', cadId: null }` and been refused.
+   *
+   * Threading both through sessionStorage and lib/checkHandoff.js would have
+   * worked and is the wrong shape: it makes a filed document depend on browser
+   * storage surviving a funnel, and it puts the account number — the field the
+   * whole petition hangs on — in the client's hands.
+   *
+   * So the route takes what the customer actually has, an address, and does
+   * the same resolution /api/check does: Census county -> CAD -> findParcel.
+   * That keeps this route's own rule intact — it takes no VALUE from the
+   * client, only an identifier it verifies against the roll itself.
+   */
   if (!accountNumber || !Number.isFinite(cadId)) {
-    return res.status(400).json({ error: 'accountNumber and cadId are required.' });
+    const street = typeof b.street === 'string' ? b.street.trim() : '';
+    if (!street) {
+      return res.status(400).json({ error: 'Either accountNumber and cadId, or a street address, are required.' });
+    }
+    try {
+      const place = await resolveCounty({ street, city: b.city, zip: b.zip });
+      if (!place?.found || place.state !== 'TX') {
+        return res.status(400).json({ error: 'not_texas', county: place?.county || null, state: place?.state || null });
+      }
+      cadId = coveredCadFromName(place.county);
+      if (!cadId || !isCovered(cadId)) {
+        return res.status(400).json({ error: 'not_covered', county: place.county });
+      }
+      const found = await findParcel({ street, cadId, zip: b.zip || null, taxYear });
+      if (found.status !== TX_LOOKUP.MATCHED) {
+        // The same named failures /check reports. A document cannot be built on
+        // an address the roll did not resolve, and guessing which parcel was
+        // meant is how a petition gets filed for a house somebody does not own.
+        return res.status(400).json({ error: found.status, reason: found.reason || null,
+          candidates: found.candidates || null });
+      }
+      accountNumber = found.parcel.accountNumber;
+    } catch (e) {
+      console.error('[50132] address resolution failed:', e.message);
+      return res.status(503).json({ error: 'lookup_failed', reason: 'county_unresolved' });
+    }
   }
   // Coverage before the query, for the same reason findParcel checks it first:
   // without a roll we cannot tell "not on it" from "we never downloaded it".

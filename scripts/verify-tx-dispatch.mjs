@@ -140,6 +140,28 @@ if (elPaso && !isMailable(elPaso)) {
   const route = readFileSync(new URL('../pages/api/generate-50132.js', import.meta.url), 'utf8');
   t('generate-50132 reads the parcel from the roll, not from the request',
     /from\('tx_parcels'\)/.test(route));
+
+  /**
+   * AND IT RESOLVES THE ADDRESS ITSELF.
+   *
+   * apply.js was wired to send pd.cadId and pd.parcelId. Neither existed —
+   * `cadId` appeared in exactly one place in that file, the line reading it,
+   * and parcelId comes from the Florida property lookup, which holds no Texas
+   * account number. Every Texas order would have arrived as
+   * `{ accountNumber: '', cadId: null }` and been refused with a 400.
+   *
+   * Caught by grepping for what SET the field rather than what read it — the
+   * same check that found lib/appealAddresses.js imported by nothing.
+   *
+   * INJECTION: remove the street fallback from the route -> FAILS.
+   */
+  t('generate-50132 accepts an address when no account number is supplied',
+    /const street = typeof b\.street === 'string'/.test(route)
+    && /findParcel\(\{ street, cadId/.test(route));
+  t('...and apply.js sends the address rather than a client-held account number',
+    /street: addr,/.test(apply) && !/accountNumber: pd\.parcelId/.test(apply));
+  t('...and refuses rather than guessing when the roll does not resolve it',
+    /found\.status !== TX_LOOKUP\.MATCHED/.test(route));
   t('...and refuses a district we do not hold before querying anything',
     /isCovered\(cadId\)/.test(route));
 }
