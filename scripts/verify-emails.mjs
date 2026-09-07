@@ -306,6 +306,76 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
   }
 }
 
+/**
+ * ============================================================================
+ * THE CODE LIST AND THE DATABASE CONSTRAINT MUST AGREE. 7 Sept 2026.
+ * ============================================================================
+ * This is the defect scripts/sql/check_events.sql's header is written about, and
+ * which it calls "still-open" — because it was, until today.
+ *
+ *   waitlist.blocked_reason carries a CHECK constraint listing permitted
+ *   reasons. lib/waitlistReasons.js grew a third, `fl_not_eligible`; the
+ *   constraint did not. Every insert carrying it failed and the leads were lost
+ *   — the Save Our Homes bucket, plausibly the largest capture category on the
+ *   site.
+ *
+ * `fl_not_eligible` is the DEFAULT argument of joinList() in pages/check.js, so
+ * it is what the email box writes on the Save Our Homes refusal and on the
+ * out-of-state branch — the two places a refused visitor is asked to stay in
+ * touch.
+ *
+ * check_events has no constraint at all precisely to avoid this shape, and moved
+ * enforcement to where the build can see it. The waitlist kept its constraint,
+ * so the comparison has to happen here instead: the permitted values are parsed
+ * back OUT of the migration and compared to the module.
+ *
+ * INJECTION: add a fourth reason to lib/waitlistReasons.js without touching the
+ * SQL -> FAILS, naming it.
+ */
+{
+  const { WAITLIST_BLOCKED_REASONS } = await import('../lib/waitlistReasons.js');
+
+  /**
+   * The LAST matching constraint across the migrations wins, because a later
+   * file drops and re-adds it. Reading only the original would compare against a
+   * list that is no longer in force.
+   */
+  const sqlFiles = [
+    'scripts/sql/waitlist_blocked_reason.sql',
+    'scripts/sql/waitlist_blocked_reason_fl_not_eligible.sql',
+  ];
+  let permitted = null; let fromFile = null;
+  for (const f of sqlFiles) {
+    let src; try { src = read(f); } catch { continue; }
+    const blocks = [...src.matchAll(/blocked_reason\s+in\s*\(([^)]*)\)/gi)];
+    if (!blocks.length) continue;
+    permitted = [...blocks[blocks.length - 1][1].matchAll(/'([a-z0-9_]+)'/gi)].map((m) => m[1]);
+    fromFile = f;
+  }
+
+  t('a blocked_reason CHECK constraint was found in the migrations', Array.isArray(permitted));
+
+  if (permitted) {
+    const missingInSql = WAITLIST_BLOCKED_REASONS.filter((r) => !permitted.includes(r));
+    const missingInCode = permitted.filter((r) => !WAITLIST_BLOCKED_REASONS.includes(r));
+
+    t(`every waitlist reason the code can emit is permitted by the constraint${
+      missingInSql.length ? ` — rejected by the database: ${missingInSql.join(', ')}` : ''}`,
+      missingInSql.length === 0);
+
+    t(`the constraint permits nothing the code cannot emit${
+      missingInCode.length ? ` — dead values in ${fromFile}: ${missingInCode.join(', ')}` : ''}`,
+      missingInCode.length === 0);
+
+    /**
+     * Named explicitly as well as compared, because this is the one that was
+     * actually lost and a generic set-difference failure reads as a chore.
+     */
+    t('fl_not_eligible — the default reason on the /check email box — is permitted',
+      permitted.includes('fl_not_eligible'));
+  }
+}
+
 if (failures.length) {
   console.error(`verify-emails: ${failures.length} FAILED, ${pass} passed`);
   failures.forEach((f) => console.error(`  ✗ ${f}`));
