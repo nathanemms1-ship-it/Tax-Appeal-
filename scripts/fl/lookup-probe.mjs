@@ -59,6 +59,13 @@ const { findParcel } = await import('../../lib/dor/parcels.js');
 const { normalizeAddr } = await import('../../lib/dor/addressMatch.js');
 const { getSupabaseAdmin } = await import('../../pages/api/supabase.js');
 
+/**
+ * Is the both-spellings fix actually on? The conclusion at the bottom means
+ * opposite things depending on the answer, so it is read rather than assumed.
+ */
+const fixEnabled = /interiorSuffixes: false/.test(
+  readFileSync(new URL('../../lib/dor/parcels.js', import.meta.url), 'utf8'));
+
 const one = arg('address');
 if (one) {
   const r = await findParcel({ street: one, zip: arg('zip'), city: arg('city') });
@@ -80,9 +87,19 @@ const n = Number(arg('sample', '300'));
 const county = arg('county');
 const db = getSupabaseAdmin();
 
+/**
+ * ORDERED, SO TWO RUNS ARE COMPARABLE.
+ *
+ * Without an ORDER BY, Postgres returns whatever the planner reaches first and
+ * it is free to differ between runs. The before/after pair on 7 Sept drew 15
+ * interior-suffix rows and then 8 — the conclusion held (13 of 15 failing, then
+ * 0 of 8) but the denominators moved, and a probe you cannot re-run against the
+ * same rows cannot prove a fix, only suggest one.
+ */
 let q = db.from('parcels')
   .select('co_no,parcel_id,phy_addr1,phy_city,phy_zipcd')
-  .not('phy_addr1', 'is', null);
+  .not('phy_addr1', 'is', null)
+  .order('parcel_id', { ascending: true });
 if (county) q = q.eq('co_no', Number(county));
 
 const { data, error } = await q.limit(n * 4);
@@ -168,9 +185,28 @@ if (suffixRows.length) {
     console.log('    opt-in: normalizeAddr(s, { interiorSuffixes: false }), the same one');
     console.log('    lib/tx/parcels.js uses. Failures:');
     failed.slice(0, 12).forEach((f) => console.log(`      ${f.status}  "${f.street}"`));
+  } else if (fixEnabled) {
+    /**
+     * ZERO FAILURES WITH THE FIX ON IS NOT THE SAME AS NEVER AFFECTED.
+     *
+     * The first version printed "Florida is NOT affected — leave
+     * lib/dor/parcels.js alone" whenever nothing failed. Run after the fix
+     * landed, that reads as an instruction to remove it. On 7 Sept the same
+     * sample went 13-of-15 failing to 0-of-8 in one commit; a reader next season
+     * would have been told the code that produced the second number was
+     * unnecessary.
+     *
+     * A probe that cannot tell "never broken" from "fixed" argues for undoing
+     * its own fix.
+     */
+    console.log('    All of them round-trip — WITH the both-spellings fix enabled in');
+    console.log('    lib/dor/parcels.js. This is the fix working, NOT evidence it was never');
+    console.log('    needed: before it landed, 13 of 15 such addresses returned no record.');
+    console.log('    Do not remove it on the strength of a clean run.');
   } else {
-    console.log('    All of them round-trip. Florida is NOT affected — the DOR roll must already');
-    console.log('    store these abbreviated. Leave lib/dor/parcels.js alone.');
+    console.log('    All of them round-trip, and the both-spellings fix is NOT enabled in');
+    console.log('    lib/dor/parcels.js — so Florida is genuinely unaffected and the DOR roll');
+    console.log('    must already store these abbreviated. Nothing to do.');
   }
 } else {
   console.log('\n  No sampled address contained an interior suffix word — the sample is too');
