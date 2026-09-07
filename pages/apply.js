@@ -3435,6 +3435,66 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
         pd.isFL = true;
         pd.evidenceText = claudeJson.evidenceText || '';
         pd.dr486Preview = claudeJson.dr486Html || '';
+      } else if (stateCode === 'TX') {
+        /**
+         * ====================================================================
+         * TEXAS GETS FORM 50-132 AND THE § 41.43(b)(3) GRID, NOT PROSE.
+         * ====================================================================
+         * Until 7 Sept 2026 Texas fell into the `else` below and received
+         * generate-letter — a free-form letter written by a model. That was the
+         * right answer while we held no Texas roll. It stopped being the right
+         * answer the day El Paso loaded.
+         *
+         * The difference is not stylistic. A generated paragraph ABOUT
+         * comparables is argument; a grid of the district's own parcels, with
+         * their own account numbers, taken from the roll it certified, is
+         * evidence — and § 41.43(b)(3) requires the protest to be decided in
+         * the owner's favour unless the district rebuts exactly that median.
+         *
+         * pages/api/generate-50132.js needs only the account number and the
+         * CAD: it re-reads the roll server-side and computes every figure. It
+         * takes no value from this client, deliberately — a browser cannot
+         * assert its own comparables.
+         */
+        const txRes = await fetch("/api/generate-50132", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountNumber: pd.parcelId || property.parcelId || '',
+            cadId: pd.cadId || property.cadId || null,
+            taxYear: Number(taxYear) || undefined,
+            owner: {
+              firstName: account.firstName,
+              lastName: account.lastName,
+              email: account.email,
+              phone: account.phone || '',
+              mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
+                .filter(Boolean).join(', '),
+            },
+            issues: property.issues || [],
+            costOverrides: property.costOverrides || {},
+          }),
+        });
+        const txJson = await txRes.json();
+        if (!txRes.ok) throw new Error(txJson?.error || 'Could not prepare the Texas protest');
+
+        /**
+         * A REFUSAL IS A 200 AND MUST NOT BE RENDERED AS A DOCUMENT.
+         *
+         * buildProtest refuses by name — capped_beyond_reach, not_over_appraised,
+         * cap_artifact_only, insufficient_comparables, nothing_to_ask_for. Those
+         * are findings, not errors, and the customer is owed the sentence rather
+         * than a blank petition.
+         */
+        if (txJson.filable === false) {
+          throw new Error(txJson.message
+            || 'Having looked at the appraisal roll, we do not think this protest is worth filing.');
+        }
+
+        pd.letterContent = txJson.html || '';
+        pd.protestPreview = txJson.html || '';
+        pd.requestedValue = txJson.requestedValue ?? null;
+        pd.reductionSought = txJson.reductionSought ?? null;
       } else if (stateCode === 'GA') {
         const gaRes = await fetch("/api/generate-pt311a", {
           method: "POST",

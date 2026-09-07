@@ -93,6 +93,75 @@ if (elPaso && !isMailable(elPaso)) {
   console.log(`  El Paso is seeded but NOT mailable (${elPaso.confidence}) — one phone call: ${elPaso.phone}`);
 }
 
+// ── 4. THE DOCUMENT ROUTING ─────────────────────────────────────────────────
+/**
+ * generate-50132 WAS ORPHANED. 7 Sept 2026.
+ *
+ * pages/apply.js branched FL -> generate-dr486, GA -> generate-pt311a, and
+ * EVERYTHING ELSE -> generate-letter, a free-form letter written by a model.
+ * So the Form 50-132, the § 41.43(b)(3) equity grid and the condition exhibit
+ * built that morning were never reachable: a Texas order produced prose.
+ *
+ * The difference is not stylistic. A paragraph about comparables is argument; a
+ * grid of the district's own parcels, with their own account numbers, is
+ * evidence, and (b)(3) turns on exactly that median.
+ *
+ * INJECTION: point the TX branch back at generate-letter -> FAILS.
+ */
+{
+  const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+  /**
+   * Window widened from 900 to 3000 on first run: the explanatory comment
+   * between the branch and the fetch is longer than the gap allowed, so a
+   * correct file failed. A regex whose window is tuned to today's comment
+   * length is a test that breaks when someone documents their work.
+   */
+  /**
+   * MATCH THE CALL, NOT A MENTION.
+   *
+   * The first version searched for `/api/generate-50132` anywhere after the TX
+   * branch. Swapping the actual fetch to generate-letter left it PASSING —
+   * because the comment above the call names the route in prose, and the regex
+   * matched the documentation. That is the fourth guard today caught testing
+   * for a mention instead of the thing.
+   */
+  const txFetch = /fetch\(\s*["']\/api\/generate-50132["']/.test(apply);
+  t('apply.js actually calls the 50-132 generator for Texas', txFetch);
+  t('...and no longer sends Texas to the free-form letter',
+    txFetch && /stateCode === 'TX'/.test(apply));
+  t('a refusal from the generator is surfaced, not rendered as a document',
+    /txJson\.filable === false/.test(apply));
+
+  /**
+   * The route takes the account number and CAD and re-reads the roll itself. If
+   * it ever accepted values from the client, a browser could assert its own
+   * comparables into a filed document.
+   */
+  const route = readFileSync(new URL('../pages/api/generate-50132.js', import.meta.url), 'utf8');
+  t('generate-50132 reads the parcel from the roll, not from the request',
+    /from\('tx_parcels'\)/.test(route));
+  t('...and refuses a district we do not hold before querying anything',
+    /isCovered\(cadId\)/.test(route));
+}
+
+/**
+ * And the funnel vocabulary: a Texas verdict must record as an outcome the
+ * admin screens already understand, or every Texas check colours grey.
+ */
+{
+  const { TX_REASON_TO_OUTCOME } = await import('../lib/tx/lookup.js');
+  const { isKnownOutcome } = await import('../lib/checkOutcomes.js');
+  const unmapped = Object.values(TX_REASON_TO_OUTCOME).filter((o) => !isKnownOutcome(o));
+  t(`every Texas verdict maps onto the funnel vocabulary${unmapped.length ? ` — unknown: ${unmapped.join(', ')}` : ''}`,
+    unmapped.length === 0);
+
+  const qualifySrc = readFileSync(new URL('../lib/tx/qualify.js', import.meta.url), 'utf8');
+  const emitted = [...new Set([...qualifySrc.matchAll(/reason: '([a-z_]+)'/g)].map((m) => m[1]))];
+  const missing = emitted.filter((r) => !(r in TX_REASON_TO_OUTCOME));
+  t(`every reason lib/tx/qualify.js can emit is mapped${missing.length ? ` — missing: ${missing.join(', ')}` : ''}`,
+    missing.length === 0);
+}
+
 console.log(failures.length
   ? `verify-tx-dispatch: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-dispatch: ${pass} passed — no TX/GA protest can be mailed to an unconfirmed address`);

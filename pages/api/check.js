@@ -56,6 +56,7 @@ import { isFloridaZip, LOADED_COUNTY_NAMES, LOADED_COUNTIES } from '../../lib/do
 // Census geocoder is what supplies it, via the county name.
 import { coveredCadFromName, isCovered, LOADED_CADS } from '../../lib/tx/coverage';
 import { resolveCounty } from './resolve-county';
+import { txLookupAndQualify } from '../../lib/tx/lookup';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { recordCheckOutcome } from '../../lib/recordCheck';
 /**
@@ -221,17 +222,53 @@ export default async function handler(req, res) {
          * blocker.
          */
         if (txCad && isCovered(txCad)) {
+          /**
+           * THE ANSWER, THEN THE DATE — not the date instead of the answer.
+           *
+           * The first version of this branch returned only "the window opens
+           * 1 April, leave your email". It never ran the lookup, so a Texan
+           * learned nothing about their own property and we learned nothing
+           * about whether they were sellable.
+           *
+           * The verdict does not depend on the window. § 23.23 cap loss is
+           * published on the roll, so whether a protest CAN move this bill is
+           * arithmetic we can do today. What the window governs is when they
+           * may file, and that is stated alongside rather than instead.
+           *
+           * This is also the model in TX_Model_Decided: the check runs on the
+           * prior year's certified roll, orders queue, and dispatch re-runs
+           * against current-year values before mailing.
+           */
           const w = getFilingWindowStatus('TX', null, { strict: true });
           const opens = w && w.openDate
             ? new Date(w.openDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
             : null;
-          await recordCheckOutcome({ outcome: 'outside_coverage', source, county: txCounty });
+
+          const tx = await txLookupAndQualify(
+            { street, cadId: txCad, zip },
+            { issues: Array.isArray(b.issues) ? b.issues : [], costOverrides: b.costOverrides || {} },
+          );
+
+          // `outcome` is the shared funnel label; `reason` stays the Texas one,
+          // because it selects the copy. See TX_REASON_TO_OUTCOME.
+          const outcome = tx.found ? tx.outcome : tx.reason;
+          await recordCheckOutcome({ outcome, source, county: tx.county || txCounty });
+
           return res.status(200).json({
-            found: false,
-            reason: 'outside_coverage',
+            ...tx,
             state: 'TX',
-            county: txCounty,
-            message: `Texas protests are filed between 1 April and 15 May, so nothing can be filed today${opens ? ` — the window opens ${opens}` : ''}. We already hold ${txCounty} County's appraisal roll, so leave your email and we will check your property and tell you the day it opens.`,
+            county: tx.county || txCounty,
+            /**
+             * The window travels with the verdict so the page never has to ask
+             * a second question to know what the visitor may do next. Closed is
+             * the normal state for Texas for ten months of the year, and a
+             * verdict with no date attached would read as "file now".
+             */
+            filingWindow: {
+              isOpen: !!(w && w.isOpen),
+              opensOn: opens,
+              rollYear: tx.parcel?.rollYear || null,
+            },
           });
         }
 
