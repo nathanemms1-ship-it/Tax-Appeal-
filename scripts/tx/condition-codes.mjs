@@ -213,8 +213,31 @@ for (const r of rows) {
     + String(Math.round(Number(r.median_year) || 0)).padStart(15));
 }
 
-const spread = Math.max(...rows.map((r) => Number(r.median_psf)))
-  - Math.min(...rows.map((r) => Number(r.median_psf)));
+/**
+ * ============================================================================
+ * A ONE-PARCEL CODE IS NOT A FINDING. Added 7 Sept 2026, after a real run.
+ * ============================================================================
+ *
+ * --field quality_class on El Paso returned 67 codes. Six of them cover 99.3%
+ * of the county; the other 61 have between 1 and 85 parcels each, and include a
+ * single parcel at -94.9% of the district median.
+ *
+ * Computed over all 67, "spread" came out at 217.3% — a number driven entirely
+ * by two rows with n=1. And the recommendation block emitted a 57-code set
+ * built from that tail. Neither was a measurement; both were noise given a
+ * percentage sign.
+ */
+const MIN_CODE_PARCELS = 500;
+const strong = rows.filter((r) => r.parcels >= MIN_CODE_PARCELS);
+const covered = strong.reduce((a, r) => a + r.parcels, 0) / total;
+
+if (!strong.length) {
+  console.log(`\n  No code reaches ${MIN_CODE_PARCELS} parcels. Nothing here is measurable.\n`);
+  process.exit(0);
+}
+
+const spread = Math.max(...strong.map((r) => Number(r.median_psf)))
+  - Math.min(...strong.map((r) => Number(r.median_psf)));
 const spreadPct = (spread / overall) * 100;
 
 /**
@@ -226,86 +249,49 @@ const spreadPct = (spread / overall) * 100;
  */
 const FLAT_THRESHOLD_PCT = 10;
 
-/**
- * NO DATA IS NOT FLATNESS, AND SAYING SO WAS THE POINT OF RUNNING IT.
- *
- * El Paso came back as a single row: '(none)', 228,190 parcels, 100.0%. The
- * flat/not-flat branch below read that as "the district records condition
- * without pricing it" — a confident conclusion about a column that is entirely
- * empty. Of course the spread is 0.0%: there is one row.
- *
- * The cause is upstream of the district. PACS export layout 8.0.34 has no
- * condition field and no effective-year field anywhere in it —
- * APPRAISAL_IMPROVEMENT_DETAIL carries 12 fields and none of them is condition
- * — and scripts/tx/push.mjs's COLS never writes either column. The schema
- * declares them; nothing has ever populated them. Condition lives in the
- * district's internal PACS database, not in what it publishes.
- *
- * So this is a data-acquisition finding, not a valuation one, and it must not
- * be reported as the latter.
- */
-const onlyNone = rows.length === 1 && rows[0].code === '(none)';
-const noneShare = (rows.find((r) => r.code === '(none)')?.parcels || 0) / total;
+console.log(`\n  ${strong.length} code(s) reach ${MIN_CODE_PARCELS} parcels, covering ${(covered * 100).toFixed(1)}% of the county.`);
+console.log(`  Spread across those: ${spreadPct.toFixed(1)}% of the district median.`);
 
-if (onlyNone || noneShare > 0.98) {
-  console.log(`\n  NO DATA IN ${field}. ${(noneShare * 100).toFixed(1)}% of parcels carry no value.`);
-  console.log('  This is not a finding about how the district values condition — it is the');
-  console.log('  absence of the field. PACS export layout 8.0.34 has no condition column, and');
-  console.log('  scripts/tx/push.mjs never writes one.\n');
-  if (field === 'condition_code') {
-    console.log('  CONSEQUENCES, worth knowing before trusting a comp set:');
-    console.log('   - lib/tx/comps.js similarity() penalises a quality OR condition mismatch and');
-    console.log('     skips the term when either side is null, so the CONDITION half is inert.');
-    console.log('     The quality half is not: quality_class is populated from');
-    console.log('     Imprv_det_class_cd. Run --field quality_class to see whether it has spread.');
-    console.log('   - ageYear() falls back to year_built for subject and comps alike. Consistent,');
-    console.log('     so no asymmetry — but the district\'s own effective age is not being used.');
-    console.log('   - the double-count gate in lib/tx/costToCure.js cannot fire, which is correct:');
-    console.log('     BELOW_AVERAGE_CONDITION stays empty because there is nothing to classify.\n');
-    console.log('  Condition is not published: absent from PACS layout 8.0.34, absent from the');
-    console.log('  2026 code tables, and absent from the Improvements relational dump. Getting it');
-    console.log('  needs the Mass Appraisal Report or a direct request to the district.\n');
-  } else {
-    console.log(`  Nothing populates ${field} for this district, so anything keyed on it is inert.`);
-    console.log('  Check scripts/tx/push.mjs COLS and lib/tx/pacs.js before assuming the field is');
-    console.log('  simply unused — the schema declaring a column is not evidence anything writes it.\n');
+if (spreadPct < FLAT_THRESHOLD_PCT) {
+  console.log(`  -> FLAT. ${field} does not track value in this district. Anything keyed on it`);
+  console.log('     is recording a label rather than a valuation difference.\n');
+} else {
+  console.log(`  -> ${field} TRACKS VALUE. The district prices this difference.\n`);
+
+  const placeholders = strong.filter((r) => ['*', '**', '-', '--', '(none)'].includes(r.code));
+  for (const ph of placeholders) {
+    console.log(`     ⚠️  '${ph.code}' holds ${ph.parcels.toLocaleString()} parcels `
+      + `(${((ph.parcels / total) * 100).toFixed(1)}%) at ${(((Number(ph.median_psf) / overall) - 1) * 100).toFixed(1)}%.`);
+    console.log('        PACS writes it where nothing is assigned, so it means "not recorded",');
+    console.log('        not "this grade". lib/tx/comps.js codeOrNull() collapses it to null so');
+    console.log('        similarity() skips the term instead of asserting a difference.\n');
   }
-  process.exit(0);
-}
 
-console.log(`\n  Spread across codes: ${spreadPct.toFixed(1)}% of the district median.`);
-console.log(spreadPct < FLAT_THRESHOLD_PCT
-  ? '  -> FLAT. This district records condition without pricing it, so subtracting\n'
-    + '     cost to cure does not double-count. Leave BELOW_AVERAGE_CONDITION empty\n'
-    + '     for this cad and say so in lib/tx/costToCure.js.'
-  : '  -> VALUES MOVE WITH THE CODE. The district is pricing condition.');
-
-if (spreadPct >= FLAT_THRESHOLD_PCT) {
   /**
-   * "Codes below the district median" was the first version of this advice and
-   * it was wrong twice.
+   * The paste-ready set is emitted for condition_code ONLY.
    *
-   * It would have swept in '(none)' — but conditionDiscountRisk() treats an
-   * absent condition_code as NOT_BELOW_AVERAGE on purpose: a district that
-   * publishes no condition for a parcel cannot have discounted it for one.
-   * Putting '(none)' in the set would contradict the module it is populating.
-   *
-   * And "below the median" includes codes a percent or two under it, which is
-   * noise. The same threshold that decided the district prices condition at all
-   * is the one that should decide which codes carry it.
+   * The first version printed it for whatever --field was given, so profiling
+   * quality_class produced a 57-code BELOW_AVERAGE_CONDITION suggestion — a
+   * constant about condition, populated from a quality column, out of a tail of
+   * one-parcel codes. Field-aware in the no-data branch and not in this one.
    */
-  const candidates = rows.filter((r) => r.code !== '(none)'
-    && ((Number(r.median_psf) / overall - 1) * 100) <= -FLAT_THRESHOLD_PCT);
-  if (candidates.length) {
-    console.log('\n     Add to BELOW_AVERAGE_CONDITION in lib/tx/costToCure.js:\n');
-    console.log(`       ${cad}: new Set([${candidates.map((r) => `'${r.code}'`).join(', ')}]),\n`);
-    console.log('     Codes within ' + FLAT_THRESHOLD_PCT + '% of the median are left out as noise,');
-    console.log("     and '(none)' is excluded by design — a parcel the district publishes no");
-    console.log('     condition for cannot have been discounted for one.');
+  if (field === 'condition_code') {
+    const candidates = strong.filter((r) => r.code !== '(none)'
+      && ((Number(r.median_psf) / overall - 1) * 100) <= -FLAT_THRESHOLD_PCT);
+    if (candidates.length) {
+      console.log('     Add to BELOW_AVERAGE_CONDITION in lib/tx/costToCure.js:\n');
+      console.log(`       ${cad}: new Set([${candidates.map((r) => `'${r.code}'`).join(', ')}]),\n`);
+      console.log(`     Codes within ${FLAT_THRESHOLD_PCT}% of the median are left out as noise,`);
+      console.log("     '(none)' is excluded by design, and so is any code under "
+        + `${MIN_CODE_PARCELS} parcels.`);
+    }
   } else {
-    console.log('\n     ...but no single code sits more than ' + FLAT_THRESHOLD_PCT
-      + '% below the median, so the spread is\n     coming from the tails. Leave the set empty and look again with --class.');
+    console.log(`     ${field} is an input to comp SELECTION, not to the cost-to-cure gate.`);
+    console.log('     A real ladder here means lib/tx/comps.js similarity() is discriminating on');
+    console.log('     something the district itself prices, which is what makes the penalty worth');
+    console.log('     its weight. Nothing to paste — this is a health check, not a config source.');
   }
 }
-console.log('\n  Age is printed because it is the confounder: if the low-$/sqft codes are\n'
-  + '  also the oldest houses, some of that gap is age, not condition.\n');
+
+console.log('\n  Age is printed because it is the confounder: if the low-$/sqft codes are');
+console.log('  also the oldest houses, some of that gap is age, not condition.\n');
