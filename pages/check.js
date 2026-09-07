@@ -6,6 +6,9 @@ import Link from 'next/link';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import ContactModal from '../components/ContactModal';
 import { getFilingWindowStatus } from '../lib/filingWindows';
+// The waitlist capture asks which state the property is in, rather than
+// assuming Florida. See leadState below.
+import { ALL_STATES, STATE_NAMES } from '../lib/stateService';
 /**
  * THE VERDICT WE JUST RENDERED, carried into /apply so it is not asked again.
  *
@@ -250,6 +253,19 @@ export default function CheckPage() {
   }, []);
   const [state, setState] = useState({ status: 'idle', data: null, error: null });
   const [email, setEmail] = useState('');
+  /**
+   * THE STATE THE VISITOR IS ACTUALLY IN. Added 7 Sept 2026.
+   *
+   * joinList sent `state: 'FL'` hardcoded — including on the out-of-coverage
+   * branch, which is reached precisely BECAUSE the ZIP is not Florida. So a
+   * Texan who left their email was filed as a Florida lead, and
+   * cron/notify-waitlist would email them when FLORIDA's window opened.
+   *
+   * That branch's copy already promises "Tell us your state and we'll email you
+   * the moment it does". It never asked. This field keeps the promise, rather
+   * than a ZIP-to-state table we would have to invent.
+   */
+  const [leadState, setLeadState] = useState('FL');
   const [emailState, setEmailState] = useState('idle');
   const [contactOpen, setContactOpen] = useState(false);
   // ZIP is disclosed on demand rather than shown by default — see the comment at
@@ -387,7 +403,9 @@ export default function CheckPage() {
          */
         body: JSON.stringify({
           email: email.trim(),
-          state: 'FL',
+          // Was hardcoded 'FL'. See leadState above — wrong exactly where it
+          // mattered most, on the branch reached because the ZIP is not Florida.
+          state: leadState,
           county: LOADED_COUNTIES[Number(state.data?.parcel?.coNo)] || '',
           propertyAddress: state.data?.parcel?.address || `${composedStreet(form)}, ${form.zip}`,
           blockedReason: reason,
@@ -797,6 +815,23 @@ export default function CheckPage() {
                     aria-label="Email address"
                     style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
                   />
+                  {/*
+                    THE STATE FIELD THE COPY ALREADY PROMISED. 7 Sept 2026.
+                    "Tell us your state and we'll email you the moment it does"
+                    was printed above a form that only took an email and filed
+                    every lead as Florida.
+                  */}
+                  <select
+                    value={leadState}
+                    onChange={(e) => setLeadState(e.target.value)}
+                    aria-label="Which state is your property in?"
+                    style={{ flex: '1 1 150px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit', background: C.white }}
+                  >
+                    {ALL_STATES.map((code) => (
+                      <option key={code} value={code}>{STATE_NAMES[code]}</option>
+                    ))}
+                  </select>
+
                   <button
                     type="submit"
                     disabled={emailState === 'loading'}
@@ -958,10 +993,74 @@ export default function CheckPage() {
                   the copy no longer diagnoses a cause it cannot know.
                 */}
                 Check the street number and spelling — the ZIP is optional, and leaving it out
-                searches wider. We hold the current roll for all 67 Florida counties, so a real
-                miss is usually a very new build or a parcel split that this year&rsquo;s roll
-                has not caught up with.
+                searches wider. We hold the current roll for all 67 Florida counties, so if the
+                property is in Florida this is usually a very new build or a parcel split that
+                this year&rsquo;s roll has not caught up with.
               </p>
+
+              {/*
+                ============================================================
+                THIS BRANCH WAS A DEAD END, AND MOST OF THE PEOPLE IN IT ARE
+                NOT IN FLORIDA. 7 Sept 2026.
+                ============================================================
+                check_events for 21 Aug - 7 Sept: 126 lookups answered "we do
+                not have a record for this address" out of ~468 checks. 114 of
+                those retrieved ZERO rows, which is what an address that is not
+                on the FLORIDA roll looks like.
+
+                pages/api/check.js answers out-of-state on the ZIP, and the ZIP
+                is optional — a documented trade-off. So a Texan who omits it
+                falls past the out-of-coverage branch, misses the Florida roll,
+                and lands here: told their property does not exist, with no way
+                to leave an address. The branch four hundred lines up, reached
+                only when a ZIP happens to be present, offers exactly that.
+
+                Same form, same reason code. The copy above no longer asserts
+                they are in Florida either.
+              */}
+              {emailState === 'done' ? (
+                <p style={{ color: C.green, fontWeight: 600, margin: '16px 0 0' }}>
+                  Done. We&rsquo;ll email you when we can help.
+                </p>
+              ) : (
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>
+                    Not in Florida, or think we should have found it?
+                  </p>
+                  <p style={{ fontSize: 13, color: C.muted, margin: '0 0 12px', lineHeight: 1.5 }}>
+                    Tell us where the property is and we&rsquo;ll email you when your state&rsquo;s
+                    filing window opens — or when we can look this one up.
+                  </p>
+                  <form onSubmit={(e) => joinList(e, 'fl_no_parcel_record')} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      aria-label="Email address"
+                      style={{ flex: '2 1 240px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit' }}
+                    />
+                    <select
+                      value={leadState}
+                      onChange={(e) => setLeadState(e.target.value)}
+                      aria-label="Which state is your property in?"
+                      style={{ flex: '1 1 150px', padding: '13px 14px', fontSize: 16, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: 'inherit', background: C.white }}
+                    >
+                      {ALL_STATES.map((code) => (
+                        <option key={code} value={code}>{STATE_NAMES[code]}</option>
+                      ))}
+                    </select>
+                    <button type="submit" className="btn-p" style={{ flex: '1 1 130px', padding: '13px 20px', fontSize: 15 }}>
+                      {emailState === 'loading' ? 'Saving…' : 'Keep me posted'}
+                    </button>
+                  </form>
+                  {emailState === 'error' && (
+                    <p style={{ color: C.red || '#b00', fontSize: 13, margin: '10px 0 0' }}>
+                      That didn&rsquo;t save. Try again, or use the contact link below.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
