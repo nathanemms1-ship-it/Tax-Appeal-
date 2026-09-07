@@ -145,34 +145,16 @@ export default async function handler(req, res) {
 
     // A refusal is a 200. It is a finding, not an error, and the caller has to
     // show it to the customer rather than retry.
-    if (!packet.filable) {
-      // The caller renders this as a FINDING, not an error, so it needs the
-      // numbers behind the sentence — otherwise the screen can only repeat our
-      // prose back at the customer with nothing to check it against.
-      const v = packet.verdict || {};
-      return res.status(200).json({
-        success: false, filable: false, isTX: true,
-        reason: packet.reason,
-        message: packet.message || null,
-        county: LOADED_CADS[cadId] || null,
-        accountNumber,
-        taxYear,
-        marketValue: v.marketValue ?? null,
-        appraisedValue: v.appraisedValue ?? null,
-        requiredReduction: v.requiredReduction ?? null,
-        breakEvenMarketValue: v.breakEvenMarketValue ?? null,
-        isCapped: v.isCapped ?? null,
-        // capStatement is NOT sent. qualify() already embeds it inside the
-        // messages that need it, and the finding screen renders the figures as
-        // a panel rather than as prose. Sending it would be one more field the
-        // receiver never reads — which is the bug this route was just fixed for.
-        compCount: comps?.comps?.length ?? 0,
-        // True when the owner has reported nothing yet, so a condition case is
-        // still an untried route rather than one that has already been costed.
-        issuesUntried: issues.length === 0,
-      });
-    }
-
+    /**
+     * buildProtest no longer refuses on the merits, so there is no refusal
+     * branch here any more. What used to be five dead ends now arrive as
+     * `packet.cautions` and travel WITH the document: the customer reads them,
+     * sees the packet they would be buying, and decides.
+     *
+     * The one case that still throws is a parcel row that is not a roll row —
+     * see the ROLL_KEYS check in buildProtest. That is our bug, not a finding,
+     * and it lands in the 500 below.
+     */
     const html = renderProtestHtml(packet);
 
     let letterKey = null;
@@ -183,12 +165,25 @@ export default async function handler(req, res) {
       } catch (err) { console.log('Redis cache failed:', err.message); }
     }
 
+    const v = packet.verdict || {};
     return res.status(200).json({
       success: true, filable: true, isTX: true, letterKey, html,
       requestedValue: packet.requestedValue,
       reductionSought: packet.reductionSought,
-      confidence: packet.grid.confidence,
-      compCount: packet.grid.compCount,
+      hasGrid: packet.hasGrid,
+      // Everything that used to end the sale. Empty array on a clean packet.
+      cautions: packet.cautions || [],
+      confidence: packet.hasGrid ? packet.grid.confidence : null,
+      compCount: packet.hasGrid ? packet.grid.compCount : 0,
+      county: LOADED_CADS[cadId] || null,
+      taxYear,
+      accountNumber,
+      marketValue: v.marketValue ?? null,
+      appraisedValue: v.appraisedValue ?? null,
+      requiredReduction: v.requiredReduction ?? null,
+      breakEvenMarketValue: v.breakEvenMarketValue ?? null,
+      isCapped: v.isCapped ?? null,
+      issuesUntried: issues.length === 0,
     });
   } catch (err) {
     console.error('50-132 error:', err);

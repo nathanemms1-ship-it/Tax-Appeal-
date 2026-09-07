@@ -14,7 +14,7 @@
 import { register } from 'node:module';
 register('./resolve-extensionless.mjs', import.meta.url);
 
-const { buildProtest, NOT_FILABLE, opinionOfValue, STATUTE_PLAIN_LANGUAGE } =
+const { buildProtest, CAUTION_CODES, opinionOfValue, STATUTE_PLAIN_LANGUAGE } =
   await import('../lib/tx/protest.js');
 
 let pass = 0; const failures = [];
@@ -165,7 +165,10 @@ refusals.set('capped beyond reach', buildProtest({
 
 refusals.set('no comparables', buildProtest({
   parcel: subject, taxYear: 2026,
-  comps: { sufficient: false, reason: 'insufficient_comparables', message: 'x' } }));
+  comps: { sufficient: false, reason: 'no_comparables', comps: [],
+    message: 'The appraisal district’s roll has no comparable properties we can match to '
+      + 'this one — nothing shares its neighborhood grouping, size and age closely enough '
+      + 'to compare. There is no unequal-appraisal exhibit to build from it.' } }));
 
 refusals.set('not over-appraised', buildProtest({
   parcel: subject, taxYear: 2026, comps: { ...goodComps, basis: 'none' } }));
@@ -177,21 +180,63 @@ refusals.set('nothing to ask for', buildProtest({
   parcel: subject, taxYear: 2026,
   comps: { ...goodComps, indicatedAppraised: 400000, indicatedMarket: 400000 } }));
 
+/**
+ * REWRITTEN 7 Sept 2026. These five used to assert `filable === false`.
+ *
+ * Nothing refuses any more — § 41.44(d) makes a notice sufficient on owner,
+ * property and dissatisfaction alone, so for any parcel we can identify a valid
+ * protest can always be produced. Each of these five now has to come back as a
+ * BUILDABLE packet carrying a named caution, and the cautions must still be
+ * distinguishable from one another for the same reason the reasons were:
+ * a warning that cannot be told apart from another warning is a bug nobody
+ * will ever find.
+ *
+ * INJECTION: restore any `return { filable: false, ... }` in buildProtest -> FAILS.
+ */
 for (const [label, r] of refusals) {
-  t(`${label}: refused rather than filed`, r.filable === false);
-  t(`${label}: carries a named reason`, typeof r.reason === 'string' && r.reason.length > 0);
+  t(`${label}: still produces a filable packet`, r.filable === true);
+  t(`${label}: carries at least one caution`,
+    Array.isArray(r.cautions) && r.cautions.length > 0);
+  t(`${label}: every caution is named and explained`,
+    (r.cautions || []).every((c) => typeof c.code === 'string' && c.code
+      && typeof c.message === 'string' && c.message.length > 20));
+  t(`${label}: the form is complete enough to file`,
+    !!r.form50132 && !!r.form50132.accountNumber && r.form50132.grounds.length > 0);
 }
-const reasonValues = [...refusals.values()].map((r) => r.reason);
-t('no two refusals share a reason value', new Set(reasonValues).size === reasonValues.length);
+const codeSets = [...refusals.values()].map((r) => (r.cautions || []).map((c) => c.code).sort().join('+'));
+t('no two of these cases produce the same set of cautions',
+  new Set(codeSets).size === codeSets.length);
+
+
+
+const codesOf = (label) => (refusals.get(label).cautions || []).map((c) => c.code);
 
 t('capped-beyond-reach is the cap gate, not a comps failure',
-  refusals.get('capped beyond reach').reason === 'capped_beyond_reach');
-t('a parcel already at or below its neighbours is refused by name',
-  refusals.get('not over-appraised').reason === NOT_FILABLE.NOT_UNEQUAL);
-t('the cap-artifact case is refused by its own name, not folded into the above',
-  refusals.get('cap artifact only').reason === NOT_FILABLE.CAP_ARTIFACT);
-t('an indication above the roll value never becomes a filing',
-  refusals.get('nothing to ask for').reason === NOT_FILABLE.NOTHING_TO_ASK);
+  codesOf('capped beyond reach').includes('capped_beyond_reach'));
+t('a parcel already at or below its neighbors is cautioned by name',
+  codesOf('not over-appraised').includes(CAUTION_CODES.NOT_UNEQUAL));
+t('the cap-artifact case keeps its own name, not folded into the above',
+  codesOf('cap artifact only').includes(CAUTION_CODES.CAP_ARTIFACT));
+
+/**
+ * AN INDICATION AT OR ABOVE THE ROLL VALUE NEVER BECOMES A NUMBER ON THE FORM.
+ *
+ * This is the one thing that survives the no-refusals rule as a hard product
+ * behaviour, because printing it would ask the board to KEEP or RAISE the value.
+ * The packet is still built and still filable — § 41.44(d) needs no opinion of
+ * value — but Section 4 is blank and the owner is told why.
+ *
+ * INJECTION: `const askable = opinion;` in buildProtest -> FAILS.
+ */
+{
+  const r = refusals.get('nothing to ask for');
+  t('an indication above the roll value is cautioned by name',
+    codesOf('nothing to ask for').includes(CAUTION_CODES.NOTHING_TO_ASK));
+  t('and never reaches Section 4 as a number',
+    r.form50132.opinionOfValue === null && r.requestedValue === null);
+  t('while the packet itself is still filable',
+    r.filable === true && r.form50132.grounds.length > 0);
+}
 
 /**
  * THE SEAM THAT COST TWO HOURS ON 7 SEPT.
@@ -203,11 +248,23 @@ t('an indication above the roll value never becomes a filing',
  * INJECTION: pass ok.grid.subject (camelCase) as `parcel` -> this FAILS unless
  * the refusal is the honest no-value one, which is what proves the shapes differ.
  */
-const camel = buildProtest({
-  parcel: { cadId: 71, marketValue: 300000, appraisedValue: 300000, livingArea: 2000 },
-  comps: goodComps, taxYear: 2026 });
-t('a camelCase parcel is refused, loudly, rather than quietly filed',
-  camel.filable === false);
+/**
+ * This used to be caught by the no-value REFUSAL. Refusals are gone, so without
+ * an explicit check it would now be a SALE: a blank protest built for a house
+ * whose value we are holding in memory. It throws instead — it is our bug, not
+ * a finding a customer can weigh.
+ *
+ * INJECTION: delete the ROLL_KEYS check in buildProtest -> FAILS.
+ */
+let camelThrew = null;
+try {
+  buildProtest({
+    parcel: { cadId: 71, marketValue: 300000, appraisedValue: 300000, livingArea: 2000 },
+    comps: goodComps, taxYear: 2026 });
+} catch (err) { camelThrew = err.message; }
+t('a camelCase parcel throws rather than quietly becoming a blank filing',
+  typeof camelThrew === 'string');
+t('and the error names the fix', /\.row/.test(camelThrew || ''));
 
 // ── 3. WHAT THE DOCUMENT ACTUALLY SAYS ───────────────────────────────────────
 /**
@@ -234,6 +291,65 @@ t('a camelCase parcel is refused, loudly, rather than quietly filed',
  * These assertions exist so neither comes back.
  */
 const { renderProtestHtml } = await import('../lib/tx/protestHtml.js');
+
+/**
+ * NO COMPARABLES MEANS NO EVIDENCE PAGE.
+ *
+ * Caught by injection, not by writing: removing the `hasGrid` conditional passed
+ * every assertion in this file, because nothing looked at whether the grid page
+ * appeared. An empty table under the heading "UNEQUAL APPRAISAL — COMPARABLE
+ * PROPERTY ANALYSIS" and the § 41.43(b)(3) recital reads to a board like a
+ * filing that lost its exhibit, which is worse than a filing that never claimed
+ * to have one. The NOTICE is still valid on its own under § 41.44(d).
+ *
+ * INJECTION: render renderGrid unconditionally -> FAILS.
+ */
+{
+  const bare = renderProtestHtml(refusals.get('no comparables'));
+  t('a packet with no comparables prints no evidence page',
+    !bare.includes('UNEQUAL APPRAISAL') && !bare.includes('41.43(b)(3)'));
+  t('but still prints a complete notice of protest',
+    bare.includes('NOTICE OF PROTEST') && bare.includes('SECTION 6'));
+  t('and hasGrid says so on the packet',
+    refusals.get('no comparables').hasGrid === false);
+
+  // The normal case must still carry it, or the assertion above is satisfied by
+  // a renderer that never draws a grid at all.
+  t('a packet with comparables still prints the evidence page',
+    renderProtestHtml(ok).includes('UNEQUAL APPRAISAL') && ok.hasGrid === true);
+}
+
+/**
+ * SECTION 4 IS EMPTY ON THE PAGE, not merely null in the object.
+ *
+ * INJECTION: `const askable = opinion;` in buildProtest -> FAILS.
+ */
+{
+  const r = refusals.get('nothing to ask for');
+  const doc = renderProtestHtml(r);
+  const s4 = doc.slice(doc.indexOf('SECTION 4'), doc.indexOf('SECTION 5'));
+  t('the opinion-of-value box renders empty when there is nothing to ask',
+    /<div class="fv"><b><\/b><\/div>/.test(s4));
+  t('and the page explains why it is blank, citing § 41.44(d)',
+    /left blank on purpose/i.test(s4) && s4.includes('41.44(d)'));
+  t('and no dollar figure appears in Section 4 at all',
+    !/\$[0-9]/.test(s4));
+}
+
+/**
+ * A CAUTION IS FOR THE OWNER, NEVER FOR THE BOARD.
+ *
+ * These sentences say what is weak about the case. Printing them on the filed
+ * document would hand the appraisal district our own rebuttal, in writing,
+ * stapled to the protest.
+ *
+ * INJECTION: render packet.cautions anywhere in protestHtml -> FAILS.
+ */
+for (const [label, r] of refusals) {
+  const doc = renderProtestHtml(r);
+  t(`${label}: no caution text reaches the filed document`,
+    (r.cautions || []).every((c) => !doc.includes(c.message)));
+}
 const html = renderProtestHtml(ok);
 
 t('the document never orders the owner to tick a box it also leaves blank',

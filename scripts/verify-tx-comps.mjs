@@ -104,16 +104,27 @@ t('effective year is preferred over year built when the district publishes one',
   ageYear({ year_built: 1980, effective_year_built: 2005 }) === 2005
   && ageYear({ year_built: 1980, effective_year_built: null }) === 1980);
 
-// ── 5. SELECTION REFUSES A THIN SET RATHER THAN PADDING IT ───────────────────
+// ── 5. SELECTION REPORTS WHAT IT FOUND; MIN_COMPS DRIVES THE SEARCH ──────────
 /**
- * Returning fewer than MIN_COMPS would let a filing go out on a comparison too
- * thin to defend. The caller loosens the band and retries; it must not be handed
- * a short set that looks complete.
+ * REWRITTEN 7 Sept 2026. This used to assert `selectComps(...) === null` for a
+ * short set, because MIN_COMPS was doing two jobs at once: deciding when the
+ * ladder could stop widening, and deciding whether we would file at all.
+ *
+ * The second job was never ours — § 41.43(b)(3) asks for "a reasonable number of
+ * comparable properties" and names no figure, so there is no statutory floor to
+ * enforce. selectComps now returns whatever the band holds, findComps keeps
+ * searching for something fuller, and a short set only survives if nothing
+ * better exists anywhere on the ladder.
+ *
+ * INJECTION: restore `if (inBand.length < MIN_COMPS) return null;` -> FAILS.
  */
 {
   const few = [1, 2].map((i) => ({ ...base, account_number: 'C' + i }));
-  t(`fewer than ${MIN_COMPS} candidates returns null, not a short set`,
-    selectComps(base, few, BANDS) === null);
+  const short = selectComps(base, few, BANDS);
+  t('a short band returns the comps it found rather than null',
+    Array.isArray(short) && short.length === 2);
+  t('and an empty band still returns null, because there is nothing to report',
+    selectComps(base, [], BANDS) === null);
   const plenty = Array.from({ length: 12 }, (_, i) => ({
     ...base, account_number: 'C' + i, living_area: 1990 + i,
     appraised_value: 290000 + i * 1000, market_value: 290000 + i * 1000,

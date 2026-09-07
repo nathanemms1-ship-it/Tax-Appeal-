@@ -3057,9 +3057,36 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // Non-null when the county's own figures show an appeal cannot reduce this
   // owner's tax. See the block in run() for why this stops the sale outright.
   const [noSavings, setNoSavings] = useState(null);
-  // Non-null when a Texas packet could not be built from the roll as it stands.
-  // A FINDING, never an error — see the branch in run() and the screen below.
-  const [txFinding, setTxFinding] = useState(null);
+  // Non-null when a Texas packet came back carrying cautions. The packet EXISTS
+  // and is filable; this holds it while the owner reads what is weak about it
+  // and decides. Never an error — see the branch in run() and the screen below.
+  const [txReview, setTxReview] = useState(null);
+
+  /**
+   * Move a Texas packet into propData and show it.
+   *
+   * Called from two places with the same object: straight through when there is
+   * nothing to caution about, and from the Proceed button when the owner has
+   * read the cautions and wants it anyway. One function so the two paths cannot
+   * drift into producing different orders.
+   *
+   * `pd` is passed on the straight-through path because run() is still holding
+   * the object it built; the Proceed path has no such object and updates state.
+   */
+  const applyTxPacket = (j, pd = null) => {
+    const fields = {
+      letterContent: j.html || '',
+      protestPreview: j.html || '',
+      requestedValue: j.requestedValue ?? null,
+      reductionSought: j.reductionSought ?? null,
+      compCount: j.compCount ?? 0,
+      hasGrid: j.hasGrid ?? null,
+      txCautions: (j.cautions || []).map((c) => c.code),
+    };
+    if (pd) Object.assign(pd, fields);
+    else setPropData((prev) => ({ ...(prev || {}), ...fields }));
+    setTxReview(null);
+  };
   // Non-null when the owner's manual entry matches their capped assessed value
   // rather than just value. Blocks the step until they pick which they meant.
   const [valueConflict, setValueConflict] = useState(null);
@@ -3486,27 +3513,23 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
         if (!txRes.ok) throw new Error(txJson?.error || 'Could not prepare the Texas protest');
 
         /**
-         * A REFUSAL IS A 200 AND IS NOT AN ERROR.
+         * CAUTIONS PAUSE THE FLOW. THEY NEVER END IT.
          *
-         * This used to `throw`, which landed in setErrMsg and rendered the error
-         * screen: a ⚠️ over the heading "Lookup failed", our sentence inside a
-         * red box, and a "Try Again" button for an operation that is fully
-         * deterministic and would return the same answer every time. Nothing had
-         * failed. The lookup had worked perfectly and told us something true.
+         * This branch has been three different things in one day. It threw an
+         * Error, which rendered "Lookup failed" in red over a Try Again button
+         * for a deterministic result. Then it rendered a finding screen that was
+         * still a dead end. Now the packet is always built, and anything weak
+         * about it is shown to the owner as cautions, with the decision theirs.
          *
-         * Findings now render as findings, on the same footing as the Florida
-         * noSavings screen, which got this right first.
+         * A clean packet has an empty cautions array and never stops here.
          */
-        if (txJson.filable === false) {
-          setTxFinding(txJson);
+        if (Array.isArray(txJson.cautions) && txJson.cautions.length > 0) {
+          setTxReview(txJson);
           setLoading(false);
           return;
         }
 
-        pd.letterContent = txJson.html || '';
-        pd.protestPreview = txJson.html || '';
-        pd.requestedValue = txJson.requestedValue ?? null;
-        pd.reductionSought = txJson.reductionSought ?? null;
+        applyTxPacket(txJson, pd);
       } else if (stateCode === 'GA') {
         const gaRes = await fetch("/api/generate-pt311a", {
           method: "POST",
@@ -3618,42 +3641,44 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   }
 
   /**
-   * TEXAS FINDING — deliberately not an error screen.
+   * TEXAS REVIEW — what is weak about this packet, before any money changes hands.
    *
-   * Same footing as the Florida noSavings screen above: no warning glyph, no red,
-   * no "Try Again". The customer is being told something true about their own
-   * parcel, drawn from the district's own roll, before any charge.
-   *
-   * Where they have not yet reported condition, that route is offered — it is a
-   * real one: cost to cure feeds qualify(), and enough of it moves a parcel from
-   * capped_beyond_reach to capped_but_reachable.
+   * Deliberately not an error screen and deliberately not a refusal. The packet
+   * exists; the two buttons carry equal weight; nothing on this page tells the
+   * owner what to do. § 41.44(d) is why we can always offer to file: a notice is
+   * sufficient on owner, property and dissatisfaction alone.
    */
-  if (txFinding) {
-    const fmtUsd = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
-    // `no_value_on_roll` reaches here with no figures at all — the district
-    // publishes none, which is the whole finding. Filter on the VALUE, not just
-    // on the row: .filter(Boolean) dropped the null capped-row but happily kept
-    // ['District market value', null] and rendered an em-dash under it.
+  if (txReview) {
+    const fmtUsd = (v) => (v || v === 0 ? `$${Number(v).toLocaleString()}` : '—');
     const rows = [
-      ['District market value', txFinding.marketValue],
-      ['You are taxed on', txFinding.appraisedValue],
-      txFinding.isCapped ? ['Capped below market by', txFinding.requiredReduction] : null,
-      // The number that actually decides whether a protest can move the bill:
-      // below this, the cap stops absorbing the reduction.
-      txFinding.isCapped ? ['Your bill only changes below', txFinding.breakEvenMarketValue] : null,
+      ['District market value', txReview.marketValue],
+      ['You are taxed on', txReview.appraisedValue],
+      txReview.isCapped ? ['Capped below market by', txReview.requiredReduction] : null,
+      txReview.isCapped ? ['Your bill only changes below', txReview.breakEvenMarketValue] : null,
+      txReview.requestedValue ? ['We would ask the board for', txReview.requestedValue] : null,
     ].filter((r) => r && Number.isFinite(Number(r[1])) && Number(r[1]) > 0);
+
     return (
-      <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
+      <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 24px" }}>
         <div style={cardStyle}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-            What the appraisal roll shows for this property
+            Read this before you decide
           </h2>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
-            {txFinding.message}
+            Your protest is ready to file. There {txReview.cautions.length === 1 ? 'is one thing' : `are ${txReview.cautions.length} things`}{' '}
+            about it you should know first.
           </p>
 
+          {txReview.cautions.map((c) => (
+            <div key={c.code} style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: "14px 16px", marginBottom: 12 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, margin: 0 }}>
+                {c.message}
+              </p>
+            </div>
+          ))}
+
           {rows.length > 0 && (
-            <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 18 }}>
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, margin: "18px 0" }}>
               {rows.map(([label, value]) => (
                 <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
                   <span>{label}</span><strong style={{ color: C.darkNavy }}>{fmtUsd(value)}</strong>
@@ -3662,26 +3687,22 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             </div>
           )}
 
-          {txFinding.compCount > 0 && (
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 14 }}>
-              We found <strong>{txFinding.compCount}</strong> comparable{txFinding.compCount === 1 ? '' : 's'}{' '}
-              for this property in the appraisal district&rsquo;s own neighborhood grouping.
-            </p>
-          )}
-
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 20 }}>
-            You haven&rsquo;t been charged. Every figure above is {txFinding.county
-              ? `${txFinding.county} Central Appraisal District's own` : "the appraisal district's own"}{' '}
-            published number for tax year {txFinding.taxYear} — check them against your notice of
-            appraised value; they should match exactly.
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 18 }}>
+            {txReview.compCount > 0
+              ? `Built from ${txReview.compCount} comparable ${txReview.compCount === 1 ? 'property' : 'properties'} on `
+              : 'Drawn from '}
+            {txReview.county ? `${txReview.county} Central Appraisal District's` : "the appraisal district's"}{' '}
+            own {txReview.taxYear} appraisal roll. You haven&rsquo;t been charged yet, and the
+            decision to file is yours — every Texas owner has the right to protest their own
+            appraisal whatever we think of the evidence.
           </p>
 
-          {txFinding.issuesUntried && onAddIssues && (
+          {txReview.issuesUntried && onAddIssues && (
             <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 12 }}>
-                <strong>This is what the roll says about a house in average condition.</strong> It
-                does not know about a failed roof, a dead air conditioner, or an original kitchen.
-                What those cost to put right is evidence the district has not accounted for.
+                <strong>The roll describes a house in average condition.</strong> It does not know
+                about a failed roof, a dead air conditioner or an original kitchen. What those cost
+                to put right is evidence the district has not accounted for.
               </p>
               <button style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }} onClick={onAddIssues}>
                 Tell us what&rsquo;s wrong with the property →
@@ -3689,7 +3710,15 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             </div>
           )}
 
-          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <button style={{ ...primaryBtn, width: "auto", padding: "12px 24px" }}
+              onClick={() => applyTxPacket(txReview)}>
+              Continue with my protest →
+            </button>
+            <button style={{ ...secondaryBtn, width: "auto", padding: "11px 22px" }} onClick={onRestart}>
+              Not this year
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -129,8 +129,12 @@ if (elPaso && !isMailable(elPaso)) {
   t('apply.js actually calls the 50-132 generator for Texas', txFetch);
   t('...and no longer sends Texas to the free-form letter',
     txFetch && /stateCode === 'TX'/.test(apply));
-  t('a refusal from the generator is surfaced, not rendered as a document',
-    /txJson\.filable === false/.test(apply));
+  // `filable === false` no longer exists — buildProtest does not refuse on the
+  // merits. What used to be a refusal arrives as cautions and is surfaced by the
+  // review screen instead.
+  t('a weak case from the generator is surfaced, not silently sold',
+    /Array\.isArray\(txJson\.cautions\)/.test(apply)
+    && !/txJson\.filable === false/.test(apply));
 
   /**
    * The route takes the account number and CAD and re-reads the roll itself. If
@@ -210,43 +214,49 @@ if (elPaso && !isMailable(elPaso)) {
   }
 
   /**
-   * A REFUSAL MUST NOT REACH THE CUSTOMER AS AN ERROR.
+   * A WEAK CASE PAUSES THE FLOW; IT NEVER ENDS IT.
    *
-   * `throw new Error(txJson.message)` landed in setErrMsg, which renders the
-   * heading "Lookup failed" over a red box and a Try Again button — for a
-   * deterministic result that would never change. Nothing had failed.
+   * This branch has been three things in one day: a thrown Error rendering
+   * "Lookup failed" over a Try Again button; a finding screen that was still a
+   * dead end; and now a review screen with two equal buttons. buildProtest no
+   * longer refuses on the merits, so a Texas order can always be completed.
    *
-   * INJECTION: restore the throw in the filable === false branch -> FAILS.
+   * INJECTION: restore the throw, or drop the Continue button -> FAILS.
    */
-  const branch = apply.slice(apply.indexOf('if (txJson.filable === false)'), apply.indexOf('pd.letterContent'));
-  t('a Texas finding is routed to state, not thrown as an error',
-    /setTxFinding\(/.test(branch) && !/throw/.test(branch));
-  t('and there is a screen that renders it',
-    /if \(txFinding\) \{/.test(apply));
-  // Every figure the route sends must be rendered by the screen. This is the
-  // send/read pairing stated as an assertion instead of as a hope.
-  {
-    const screen = apply.slice(apply.indexOf('if (txFinding) {'), apply.indexOf('if (errMsg) {'));
-    const sent = [...new Set([...route.slice(route.indexOf('filable: false'), route.indexOf('const html'))
-      .matchAll(/^\s{8}([a-zA-Z]+):/gm)].map((m) => m[1]))]
-      .filter((f) => !['success', 'filable', 'isTX', 'reason'].includes(f));
-    const unread = sent.filter((f) => !screen.includes(`txFinding.${f}`));
-    t(`every field the refusal sends is read by the screen${unread.length ? ` — unread: ${unread.join(', ')}` : ''}`,
-      unread.length === 0);
-  }
+  const branch = apply.slice(apply.indexOf('if (Array.isArray(txJson.cautions)'), apply.indexOf('} else if (stateCode === \'GA\')'));
+  t('cautions are routed to state, not thrown as an error',
+    /setTxReview\(/.test(branch) && !/throw/.test(branch));
+  t('and a clean packet goes straight through without stopping',
+    /applyTxPacket\(txJson, pd\)/.test(branch));
 
-  t('which is not styled as a failure',
-    !/Lookup failed|Try Again/.test(
-      apply.slice(apply.indexOf('if (txFinding) {'), apply.indexOf('if (errMsg) {'))));
+  const screen = apply.slice(apply.indexOf('if (txReview) {'), apply.indexOf('if (errMsg) {'));
+  t('there is a review screen for it', screen.length > 500);
+  t('which is not styled as a failure', !/Lookup failed|Try Again/.test(screen));
+  t('and offers to continue with the protest anyway',
+    /applyTxPacket\(txReview\)/.test(screen) && /Continue with my protest/.test(screen));
+  t('and says plainly that the decision is the owner’s',
+    /decision to file is yours/.test(screen));
 
-  // The screen prints numbers, so the route has to send them.
-  // capStatement deliberately absent: nothing renders it. Asserting a field is
-  // PRESENT in a payload proves nothing about whether anything consumes it —
-  // that is how `issues` survived unread for the whole build.
-  for (const field of ['marketValue', 'appraisedValue', 'issuesUntried']) {
-    t(`the refusal response carries ${field} for the finding screen`,
-      new RegExp(`${field}[,:]`).test(route.slice(route.indexOf('filable: false'))));
-  }
+  /**
+   * ONE FUNCTION BUILDS THE ORDER ON BOTH PATHS.
+   *
+   * Straight-through and Proceed must produce the same order. Two copies of the
+   * assignment would drift, and the drift would only show up in the half of the
+   * funnel that carries the weakest cases.
+   */
+  t('both paths go through applyTxPacket',
+    (apply.match(/applyTxPacket\(/g) || []).length >= 2
+    && /applyTxPacket\(txJson, pd\)/.test(apply)
+    && /applyTxPacket\(txReview\)/.test(apply));
+
+  // Every field the response sends must be read somewhere in apply.js.
+  const sent = [...new Set([...route.slice(route.indexOf('success: true, filable: true'))
+    .matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]))]
+    .filter((f) => !['success', 'filable', 'isTX', 'letterKey', 'confidence'].includes(f));
+  const unread = sent.filter((f) => !apply.includes(`txReview.${f}`) && !apply.includes(`j.${f}`)
+    && !apply.includes(`txJson.${f}`));
+  t(`every field the packet response sends is read${unread.length ? ` — unread: ${unread.join(', ')}` : ''}`,
+    unread.length === 0);
 }
 
 console.log(failures.length
