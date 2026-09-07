@@ -71,6 +71,7 @@ const db = getSupabaseAdmin();
 const { data, error } = await db.from('check_events')
   .select('outcome,checked_on,county,source')
   .gte('checked_on', since)
+  .order('checked_on', { ascending: true })
   .limit(200000);
 
 if (error) { console.error('✗ query failed:', error.message); process.exit(1); }
@@ -95,16 +96,62 @@ for (const r of data) {
 
 const total = data.length;
 const lost = [...LOST].reduce((a, k) => a + (byOutcome[k] || 0), 0);
+const nearMiss = byOutcome.no_parcel_near_miss || 0;
+const trueMiss = byOutcome.no_parcel || 0;
 const pct = (v, d = total) => `${((v / d) * 100).toFixed(1)}%`;
 
-console.log(`\nFlorida /check outcomes since ${since} — ${total.toLocaleString()} checks\n`);
+/**
+ * `--since` does not widen a window the table does not have. check_events was
+ * added 21 Aug 2026, so asking for January silently returns three weeks and
+ * prints a rate over the wrong denominator unless the real span is stated.
+ */
+const firstDay = String(data[0].checked_on);
+const lastDay = String(data[data.length - 1].checked_on);
+
+console.log(`\nFlorida /check outcomes — ${total.toLocaleString()} checks, ${firstDay} to ${lastDay}`);
+if (firstDay > since) {
+  console.log(`  (asked for ${since}; check_events only goes back to ${firstDay})`);
+}
+console.log('');
 Object.entries(byOutcome).sort((a, b) => b[1] - a[1]).forEach(([k, v]) =>
   console.log(`  ${String(v).padStart(7)}  ${pct(v).padStart(6)}  ${k.padEnd(24)}${LOST.has(k) ? ' <- told them we have no record' : ''}`));
 
 console.log(`\n  ${lost.toLocaleString()} lookups (${pct(lost)}) were answered "we have no record for this address".`);
-console.log('  In a 300-row probe of the roll taken before the fix, EVERY result in those two');
-console.log('  outcomes was the interior-suffix bug. Read this as an upper bound on what the');
-console.log('  bug cost, not as a proven rate — one sample, and genuine misses do exist.\n');
+console.log('  THAT IS NOT ONE NUMBER. The two outcomes have different causes and different fixes:\n');
+
+console.log(`    ${String(nearMiss).padStart(6)}  ${pct(nearMiss).padStart(6)}  no_parcel_near_miss  — the roll HELD the property and we`);
+console.log('                            rejected it. This is a matcher failure and the');
+console.log('                            interior-suffix bug is a strong candidate for it.');
+console.log(`    ${String(trueMiss).padStart(6)}  ${pct(trueMiss).padStart(6)}  no_parcel            — ZERO rows retrieved. Mostly a property`);
+console.log('                            that is not on the Florida roll at all.\n');
+
+/**
+ * ============================================================================
+ * THE PROBE'S 13-of-13 DOES NOT TRANSFER TO REAL TRAFFIC. Corrected 7 Sept 2026.
+ * ============================================================================
+ * The first version of this script said "EVERY result in those two outcomes was
+ * the interior-suffix bug". That was measured on addresses lifted OUT OF THE
+ * ROLL — every one a house we hold, so every failure had to be ours.
+ *
+ * Real visitors are a different population. The mix proves it: the probe hit
+ * 9 no_parcel to 4 near-miss, roughly 2:1. Production runs about 9.5:1. A true
+ * no_parcel retrieves nothing at all, which is what an address NOT ON THIS ROLL
+ * looks like — an out-of-state visitor, or a county we have not loaded.
+ *
+ * pages/api/check.js documents exactly that path: the out-of-state branch keys
+ * off the ZIP, ZIP is optional, so a Texan who omits it falls through to the
+ * Florida roll, misses, and is told we have no record of their property. It is
+ * a stated trade-off, not an accident — and this is what it costs.
+ *
+ * So the near-miss count is the defensible matcher-failure figure. The
+ * no_parcel count is mostly a ROUTING and CAPTURE problem, which is a bigger
+ * number and a different fix: the state picker, and an email box instead of a
+ * dead end.
+ */
+console.log('  The near-miss line is the defensible matcher-failure figure. The no_parcel line');
+console.log('  is mostly routing: pages/api/check.js answers out-of-state on the ZIP, the ZIP is');
+console.log('  optional, and a visitor who omits it falls through to the Florida roll and is told');
+console.log('  their house does not exist. That is a capture problem, not a lookup problem.\n');
 
 if (Object.keys(byMonth).length) {
   console.log('  BY MONTH');
