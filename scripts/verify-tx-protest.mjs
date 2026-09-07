@@ -518,6 +518,89 @@ t('a West South Central citation would clear the flag',
   cure.sourceRegionMismatch([{ sourceUrl:
     'https://www.jlconline.com/cost-vs-value/2025/west-south-central/' }]) === false);
 
+/**
+ * ============================================================================
+ * THE GRID ASSERTIONS WERE READING THE DATA, NOT THE PAGE. 7 Sept 2026.
+ * ============================================================================
+ *
+ * Found by injection sweep: emptying the statute out of the rendered grid —
+ * `<div class="statute">${e(g.statute)}</div>` -> `<div class="statute"></div>`
+ * — left all 68 assertions passing, because they tested `ok.grid.statute`, the
+ * DATA the renderer is handed, and never what it printed.
+ *
+ * The statute block is, per the research pass, the single highest-leverage
+ * element in the document: the Comptroller's ARB Manual gives boards almost no
+ * guidance on (b)(3), so the page has to teach the test while making the
+ * argument. It was the least guarded thing in the file.
+ *
+ * Section 5's assertions read the rendered HTML from the start. The grid's did
+ * not. Same file, two standards, and the weaker one was on the page that
+ * carries the argument. Everything a panel actually reads is asserted against
+ * the RENDER below.
+ */
+{
+  const grid = (html.match(/UNEQUAL APPRAISAL[\s\S]*?(?=<div class="page|<\/body>)/) || [''])[0];
+  t('the grid page was found in the render (the extractor still matches)', grid.length > 400);
+  t('the § 41.43(b)(3) test is PRINTED on the grid page, not merely available to it',
+    /41\.43\(b\)\(3\)/.test(grid) && /median appraised value/i.test(grid));
+  t('the burden being the district’s is printed there too', /41\.43\(a\)/.test(grid));
+  t('the median row is printed with the comp count',
+    new RegExp(`MEDIAN of ${ok.grid.compCount} comparable`).test(grid));
+  t('the median per-square-foot figure reaches the page',
+    grid.includes(String(ok.grid.medianAppraisedPerSqft)));
+  /**
+   * SCOPED TO THE ASK BLOCK, NOT THE PAGE.
+   *
+   * `grid.includes(requestedValue)` passed with the ask block emptied, because
+   * on a packet with no condition case the requested value EQUALS
+   * indicatedAppraised — which the median row already prints. The assertion was
+   * satisfied by a different number that happened to be the same. Same
+   * degeneracy as the fixture whose two grounds agreed.
+   */
+  // Bounded by the block that follows it, not by a closing tag: the ask block
+  // nests three divs, so a lazy </div></div> match stopped before the figure.
+  const ask = (grid.match(/<div class="ask">[\s\S]*?<div class="foot">/) || [''])[0];
+  t('the ask block was found on the grid page', ask.length > 80);
+  t('the value requested is printed IN the ask block',
+    ask.includes(ok.requestedValue.toLocaleString()));
+  t('and the reduction sought is stated beside it',
+    ask.includes(ok.reductionSought.toLocaleString()));
+  t('the capped share of the comp set is disclosed on the page, not just computed',
+    /assessment cap/i.test(grid));
+  t('the subject is identified as the subject', /— <b>subject<\/b>/.test(grid));
+}
+
+/**
+ * And the same standard for Exhibit C: a priced repair with no visible source is
+ * the fabricated-comparable defect. lib/costToCure.js's rule is "EVERY DOLLAR
+ * FIGURE CARRIES A SOURCE", and it is the owner who defends it in the room.
+ */
+{
+  const withHtml = renderProtestHtml(withIssues);
+  const ex = (withHtml.match(/PROPERTY CONDITION[\s\S]*$/) || [''])[0];
+  t('the condition exhibit was found in the render', ex.length > 400);
+  t('the market-value ground is named on the exhibit', /41\.41\(a\)\(1\)/.test(ex));
+  t('the total cost to cure is printed',
+    ex.includes(withIssues.conditionExhibit.cureDollars.toLocaleString()));
+  t('every priced line shows its source on the page',
+    withIssues.conditionExhibit.priced.every((x) => ex.includes(x.source)));
+  t('and the packet states we never inspected the property',
+    /has not inspected the property/i.test(ex));
+}
+
+/**
+ * THE FILED ADDRESS CARRIES THE STATE.
+ *
+ * A county roll has no state column because it does not need one; a document
+ * filed with an appraisal district does. Section 2 printed "EL PASO, 79907"
+ * until it was read on the page — and nothing asserted it afterwards.
+ *
+ * INJECTION: drop 'TX' from propertyAddress in protest.js -> FAILS.
+ */
+t('the property address on the form carries the state',
+  /,\s*TX\s+\d{5}/.test(ok.form50132.propertyAddress)
+  && html.includes(ok.form50132.propertyAddress));
+
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-protest: ${pass} passed`);
