@@ -175,12 +175,23 @@ const firstFailures = [];
 const excluded = new Map();
 let capped = 0, hsCapped = 0, nhsCapped = 0, noLivingArea = 0;
 
+/**
+ * Rows are held until the whole file is read, because a second row for an
+ * account can arrive at any point and its values have to be added to the first.
+ * ~600k rows of small objects; the 7 GB the loader avoids reading is the
+ * APPRAISAL_INFO stream, not this.
+ */
+const byAccount = new Map();
+let ownerRows = 0;
+/** The fields Tarrant pro-rates per owner. Verified byte-by-byte, 9 Sept 2026. */
+const PRORATED = ['market_value', 'appraised_value', 'land_value', 'improvement_value'];
+
 {
   const { rl, proc } = memberLines(zip, '*_APPRAISAL_INFO.TXT');
   for await (const line of rl) {
     if (!line) continue;
     read++;
-    if (line.length !== APPRAISAL_INFO.recordLength) ragged++;
+    if (!APPRAISAL_INFO.recordLengths.has(line.length)) ragged++;
 
     const p = parseProperty(line, { residentialOnly });
     if (!p) { skipped++; continue; }
@@ -204,6 +215,40 @@ let capped = 0, hsCapped = 0, nhsCapped = 0, noLivingArea = 0;
     if (p.nhs_cap_loss > 0) nhsCapped++;
     if (p.homestead_cap_loss > 0 || p.nhs_cap_loss > 0) capped++;
 
+    /**
+     * ══════════════════════════════════════════════════════════════════════
+     * OWNER ROWS. Tarrant emits ONE ROW PER OWNER, PRO-RATED.
+     * ══════════════════════════════════════════════════════════════════════
+     *
+     * Found 9 Sept 2026 when the COPY died on a duplicate primary key. Account
+     * 000000177377 appears twice:
+     *
+     *   ownership_pct 034.00   market_value 31,875   LOPEZ JENNIFER SIGALA
+     *   ownership_pct 066.00   market_value 61,876   FERNANDO MARTINEZ SIGALA
+     *
+     * The house is worth 93,751. EVERY value field is that owner's SHARE, not
+     * the property total — land_hstd_val, imprv_hstd_val, appraised_val,
+     * assessed_val, market_value and exemption_percentage all move together.
+     *
+     * The obvious fix — dedupe and keep the first row — silently records a
+     * 93,751 house as a 31,875 one. Nothing downstream would catch it: the
+     * savings check, the comp median and the requested value would all be
+     * computed from a third of the real number, and the comp median would drag
+     * the whole neighbourhood down with it. THE PRIMARY KEY IS THE ONLY REASON
+     * THIS WAS EVER SEEN. Do not replace it with a dedupe.
+     *
+     * 269 of 1,404,161 Tarrant accounts (0.02%) are affected. Summing is used
+     * rather than scaling by ownership_pct because it is exact: 31,875 / 0.34
+     * rounds to 93,750, one dollar short of the truth, and four accounts do not
+     * have percentages summing to 100 at all.
+     */
+    const prior = byAccount.get(p.account_number);
+    if (prior) {
+      ownerRows++;
+      for (const f of PRORATED) prior[f] = (prior[f] || 0) + (p[f] || 0);
+      continue;
+    }
+
     const row = {
       cad_id: cadId,
       ...p,
@@ -215,12 +260,15 @@ let capped = 0, hsCapped = 0, nhsCapped = 0, noLivingArea = 0;
       land_size_sqft: lot.land_size_sqft || null,
       source_format: 'PACS',
     };
-    out.write(COLS.map((c) => csvCell(row[c])).join(',') + '\n');
+    byAccount.set(p.account_number, row);
     written++;
 
     if (written % 25000 === 0) process.stderr.write(`            ${written.toLocaleString()} rows...\n`);
     if (limit && written >= limit) { proc.kill(); break; }
   }
+}
+for (const row of byAccount.values()) {
+  out.write(COLS.map((c) => csvCell(row[c])).join(',') + '\n');
 }
 await new Promise((r) => out.end(r));
 
@@ -229,6 +277,7 @@ const pct = (n, d) => (d ? (n * 100 / d).toFixed(1) : '0.0');
 console.log(`\n${basename(zip)} -> ${outPath}`);
 console.log(`  read      ${read.toLocaleString()}`);
 console.log(`  written   ${written.toLocaleString()}`);
+if (ownerRows) console.log(`  merged    ${ownerRows.toLocaleString()} extra owner row(s) — values summed, not discarded (see OWNER ROWS above)`);
 for (const [why, n] of [...excluded].sort((a, b) => b[1] - a[1])) {
   console.log(`  excluded  ${n.toLocaleString().padStart(9)}  ${why}`);
 }
