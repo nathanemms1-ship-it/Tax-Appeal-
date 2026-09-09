@@ -95,24 +95,50 @@ const CLASS_SQL = `
    group by 1`;
 
 /**
- * Returns { label, pattern } — the LIKE pattern matters as much as the label.
+ * Returns { label, pattern, excluded } for ONE EXACT CODE — no wildcard at all.
  *
- * 'A1' becomes 'A1%' so A1A and friends are caught. Bare 'A' becomes EXACTLY
- * 'A', with no wildcard: 'A%' would pull El Paso's A2 mobile homes and A51
- * condominiums into a single-family median. That distinction is the whole
- * reason this is resolved per district, and writing 'A%' here would quietly
- * undo it.
+ * The first version of this returned a PREFIX, 'A1' -> 'A1%', and Dallas broke
+ * it the same afternoon. Dallas subdivides as A11 SINGLE FAMILY RESIDENCES,
+ * A12 SFR - TOWNHOUSES, A13 SFR - CONDOMINIUMS — so 'A1%' sweeps 58,727 condos
+ * and townhouses into a "single family" median that goes on public pages. That
+ * is the exact contamination this function was written to prevent, reintroduced
+ * by the shape of the fix rather than by its intent.
+ *
+ * So: take the MOST NUMEROUS exact class-A code and match it exactly. Verified
+ * against every roll we hold, plus Dallas:
+ *
+ *   El Paso   A1  230,354   (then A6 7,578, A2 2,707, A51 2,068)
+ *   Jefferson A1   76,274   (then A5 3,038)
+ *   Kaufman   A1   49,273   (then A4 12,794)
+ *   Nueces    A1  101,616   (then A4 11,358)
+ *   Tarrant   A   599,943   (then AC 210)
+ *   Taylor    A1   44,037
+ *   Wichita   A1   40,627
+ *   Dallas    A11 508,041   (then A13 38,643, A12 20,084)
+ *
+ * NOTE WHAT THIS DOES NOT DO. It does not decide what gets LOADED — the loader
+ * keeps every class-A code (pacs.js filters on the first character), and
+ * comps.js matches state_class_code EXACTLY, so a condo is only ever compared
+ * against condos. Dallas's townhouses and condominiums are sellable and are in
+ * the database. This function answers a narrower question: which single class
+ * do we publish a median for. Conflating the two is what produced the bug.
+ *
+ * `excluded` is reported so a district that splits single-family across two
+ * codes is visible rather than silently halved.
  */
 async function classFor(cadId) {
   if (CLASS_OVERRIDE) {
-    return { label: CLASS_OVERRIDE, pattern: `${CLASS_OVERRIDE}%` };
+    return { label: CLASS_OVERRIDE, pattern: CLASS_OVERRIDE, excluded: [] };
   }
   const { rows } = await client.query(CLASS_SQL, [cadId, YEAR]);
   if (!rows.length) return null;
-  const codes = new Set(rows.map((r) => (r.state_class_code || '').trim()));
-  if ([...codes].some((c) => c.startsWith('A1'))) return { label: 'A1', pattern: 'A1%' };
-  if (codes.has('A')) return { label: 'A', pattern: 'A' };
-  return null;
+  const ranked = rows
+    .map((r) => ({ code: (r.state_class_code || '').trim(), n: Number(r.n) }))
+    .filter((r) => r.code)
+    .sort((a, b) => b.n - a.n);
+  if (!ranked.length) return null;
+  const [top, ...rest] = ranked;
+  return { label: top.code, pattern: top.code, excluded: rest };
 }
 const OUT = 'lib/tx/countyStats.json';
 
@@ -287,6 +313,14 @@ try {
     const CLASS_PREFIX = cls.label;
     const { rows: [r] } = await client.query(STATS_SQL, [cad_id, YEAR, cls.pattern]);
     if (!r || !r.parcels) { console.log(`  ${cad_id}: no ${CLASS_PREFIX} parcels, skipped`); continue; }
+    // A district that splits single-family across codes must be visible, not
+    // silently halved. Anything comparable in size to the chosen class is worth
+    // a look before these numbers reach a public page.
+    const near = (cls.excluded || []).filter((e) => e.n > r.parcels * 0.15);
+    if (near.length) {
+      console.log(`      note: cad ${cad_id} also has ${near.map((e) => `${e.code} (${e.n.toLocaleString()})`).join(', ')}`
+        + ` — not counted in the ${CLASS_PREFIX} median`);
+    }
 
     const stats = {
       taxYear: YEAR,

@@ -931,6 +931,50 @@ t('the property address on the form carries the state',
   t('owner-facing copy uses American spelling', !british, british && british.join(', '));
 }
 
+/**
+ * TWO FILES DECIDE WHAT "BELOW AVERAGE" MEANS, AND THEY MUST NOT DRIFT.
+ *
+ * scripts/tx/load-dcad.mjs decides which CDU ratings reach condition_code.
+ * lib/tx/costToCure.js decides which of those mean the district has already
+ * discounted for condition. If the loader stops writing FAIR, the disclosure
+ * silently stops firing for 22,903 Dallas parcels and nothing reports it.
+ *
+ * Dallas is the FIRST district to publish condition at all, so this pairing has
+ * never existed before and has no history of being checked.
+ *
+ * INJECTION: drop a rating from either list -> FAILS.
+ */
+{
+  const { readFileSync } = await import('node:fs');
+  const { BELOW_AVERAGE_CONDITION } = await import('../lib/tx/costToCure.js');
+  const loader = readFileSync(new URL('../scripts/tx/load-dcad.mjs', import.meta.url), 'utf8');
+
+  const inLoader = new Set(
+    (/const BELOW_AVERAGE = new Set\(\[([^\]]*)\]\)/.exec(loader)?.[1] || '')
+      .split(',').map((x) => x.trim().replace(/^'|'$/g, '')).filter(Boolean)
+  );
+  const inMeaning = BELOW_AVERAGE_CONDITION[57] || new Set();
+
+  t('the Dallas loader recognises some below-average ratings', inLoader.size > 0);
+  t('and costToCure knows what they mean', inMeaning.size > 0);
+  t('and the two lists are identical',
+    inLoader.size === inMeaning.size && [...inLoader].every((r) => inMeaning.has(r)),
+    `loader=[${[...inLoader].join('|')}] meaning=[${[...inMeaning].join('|')}]`);
+
+  // The two ratings that are NOT condition findings must be in neither list.
+  for (const notACondition of ['UNASSIGNED', 'MANUALLY ENTER DEPRECIATION']) {
+    t(`"${notACondition}" is not treated as below average`,
+      !inLoader.has(notACondition) && !inMeaning.has(notACondition));
+  }
+
+  // Districts whose export carries no condition field at all must stay absent —
+  // an empty Set here would read as "we checked and found none".
+  for (const cad of [71, 220]) {
+    t(`cad ${cad} has no condition vocabulary, because its export has no field`,
+      !(cad in BELOW_AVERAGE_CONDITION));
+  }
+}
+
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-protest: ${pass} passed`);

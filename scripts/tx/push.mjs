@@ -162,11 +162,47 @@ if (/\[YOUR-PASSWORD\]/i.test(url)) {
   process.exit(2);
 }
 
-const COLS = ['cad_id','account_number','tax_year','market_value','appraised_value',
+/**
+ * EVERY COLUMN A LOADER IS ALLOWED TO WRITE. Not the COPY list — see below.
+ *
+ * This used to BE the COPY list, hardcoded at 23 columns, and Dallas broke it
+ * the day it arrived: scripts/tx/load-dcad.mjs emits condition_code (Dallas is
+ * the first district that publishes condition at all), so the file had 24
+ * columns and COPY named 23 — "extra data after last expected column".
+ *
+ * Hardcoding 24 instead would have inverted the failure: every existing PACS
+ * CSV has 23 and would have had to be regenerated, a three-minute run per
+ * district for a column none of them carry.
+ *
+ * So the COPY list is now read from each FILE'S OWN HEADER, and this becomes an
+ * allowlist. A loader that adds a column the table has just works; a header
+ * carrying a name that is not a real column is refused before any data moves,
+ * rather than silently loading into the wrong field.
+ */
+const ALLOWED_COLS = new Set(['cad_id','account_number','tax_year','market_value','appraised_value',
   'homestead_cap_loss','nhs_cap_loss','land_value','improvement_value','living_area',
-  'year_built','quality_class','land_size_acres','land_size_sqft','neighborhood_code',
+  'year_built','effective_year_built','condition_code','quality_class',
+  'land_size_acres','land_size_sqft','neighborhood_code',
   'abs_subdv_cd','state_class_code','situs_street','situs_city','situs_zip',
-  'has_homestead','arb_protest_flag','source_format'];
+  'has_homestead','arb_protest_flag','source_format']);
+
+/** The columns a loader must always provide — the primary key and the money. */
+const REQUIRED_COLS = ['cad_id', 'account_number', 'tax_year', 'market_value', 'appraised_value'];
+
+function colsFromHeader(file, headerLine) {
+  const cols = headerLine.replace(/^\uFEFF/, '').trim().split(',')
+    .map((c) => c.trim().replace(/^"|"$/g, ''));
+  const unknown = cols.filter((c) => !ALLOWED_COLS.has(c));
+  if (unknown.length) {
+    throw new Error(`${file}: header names ${unknown.length} column(s) that are not in tx_parcels — `
+      + `${unknown.join(', ')}. Refusing to COPY; a wrong header loads data into the wrong field.`);
+  }
+  const missing = REQUIRED_COLS.filter((c) => !cols.includes(c));
+  if (missing.length) {
+    throw new Error(`${file}: header is missing required column(s) ${missing.join(', ')}.`);
+  }
+  return cols;
+}
 
 /**
  * SSL is required by Supabase and impossible on a local socket, so it cannot be
@@ -293,7 +329,11 @@ try {
 
     let grand = 0;
     for (const f of files) {
-      const cad = Number(readFileSync(f, 'utf8').split('\n', 2)[1].split(',')[0].replace(/"/g, ''));
+      const head = readFileSync(f, 'utf8').split('\n', 2);
+      const cad = Number(head[1].split(',')[0].replace(/"/g, ''));
+      // Each file declares its own columns. A PACS export has 23, Dallas has 24
+      // (condition_code). Validated against ALLOWED_COLS before anything moves.
+      const fileCols = colsFromHeader(basename(f), head[0]);
       // Re-loading must be idempotent. The primary key is
       // (cad_id, account_number, tax_year), so clearing this district first makes
       // a re-run replace rather than collide — and a collision mid-COPY would
@@ -304,7 +344,7 @@ try {
 
       process.stdout.write(`  ${basename(f).padEnd(30)} `);
       const stream = client.query(copyFrom(
-        `COPY tx_parcels (${COLS.join(',')}) FROM STDIN WITH (FORMAT csv, HEADER true)`));
+        `COPY tx_parcels (${fileCols.join(',')}) FROM STDIN WITH (FORMAT csv, HEADER true)`));
       await pipeline(createReadStream(f), stream);
       const { rows } = await client.query('select count(*)::int n from tx_parcels where cad_id=$1', [cad]);
       console.log(`${rows[0].n.toLocaleString().padStart(9)} rows`);

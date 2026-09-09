@@ -306,6 +306,49 @@ if (elPaso && !isMailable(elPaso)) {
   t('and it is safe to re-run', /ADD COLUMN IF NOT EXISTS tx_cautions/.test(sql));
 }
 
+/**
+ * THE COPY COLUMN LIST COMES FROM EACH FILE, NOT FROM A CONSTANT.
+ *
+ * push.mjs hardcoded 23 columns and Dallas arrived with 24 (condition_code),
+ * so COPY failed with "extra data after last expected column". Hardcoding 24
+ * would have inverted it — every PACS CSV has 23 and would need regenerating.
+ *
+ * Header-driven is only safe WITH the allowlist: a header naming a column that
+ * is not in tx_parcels must be refused before any data moves, because COPY
+ * would otherwise happily load values into whatever columns were named.
+ *
+ * INJECTION: go back to `COLS.join(',')`, or drop the unknown-column check -> FAILS.
+ */
+{
+  const push = readFileSync(new URL('../scripts/tx/push.mjs', import.meta.url), 'utf8');
+
+  t('COPY names the columns the FILE declares',
+    /COPY tx_parcels \(\$\{fileCols\.join/.test(push));
+  t('and the header is validated against an allowlist first',
+    /ALLOWED_COLS/.test(push) && /not in tx_parcels/.test(push));
+  t('and a file missing the primary key is refused',
+    /REQUIRED_COLS/.test(push) && /missing required column/.test(push));
+
+  // The allowlist must actually cover what the two loaders emit, or the first
+  // real run fails on a column the guard could have caught here.
+  const allowed = new Set(
+    (/const ALLOWED_COLS = new Set\(\[([\s\S]*?)\]\)/.exec(push)?.[1] || '')
+      .split(',').map((x) => x.trim().replace(/^'|'$/g, '')).filter(Boolean)
+  );
+  for (const [loader, file] of [['load.mjs', '../scripts/tx/load.mjs'],
+                                ['load-dcad.mjs', '../scripts/tx/load-dcad.mjs']]) {
+    const src = readFileSync(new URL(file, import.meta.url), 'utf8');
+    const block = /const COLS = \[([\s\S]*?)\];/.exec(src)?.[1] || '';
+    const cols = block.split(',').map((x) => x.trim().replace(/^'|'$/g, ''))
+      .filter((x) => x && !x.startsWith('//'));
+    const missing = cols.filter((c) => !allowed.has(c));
+    t(`every column ${loader} writes is in push.mjs's allowlist${missing.length ? ` — missing: ${missing.join(', ')}` : ''}`,
+      cols.length > 15 && missing.length === 0);
+  }
+
+  t('condition_code is allowed, because Dallas writes it', allowed.has('condition_code'));
+}
+
 console.log(failures.length
   ? `verify-tx-dispatch: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-dispatch: ${pass} passed — no TX/GA protest can be mailed to an unconfirmed address`);
