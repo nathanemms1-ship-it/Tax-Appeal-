@@ -531,6 +531,75 @@ function lookup(street, zip = null) {
     !/const variants = addressVariants\(/.test(txSrc));
 }
 
+/**
+ * ONE STREET TYPE, THREE SPELLINGS, SEVEN DISTRICTS THAT DISAGREE.
+ *
+ * Kaufman's own roll carries TRL 3,090 times, TRAIL 279 and TR 151. Tarrant
+ * uses TR 5,823 times and never TRL. rowMatches compares against the roll's
+ * literal text, so whichever spelling the district chose has to be among the
+ * variants — there is no canonical form that works for both.
+ *
+ * INJECTION: delete a member from any SUFFIX_CLASSES row -> FAILS.
+ */
+{
+  const rolls = {
+    tarrant: '1323 CIMARRON TR',
+    kaufman: '1323 CIMARRON TRL',
+    elpaso:  '1323 CIMARRON TRAIL',
+  };
+  for (const typed of ['1323 Cimarron Trail', '1323 Cimarron Trl', '1323 Cimarron Tr']) {
+    const vs = addressVariants(normalizeAddr(typed));
+    for (const [district, roll] of Object.entries(rolls)) {
+      t(`"${typed}" finds the ${district} spelling`, rowMatches(roll, vs));
+    }
+  }
+
+  for (const [typed, roll] of [
+    ['1820 N Edgewood Terrace', '1820 N EDGEWOOD TERR'],
+    ['1820 N Edgewood Terr',    '1820 N EDGEWOOD TER'],
+    ['3817 Pelham Manor',       '3817 PELHAM MNR'],
+    ['2029 Cliff Park',         '2029 CLIFF PK'],
+  ]) {
+    t(`"${typed}" reaches "${roll}"`, rowMatches(roll, addressVariants(normalizeAddr(typed))));
+  }
+
+  /**
+   * PARK IS AN INTERIOR NAME WORD 5,234 TIMES IN TARRANT AND A STREET TYPE ONCE.
+   * The equivalence class is applied to the LAST WORD ONLY for exactly this
+   * reason; rewriting it everywhere would corrupt thousands to rescue one.
+   *
+   * INJECTION: apply suffixClassVariants to every word -> FAILS.
+   */
+  const parkVs = addressVariants(normalizeAddr('4513 Estes Park Rd'));
+  t('an interior PARK still matches its own roll spelling',
+    rowMatches('4513 ESTES PARK RD', parkVs));
+  t('and is never rewritten to PK', !parkVs.some((v) => /ESTES PK/.test(v)));
+
+  /**
+   * An interior TRAIL is reached by the SECOND spelling, not the first — and
+   * that is pre-existing behaviour this change does not alter. normalizeAddr
+   * applies SUFFIXES to every word, so "1 OAK TRAIL DR" typed becomes
+   * "1 OAK TRL DR" and cannot match a roll that spells the name out. That is
+   * exactly why lib/tx/parcels.js searches BOTH normalizeAddr(street) and
+   * normalizeAddr(street, { interiorSuffixes: false }) and unions the variants.
+   *
+   * Asserted the way the product actually queries, because asserting it against
+   * the default spelling alone claims a guarantee the matcher has never made.
+   */
+  const bothSpellings = (typed) => [
+    ...addressVariants(normalizeAddr(typed)),
+    ...addressVariants(normalizeAddr(typed, { interiorSuffixes: false })),
+  ];
+  t('an interior TRAIL is reached by the interiorSuffixes:false spelling',
+    rowMatches('1 OAK TRAIL DR', bothSpellings('1 Oak Trail Dr')));
+  t('and the trailing class still applies on that path too',
+    rowMatches('1323 CIMARRON TR', bothSpellings('1323 Cimarron Trail')));
+
+  // A street type that is in no class must not gain spellings it never had.
+  const plain = addressVariants(normalizeAddr('100 Main St'));
+  t('an unaffected address gains no junk variants', plain.every((v) => /MAIN/.test(v)));
+}
+
 console.log(`\nverify-address-match: ${pass} passed, ${failures.length} failed`);
 if (failures.length) {
   for (const f of failures) console.log(`  ✗ ${f}`);
