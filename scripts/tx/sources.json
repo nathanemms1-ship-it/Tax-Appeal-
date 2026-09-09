@@ -14,7 +14,7 @@
     "",
     "A GUESSED URL IS WORSE THAN A MISSING ONE, because a scraper gets built",
     "against it. Nothing in `files` was constructed by pattern; every entry was",
-    "read from a page. HEAD-check before wiring a downloader anyway \u2014 see",
+    "read from a page. HEAD-check before wiring a downloader anyway — see",
     "scripts/tx/fetch.sh, which does exactly that and refuses on a redirect to",
     "an HTML error page.",
     "",
@@ -25,7 +25,7 @@
     "Travis CAD's own EARS filename (227EARS...). It is NOT derived by alphabetising",
     "county names: the Comptroller sorts 'El Paso' as if the space were absent, so",
     "Ellis is 070 and El Paso is 071, and a naive sort reverses them.",
-    "cad_id sits in the tx_parcels PRIMARY KEY. A wrong code does not error \u2014 it",
+    "cad_id sits in the tx_parcels PRIMARY KEY. A wrong code does not error — it",
     "silently files a whole district's parcels under another county.",
     "Canonical copy: lib/tx/counties.js.",
     "",
@@ -47,7 +47,7 @@
     "PROTAX": "Brazoria's own export.",
     "ECTOR": "Ector's own comma-delimited format.",
     "EARS": "The Comptroller submission format itself. Only Travis publishes it. Documented in Form 96-1051.",
-    "TAB_DELIM": "Tab-delimited .tab files with header rows on most members (externalnal.tab, externalbld.tab, externalland.tab). Bell. NOT PACS despite Bell publishing a PACS layout document \u2014 verified by opening the archive 16 Aug. Needs its own parser; the header rows make it self-describing, so it is easier than PACS, just different."
+    "TAB_DELIM": "Tab-delimited .tab files with header rows on most members (externalnal.tab, externalbld.tab, externalland.tab). Bell. NOT PACS despite Bell publishing a PACS layout document — verified by opening the archive 16 Aug. Needs its own parser; the header rows make it self-describing, so it is easier than PACS, just different."
   },
   "districts": [
     {
@@ -90,7 +90,7 @@
         "real_estate": "https://export.epcad.org/datasets/REAL_ESTATE.zip",
         "schemas": "https://propertysearch.blob.core.windows.net/abepublicfiles/Schemas.txt"
       },
-      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most \u2014 validate the parser against both."
+      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most — validate the parser against both."
     },
     {
       "county": "Nueces",
@@ -125,7 +125,7 @@
         "certified_2026": "https://bellcad.org/wp-content/uploads/2019/06/2026-Bell-County-Certified-Export-1.zip",
         "certified_2025": "https://bellcad.org/wp-content/uploads/2025/07/2025-Bell-County-Certified-Export.7z"
       },
-      "notes": "NOT PACS. Bell publishes an 'Appraisal Export Layout 8.0.33.xlsx' on its data page, but the actual export is 12 tab-delimited .tab files \u2014 externalnal, externalbld, externalland, externalsale, externalexemptions and others \u2014 most carrying a header row. Confirmed by opening the archive. The published layout document describes a format this district does not ship. Second district found doing this; treat every published layout as a hint, not a contract.",
+      "notes": "NOT PACS. Bell publishes an 'Appraisal Export Layout 8.0.33.xlsx' on its data page, but the actual export is 12 tab-delimited .tab files — externalnal, externalbld, externalland, externalsale, externalexemptions and others — most carrying a header row. Confirmed by opening the archive. The published layout document describes a format this district does not ship. Second district found doing this; treat every published layout as a hint, not a contract.",
       "verified_format_at": "2026-08-16"
     },
     {
@@ -165,7 +165,7 @@
         "arb_decisions_2025": "https://hayscad.com/wp-content/uploads/2025/09/2025-ARB-PROTEST-DECISION-DATA-ALL.xlsx",
         "arb_decisions_2024": "https://hayscad.com/wp-content/uploads/2024/10/2024-ARB-PROTEST-DECISION-DATA-ALL.xlsx"
       },
-      "notes": "FIRST PILOT. The CSV property data export is self-describing \u2014 the header row names the fields \u2014 so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris."
+      "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris."
     },
     {
       "county": "Harris",
@@ -176,15 +176,21 @@
       "format": "HCAD",
       "access": "free",
       "login": false,
-      "confidence": "verified_page_only",
+      "confidence": "verified",
       "layout": "https://hcad.org/assets/uploads/pdf/pdataCodebook.pdf",
       "layout_extra": [
         "https://hcad.org/assets/uploads/pdf/Definition_help.pdf",
         "https://hcad.org/assets/uploads/pdf/Import_Instructions.pdf"
       ],
       "publishes_hearing_outcomes": true,
-      "files": {},
-      "notes": "BIGGEST SINGLE MARKET, ~1.7M accounts. Download links render via JavaScript so the file URLs are NOT captured here \u2014 open the page in a browser and copy them. Files of interest: Real_acct_owner.zip (real_acct.txt: tot_appr_val, tot_mkt_val, Neighborhood_Code, state_class, bld_ar, yr_impr), Real_building_land.zip (building_res.txt: heat_ar, date_erected, qa_cd), Real_jur_exempt.zip, and Hearing_files.zip (arb_hearings_real.txt \u2014 initial vs final appraised AND market value per account, tagged with Agent_Code). Refreshes weekly May-Aug, certified mid-Aug."
+      "files": {
+        "real_acct_owner_2026": "https://download.hcad.org/data/CAMA/2026/Real_acct_owner.zip",
+        "real_building_land_2026": "https://download.hcad.org/data/CAMA/2026/Real_building_land.zip",
+        "hearing_files_2026": "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip",
+        "import_instructions": "https://hcad.org/assets/uploads/pdf/Import_Instructions.pdf"
+      },
+      "notes": "RESOLVED 8 Sept 2026. Free, unauthenticated, direct URLs; 2027 404s so 2026 is current. ASCII TAB-DELIMITED with header rows per HCAD Import_Instructions — third-party repos calling it fixed-width describe older vintages. Bespoke schema, 13-digit acct, needs its own parser. Fields: heat_ar, date_erected, land_val, tot_mkt_val, tot_appr_val, Neighborhood_Code, state_class, qa_cd. NO condition code and NO explicit cap-loss field — a Cap_acct flag exists and cap loss is PROBABLY market minus appraised, but HCAD publishes no definition, so verify empirically before relying on it. UNIQUELY ships arb_protest_real.txt and arb_hearings_real.txt: real per-account protest and hearing OUTCOMES, which nobody else publishes. Refresh cadence in-season is UNKNOWN and is the open question that decides whether Harris works during Apr-May.",
+      "resolved_at": "2026-09-08"
     },
     {
       "county": "Galveston",
@@ -201,7 +207,7 @@
         "roll_2025_supp11": "https://galvestoncad.org/wp-content/uploads/2026/07/2025_AS_OF_SUPP11_APPRAISAL_W_OWNER_EXP3408.zip",
         "roll_2024_supp23": "https://galvestoncad.org/wp-content/uploads/2026/07/2024_AS_OF_SUPP23_APPRAISAL_W_OWNER_EXP3411.zip"
       },
-      "notes": "Deepest history of any district \u2014 certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql."
+      "notes": "Deepest history of any district — certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql."
     },
     {
       "county": "Jefferson",
@@ -217,7 +223,7 @@
         "certified_2026": "https://jcad.org/wp-content/uploads/2026/07/CERTIFIED-2026_0_PUBLIC.zip",
         "certified_2025": "https://jcad.org/wp-content/uploads/2025/10/2025-CERTIFIED_2025_0_PUBLIC.zip"
       },
-      "notes": "LOADED 16 Aug from the 2026 file: 154,028 read -> 80,553 residential. THE 2025 FILE IS LAYOUT 8.0.0.30 AND IS CORRECTLY REFUSED by the version guard \u2014 do not \"fix\" that by widening the accepted set without diffing the offsets first. Living area = HSE \"HOUSE\" plus SEC \"SECOND STORY\".",
+      "notes": "LOADED 16 Aug from the 2026 file: 154,028 read -> 80,553 residential. THE 2025 FILE IS LAYOUT 8.0.0.30 AND IS CORRECTLY REFUSED by the version guard — do not \"fix\" that by widening the accepted set without diffing the offsets first. Living area = HSE \"HOUSE\" plus SEC \"SECOND STORY\".",
       "loaded": true
     },
     {
@@ -268,7 +274,7 @@
       "files": {
         "certified_real_2026": "https://wadtx.com/wp-content/uploads/2026/07/2026-CERTIFIED-REAL-ROLL.zip"
       },
-      "notes": "LOADED 16 Aug: 60,174 read -> 42,249 residential. Data is 8.0.0.34 despite the published layout being 8.0.25. Living area = LV \"LIVING AREA\", not MA \u2014 this district is why the living-area matcher works on descriptions rather than codes.",
+      "notes": "LOADED 16 Aug: 60,174 read -> 42,249 residential. Data is 8.0.0.34 despite the published layout being 8.0.25. Living area = LV \"LIVING AREA\", not MA — this district is why the living-area matcher works on descriptions rather than codes.",
       "loaded": true
     },
     {
@@ -303,7 +309,7 @@
         "export_current": "https://maps.graysonappraisal.org/ORR_Export/GCAD_Export.zip",
         "preliminary": "https://maps.graysonappraisal.org/export/Preliminary_Export.zip"
       },
-      "notes": "Stable path \u2014 pollable on a schedule. Layout ships inside the zip."
+      "notes": "Stable path — pollable on a schedule. Layout ships inside the zip."
     },
     {
       "county": "Angelina",
@@ -348,7 +354,7 @@
         "certified_2026": "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
         "preliminary_2026": "https://johnsoncad.com/wp-content/uploads/2026/06/2026-Preliminary-Data-06-16-26-1.zip"
       },
-      "notes": "Certified filename is an opaque batch number \u2014 the listing page must be parsed, the URL cannot be constructed."
+      "notes": "Certified filename is an opaque batch number — the listing page must be parsed, the URL cannot be constructed."
     },
     {
       "county": "Victoria",
@@ -391,7 +397,7 @@
       "files": {
         "certified_real_2026": "https://www.ectorcad.org/downloads/car/2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP"
       },
-      "notes": "Own comma-delimited format, not PACS. Low priority \u2014 small market, bespoke parser."
+      "notes": "Own comma-delimited format, not PACS. Low priority — small market, bespoke parser."
     },
     {
       "county": "Brazoria",
@@ -423,7 +429,7 @@
         "lite_database": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabaseCurrent.zip",
         "code_lists": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/CodeFileLists.xls"
       },
-      "notes": "Lite export is a zipped MS Access .mdb \u2014 needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain."
+      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain."
     },
     {
       "county": "Williamson",
@@ -442,7 +448,7 @@
         "https://documents.wcad.org/DataDownloads/DailyUpdatedTables.pdf"
       ],
       "files": {},
-      "notes": "Four published layout PDFs \u2014 the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction."
+      "notes": "Four published layout PDFs — the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction."
     },
     {
       "county": "Fort Bend",
@@ -457,7 +463,7 @@
       "files": {
         "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
       },
-      "notes": "STALE \u2014 the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either."
+      "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either."
     },
     {
       "county": "Dallas",
@@ -465,24 +471,38 @@
       "cad_name": "Dallas Central Appraisal District",
       "site": "https://www.dallascad.org",
       "data_page": "https://www.dallascad.org/DataProducts.aspx",
-      "format": "unknown",
-      "access": "likely paid",
-      "confidence": "indexed",
-      "files": {},
-      "notes": "Historically sells 'Data Products' rather than posting them. The likeliest place in Texas for a restrictive commercial licence. Blocked automated fetch twice \u2014 check pricing and terms manually. Second-biggest market, so this matters."
+      "format": "DCAD_CSV",
+      "access": "free",
+      "confidence": "verified",
+      "files": {
+        "certified_2026_csv": "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2026_CERTIFIED_07232026.zip",
+        "current_2027_csv": "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2027_CURRENT.zip",
+        "fixed_roll_2026": "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5C2026_REAL_PROPERTY_CERT_APPR_ROLL.zip"
+      },
+      "notes": "RESOLVED 8 Sept 2026. The 15 Aug entry said \"unknown format / likely paid\" and BOTH were wrong: it is free, no registration, no published licence or redistribution restriction. NOT PACS — in-house CAMA called MARS on SQL Server. Use the comma-delimited relational set, not the fixed roll: the fixed roll has no year built, no neighborhood code and no class code. CSV set carries NBHD_CD, SPTD_CD, BLDG_CLASS_DESC, TOT_LIVING_AREA_SF, YR_BUILT and CAPPED_HS_AMT (a real explicit cap-loss field, better than Harris). Residential condition absent; DESIRABILITY_RATING is the only proxy. Dictionary ships inside the zip. Also publishes MAIL1/2/3 notice-value files, which is what makes the April window workable.",
+      "resolved_at": "2026-09-08"
     },
     {
       "county": "Tarrant",
       "cad_id": 220,
       "cad_name": "Tarrant Appraisal District",
       "site": "https://www.tad.org",
-      "data_page": "https://www.tad.org/resources/data-downloads.php",
+      "data_page": "https://www.tad.org/resources/data-downloads",
       "format": "PACS",
-      "access": "likely free",
-      "confidence": "indexed",
+      "access": "free",
+      "confidence": "verified",
       "layout": "https://www.tad.org/content/forms/PropertyData&PropertyLocationLayouts.pdf",
-      "files": {},
-      "notes": "403s to automated fetch. Terms of service contain NO data-reuse or commercial restriction \u2014 the \u00a71.111 language there governs the agent portal, not the downloads. Also publishes 'Res Comp Attribute Data' and 'Res Features Value Data' \u2014 the guts of their residential model, public. Third-biggest market."
+      "files": {
+        "true_prodigy_full_2026": "https://www.tad.org/content/data-download/000_Tarrant_All_Taxing_Units.zip",
+        "layout_tp_8_0_33": "https://www.tad.org/content/data-download/TP_Legacy8.0.33-AppraisalExportLayout.zip",
+        "legacy_delimited_all": "https://www.tad.org/content/data-download/PropertyData(Delimited).ZIP",
+        "legacy_delimited_res": "https://www.tad.org/content/data-download/PropertyData(Delimited)_R.ZIP",
+        "property_location": "https://www.tad.org/content/data-download/PropertyLocation.ZIP"
+      },
+      "notes": "RESOLVED 8 Sept 2026, and the 15 Aug entry was out of date. TAD moved off Aumentum to TRUE PRODIGY for the 2026 roll and now emits a PACS-family fixed-width export with a published layout (Legacy 8.0.33) — the El Paso parser should largely carry over. ~713 MB. The old data-downloads.php URL is Cloudflare-blocked; the extensionless path works. Legacy PropertyData files are refreshed continuously (so they exist during the Apr-May window) but carry NO neighborhood code and NO class code — unusable for comps. ARB mail goes to its own PO Box 185519, Fort Worth 76181, NOT the district. LAYOUT VERIFIED 9 Sept 2026 against scripts/tx/pacs_8_0_34.json, field by field: 467 byte ranges are identical between 8.0.33 and 8.0.34, and ALL 12 FIELDS load.mjs ACTUALLY READS sit at identical offsets (prop_id 1-12, situs_street 1050-1099, abs_subdv_cd 1676-1685, market_value 4214-4227, nhs_cap_loss 9068-9082, imprv_det_area 94-108 and yr_built 86-89 in the detail file, appraised_value 404-418 in the entity file). The two versions differ ONLY in naming: 8.0.33 carves named fields out of regions 8.0.34 leaves as `filler` (ownership_pct, mineral_lease_id) and the exemption block was renamed (df_* -> fdhs_*, bpp_ex_* -> 145b_*). No net shift anywhere. THE EXISTING LOADER PARSES TARRANT UNCHANGED. Note the first diff is a name-vs-name comparison trap: comparing field NAMES reports \"0 shifted\" for the wrong reason, because 22 ranges are renames. Compare BYTE RANGES.",
+      "resolved_at": "2026-09-08",
+      "layout_verified_against": "pacs_8_0_34.json",
+      "layout_verified_on": "2026-09-09"
     },
     {
       "county": "Denton",
@@ -583,7 +603,7 @@
       "access": "unknown",
       "confidence": "not_found",
       "files": {},
-      "notes": "One district serving two counties \u2014 Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this."
+      "notes": "One district serving two counties — Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this."
     },
     {
       "county": "Randall",
@@ -617,7 +637,8 @@
       "access": "public_information_request",
       "confidence": "verified",
       "files": {},
-      "notes": "No public bulk download; reports page carries PDFs only. Runs PACS (confirmed in their 2025-26 Reappraisal Plan), so request the appraisal export BY NAME. Fourth-biggest market."
+      "notes": "CONFIRMED 8 Sept 2026: still no free bulk download. PIA request only (CD/DVD/FTP), electronic-data pricing NOT published. Runs Harris Govern/True Automation PACS per its own Reappraisal Plan, so the export is very likely 8.x fixed-width, but BCAD publishes no layout so that is inference. Separately: BCAD hosts an UNSWORN DECLARATION form citing CPRC 132.001 by name, and its ARB procedures cite TAX CODE 41.45(n) as allowing evidence by \"notarized affidavit or unsworn declaration\" — a subsection we had not found. See claude/TX_Counsel_Brief_2026-09-07.md.",
+      "resolved_at": "2026-09-08"
     },
     {
       "county": "Lubbock",
@@ -701,21 +722,22 @@
       "access": "public_information_request",
       "confidence": "not_found",
       "files": {},
-      "notes": "No own domain \u2014 hosted on iswdataclient.azurewebsites.net."
+      "notes": "No own domain — hosted on iswdataclient.azurewebsites.net."
     }
   ],
   "hearing_outcome_publishers": {
-    "$comment": "Free, account-level, historical OUTCOMES data \u2014 initial vs final value per account. This is how the expected-reduction model gets built, and how the invented avgSavings numbers on 69 city pages get replaced with sourced ones. Harris additionally tags each row with Agent_Code, which identifies the firm, so competitor performance is measurable from public data.",
-    "Harris": "Hearing_files.zip \u2014 arb_hearings_real.txt, arb_hearings_pp.txt, arb_protest_real.txt, arb_protest_pp.txt",
+    "$comment": "Free, account-level, historical OUTCOMES data — initial vs final value per account. This is how the expected-reduction model gets built, and how the invented avgSavings numbers on 69 city pages get replaced with sourced ones. Harris additionally tags each row with Agent_Code, which identifies the firm, so competitor performance is measurable from public data.",
+    "Harris": "Hearing_files.zip — arb_hearings_real.txt, arb_hearings_pp.txt, arb_protest_real.txt, arb_protest_pp.txt",
     "Hays": "https://hayscad.com/wp-content/uploads/2025/09/2025-ARB-PROTEST-DECISION-DATA-ALL.xlsx",
     "Lubbock": "https://lubbockcad.org/Portals/0/2025.xlsx",
     "Collin": "data.texas.gov dataset xmrt-bxjr"
   },
   "next": [
     "Scrape the Comptroller county directory (254 pages) to populate cad_id and tx_cad_addresses.",
-    "Resolve the 11 JavaScript-portal districts with a real browser \u2014 all are PACS shops and almost certainly do publish exports.",
+    "Resolve the 11 JavaScript-portal districts with a real browser — all are PACS shops and almost certainly do publish exports.",
     "Phone Fort Bend about the missing 2025/2026 exports.",
     "Check Dallas CAD pricing and terms manually.",
     "Extend the catalogue from 45 districts to 254."
-  ]
+  ],
+  "resolved_big_five_at": "2026-09-08"
 }
