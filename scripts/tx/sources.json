@@ -90,7 +90,8 @@
         "real_estate": "https://export.epcad.org/datasets/REAL_ESTATE.zip",
         "schemas": "https://propertysearch.blob.core.windows.net/abepublicfiles/Schemas.txt"
       },
-      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most — validate the parser against both."
+      "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most — validate the parser against both.",
+      "loaded": true
     },
     {
       "county": "Nueces",
@@ -480,7 +481,8 @@
         "fixed_roll_2026": "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5C2026_REAL_PROPERTY_CERT_APPR_ROLL.zip"
       },
       "notes": "RESOLVED 8 Sept 2026. The 15 Aug entry said \"unknown format / likely paid\" and BOTH were wrong: it is free, no registration, no published licence or redistribution restriction. NOT PACS — in-house CAMA called MARS on SQL Server. Use the comma-delimited relational set, not the fixed roll: the fixed roll has no year built, no neighborhood code and no class code. CSV set carries NBHD_CD, SPTD_CD, BLDG_CLASS_DESC, TOT_LIVING_AREA_SF, YR_BUILT and CAPPED_HS_AMT (a real explicit cap-loss field, better than Harris). Residential condition absent; DESIRABILITY_RATING is the only proxy. Dictionary ships inside the zip. Also publishes MAIL1/2/3 notice-value files, which is what makes the April window workable.",
-      "resolved_at": "2026-09-08"
+      "resolved_at": "2026-09-08",
+      "loaded": true
     },
     {
       "county": "Tarrant",
@@ -502,7 +504,8 @@
       "notes": "RESOLVED 8 Sept 2026, and the 15 Aug entry was out of date. TAD moved off Aumentum to TRUE PRODIGY for the 2026 roll and now emits a PACS-family fixed-width export with a published layout (Legacy 8.0.33) — the El Paso parser should largely carry over. ~713 MB. The old data-downloads.php URL is Cloudflare-blocked; the extensionless path works. Legacy PropertyData files are refreshed continuously (so they exist during the Apr-May window) but carry NO neighborhood code and NO class code — unusable for comps. ARB mail goes to its own PO Box 185519, Fort Worth 76181, NOT the district. LAYOUT VERIFIED 9 Sept 2026 against scripts/tx/pacs_8_0_34.json, field by field: 467 byte ranges are identical between 8.0.33 and 8.0.34, and ALL 12 FIELDS load.mjs ACTUALLY READS sit at identical offsets (prop_id 1-12, situs_street 1050-1099, abs_subdv_cd 1676-1685, market_value 4214-4227, nhs_cap_loss 9068-9082, imprv_det_area 94-108 and yr_built 86-89 in the detail file, appraised_value 404-418 in the entity file). The two versions differ ONLY in naming: 8.0.33 carves named fields out of regions 8.0.34 leaves as `filler` (ownership_pct, mineral_lease_id) and the exemption block was renamed (df_* -> fdhs_*, bpp_ex_* -> 145b_*). No net shift anywhere. THE EXISTING LOADER PARSES TARRANT UNCHANGED. Note the first diff is a name-vs-name comparison trap: comparing field NAMES reports \"0 shifted\" for the wrong reason, because 22 ranges are renames. Compare BYTE RANGES.",
       "resolved_at": "2026-09-08",
       "layout_verified_against": "pacs_8_0_34.json",
-      "layout_verified_on": "2026-09-09"
+      "layout_verified_on": "2026-09-09",
+      "loaded": true
     },
     {
       "county": "Denton",

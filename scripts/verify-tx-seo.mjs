@@ -378,6 +378,69 @@ const pd = await load('lib/tx/protestDeadline.js');
   console.log(`  ${projected} district projections, none before the floor`);
 }
 
+// ------------------------- 7. the generated coverage twins agree with each other
+//
+// 9 Sept 2026. Dallas (57) and Tarrant (220) were loaded, county-stats.mjs was
+// re-run, and the commit that shipped them carried lib/tx/countyStats.json and
+// not lib/tx/countyStats.js. lib/tx/coverage.js imports the .js twin. So for a
+// day production held 1.17 million Dallas and Tarrant parcels and told every
+// homeowner in both districts "we do not cover your county yet" - the AR/AL
+// failure from 25 Aug, in the direction that costs the most.
+//
+// The root cause is that county-stats.mjs writes two files and announces one.
+// Its success line prints the .json path only; the .js is emitted by a
+// `.replace(/\.json$/, '.js')` that nothing advertises, so a commit assembled
+// from what the script said takes one twin and leaves the other. Both come from
+// the same payload in the same call, so any divergence is a packaging mistake
+// and never a legitimate state.
+//
+// PROVE IT: delete the "57" block from lib/tx/countyStats.js only.
+//   expect: "countyStats.js is missing district(s) 57"
+{
+  const fromJson = JSON.parse(read('lib/tx/countyStats.json'));
+  const fromJs = (await load('lib/tx/countyStats.js')).default;
+
+  const jsonCads = Object.keys(fromJson.counties || {}).sort();
+  const jsCads = Object.keys(fromJs.counties || {}).sort();
+
+  const missingFromJs = jsonCads.filter((c) => !jsCads.includes(c));
+  const missingFromJson = jsCads.filter((c) => !jsonCads.includes(c));
+
+  if (missingFromJs.length) {
+    fail(`countyStats.js is missing district(s) ${missingFromJs.join(', ')} that ` +
+         `countyStats.json has. lib/tx/coverage.js imports the .js, so isCovered() ` +
+         `returns false and every owner in those districts is told we do not cover ` +
+         `their county. Re-run node scripts/tx/county-stats.mjs and commit BOTH files.`);
+  }
+  if (missingFromJson.length) {
+    fail(`countyStats.json is missing district(s) ${missingFromJson.join(', ')} that ` +
+         `countyStats.js has. county-stats.mjs reads its previous run from the .json to ` +
+         `preserve districts it is not recomputing, so the next --cad run drops them.`);
+  }
+
+  // The same districts is not the same numbers. One twin taken from an older run
+  // puts a stale median on a public county page while the other file carries the
+  // right one, and nothing on the page says which it used.
+  const drifted = jsonCads
+    .filter((c) => jsCads.includes(c))
+    .filter((c) => JSON.stringify(fromJson.counties[c]) !== JSON.stringify(fromJs.counties[c]));
+  if (drifted.length) {
+    fail(`countyStats.js and countyStats.json hold different figures for district(s) ` +
+         `${drifted.join(', ')}. One script writes both from one payload - they cannot ` +
+         `legitimately differ. Re-run node scripts/tx/county-stats.mjs.`);
+  }
+  if (fromJson.generatedAt !== fromJs.generatedAt) {
+    fail(`countyStats.json says generatedAt ${fromJson.generatedAt}, countyStats.js says ` +
+         `${fromJs.generatedAt}. One twin is from an older run.`);
+  }
+  // Only say they agree when nothing above disagreed. A line reading "twins
+  // agree" printed on a failing run is how a person skims past the FAIL.
+  if (!missingFromJs.length && !missingFromJson.length && !drifted.length
+      && fromJson.generatedAt === fromJs.generatedAt) {
+    console.log(`  countyStats twins agree - ${jsCads.length} districts, generated ${fromJs.generatedAt}`);
+  }
+}
+
 // =========================================================================== warn
 {
   // Districts we still cannot date. Not an error — an unfilled row is honest. But it
@@ -394,6 +457,26 @@ const pd = await load('lib/tx/protestDeadline.js');
     warn(`${pd.MAILING_DATA_GAPS.length} districts have no mailing data at all ` +
          `(JS-only portals or 403 to fetching — these need a browser or a phone ` +
          `call):\n        ${pd.MAILING_DATA_GAPS.join(', ')}`);
+  }
+
+  // scripts/tx/sources.json carries a hand-maintained `loaded` flag that nothing
+  // imports. It is documentation - but it is the file a person opens to decide
+  // which district to download next, and it is wrong in the direction that hides
+  // finished work.
+  {
+    const loadedStats = JSON.parse(read('lib/tx/countyStats.json')).counties || {};
+    const sources = JSON.parse(read('scripts/tx/sources.json'));
+    const unflagged = Object.keys(loadedStats)
+      .map(Number)
+      .filter((id) => {
+        const d = (sources.districts || []).find((x) => Number(x.cad_id) === id);
+        return d && !d.loaded;
+      });
+    if (unflagged.length) {
+      warn(`scripts/tx/sources.json does not mark cad ${unflagged.join(', ')} as loaded, ` +
+           `but they have rows in countyStats. Nothing imports the flag - this is the ` +
+           `download list going stale, not a customer-facing defect.`);
+    }
   }
 
   // The states left on a literal year. Deliberate, scoped out, and not silent.

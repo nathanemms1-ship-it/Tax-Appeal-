@@ -383,8 +383,14 @@ try {
       + '// that is actually in the database.\n'
       + `export default ${JSON.stringify(payload, null, 2)};\n`,
     );
-    console.log(`\n✓ wrote ${OUT} — ${Object.keys(out).length} counties\n`);
-    console.log('  Review the diff before committing. These numbers go on public pages.\n');
+    // BOTH paths, every time. On 9 Sept 2026 this line named the .json only, a
+    // commit was assembled from it, and lib/tx/countyStats.js — the twin
+    // lib/tx/coverage.js actually imports — stayed behind. Dallas and Tarrant
+    // were in the database and turned away at the door for a day.
+    console.log(`\n✓ wrote ${Object.keys(out).length} counties to BOTH twins:`);
+    console.log(`    ${OUT}`);
+    console.log(`    ${OUT.replace(/\.json$/, '.js')}   ← this is the one lib/tx/coverage.js imports`);
+    console.log('\n  Commit BOTH. Review the diff first — these numbers go on public pages.\n');
   }
 } finally {
   await client.end();
