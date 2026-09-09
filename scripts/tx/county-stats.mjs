@@ -67,7 +67,53 @@ const arg = (k, d) => {
 const has = (k) => process.argv.includes(`--${k}`);
 
 const YEAR = Number(arg('year', 2026));
-const CLASS_PREFIX = arg('class', 'A1');
+/**
+ * SINGLE-FAMILY IS NOT SPELLED THE SAME IN EVERY DISTRICT.
+ *
+ * This was a hardcoded 'A1' and Tarrant vanished because of it: 600,153 rows
+ * loaded cleanly, then `220: no A1 parcels, skipped`, and the district stayed
+ * invisible to the whole site — lib/tx/coverage.js lists a district only if it
+ * has an entry here.
+ *
+ * Tarrant classes every single-family parcel plain `A`. El Paso subdivides:
+ * A1 detached, A2 mobile home, A51 condo. So neither a global 'A1' nor a global
+ * 'A' is right — 'A1' loses Tarrant entirely, and 'A' silently sweeps El Paso's
+ * mobile homes and condominiums into a "single-family" median that goes on
+ * public pages.
+ *
+ * Resolved PER DISTRICT against the roll instead: use A1 where the district
+ * publishes A1, otherwise fall back to plain A. `--class=` still overrides for
+ * a one-off. Every future district that does not subdivide now works without
+ * anyone noticing it needed to.
+ */
+const CLASS_OVERRIDE = arg('class', null);
+
+const CLASS_SQL = `
+  select state_class_code, count(*)::int n
+    from tx_parcels
+   where cad_id = $1 and tax_year = $2 and state_class_code like 'A%'
+   group by 1`;
+
+/**
+ * Returns { label, pattern } — the LIKE pattern matters as much as the label.
+ *
+ * 'A1' becomes 'A1%' so A1A and friends are caught. Bare 'A' becomes EXACTLY
+ * 'A', with no wildcard: 'A%' would pull El Paso's A2 mobile homes and A51
+ * condominiums into a single-family median. That distinction is the whole
+ * reason this is resolved per district, and writing 'A%' here would quietly
+ * undo it.
+ */
+async function classFor(cadId) {
+  if (CLASS_OVERRIDE) {
+    return { label: CLASS_OVERRIDE, pattern: `${CLASS_OVERRIDE}%` };
+  }
+  const { rows } = await client.query(CLASS_SQL, [cadId, YEAR]);
+  if (!rows.length) return null;
+  const codes = new Set(rows.map((r) => (r.state_class_code || '').trim()));
+  if ([...codes].some((c) => c.startsWith('A1'))) return { label: 'A1', pattern: 'A1%' };
+  if (codes.has('A')) return { label: 'A', pattern: 'A' };
+  return null;
+}
 const OUT = 'lib/tx/countyStats.json';
 
 // ── connection (same idiom as push.mjs / sellable.mjs) ─────────────────────
@@ -233,10 +279,13 @@ try {
   try { existing = JSON.parse(readFileSync(OUT, 'utf8')).counties || {}; } catch { /* first run */ }
 
   const out = { ...existing };
-  console.log(`\nCOUNTY STATISTICS — tax year ${YEAR}, class ${CLASS_PREFIX}*\n`);
+  console.log(`\nCOUNTY STATISTICS — tax year ${YEAR}, single-family class resolved per district\n`);
 
   for (const { cad_id } of counties) {
-    const { rows: [r] } = await client.query(STATS_SQL, [cad_id, YEAR, `${CLASS_PREFIX}%`]);
+    const cls = await classFor(cad_id);
+    if (!cls) { console.log(`  ${cad_id}: no class-A parcels at all, skipped`); continue; }
+    const CLASS_PREFIX = cls.label;
+    const { rows: [r] } = await client.query(STATS_SQL, [cad_id, YEAR, cls.pattern]);
     if (!r || !r.parcels) { console.log(`  ${cad_id}: no ${CLASS_PREFIX} parcels, skipped`); continue; }
 
     const stats = {
