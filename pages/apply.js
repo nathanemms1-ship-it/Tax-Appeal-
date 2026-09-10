@@ -5,7 +5,7 @@ import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
-import { getFilingWindowStatus } from '../lib/filingWindows';
+import { getFilingWindowStatus, windowBlocksEntry } from '../lib/filingWindows';
 import { SERVING_FROM } from '../lib/stateService';
 import { resolveOwnerMailing } from '../lib/ownerMailing';
 import { captureAttribution, attributionPayload } from '../lib/attribution';
@@ -382,16 +382,55 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
   // already hold one, which since 23 Aug 2026 is the ordinary case — this screen
   // is reached from the property step, and the details step is below it.
   const capturePayload = {
-    email: account?.email || "",
+    email: account?.email || property?.email || "",
     name: `${account?.firstName || ""} ${account?.lastName || ""}`.trim(),
     state: stateCode,
-    county: null,
+    // Was hardcoded null. Arrivals from /check carry a county, and it is what
+    // lets the reopening email name the district and the right deadline instead
+    // of saying "your state".
+    county: property?.county || null,
     propertyAddress: property ? `${property.street}, ${property.city}, ${property.state} ${property.zip}` : null,
     notifyDate: windowStatus?.openDate ? windowStatus.openDate.toISOString().split("T")[0] : null,
   };
 
   if (!state || !windowStatus) return null;
   const isTooClose = windowStatus.isOpen && windowStatus.tooClose;
+
+  /**
+   * OFF SEASON WE COUNT DOWN TO PRE-ORDERS, NOT TO THE FILING WINDOW.
+   *
+   * Those are different dates and the gap is months: Texas pre-orders open
+   * 31 Jan 2027 and filing opens 1 Apr 2027. Counting to 1 April told someone
+   * 203 days when the thing they can actually do — reserve a filing — is 143
+   * days away. Both dates are STATE-level, which is why no county is needed to
+   * render this screen.
+   *
+   * daysUntilPreOrder is 0 when the window is open-but-too-close, which is the
+   * other branch, so the fallback only guards against a shape we do not expect.
+   */
+  const daysToPreOrder = windowStatus.daysUntilPreOrder || windowStatus.daysUntilOpen;
+
+  /**
+   * ONLY PRINT A DATE WE CAN STAND BEHIND.
+   *
+   * Texas runs ONE statewide window, so its dates are certain with no county at
+   * all. Florida's counties differ by up to thirteen days and Georgia's by
+   * weeks — and with a null county getFilingWindowStatus falls back to a date
+   * that is not theirs (measured 10 Sept: GA with a null county returns the
+   * TEXAS pre-order date). apply.js resolves a county for FL and GA before this
+   * screen, so the fallback is only reachable on a geocoder failure.
+   *
+   * The gate itself still fires for everyone — nobody walks deeper into a funnel
+   * that cannot sell them anything. This governs the COUNTDOWN only: without a
+   * trustworthy date we make the same promise without a number attached, rather
+   * than telling a homeowner in Savannah a date that belongs to Fort Worth.
+   */
+  const datesCertain = stateCode === "TX" || !!property?.county;
+  const fmt = (d) => (d instanceof Date
+    ? d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null);
+  const preOrderOn = fmt(windowStatus.preOrderOpenDate);
+  const opensOn = fmt(windowStatus.openDate);
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 40px" }}>
@@ -406,14 +445,18 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
           </p>
         ) : (
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
-            The {state.name} protest filing window is currently closed. The next filing season opens in <strong style={{ color: C.navy, fontSize: 20 }}>{windowStatus.daysUntilOpen} days</strong>. We've saved your information and will email you the moment filing season opens.
+            The {state.name} filing window is closed right now, so there is nothing that can be filed today.{datesCertain
+              ? <> We start taking pre-orders in <strong style={{ color: C.navy, fontSize: 20 }}>{daysToPreOrder} days</strong>{preOrderOn ? ` on ${preOrderOn}` : ""}, and {state.name} filing opens{opensOn ? ` on ${opensOn}` : " after that"}.</>
+              : <> Pre-orders open about two months before your county starts accepting protests.</>} We have your address and your email — we will write to you the moment our filing window opens. Nothing to do until then.
           </p>
         )}
+        {(isTooClose || datesCertain) && (
         <div style={{ background: C.darkNavy, borderRadius: 12, padding: "24px", marginBottom: 24, display: "inline-block", width: "100%" }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>{isTooClose ? windowStatus.daysUntilHard : windowStatus.daysUntilOpen}</div>
-          <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until filing season opens"}</div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>{isTooClose ? windowStatus.daysUntilHard : daysToPreOrder}</div>
+          <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until pre-orders open"}</div>
           <div style={{ fontSize: 12, color: "#8596AF", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
         </div>
+        )}
         <LeadCapture
           payload={capturePayload}
           street={property?.street}
@@ -1226,6 +1269,19 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
 
   const go = async () => {
     if (!data.street || !data.city || !data.state || !data.zip) return setErr("Please fill in the complete property address.");
+    /**
+     * EMAIL IS REQUIRED HERE, NOT AT THE ACCOUNT STEP — 10 Sept 2026.
+     *
+     * Off season the very next screen tells this person their state is closed and
+     * that we will write when pre-orders open. That promise needs an address to
+     * keep it, and the account step that used to collect the email sits two
+     * screens further on, behind a gate they will never reach.
+     *
+     * In season it costs nothing — the account step pre-fills from this value.
+     */
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((data.email || "").trim())) {
+      return setErr("Please enter your email address so we know where to send your filing.");
+    }
     const sc = data.state.trim().toUpperCase();
     if (!SUPPORTED_STATES[sc]) { onUnsupportedState(sc); return; }
     // Checked BEFORE the filing-window test on purpose: AR and AL windows are open
@@ -1293,7 +1349,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
       county picker exists precisely for this case.
     */
     const ws = getFilingWindowStatus(sc, countyName, { strict: true });
-    if (countyName && ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(sc, ws); return; }
+    if (windowBlocksEntry(sc, countyName, ws)) { onClosedWindow(sc, ws); return; }
     if (ws && ws.canPreOrder) { setErr(""); onNext(); return; }
     if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();
@@ -1334,6 +1390,10 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
               </select>
             </div>
             <Field label="ZIP" id="zip" value={data.zip} onChange={e => onChange("zip", e.target.value)} placeholder="76063" />
+          </div>
+          <Field label="Email address" id="prop-email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="you@example.com" />
+          <div style={{ fontSize: 11, color: C.bodyGray, marginTop: -8, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            Where your filing goes — and, if your state&apos;s window is closed today, where we write the moment pre-orders open.
           </div>
           {/*
             ======================================================================
@@ -3895,7 +3955,7 @@ function ApplyFunnel() {
   // downstream reads one — carrying an always-empty string here is the live wire
   // nobody can see is dead. See lib/noPassword.js and the note on StepAccount.
   const [account, setAccount] = useState({ firstName: "", lastName: "", email: "" });
-  const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
+  const [property, setProperty] = useState({ street: "", city: "", state: "", zip: "", email: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
 
   /**
    * Prefill the property from /check, so a Florida customer types their address
@@ -4283,7 +4343,7 @@ function ApplyFunnel() {
   const restart = () => {
     setStep("property");
     setAccount({ firstName: "", lastName: "", email: "" });
-    setProperty({ street: "", city: "", state: "", zip: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
+    setProperty({ street: "", city: "", state: "", zip: "", email: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
     setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
     // The /check handoff is per-property. Starting over means the roll's county
     // and the rescue loop belong to a property this funnel is no longer about —
@@ -4532,6 +4592,9 @@ function ApplyFunnel() {
           {step === "account" && <StepAccount data={account} property={property} onChange={upd(setAccount)} onNext={afterAccount} onBack={() => { setStep("issues"); window.scrollTo(0,0); }} vabFeeCents={flAccountVabFee} />}
           {step === "property" && <StepProperty data={property} onChange={upd(setProperty)} onNext={() => {
             const sc = property.state.trim().toUpperCase();
+            // The property step collects the email now, so the account step must
+            // not ask a second time for something we already hold.
+            if (property.email && !account.email) setAccount((p) => ({ ...p, email: property.email }));
             /*
               A CONDITION ARRIVAL ENTERS THE RESCUE LOOP ONE STEP EARLY.
               They answered the condition question on /check by clicking through,

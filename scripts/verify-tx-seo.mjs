@@ -396,26 +396,29 @@ const pd = await load('lib/tx/protestDeadline.js');
 //
 // PROVE IT: delete the "57" block from lib/tx/countyStats.js only.
 //   expect: "countyStats.js is missing district(s) 57"
-{
-  const fromJson = JSON.parse(read('lib/tx/countyStats.json'));
-  const fromJs = (await load('lib/tx/countyStats.js')).default;
+//
+// GENERALISED 10 Sept 2026: hearingOutcomes joined countyStats as a generated
+// twin pair, and a second hand-written copy of this check is exactly the kind of
+// duplication that drifts. One function, a list of pairs.
+async function twinsAgree({ json, js, key, importedBy }) {
+  const fromJson = JSON.parse(read(json));
+  const fromJs = (await load(js)).default;
 
-  const jsonCads = Object.keys(fromJson.counties || {}).sort();
-  const jsCads = Object.keys(fromJs.counties || {}).sort();
+  const jsonCads = Object.keys(fromJson[key] || {}).sort();
+  const jsCads = Object.keys(fromJs[key] || {}).sort();
 
   const missingFromJs = jsonCads.filter((c) => !jsCads.includes(c));
   const missingFromJson = jsCads.filter((c) => !jsonCads.includes(c));
 
   if (missingFromJs.length) {
-    fail(`countyStats.js is missing district(s) ${missingFromJs.join(', ')} that ` +
-         `countyStats.json has. lib/tx/coverage.js imports the .js, so isCovered() ` +
-         `returns false and every owner in those districts is told we do not cover ` +
-         `their county. Re-run node scripts/tx/county-stats.mjs and commit BOTH files.`);
+    fail(`${js} is missing ${key} ${missingFromJs.join(', ')} that ${json} has. ` +
+         `${importedBy} imports the .js twin, so the .json being right saves nobody. ` +
+         `Re-run the generator and commit BOTH files.`);
   }
   if (missingFromJson.length) {
-    fail(`countyStats.json is missing district(s) ${missingFromJson.join(', ')} that ` +
-         `countyStats.js has. county-stats.mjs reads its previous run from the .json to ` +
-         `preserve districts it is not recomputing, so the next --cad run drops them.`);
+    fail(`${json} is missing ${key} ${missingFromJson.join(', ')} that ${js} has. ` +
+         `The generator reads its previous run from the .json to preserve entries it is ` +
+         `not recomputing, so the next partial run drops them.`);
   }
 
   // The same districts is not the same numbers. One twin taken from an older run
@@ -423,22 +426,31 @@ const pd = await load('lib/tx/protestDeadline.js');
   // right one, and nothing on the page says which it used.
   const drifted = jsonCads
     .filter((c) => jsCads.includes(c))
-    .filter((c) => JSON.stringify(fromJson.counties[c]) !== JSON.stringify(fromJs.counties[c]));
+    .filter((c) => JSON.stringify(fromJson[key][c]) !== JSON.stringify(fromJs[key][c]));
   if (drifted.length) {
-    fail(`countyStats.js and countyStats.json hold different figures for district(s) ` +
-         `${drifted.join(', ')}. One script writes both from one payload - they cannot ` +
-         `legitimately differ. Re-run node scripts/tx/county-stats.mjs.`);
+    fail(`${js} and ${json} hold different figures for ${drifted.join(', ')}. ` +
+         `One script writes both from one payload - they cannot legitimately differ.`);
   }
   if (fromJson.generatedAt !== fromJs.generatedAt) {
-    fail(`countyStats.json says generatedAt ${fromJson.generatedAt}, countyStats.js says ` +
+    fail(`${json} says generatedAt ${fromJson.generatedAt}, ${js} says ` +
          `${fromJs.generatedAt}. One twin is from an older run.`);
   }
   // Only say they agree when nothing above disagreed. A line reading "twins
   // agree" printed on a failing run is how a person skims past the FAIL.
   if (!missingFromJs.length && !missingFromJson.length && !drifted.length
       && fromJson.generatedAt === fromJs.generatedAt) {
-    console.log(`  countyStats twins agree - ${jsCads.length} districts, generated ${fromJs.generatedAt}`);
+    console.log(`  ${json.split('/').pop()} twins agree - ${jsCads.length} entries, generated ${fromJs.generatedAt}`);
   }
+}
+
+for (const pair of [
+  { json: 'lib/tx/countyStats.json', js: 'lib/tx/countyStats.js', key: 'counties',
+    importedBy: 'lib/tx/coverage.js' },
+  { json: 'lib/tx/hearingOutcomes.json', js: 'lib/tx/hearingOutcomes.js', key: 'districts',
+    importedBy: 'lib/stats.js' },
+]) {
+  if (!fs.existsSync(path.resolve(root, pair.json))) continue;
+  await twinsAgree(pair);
 }
 
 // =========================================================================== warn

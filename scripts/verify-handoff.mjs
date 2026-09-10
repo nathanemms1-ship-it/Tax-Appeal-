@@ -748,6 +748,76 @@ t('a real bcrypt hash IS usable', hasUsablePassword('$2b$10$abcdefghijklmnopqrst
 t('a real pbkdf2 salt:hash IS usable', hasUsablePassword('deadbeef:cafebabe'));
 
 // ── Report ────────────────────────────────────────────────────────────────────
+/**
+ * ============================================================================
+ * THE OFF-SEASON GATE — 10 Sept 2026
+ * ============================================================================
+ * Found by typing a Mansfield, TX address into the live funnel out of season and
+ * landing on the property-condition step. The property step read:
+ *
+ *   if (countyName && ws && !ws.canFile && !ws.canPreOrder) { onClosedWindow(); }
+ *
+ * and apply.js only resolves a county for GA and FL. countyName was therefore
+ * ALWAYS null in Texas, the condition could never be true, and no Texas address
+ * was ever gated. Nothing could be SOLD — checkout re-checks — but every Texas
+ * visitor walked three screens into a funnel that had nothing to sell them, and
+ * we never asked for the email that would let us tell them when it opened.
+ *
+ * The decision now lives in lib/filingWindows.js so it can be tested at all.
+ *
+ * PROVE IT: in windowBlocksEntry make the final `return true` a `return
+ * !!countyName`.
+ *   expect: "off season, TX with an unresolved county is still gated"
+ */
+{
+  const { windowBlocksEntry, getFilingWindowStatus } = await import('../lib/filingWindows.js');
+
+  const closed = { isOpen: false, tooClose: false, canFile: false, canPreOrder: false };
+  const tooClose = { isOpen: true, tooClose: true, canFile: false, canPreOrder: false };
+
+  t('off season, TX with an unresolved county is still gated',
+    windowBlocksEntry('TX', null, closed) === true);
+  t('off season, every state is gated with or without a county',
+    ['TX', 'GA', 'FL'].every((sc) => windowBlocksEntry(sc, null, closed) === true
+      && windowBlocksEntry(sc, 'Anything', closed) === true));
+
+  /**
+   * The 24 Aug regression, kept: window OPEN but too close to the deadline is the
+   * one refusal where the county IS the date. A Census 403 on a Broward address
+   * must not produce a terminal "your deadline is in 9 days" that is false about
+   * their county. Texas is exempt because it has one statewide deadline.
+   */
+  t('too close to the deadline with an unresolved county does NOT refuse in FL or GA',
+    windowBlocksEntry('FL', null, tooClose) === false
+    && windowBlocksEntry('GA', null, tooClose) === false);
+  t('...but does once the county is known',
+    windowBlocksEntry('FL', 'Broward', tooClose) === true);
+  t('...and always does in TX, whose deadline is statewide',
+    windowBlocksEntry('TX', null, tooClose) === true);
+
+  t('an open window is never a refusal',
+    windowBlocksEntry('TX', null, { canFile: true }) === false
+    && windowBlocksEntry('TX', null, { canPreOrder: true }) === false);
+  t('a missing window object is not a refusal', windowBlocksEntry('TX', null, null) === false);
+
+  // Behavioural, against the real calendar rather than a fixture: Texas is out of
+  // season today and must be gated by the function the funnel actually calls.
+  const txNow = getFilingWindowStatus('TX', null, { strict: true });
+  t('against the live calendar, TX today is either sellable or gated — never neither',
+    windowBlocksEntry('TX', null, txNow) === !(txNow.canFile || txNow.canPreOrder));
+
+  // The property step must ask for the email, because the screen behind this gate
+  // promises to write to them and the account step is two screens further on.
+  const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+  t('the property step calls windowBlocksEntry rather than re-implementing it',
+    /windowBlocksEntry\(sc, countyName, ws\)/.test(apply)
+    && /import \{[^}]*windowBlocksEntry[^}]*\} from '\.\.\/lib\/filingWindows'/.test(apply));
+  t('the property step requires an email before it advances',
+    /Please enter your email address so we know where to send your filing/.test(apply));
+  t('and the closed-window screen captures it',
+    /email: account\?\.email \|\| property\?\.email \|\| ""/.test(apply));
+}
+
 if (failures.length) {
   console.error(`\n  ${failures.length} handoff assertion(s) FAILED:`);
   for (const f of failures) console.error(`    ✗ ${f}`);
