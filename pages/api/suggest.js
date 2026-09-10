@@ -58,8 +58,23 @@ export default async function handler(req, res) {
    * is the only answer that works before the customer has told us where they
    * are. Texas leads because it is the larger roll and the open season.
    */
-  const wantsTx = state === 'TX' || (!state && isTexasZip(zip));
-  const wantsFl = state === 'FL' || (!state && !isTexasZip(zip));
+  /**
+   * AN ABSENT ZIP IS NOT A "NO" — 10 Sept 2026, same night, found by typing a
+   * Mansfield address into the live funnel with the ZIP box still empty.
+   *
+   * The first cut of this read `!state && isTexasZip(zip)`. isTexasZip('') is
+   * false, so no-state-and-no-ZIP resolved to Florida ONLY — while the comment
+   * directly above claimed both rolls were asked. A ZIP that has not been typed
+   * yet says nothing about which state the customer is in, and the street box is
+   * filled BEFORE the ZIP box on both /check and /apply, so this is the ordinary
+   * case rather than an edge one.
+   *
+   * Only a ZIP that is actually present may narrow. Same rule as the matcher's:
+   * a hint narrows, it never excludes.
+   */
+  const hasZip = /^\d{5}$/.test(String(zip || '').trim().slice(0, 5));
+  const wantsTx = state === 'TX' || (!state && (!hasZip || isTexasZip(zip)));
+  const wantsFl = state === 'FL' || (!state && (!hasZip || !isTexasZip(zip)));
 
   try {
     const [tx, fl] = await Promise.all([
