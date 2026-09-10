@@ -88,6 +88,9 @@ export default function AddressAutocomplete({
   onChange,
   onSelect,
   zip = null,
+  // /check has no state box — the ZIP is what /api/suggest uses to pick a roll.
+  // Passed through anyway so a caller that does know can say so.
+  stateCode = null,
   placeholder = '8023 Marbella Creek Ave',
   colors,
   style = {},
@@ -151,7 +154,7 @@ export default function AddressAutocomplete({
         const r = await fetch('/api/suggest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: val, zip: z || null }),
+          body: JSON.stringify({ query: val, zip: z || null, state: stateCode || null }),
         });
         const j = await r.json();
         const list = Array.isArray(j.suggestions) ? j.suggestions : [];
@@ -278,7 +281,7 @@ export default function AddressAutocomplete({
             >
               <div style={{ fontSize: 14, color: C.darkNavy }}>{s.street}</div>
               <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                {[s.city, 'FL', s.zip].filter(Boolean).join(', ')}
+                {[s.city, s.state || 'FL', s.zip].filter(Boolean).join(', ')}
               </div>
             </li>
           ))}

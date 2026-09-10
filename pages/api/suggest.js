@@ -25,6 +25,8 @@
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { suggestAddresses } from '../../lib/dor/parcels';
+import { suggestAddresses as suggestTexas } from '../../lib/tx/parcels';
+import { isTexasZip } from '../../lib/tx/coverage';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -38,11 +40,39 @@ export default async function handler(req, res) {
 
   const query = cap(req.body?.query, LIMITS.address);
   const zip = cap(req.body?.zip, 20);
+  const state = String(cap(req.body?.state, 4) || '').trim().toUpperCase();
 
   if (!query || query.trim().length < 4) return res.status(200).json({ suggestions: [] });
 
+  /**
+   * ==========================================================================
+   * WHICH ROLL — 10 Sept 2026
+   * ==========================================================================
+   * This route was Florida-only, which is why /check offered a Texas homeowner
+   * no suggestions at all and /apply fell through to an unbiased Google Places
+   * call that answered "3207 high ridge ct" with a street in Maryland.
+   *
+   * The state box is usually still EMPTY while the street is being typed, so the
+   * ZIP decides when it can and both rolls are asked when neither is known.
+   * Asking both is cheap — these are our own tables, not a billed API — and it
+   * is the only answer that works before the customer has told us where they
+   * are. Texas leads because it is the larger roll and the open season.
+   */
+  const wantsTx = state === 'TX' || (!state && isTexasZip(zip));
+  const wantsFl = state === 'FL' || (!state && !isTexasZip(zip));
+
   try {
-    const suggestions = await suggestAddresses(query, { limit: 8, zip: zip || null });
+    const [tx, fl] = await Promise.all([
+      wantsTx ? suggestTexas(query, { limit: 8, zip: zip || null }) : Promise.resolve([]),
+      wantsFl ? suggestAddresses(query, { limit: 8, zip: zip || null }) : Promise.resolve([]),
+    ]);
+    // Every row carries its own state now. /check used to hardcode "FL" into the
+    // second line of the dropdown, which was wrong the moment a second state had
+    // a roll.
+    const suggestions = [
+      ...tx,
+      ...fl.map((r) => ({ ...r, state: r.state || 'FL' })),
+    ].slice(0, 8);
     return res.status(200).json({ suggestions });
   } catch (err) {
     // Never fail the request over autocomplete. A customer can always type the

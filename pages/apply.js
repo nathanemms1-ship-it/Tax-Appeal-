@@ -275,21 +275,34 @@ function AddressAutocomplete({ value, onChange, onSelect, stateCode, zip }) {
       try {
         const z = String(zip || '').trim().slice(0, 5);
         const sc = String(stateCode || '').trim().toUpperCase();
-        const looksFlorida = sc === 'FL' || (/^\d{5}$/.test(z) && Number(z) >= 32000 && Number(z) <= 34999);
+        /**
+         * OUR OWN ROLL FIRST, FOR EVERY STATE WE HOLD ONE — 10 Sept 2026.
+         *
+         * This used to ask /api/suggest only when Florida was possible, and
+         * /api/suggest was Florida-only anyway. So a Texas street fell straight
+         * through to Google Places with NEITHER the state nor the ZIP attached —
+         * and "3207 high ridge ct" came back as a street in Robinwood, Maryland.
+         *
+         * /api/suggest now picks the roll from the state or the ZIP and searches
+         * both when neither is known, which is the ordinary case while a street
+         * is still being typed. Every row it returns is a parcel we hold.
+         */
+        const HAVE_A_ROLL = new Set(['TX', 'FL']);
 
         let list = [];
-        // Our own roll first whenever Florida is possible — including when the
-        // state box is still empty, which it usually is while the street is
-        // being typed.
-        if (looksFlorida || !sc) {
-          const r = await fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val, zip: z || null }) });
-          const j = await r.json();
-          list = (j.suggestions || []).map((x) => ({ ...x, state: 'FL' }));
-        }
-        // Google only for states we hold no roll for. Never as a Florida
-        // fallback — see the header.
-        if (!list.length && !looksFlorida) {
-          const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val }) });
+        const r = await fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val, zip: z || null, state: sc || null }) });
+        const j = await r.json();
+        list = j.suggestions || [];
+
+        /**
+         * Google only where we hold no roll, and never as a fallback for a state
+         * we DO hold — a miss there means the address is not on that roll, and
+         * Google suggesting it anyway just moves the dead end one screen later.
+         * The state and ZIP go with the call now; without them Google searches
+         * all fifty states and answers a Texas street with a Maryland one.
+         */
+        if (!list.length && !HAVE_A_ROLL.has(sc)) {
+          const res = await fetch("/api/autocomplete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: val, state: sc || null, zip: z || null }) });
           const data = await res.json();
           list = data.suggestions || [];
         }

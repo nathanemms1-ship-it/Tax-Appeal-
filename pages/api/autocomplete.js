@@ -30,6 +30,7 @@ import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { LIMITS, cap } from '../../lib/inputLimits';
 import { checkSpend } from '../../lib/spendGuard';
+import { sellingStates } from '../../lib/stateService';
 
 let redis = null;
 try {
@@ -68,13 +69,48 @@ export default async function handler(req, res) {
   const query = cap(req.body?.query, LIMITS.address);
   if (!query || query.length < 3) return res.status(200).json({ suggestions: [] });
 
+  /**
+   * ==========================================================================
+   * THE STATE WAS ALWAYS AVAILABLE AND WAS NEVER SENT — 10 Sept 2026
+   * ==========================================================================
+   * AddressAutocomplete has taken `stateCode` and `zip` as props since it was
+   * written. It posted neither. This route read `query` and nothing else, and
+   * asked Google for `components=country:us` — all fifty states.
+   *
+   * Measured against production: "3207 high ridge ct" returned High Ridge Court
+   * in Robinwood MD, Newark DE and Delaware Township PA. The SAME query with
+   * ", TX" appended returned "3207 High Ridge Court, Mansfield TX 76063" first.
+   *
+   * Third instance this week of a value the sender set and the receiver never
+   * read, after pd.cadId and generate-50132's issues/costOverrides.
+   */
+  const bodyState = String(cap(req.body?.state, 4) || '').trim().toUpperCase();
+  const bodyZip = String(cap(req.body?.zip, 20) || '').trim().slice(0, 5);
+  // ZIP stands in while the state box is empty, which is most of the typing.
+  const zipState = /^\d{5}$/.test(bodyZip)
+    ? (/^7[5-9]/.test(bodyZip) || bodyZip.startsWith('885') ? 'TX'
+      : Number(bodyZip) >= 32000 && Number(bodyZip) <= 34999 ? 'FL'
+      : Number(bodyZip) >= 30000 && Number(bodyZip) <= 31999 ? 'GA' : '')
+    : '';
+  const bias = bodyState || zipState;
+
+  /**
+   * With no bias at all we still refuse to answer a Texan with Maryland. The
+   * list comes from sellingStates() rather than being retyped here — a state
+   * list restated where the code cannot check it is the AR/AL failure.
+   */
+  const allowed = new Set(bias ? [bias] : sellingStates());
+
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) {
     console.error('GOOGLE_PLACES_API_KEY is not set');
     return res.status(200).json({ suggestions: [] });
   }
 
-  const cacheKey = `ac:${normalizeQuery(query)}`;
+  // The bias is part of the question, so it must be part of the key. Without it
+  // the first Texan to type a street name would have their answer served to the
+  // next Georgian who typed the same one.
+  const cacheKey = `ac:${bias || [...allowed].sort().join('+')}:${normalizeQuery(query)}`;
 
   if (redis) {
     try {
@@ -101,7 +137,11 @@ export default async function handler(req, res) {
   try {
     const url =
       `https://maps.googleapis.com/maps/api/place/autocomplete/json` +
-      `?input=${encodeURIComponent(query)}&types=address&components=country:us&key=${key}`;
+      // Places Autocomplete's `components` filter accepts country only — no
+      // administrative_area — so the state goes in the INPUT, which is what the
+      // production measurement showed works.
+      `?input=${encodeURIComponent(bias ? `${query}, ${bias}` : query)}` +
+      `&types=address&components=country:us&key=${key}`;
 
     const r = await fetch(url);
     const data = await r.json();
@@ -112,7 +152,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ suggestions: [], error: data.status });
     }
 
-    const predictions = (data.predictions || []).slice(0, MAX_DETAILS);
+  /**
+   * FILTERED BEFORE THE FAN-OUT, WHICH ALSO SAVES MONEY.
+   *
+   * Each surviving prediction costs one billed Geocoding call, so discarding the
+   * out-of-state ones here rather than after is strictly cheaper as well as
+   * correct. The state sits in the prediction's own description ("..., TX, USA")
+   * and needs no extra call to read.
+   */
+    const inScope = (data.predictions || []).filter((p) => {
+      const d = String(p?.description || '');
+      return [...allowed].some((st) => new RegExp(`,\\s*${st},\\s*USA\\s*$`, 'i').test(d));
+    });
+    // If the filter leaves nothing, show nothing rather than somewhere else's
+    // street — an empty dropdown lets them keep typing; a wrong one does not.
+    const predictions = inScope.slice(0, MAX_DETAILS);
 
     const suggestions = await Promise.all(
       predictions.map(async (pred) => {
