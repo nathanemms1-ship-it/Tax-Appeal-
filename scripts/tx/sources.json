@@ -187,8 +187,7 @@
       "files": {
         "real_acct_owner_2026": "https://download.hcad.org/data/CAMA/2026/Real_acct_owner.zip",
         "real_building_land_2026": "https://download.hcad.org/data/CAMA/2026/Real_building_land.zip",
-        "hearing_files_2026": "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip",
-        "import_instructions": "https://hcad.org/assets/uploads/pdf/Import_Instructions.pdf"
+        "hearing_files_2026": "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip"
       },
       "notes": "RESOLVED 8 Sept 2026. Free, unauthenticated, direct URLs; 2027 404s so 2026 is current. ASCII TAB-DELIMITED with header rows per HCAD Import_Instructions — third-party repos calling it fixed-width describe older vintages. Bespoke schema, 13-digit acct, needs its own parser. Fields: heat_ar, date_erected, land_val, tot_mkt_val, tot_appr_val, Neighborhood_Code, state_class, qa_cd. NO condition code and NO explicit cap-loss field — a Cap_acct flag exists and cap loss is PROBABLY market minus appraised, but HCAD publishes no definition, so verify empirically before relying on it. UNIQUELY ships arb_protest_real.txt and arb_hearings_real.txt: real per-account protest and hearing OUTCOMES, which nobody else publishes. Refresh cadence in-season is UNKNOWN and is the open question that decides whether Harris works during Apr-May.",
       "resolved_at": "2026-09-08"
