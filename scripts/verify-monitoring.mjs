@@ -889,6 +889,58 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
     purge.indexOf('rows_to_delete') < purge.indexOf('delete from site_visits'));
 }
 
+/**
+ * ============================================================================
+ * A MONITOR MUST NOT ASSERT A CAUSE IT DID NOT MEASURE — 15 Sept 2026
+ * ============================================================================
+ * The 01:10 alert read "[WARN] Spend ceilings: cannot read usage — Redis
+ * unreachable, so the ceilings are not counting", and printed "OK Redis" nine
+ * lines below it, about the same Upstash instance on the same run. /api/health
+ * came back "overall: ok" four minutes later with nothing changed.
+ *
+ * Two defects, both now guarded:
+ *
+ *  1. spendUsage() returned a bare null for four different causes, so the health
+ *     check had nothing to report and named one as fact.
+ *  2. The enforcement path allowed 1200 ms for a multi-key pipeline while
+ *     checkRedis allowed 6000 ms for a single ping. They run concurrently and
+ *     pay the same cold TLS handshake, so the tight one lost and then blamed the
+ *     dependency the patient one had just proved healthy.
+ *
+ * The budget is deliberately SHARED between spendUsage() and checkSpend(). A
+ * monitor that waits longer than production reports "ok" while real requests
+ * time out — it under-reports the exact condition it exists to catch.
+ *
+ * PROVE IT: put the literal back in checkSpendCeilings ->
+ *   "the spend-ceiling warning does not assert a cause it never measured"
+ */
+{
+  const sg = read('lib/spendGuard.js');
+  const hc = read('lib/healthChecks.js');
+
+  t('the spend-ceiling warning does not assert a cause it never measured',
+    !/Redis unreachable, so the ceilings are not counting/.test(hc));
+  t('...and reports the reason spendGuard actually recorded',
+    /lastSpendReadError\(\)/.test(hc) && /lastSpendReadError/.test(sg));
+
+  t('spendGuard records WHY a read failed instead of returning a bare null',
+    /lastReadError = /.test(sg) && /export function lastSpendReadError/.test(sg));
+  t('and distinguishes a timeout from an unset credential',
+    /_TOKEN are not set/.test(sg) && /timed out after/.test(sg));
+
+  t('one named timeout, not a literal buried at two call sites',
+    /export const SPEND_TIMEOUT_MS/.test(sg) && !/AbortSignal\.timeout\(1200\)/.test(sg));
+
+  /**
+   * Behavioural: the monitor's patience must not exceed the enforcement path's,
+   * or it will pass while production fails. They share one constant today; this
+   * fails if someone gives spendUsage its own, larger budget.
+   */
+  const budgets = [...sg.matchAll(/signal:\s*spendSignal\(\)/g)].length;
+  t('both the monitor read and the enforcement path use the same budget',
+    budgets === 2);
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`verify-monitoring: ${failures.length} FAILED, ${pass} passed`);
