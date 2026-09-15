@@ -133,7 +133,7 @@ if (elPaso && !isMailable(elPaso)) {
   // merits. What used to be a refusal arrives as cautions and is surfaced by the
   // review screen instead.
   t('a weak case from the generator is surfaced, not silently sold',
-    /Array\.isArray\(txJson\.cautions\)/.test(apply)
+    /txReview\.cautions/.test(apply)
     && !/txJson\.filable === false/.test(apply));
 
   /**
@@ -223,17 +223,52 @@ if (elPaso && !isMailable(elPaso)) {
    *
    * INJECTION: restore the throw, or drop the Continue button -> FAILS.
    */
-  const branch = apply.slice(apply.indexOf('if (Array.isArray(txJson.cautions)'), apply.indexOf('} else if (stateCode === \'GA\')'));
+  const branch = apply.slice(apply.indexOf('setTxReview(txJson);'), apply.indexOf('} else if (stateCode === \'GA\')'));
   t('cautions are routed to state, not thrown as an error',
     /setTxReview\(/.test(branch) && !/throw/.test(branch));
-  t('and a clean packet goes straight through without stopping',
-    /applyTxPacket\(txJson, pd\)/.test(branch));
+
+  /**
+   * ==========================================================================
+   * DECISION CHANGED 15 Sept 2026 — EVERY PACKET STOPS, NOT JUST WEAK ONES
+   * ==========================================================================
+   * This asserted the opposite: "a clean packet goes straight through without
+   * stopping". That was right while the screen was a WARNING. It is wrong now
+   * that the screen is a CONFIRMATION.
+   *
+   * The district is chosen by the geocoder and applied as an .eq() filter on the
+   * roll — it is not derived from the match. A geocoder miss in a metro where
+   * street names repeat across four CADs can return a real parcel belonging to
+   * somebody else, and we would file a protest on it in the customer's name.
+   * A clean packet is exactly the case that used to reach payment with the
+   * matched property never shown.
+   *
+   * INJECTION: restore `applyTxPacket(txJson, pd)` in the branch -> FAILS.
+   */
+  t('every packet stops for confirmation, clean or not',
+    /setTxReview\(txJson\)/.test(branch) && !/applyTxPacket\(txJson, pd\)/.test(branch));
+  t('and the owner can say the matched property is not theirs',
+    /retryTxWithCounty/.test(apply) && /LOADED_COUNTY_NAMES/.test(apply));
 
   const screen = apply.slice(apply.indexOf('if (txReview) {'), apply.indexOf('if (errMsg) {'));
   t('there is a review screen for it', screen.length > 500);
   t('which is not styled as a failure', !/Lookup failed|Try Again/.test(screen));
   t('and offers to continue with the protest anyway',
-    /applyTxPacket\(txReview\)/.test(screen) && /Continue with my protest/.test(screen));
+    /applyTxPacket\(txReview\)/.test(screen) && /that&rsquo;s my property/.test(screen));
+
+  /**
+   * The screen must show the ROLL RECORD, not just the county name. A homeowner
+   * cannot reliably confirm "Harris" — most do not know their appraisal
+   * district. They can confirm their own square footage and appraised value,
+   * and that is what catches a coincidental match in the wrong district.
+   */
+  t('and shows the matched record so the owner can recognise their own house',
+    /txReview\.situsAddress/.test(screen)
+    && /txReview\.accountNumber/.test(screen)
+    && /txReview\.livingArea/.test(screen));
+
+  const route50132 = readFileSync(new URL('../pages/api/generate-50132.js', import.meta.url), 'utf8');
+  t('and the route returns those fields for it to show',
+    /situsAddress:/.test(route50132) && /livingArea:/.test(route50132) && /cadId,/.test(route50132));
   t('and says plainly that the decision is the owner’s',
     /decision to file is yours/.test(screen));
 
@@ -244,10 +279,15 @@ if (elPaso && !isMailable(elPaso)) {
    * assignment would drift, and the drift would only show up in the half of the
    * funnel that carries the weakest cases.
    */
-  t('both paths go through applyTxPacket',
-    (apply.match(/applyTxPacket\(/g) || []).length >= 2
-    && /applyTxPacket\(txJson, pd\)/.test(apply)
-    && /applyTxPacket\(txReview\)/.test(apply));
+  /**
+   * There is ONE path now. It used to be two — clean straight through, weak via
+   * the review — and the note here warned they would drift apart. Collapsing
+   * them is the stronger version of that fix: the field assignment cannot drift
+   * from itself.
+   */
+  t('every packet reaches checkout through applyTxPacket and nothing else',
+    /applyTxPacket\(txReview\)/.test(apply)
+    && !/applyTxPacket\(txJson, pd\)/.test(apply));
 
   // Every field the response sends must be read somewhere in apply.js.
   const sent = [...new Set([...route.slice(route.indexOf('success: true, filable: true'))

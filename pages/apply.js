@@ -6,6 +6,7 @@ import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus, windowBlocksEntry } from '../lib/filingWindows';
+import { LOADED_COUNTY_NAMES, coveredCadFromName } from '../lib/tx/coverage';
 import { SERVING_FROM } from '../lib/stateService';
 import { resolveOwnerMailing } from '../lib/ownerMailing';
 import { captureAttribution, attributionPayload } from '../lib/attribution';
@@ -3145,6 +3146,16 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // and is filable; this holds it while the owner reads what is weak about it
   // and decides. Never an error — see the branch in run() and the screen below.
   const [txReview, setTxReview] = useState(null);
+  // Open when the owner says the matched property is not theirs.
+  const [txPickCounty, setTxPickCounty] = useState(false);
+  const [txPicking, setTxPicking] = useState(false);
+  /**
+   * NOT errMsg. `if (txReview)` returns before `if (errMsg)`, so anything set on
+   * errMsg from this screen renders nowhere — set and never read, which is the
+   * defect this codebase keeps paying for. This one is rendered inside the
+   * picker, where it was written to appear.
+   */
+  const [txPickError, setTxPickError] = useState("");
 
   /**
    * Move a Texas packet into propData and show it.
@@ -3157,6 +3168,64 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
    * `pd` is passed on the straight-through path because run() is still holding
    * the object it built; the Proceed path has no such object and updates state.
    */
+  /**
+   * SEARCH A DIFFERENT DISTRICT'S ROLL — 15 Sept 2026.
+   *
+   * generate-50132's header says sending a client-held account number "would put
+   * the field the whole petition hangs on in the browser's gift", and that is
+   * right. A cadId is a different kind of value: it selects WHICH ROLL to search
+   * and nothing more. The account number, the values and every comparable are
+   * still resolved server-side from the address within that roll, and
+   * isCovered() still gates the id — so a browser can redirect the search to
+   * another district we hold, and cannot assert a parcel.
+   *
+   * That is the whole point: the geocoder picked the district, and the geocoder
+   * can be wrong.
+   */
+  const retryTxWithCounty = async (countyName) => {
+    const cadId = coveredCadFromName(countyName);
+    if (!cadId) return;
+    setTxPicking(true);
+    try {
+      const ownerMail = resolveOwnerMailing(account, property);
+      const res = await fetch("/api/generate-50132", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cadId,
+          street: addr,
+          city: property.city || '',
+          zip: property.zip || '',
+          taxYear: Number(txReview?.taxYear) || undefined,
+          owner: {
+            firstName: account.firstName, lastName: account.lastName,
+            email: account.email, phone: account.phone || '',
+            mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
+              .filter(Boolean).join(', '),
+          },
+          issues: property.issues || [],
+          costOverrides: property.costOverrides || {},
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        // Not an error screen: they picked a county we could not match them in,
+        // which is information, not a failure. Keep them on the picker.
+        setTxPickError(j?.error === 'no_parcel'
+          ? `We could not find that address on the ${countyName} County roll either. Try another county, or go back and check the address.`
+          : (j?.error || 'That county did not resolve.'));
+        return;
+      }
+      setTxPickError("");
+      setTxPickCounty(false);
+      setTxReview(j);
+    } catch (e) {
+      setTxPickError('Could not reach the lookup. Try again.');
+    } finally {
+      setTxPicking(false);
+    }
+  };
+
   const applyTxPacket = (j, pd = null) => {
     const fields = {
       letterContent: j.html || '',
@@ -3607,13 +3676,24 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
          *
          * A clean packet has an empty cautions array and never stops here.
          */
-        if (Array.isArray(txJson.cautions) && txJson.cautions.length > 0) {
-          setTxReview(txJson);
-          setLoading(false);
-          return;
-        }
-
-        applyTxPacket(txJson, pd);
+        /**
+         * THE OWNER CONFIRMS THE PROPERTY, ALWAYS — 15 Sept 2026.
+         *
+         * This used to pause only when the packet carried cautions, so a CLEAN
+         * Texas packet went address -> payment with the matched property never
+         * shown. That is the one thing we most need them to check, because the
+         * district is picked by the geocoder and used as an .eq() filter on the
+         * roll: a miss in a metro where street names repeat can return a real
+         * parcel belonging to somebody else, and we would file a protest on it
+         * in their name.
+         *
+         * Cautions still render here when there are any. The screen is now a
+         * confirmation that sometimes carries warnings, rather than a warning
+         * screen that clean packets skip.
+         */
+        setTxReview(txJson);
+        setLoading(false);
+        return;
       } else if (stateCode === 'GA') {
         const gaRes = await fetch("/api/generate-pt311a", {
           method: "POST",
@@ -3746,12 +3826,63 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
       <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 24px" }}>
         <div style={cardStyle}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-            Read this before you decide
+            Is this your property?
           </h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
-            Your protest is ready to file. There {txReview.cautions.length === 1 ? 'is one thing' : `are ${txReview.cautions.length} things`}{' '}
-            about it you should know first.
-          </p>
+
+          {/*
+            THE RECORD WE MATCHED, IN THE OWNER'S OWN TERMS.
+            They cannot reliably confirm "Harris" — most people do not know their
+            appraisal district. They can confirm their square footage and what the
+            district says their house is worth.
+          */}
+          <div style={{ background: "#F5F8FC", border: `1px solid ${C.border}`, borderRadius: 8, padding: "16px 18px", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>
+              {txReview.county ? `${txReview.county} County appraisal roll` : 'Appraisal roll'}
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>
+              {txReview.situsAddress || addr}
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bodyGray }}>
+              {[
+                txReview.accountNumber ? `Account ${txReview.accountNumber}` : null,
+                txReview.livingArea ? `${Number(txReview.livingArea).toLocaleString()} sq ft` : null,
+                txReview.yearBuilt ? `built ${txReview.yearBuilt}` : null,
+              ].filter(Boolean).join('  ·  ')}
+            </div>
+          </div>
+
+          {txPickCounty && (
+            <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: "14px 16px", marginBottom: 16 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.6, color: C.bodyGray, marginTop: 0, marginBottom: 10 }}>
+                We work out your county from the address, and it can be wrong where a
+                city crosses a county line. Pick the county your property is actually in
+                and we will search that district&rsquo;s roll instead.
+              </p>
+              <select
+                disabled={txPicking}
+                defaultValue=""
+                onChange={(e) => e.target.value && retryTxWithCounty(e.target.value)}
+                style={{ width: "100%", background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "11px 12px", fontSize: 15, color: C.darkNavy }}
+              >
+                <option value="">{txPicking ? 'Searching…' : 'Select your county…'}</option>
+                {LOADED_COUNTY_NAMES.map((n) => (
+                  <option key={n} value={n}>{n} County</option>
+                ))}
+              </select>
+              {txPickError && (
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.6, color: C.red, marginTop: 10, marginBottom: 0 }}>
+                  {txPickError}
+                </p>
+              )}
+            </div>
+          )}
+
+          {txReview.cautions.length > 0 && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
+              Your protest is ready to file. There {txReview.cautions.length === 1 ? 'is one thing' : `are ${txReview.cautions.length} things`}{' '}
+              about it you should know first.
+            </p>
+          )}
 
           {txReview.cautions.map((c) => (
             <div key={c.code} style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: "14px 16px", marginBottom: 12 }}>
@@ -3797,8 +3928,14 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <button style={{ ...primaryBtn, width: "auto", padding: "12px 24px" }}
               onClick={() => applyTxPacket(txReview)}>
-              Continue with my protest →
+              Yes, that&rsquo;s my property →
             </button>
+            {!txPickCounty && (
+              <button style={{ ...secondaryBtn, width: "auto", padding: "11px 22px" }}
+                onClick={() => setTxPickCounty(true)}>
+                That&rsquo;s not my property
+              </button>
+            )}
             <button style={{ ...secondaryBtn, width: "auto", padding: "11px 22px" }} onClick={onRestart}>
               Not this year
             </button>

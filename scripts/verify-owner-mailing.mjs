@@ -124,9 +124,33 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
     wired === 3,
     `${wired} of 3 — the order row, the signed petition and the preview petition`);
 
+  /**
+   * ==========================================================================
+   * COUNTS THE PROPERTY, NOT THE OCCURRENCES — 15 Sept 2026
+   * ==========================================================================
+   * This read `derived === 2`. A third scope was added that needs an owner
+   * mailing address — retryTxWithCounty, which re-runs the Texas lookup against
+   * a different district's roll — and it derives it from the shared resolver,
+   * correctly. The assertion failed anyway, because it counted call sites
+   * instead of checking the thing that matters.
+   *
+   * The real invariant is the one the section header states: the resolver is the
+   * only way an owner mailing address is ever built. An exact count does not
+   * test that — it fails on correct additions and would pass a hand-rolled
+   * object if someone deleted a good call site in the same change.
+   *
+   * So: every declaration must use the resolver, and there must still be more
+   * than one. Adding a fourth correct scope is fine; hand-building one is not.
+   *
+   * INJECTION: change any of them to `const ownerMail = { street: property.street }`
+   *   -> "every ownerMail is built by the shared resolver, never by hand"
+   */
+  const allDecls = [...apply.matchAll(/const ownerMail\s*=/g)].length;
   const derived = [...apply.matchAll(/const ownerMail = resolveOwnerMailing\(account, property\)/g)].length;
-  t('ownerMail is derived from the shared resolver in both scopes that need it',
-    derived === 2, derived);
+  t('every ownerMail is built by the shared resolver, never by hand',
+    allDecls > 0 && derived === allDecls, `${derived} of ${allDecls} declarations`);
+  t('and more than one scope needs it, so the resolver is genuinely shared',
+    derived >= 2, derived);
 
   t('apply.js imports the resolver rather than defining its own',
     /import \{ resolveOwnerMailing \} from ['"]\.\.\/lib\/ownerMailing['"]/.test(apply));

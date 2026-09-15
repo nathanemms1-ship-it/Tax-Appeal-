@@ -178,6 +178,27 @@ export default async function handler(req, res) {
       county: LOADED_CADS[cadId] || null,
       taxYear,
       accountNumber,
+
+      /**
+       * WHAT THE OWNER CONFIRMS — added 15 Sept 2026.
+       *
+       * The district is chosen by the GEOCODER, not derived from the match:
+       * resolveCounty -> coveredCadFromName -> findParcel({cadId}), where cadId
+       * is an .eq() filter on the roll. So a geocoder miss searches the wrong
+       * district, and in a metro where street names repeat across four CADs that
+       * can return a real parcel belonging to somebody else. Mansfield alone
+       * straddles Tarrant, Johnson and Ellis, and we hold only Tarrant.
+       *
+       * A homeowner cannot reliably confirm "Harris" — plenty of people do not
+       * know their appraisal district. They can confirm their own square footage
+       * and appraised value. So the review screen shows the matched ROLL RECORD
+       * and asks whether it is their house, which catches the wrong-parcel case
+       * that a county-only confirmation would pass straight over.
+       */
+      cadId,
+      situsAddress: packet.form50132?.propertyAddress || null,
+      livingArea: packet.grid?.subject?.livingArea ?? null,
+      yearBuilt: packet.grid?.subject?.yearBuilt ?? null,
       marketValue: v.marketValue ?? null,
       appraisedValue: v.appraisedValue ?? null,
       requiredReduction: v.requiredReduction ?? null,

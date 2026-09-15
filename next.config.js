@@ -53,6 +53,27 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+
+  /**
+   * SHIP THE BLANK GOVERNMENT FORM INSIDE THE SERVERLESS BUNDLE.
+   *
+   * lib/tx/fill50132.js reads forms/tx/50-132.pdf at runtime. Next traces a
+   * route's file dependencies statically, and a readFileSync of a path built
+   * from process.cwd() is invisible to that analysis — so without this entry the
+   * filler works perfectly on a laptop and throws on Vercel, where the file
+   * simply is not in the lambda.
+   *
+   * That failure mode is the dangerous one: it appears only in production, only
+   * on a real order, during the one window a protest can be filed at all.
+   * scripts/verify-tx-form.mjs asserts the file is present and is the pinned
+   * revision, so a build cannot green-light a bundle that would fail this way.
+   */
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/generate-50132': ['./forms/tx/**'],
+    },
+  },
+
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },

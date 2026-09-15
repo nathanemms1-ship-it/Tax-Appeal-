@@ -60,3 +60,6 @@ tx-50132-sample.html
 # are copies of things already in the repo (or of generated previews), they land
 # here without being asked for, and a `git add -A` would sweep them in.
 Claude outputs/
+
+# Test output from scripts/verify-tx-form.mjs — never committed.
+forms/tx/_test-*.pdf
