@@ -67,7 +67,7 @@ process.env.SUPABASE_SERVICE_KEY = 'stub-key';
 process.env.RESEND_API_KEY = 're_stub';
 
 const { SERVING_FROM, STATE_NAMES } = await import('../lib/stateService.js');
-const { getFilingWindowStatus } = await import('../lib/filingWindows.js');
+const { getFilingWindowStatus, FL_COUNTY_DATES } = await import('../lib/filingWindows.js');
 const { default: handler } = await import('../pages/api/cron/notify-waitlist.js');
 
 function mockRes() {
@@ -138,13 +138,53 @@ const row = (over = {}) => ({
 });
 
 // ---------------------------------------------------------------------------
-// The premise this whole file rests on. If Florida's window is not open today,
-// every assertion below is about a row the handler discards for an unrelated
-// reason, and they would all "pass".
+// THE CONTROL COUNTY'S WINDOW IS PINNED OPEN, AND IT HAS TO BE.
+//
+// The premise this whole file rests on is that Florida's window is open: if it
+// is not, every assertion below is about a row the handler discards for an
+// unrelated reason, and they would all pass vacuously. The original version of
+// this block asserted that premise and hoped.
+//
+// 15 Sept 2026 is the day the hope ran out. Every Vercel deploy began failing
+// here with six red lines and nothing in the repo had changed. Alachua's real
+// 2026 deadline is 14 September. Vercel builds in UTC and Nathan's Mac is
+// Central, so at 20:42 CDT the same commit passed locally (still the 14th) and
+// failed in the cloud (already the 15th). The premise assertion fired exactly as
+// its author intended — the season had simply ended. Left alone, this file would
+// have blocked every deploy until Florida's 2027 season opened in August.
+//
+// So the window is no longer something this file hopes about. Alachua's TRIM
+// mailing date is moved to five days ago, which by s. 194.011(3)(d) puts its
+// petition deadline 25 days out and today squarely inside the window — on any
+// date, in any timezone, in any year. Clamped to 1 January so the first week of
+// a year cannot push the mailing date into the previous one; the clamp is safe
+// because a January date is never more than 25 days from 1 January.
+//
+// This is the same mutate-assert-restore the file already does to SERVING_FROM
+// in section B, for the same reason: getFilingWindowStatus() reads the real
+// clock and takes no injection point, so what gets moved is the input it reads.
+// The handler under test is still the real handler and still calls the real
+// window check. Section F asserts the table is put back.
 // ---------------------------------------------------------------------------
+const realAlachua = FL_COUNTY_DATES['Alachua'];
+t('the control county is one we publish a real date for — otherwise the pin below invents a county',
+  !!(realAlachua?.trim || realAlachua?.deadline), realAlachua);
+{
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const trimDay = new Date(Math.max(now.getTime() - 5 * 86400000, jan1.getTime()));
+  FL_COUNTY_DATES['Alachua'] = {
+    trim: [trimDay.getMonth() + 1, trimDay.getDate()],
+    note: 'PINNED BY scripts/verify-waitlist-notify.mjs — restored in section F',
+  };
+}
+
 const flWindow = getFilingWindowStatus('FL', 'Alachua', { strict: true });
-t('the control state\'s filing window is genuinely open today — otherwise nothing below is a test',
-  !!flWindow?.isOpen, { isOpen: flWindow?.isOpen });
+t('the control county\'s filing window is open — otherwise nothing below is a test',
+  !!flWindow?.isOpen, { isOpen: flWindow?.isOpen, closeDate: flWindow?.closeDate });
+t('and it is far enough from the deadline to file, which is what the handler actually gates on',
+  !!flWindow?.canFile, { canFile: flWindow?.canFile, daysUntilHard: flWindow?.daysUntilHard });
 t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
 
 // ---------------------------------------------------------------------------
@@ -231,6 +271,25 @@ t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
   const wl = (await import('node:fs')).readFileSync('pages/api/join-waitlist.js', 'utf8');
   t('join-waitlist accepts propertyAddress', /propertyAddress/.test(wl));
   t('join-waitlist stores it on the row', /property_address:\s*propertyAddress/.test(wl));
+}
+
+// ---------------------------------------------------------------------------
+// F. Put the county table back.
+//
+// FL_COUNTY_DATES is a live module object that lib/filingWindows.js reads per
+// call — which is what made the pin possible, and is also what makes leaving it
+// in place dangerous. A fabricated deadline on a real county, surviving into
+// anything that ran later in the same process, is the worst leak a test in this
+// repo could produce. Section C makes the same assertion about SERVING_FROM.
+// ---------------------------------------------------------------------------
+{
+  FL_COUNTY_DATES['Alachua'] = realAlachua;
+  t('the pinned date is gone and the county\'s real published one is back',
+    FL_COUNTY_DATES['Alachua'] === realAlachua && !/PINNED/.test(realAlachua?.note || ''),
+    FL_COUNTY_DATES['Alachua']);
+  t('and the restored entry is the one sourced from the county, not a reconstruction',
+    /acpafl\.org/.test(FL_COUNTY_DATES['Alachua']?.note || ''),
+    FL_COUNTY_DATES['Alachua']?.note);
 }
 
 // ---------------------------------------------------------------------------
