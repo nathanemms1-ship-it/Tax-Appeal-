@@ -35,7 +35,6 @@ import { findComps } from '../../lib/tx/comps';
 import { isCovered, LOADED_CADS, coveredCadFromName } from '../../lib/tx/coverage';
 import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
 import { resolveCounty } from './resolve-county';
-import { renderProtestHtml } from '../../lib/tx/protestHtml';
 
 let redis = null;
 try {
@@ -155,19 +154,49 @@ export default async function handler(req, res) {
      * see the ROLL_KEYS check in buildProtest. That is our bug, not a finding,
      * and it lands in the 500 below.
      */
-    const html = renderProtestHtml(packet);
-
-    let letterKey = null;
-    if (redis) {
-      try {
-        letterKey = `p50132:TX:${cadId}:${accountNumber}:${Date.now()}`;
-        await redis.set(letterKey, html, { ex: 7200 });
-      } catch (err) { console.log('Redis cache failed:', err.message); }
-    }
+    /**
+     * =======================================================================
+     * THE ROUTE NO LONGER RENDERS A DOCUMENT. 20 Sept 2026.
+     * =======================================================================
+     *
+     * It used to call renderProtestHtml(packet) and cache the result in Redis
+     * on a 2-hour TTL, handing the caller a `letterKey` and the markup. Three
+     * things were wrong with that and they compounded.
+     *
+     * 1. THE DOCUMENT WAS THE WRONG DOCUMENT. lib/tx/protestHtml.js renders an
+     *    HTML page titled as Form 50-132. That is the defect that got a Florida
+     *    petition refused at the Hillsborough front desk and again at
+     *    Miami-Dade five days later. lib/tx/fill50132.js fills the
+     *    Comptroller's own PDF and has since 15 Sept; nothing called it.
+     *
+     * 2. THE CACHE OUTLIVED NOTHING. A pre-order taken on 1 February is
+     *    dispatched in April. A 2-hour TTL means the key is long gone, and
+     *    lib/fulfillOrder.js flips the row to needs_review and pages ops. The
+     *    document that survived would have been the wrong one anyway, built
+     *    from February's roll against April's assessment.
+     *
+     * 3. NOBODY READ THE MARKUP. `html` reached pages/apply.js and was assigned
+     *    to propData.letterContent and propData.protestPreview, both of which
+     *    were written and never read anywhere in the file. The review screen
+     *    renders from the structured fields below.
+     *
+     * So: this route returns FACTS, and the document is built when it is
+     * printed, from whatever the roll says then. That is the file-first model
+     * doing what it was decided to do on 17 Sept — the packet is assembled at
+     * filing time, not at purchase time.
+     *
+     * WHAT STILL HAS TO HAPPEN, and it is a workflow decision rather than a
+     * code one: a Texas order currently reaches lib/fulfillOrder.js
+     * attemptMail(), which POSTs to /api/send-letter — the Lob route, which is
+     * FLORIDA ONLY by decision (Nathan hand-prints and hand-mails TX and GA).
+     * With no letter to find, that path now stops at needs_review instead of
+     * mailing a look-alike, which is the safe failure and not the finished one.
+     * The Texas dispatch path is the next piece.
+     */
 
     const v = packet.verdict || {};
     return res.status(200).json({
-      success: true, filable: true, isTX: true, letterKey, html,
+      success: true, filable: true, isTX: true,
       requestedValue: packet.requestedValue,
       reductionSought: packet.reductionSought,
       hasGrid: packet.hasGrid,

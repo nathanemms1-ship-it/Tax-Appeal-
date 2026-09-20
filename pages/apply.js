@@ -3228,8 +3228,10 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
 
   const applyTxPacket = (j, pd = null) => {
     const fields = {
-      letterContent: j.html || '',
-      protestPreview: j.html || '',
+      // letterContent and protestPreview lived here until 20 Sept 2026. Both were
+      // written and never read — the same set-and-never-read shape as the
+      // retryTxWithCounty errMsg. The route no longer renders a document at all;
+      // the filing is built from these facts when it is printed.
       requestedValue: j.requestedValue ?? null,
       reductionSought: j.reductionSought ?? null,
       compCount: j.compCount ?? 0,

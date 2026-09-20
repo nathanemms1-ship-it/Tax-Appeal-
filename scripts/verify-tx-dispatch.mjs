@@ -292,7 +292,7 @@ if (elPaso && !isMailable(elPaso)) {
   // Every field the response sends must be read somewhere in apply.js.
   const sent = [...new Set([...route.slice(route.indexOf('success: true, filable: true'))
     .matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]))]
-    .filter((f) => !['success', 'filable', 'isTX', 'letterKey', 'confidence'].includes(f));
+    .filter((f) => !['success', 'filable', 'isTX', 'confidence'].includes(f));
   const unread = sent.filter((f) => !apply.includes(`txReview.${f}`) && !apply.includes(`j.${f}`)
     && !apply.includes(`txJson.${f}`));
   t(`every field the packet response sends is read${unread.length ? ` — unread: ${unread.join(', ')}` : ''}`,
