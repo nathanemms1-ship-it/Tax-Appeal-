@@ -166,6 +166,92 @@ t('the Section 7 special-panel value field is left blank',
 t('the Section 6 reminder email is left blank — no PIA waiver on the customer\'s behalf',
   stillBlank('Email Address'));
 
+// =============================================================================
+// THE CONDITION EXHIBIT REACHES THE DOCUMENT
+// =============================================================================
+//
+// It has gone missing twice. Until 15 Sept it existed only in
+// scripts/tx/preview-protest.mjs, because generate-50132.js read neither
+// `issues` nor `costOverrides` from a body apply.js had always been sending. On
+// 20 Sept the route stopped rendering protestHtml.js — correct, it was an HTML
+// look-alike of a government form — and renderConditionExhibit went with it,
+// leaving nothing to put a priced defect on paper.
+//
+// Both times the data was collected, priced by txCostToCure() and counted by
+// qualify() toward whether we advise filing at all. Only the page was missing,
+// so nothing failed and nothing warned.
+//
+// PROVE IT: comment out the appendConditionPage call in fill50132.js.
+//   expect: "a packet carrying a condition exhibit gains a page for it"
+{
+  const withCondition = {
+    ...packet,
+    conditionExhibit: {
+      cureDollars: 41850,
+      priced: [
+        { issue: 'Foundation movement', scope: 'Perimeter beam, 14 piers',
+          source: 'RSMeans', sourceYear: 2026, asked: 23400 },
+        { issue: 'Roof at end of service life', ownerSupplied: true, asked: 18450 },
+      ],
+      narrative: [{ issue: 'Backs onto an arterial road',
+        narrative: 'Nothing can be spent to move the road, so no figure is claimed.' }],
+      doubleCountDisclosure: 'The district already records below-average condition.',
+    },
+  };
+  const withBytes = await fill50132(withCondition, null);
+  const withDoc = await PDFDocument.load(withBytes);
+  const baseDoc = await PDFDocument.load(bytes);
+
+  t('a packet carrying a condition exhibit gains a page for it',
+    withDoc.getPageCount() > baseDoc.getPageCount());
+
+  t('a packet with no condition exhibit gains nothing — an empty page is worse than none',
+    baseDoc.getPageCount() === (packet.hasGrid ? 3 : 2));
+
+  /**
+   * A defect list has no natural length and pdf-lib does not clip: text drawn
+   * below the page floor is simply lost, which on an evidence exhibit means an
+   * argument that exists in the data and not on the paper. Fourteen priced
+   * defects plus four narratives must spill onto another page rather than vanish.
+   */
+  const many = Array.from({ length: 14 }, (_, i) => ({
+    issue: `Defect number ${i + 1} requiring remedial work to reach ordinary condition`,
+    scope: 'A scope line long enough to wrap onto a second line beneath the defect name',
+    source: 'RSMeans', sourceYear: 2026, asked: 3000 + i * 250,
+  }));
+  const longDoc = await PDFDocument.load(await fill50132({
+    ...withCondition,
+    conditionExhibit: { ...withCondition.conditionExhibit, priced: many },
+  }, null));
+  t('a long defect list spills onto a second page instead of off the bottom of the first',
+    longDoc.getPageCount() > withDoc.getPageCount());
+}
+
+/**
+ * THE LIMIT OF THE CLAIM IS LOAD-BEARING PROSE, NOT DECORATION.
+ *
+ * Nathan's call, 7 Sept 2026: `indicatedMarket - cureDollars` came out of
+ * opinionOfValue(), because asserting a $48,950 repair lowers value by $48,950
+ * is a valuation judgment — and Occupations Code § 1103.003 defines an
+ * "appraisal" as exactly that, "an opinion of value; or the act or process of
+ * developing an opinion of value". The prose never made that claim; the
+ * subtraction did, and the subtraction was the number the owner signed.
+ *
+ * These two sentences are what keeps the page on the right side of that line.
+ * Asserted against the source because pdf-lib draws text rather than storing it
+ * as retrievable content, so a rendered check would need a PDF text parser to
+ * say anything at all.
+ */
+{
+  const src = readFileSync(new URL('../lib/tx/fill50132.js', import.meta.url), 'utf8');
+  t('the exhibit still says the repair cost is NOT a claim of value diminution',
+    /NOT a claim that this property/.test(src) && /falls by that same amount/.test(src));
+  t('the exhibit still says nobody inspected the property',
+    /No inspection of the property was performed by anyone/.test(src));
+  t('the exhibit still names § 41.41(a)(1), which is the ground it argues',
+    /41\.41\(a\)\(1\)/.test(src));
+}
+
 // A rendered copy for a human to actually look at, which is how all five of the
 // original defects were found. Gitignored.
 const tmp = mkdtempSync(path.join(tmpdir(), 'tx-form-'));
