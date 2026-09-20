@@ -65,11 +65,14 @@
       "files": {
         "certified_2026": "https://traviscad.org/wp-content/largefiles/2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
         "certified_2026_json": "https://traviscad.org/wp-content/largefiles/2026%20Certified%20JSON%20SUPP%200%2007182026.zip",
+        "supplemental_2026_roll": "https://traviscad.org/wp-content/largefiles/travis_SUPP%20334_2026_WEBSITE%20EXPORT_Renamed.zip",
+        "supplemental_2026_json": "https://traviscad.org/wp-content/largefiles/2026%20Special%20export%20Supp%202%2008292026.zip",
+        "ears_2026": "https://traviscad.org/wp-content/largefiles/227EARS082626.zip",
         "ears_2025": "https://traviscad.org/wp-content/largefiles/227EARS090425.zip",
         "ears_2024": "https://traviscad.org/wp-content/largefiles/227EARS082824%20%282%29.zip",
         "ears_2023": "https://traviscad.org/wp-content/largefiles/227EARS082923%20%282%29.zip"
       },
-      "notes": "Best-documented large district, and the ONLY one publishing raw EARS. Its public posting of EARS is the precedent cited in our request to the Comptroller. Also publishes JSON, which is the cheapest possible parser validation target."
+      "notes": "Best-documented large district, and the ONLY one publishing raw EARS. Its public posting of EARS is the precedent cited in our request to the Comptroller. Also publishes JSON, which is the cheapest possible parser validation target. RE-READ 17 Sept 2026: the page carries THREE files this entry did not have - the 2026 EARS submission (26 Aug), a 2026 SUPPLEMENTAL roll export (Supp 334) and a supplemental JSON (Supp 2, 29 Aug). LOAD THE CERTIFIED SUPP 0, NOT THE SUPPLEMENT: the certified roll is the legal snapshot the protest is against, and El Paso taught the same lesson in reverse - its header reads \"As of Supplement\" and is fresher than the July certification, so the two districts are NOT directly comparable without saying which snapshot each came from. Layout is 8.0.33, already in VALIDATED_EXPORT_VERSIONS via Tarrant, and load.mjs selects residential by stateCategory()==='A' rather than a per-district class list - so this district should need NO new code. NOT REACHABLE from the agent sandbox: traviscad.org is denied at the egress gateway in both the cloud container and the device VM (403 on CONNECT), so the zip has to be downloaded on the Mac."
     },
     {
       "county": "El Paso",
@@ -190,7 +193,8 @@
         "hearing_files_2026": "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip"
       },
       "notes": "RESOLVED 8 Sept 2026. Free, unauthenticated, direct URLs; 2027 404s so 2026 is current. ASCII TAB-DELIMITED with header rows per HCAD Import_Instructions — third-party repos calling it fixed-width describe older vintages. Bespoke schema, 13-digit acct, needs its own parser. Fields: heat_ar, date_erected, land_val, tot_mkt_val, tot_appr_val, Neighborhood_Code, state_class, qa_cd. NO condition code and NO explicit cap-loss field — a Cap_acct flag exists and cap loss is PROBABLY market minus appraised, but HCAD publishes no definition, so verify empirically before relying on it. UNIQUELY ships arb_protest_real.txt and arb_hearings_real.txt: real per-account protest and hearing OUTCOMES, which nobody else publishes. Refresh cadence in-season is UNKNOWN and is the open question that decides whether Harris works during Apr-May.",
-      "resolved_at": "2026-09-08"
+      "resolved_at": "2026-09-08",
+      "loaded": true
     },
     {
       "county": "Galveston",
@@ -429,7 +433,7 @@
         "lite_database": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabaseCurrent.zip",
         "code_lists": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/CodeFileLists.xls"
       },
-      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain."
+      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain. 18 Sept 2026: data.texas.gov also carries a PRELIMINARY Collin dataset (nne4-8riu) alongside the certified years - the only in-season dataset found on any district so far. NOT VERIFIED: data.texas.gov is denied at the agent egress gateway and the Socrata pages are JS-rendered, so its schema is unread. Given 5tkr-3759 carries no values, assume this one does not either until the Socrata metadata endpoint api/views/nne4-8riu.json is read."
     },
     {
       "county": "Williamson",
@@ -516,6 +520,8 @@
       "access": "likely free",
       "confidence": "indexed",
       "layout": "https://www.dentoncad.com/wp-content/uploads/2023/10/Appraisal-Export-Layout-8.0.26.xlsx",
+      "platform": "prodigy",
+      "notes": "PRODIGY PLATFORM \u2014 the data-downloads page is a JavaScript single-page app that serves an empty shell to any non-browser fetch, so the file URLs CANNOT be resolved by scraping. denton.prodigycad.com is also denied at the agent egress gateway. Resolving it needs one real browser session. WORTH DOING ONCE, CAREFULLY: the same platform now hosts Denton, Montgomery (mcad-tx.org), Ellis (elliscad.com), Hidalgo (hidalgoad.org), Potter-Randall and Tarrant, several white-labeled onto the district own domain, so the URL pattern learned from ONE tenant probably unlocks all of them. Tarrant already records the move off Aumentum to True Prodigy for the 2026 roll; that was not a one-district event. Layout here is 8.0.26, OLDER than the 8.0.33/8.0.34 in VALIDATED_EXPORT_VERSIONS - diff the BYTE RANGES before loading, per the Tarrant name-vs-name trap.",
       "files": {}
     },
     {
