@@ -519,14 +519,15 @@
       "format": "PACS",
       "access": "likely free",
       "confidence": "indexed",
-      "layout": "https://www.dentoncad.com/wp-content/uploads/2023/10/Appraisal-Export-Layout-8.0.26.xlsx",
+      "layout": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/AppraisalExportLayout/TP_Legacy8.0.32-AppraisalExportLayout(UPDATED-2:17:26).xlsx",
       "platform": "prodigy",
       "access": "free",
       "login": false,
-      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER. The data-downloads page is a Prodigy single-page app that serves an empty shell to every non-browser fetch, and denton.prodigycad.com is denied at the agent egress gateway, so neither WebFetch nor curl could see it. A real browser renders it: the year sections are accordions, and 2026 opens to six certified extracts plus an appraisal export layout. FREE, no login. THE FILES ARE ON A DIFFERENT HOST, dentoncad.net, which is also denied at the gateway - so the download is a human step. Layout is published as JSON and is NEW; the older 8.0.26 xlsx this entry used to point at may be superseded. Diff the BYTE RANGES against pacs_8_0_34.json before loading, per the Tarrant name-vs-name trap - 8.0.26 is older than anything in VALIDATED_EXPORT_VERSIONS.",
+      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER. The data-downloads page is a Prodigy single-page app that serves an empty shell to every non-browser fetch, and denton.prodigycad.com is denied at the agent egress gateway, so neither WebFetch nor curl could see it. A real browser renders it: the year sections are accordions, and 2026 opens to six certified extracts plus an appraisal export layout. FREE, no login. THE FILES ARE ON A DIFFERENT HOST, dentoncad.net, which is also denied at the gateway - so the download is a human step. WALKED THE OPEN APACHE INDEX at /data/_uploaded/files/datafiles/, which lists more than the portal page links. THE FILE IS \"2026 CERTIFIED DATA - REAL.zip\", 781 MB, dated 27 July 2026. ** THE LAYOUT IS TP LEGACY 8.0.32, NOT 8.0.26 ** - the xlsx this entry used to point at was three years stale. 8.0.32 is NOT in VALIDATED_EXPORT_VERSIONS (8.0.0.33 and 8.0.0.34), so scripts/tx/load.mjs WILL REFUSE THIS EXPORT until the byte ranges are diffed against scripts/tx/pacs_8_0_34.json - same work Tarrant needed for 8.0.33, and the same trap: compare BYTE RANGES, not field NAMES, because renames report \"0 shifted\" for the wrong reason. The directory also holds Legacy8.0.30 and a PublicJSON layout. NO PRELIMINARY ROLL: the 2026 directory carries only certified extracts, so unlike Montgomery this district gives us nothing in season.",
       "resolved_at": "2026-09-20",
       "files": {
-        "certified_2026_residential": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataReal/",
+        "certified_2026_residential": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataReal/2026%20CERTIFIED%20DATA%20-%20REAL.zip",
+        "certified_2026_residential_dir": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataReal/",
         "certified_2026_all": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataAllProperty/",
         "certified_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataJSON/",
         "layout_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/AppraisalExportLayout/"
