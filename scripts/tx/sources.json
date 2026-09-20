@@ -521,8 +521,16 @@
       "confidence": "indexed",
       "layout": "https://www.dentoncad.com/wp-content/uploads/2023/10/Appraisal-Export-Layout-8.0.26.xlsx",
       "platform": "prodigy",
-      "notes": "PRODIGY PLATFORM \u2014 the data-downloads page is a JavaScript single-page app that serves an empty shell to any non-browser fetch, so the file URLs CANNOT be resolved by scraping. denton.prodigycad.com is also denied at the agent egress gateway. Resolving it needs one real browser session. WORTH DOING ONCE, CAREFULLY: the same platform now hosts Denton, Montgomery (mcad-tx.org), Ellis (elliscad.com), Hidalgo (hidalgoad.org), Potter-Randall and Tarrant, several white-labeled onto the district own domain, so the URL pattern learned from ONE tenant probably unlocks all of them. Tarrant already records the move off Aumentum to True Prodigy for the 2026 roll; that was not a one-district event. Layout here is 8.0.26, OLDER than the 8.0.33/8.0.34 in VALIDATED_EXPORT_VERSIONS - diff the BYTE RANGES before loading, per the Tarrant name-vs-name trap.",
-      "files": {}
+      "access": "free",
+      "login": false,
+      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER. The data-downloads page is a Prodigy single-page app that serves an empty shell to every non-browser fetch, and denton.prodigycad.com is denied at the agent egress gateway, so neither WebFetch nor curl could see it. A real browser renders it: the year sections are accordions, and 2026 opens to six certified extracts plus an appraisal export layout. FREE, no login. THE FILES ARE ON A DIFFERENT HOST, dentoncad.net, which is also denied at the gateway - so the download is a human step. Layout is published as JSON and is NEW; the older 8.0.26 xlsx this entry used to point at may be superseded. Diff the BYTE RANGES against pacs_8_0_34.json before loading, per the Tarrant name-vs-name trap - 8.0.26 is older than anything in VALIDATED_EXPORT_VERSIONS.",
+      "resolved_at": "2026-09-20",
+      "files": {
+        "certified_2026_residential": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataReal/",
+        "certified_2026_all": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataAllProperty/",
+        "certified_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataJSON/",
+        "layout_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/AppraisalExportLayout/"
+      }
     },
     {
       "county": "Montgomery",
@@ -531,9 +539,20 @@
       "site": "https://mcad-tx.org",
       "data_page": "https://mcad-tx.org/appraisal-data-exports",
       "format": "PACS",
-      "access": "likely free",
-      "confidence": "indexed",
-      "files": {}
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "platform": "prodigy",
+      "publishes_preliminary": true,
+      "files": {
+        "certified_2026": "https://drive.google.com/file/d/1pQvjZX9rnM-vUOwhGuLfiWpZ3S9Ms2mr/view",
+        "certified_2026_json": "https://drive.google.com/file/d/1EecDUJNiI7pC-wPHAF4WWW09nQNTCmhg/view",
+        "certified_2025": "https://drive.google.com/file/d/1enYuMq1MzGopV5ycIEIEyUUjEH_efqhd/view",
+        "preliminary_2026": "https://drive.google.com/file/d/1BzJR8uO9ho83TTJ3bzZLaxXuArxgvtEC/view",
+        "preliminary_2026_json": "https://drive.google.com/file/d/1VbACdMUGzj4r5PTWPmSqN_wOP8KnrBPa/view"
+      },
+      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER, because the page is a Prodigy single-page app that serves an empty shell to every non-browser fetch. FREE, no login, certified rolls back to 2019. ** THIS DISTRICT PUBLISHES A PRELIMINARY ROLL ** - the only one found on any district so far, and it is the answer to the open question in TX_Model_Decided (\"Which districts publish a preliminary roll in April, and when?\"). A preliminary roll carries NOTICED values before certification, which is the only current-year data that exists before the 15 May deadline. Whether it appears in April rather than merely existing for 2026 is STILL UNCHECKED - look again after 1 April. FILES ARE ON GOOGLE DRIVE, not the district domain, and drive.google.com is denied at the agent egress gateway like every CAD host, so the download is a human step. Google Drive also interstitials large files, so a plain curl of the uc?export=download URL returns an HTML confirmation page rather than the zip.",
+      "resolved_at": "2026-09-20"
     },
     {
       "county": "Hidalgo",
