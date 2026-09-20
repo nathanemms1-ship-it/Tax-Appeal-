@@ -1002,12 +1002,30 @@ t('the property address on the form carries the state',
 {
   const { readFileSync } = await import('node:fs');
   const read = (p) => readFileSync(p, 'utf8');
-  const parcelsSrc = read('lib/tx/parcels.js');
-  const compsSrc = read('lib/tx/comps.js');
+  /**
+   * STRIP COMMENTS BEFORE SCANNING, because the first version of this block did
+   * not and failed on its own documentation: lib/tx/rollYear.js explains itself
+   * by QUOTING `export const ROLL_YEAR = 2026`, so the file appeared to declare
+   * it twice.
+   *
+   * Exactly the trap recorded on 7 Sept, when verify-tx-seo's district-name scan
+   * failed against the word "Travis" inside a header comment explaining why the
+   * evidence page is laid out as it is. A guard that fires on its own rationale
+   * trains people to ignore it.
+   */
+  const stripComments = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  const rollYearSrc = stripComments(read('lib/tx/rollYear.js'));
+  const parcelsSrc = stripComments(read('lib/tx/parcels.js'));
+  const compsSrc = stripComments(read('lib/tx/comps.js'));
   const stats = JSON.parse(read('lib/tx/countyStats.json'));
 
-  const declared = [...parcelsSrc.matchAll(/export const ROLL_YEAR\s*=\s*(\d{4})/g)].map((m) => Number(m[1]));
-  t('lib/tx/parcels.js declares ROLL_YEAR exactly once', declared.length === 1);
+  const declared = [...rollYearSrc.matchAll(/export const ROLL_YEAR\s*=\s*(\d{4})/g)].map((m) => Number(m[1]));
+  t('lib/tx/rollYear.js declares ROLL_YEAR exactly once', declared.length === 1);
+  t('lib/tx/parcels.js re-exports it rather than declaring a second copy',
+    !/export const ROLL_YEAR\s*=\s*\d{4}/.test(parcelsSrc));
 
   const years = [...new Set(Object.values(stats.counties || {}).map((c) => Number(c.taxYear)))];
   t('every loaded district holds the same tax year', years.length === 1);
@@ -1017,38 +1035,31 @@ t('the property address on the form carries the state',
 
   // A second literal is the countyStats twin failure in another costume: fix one,
   // and any caller that omits rollYear silently keeps the other.
-  const compDefaults = [...compsSrc.matchAll(/rollYear\s*=\s*(\d{4})/g)].map((m) => Number(m[1]));
-
   /**
-   * THIS ONE IS A WARNING, ON PURPOSE, AND THE REASON IS A DESIGN DECISION NOBODY
-   * HAS TAKEN YET.
+   * 20 Sept 2026 — this was a WARN until the roll year got its own module.
    *
-   * lib/tx/comps.js has ZERO imports. That is load-bearing: comps-validate.mjs,
-   * sellable.mjs and condition-codes.mjs all run it against stub fetch functions
-   * with no database. Importing ROLL_YEAR from lib/tx/parcels.js would drag
-   * pages/api/supabase in behind it and break every one of them.
+   * comps.js used to carry `rollYear = 2026` as a default parameter, a second
+   * literal nothing compared to the first. Softening it was right at the time:
+   * the obvious fix, importing ROLL_YEAR from parcels.js, would have dragged
+   * pages/api/supabase into a file that comps-validate.mjs, sellable.mjs and
+   * condition-codes.mjs all run against stub fetch functions with no database.
    *
-   * The honest fixes are (a) a dedicated lib/tx/rollYear.js that both import, or
-   * (b) make rollYear a required argument and update the callers that omit it.
-   * Both are real changes with real call-site consequences, so this stays a
-   * warning rather than a red build until someone picks one.
+   * Nathan's call: lib/tx/rollYear.js, imported by both. So the assertion is
+   * hard again, and the second one below guards the REASON — a future import
+   * from './parcels' would satisfy "no literal" and quietly break three scripts.
    *
-   * What is NOT softened is the next assertion: two copies of this number are
-   * survivable, two copies that DISAGREE are the countyStats twin outage again.
+   * PROVE IT: change the default in comps.js back to a literal year.
+   *   expect: "lib/tx/comps.js carries no literal roll year"
    */
-  if (compDefaults.length) {
-    console.log(`  WARN  lib/tx/comps.js hardcodes a second roll year (${compDefaults.join(', ')}) `
-      + `as a default parameter. It agrees with ROLL_YEAR today. One source of truth needs a home `
-      + `— comps.js is import-free by design, so it cannot simply import parcels.js.`);
-  }
-  for (const y of compDefaults) {
-    t(`the second roll-year literal in comps.js (${y}) agrees with ROLL_YEAR (${declared[0]})`,
-      y === declared[0]);
-  }
+  t('lib/tx/comps.js carries no literal roll year — it defaults from ROLL_YEAR',
+    [...compsSrc.matchAll(/rollYear\s*=\s*\d{4}/g)].length === 0);
 
-  // The deliberate lag is one year. Two means nobody has touched this in a season.
-  const season = new Date().getFullYear() + (new Date().getMonth() >= 7 ? 1 : 0);
-  t(`ROLL_YEAR is at most one year behind the ${season} filing season`, season - declared[0] <= 1);
+  t('and comps.js takes it from ./rollYear, not ./parcels — which would pull Supabase '
+    + 'into three scripts that run without a database',
+    /from '\.\/rollYear'/.test(compsSrc) && !/from '\.\/parcels'/.test(compsSrc));
+
+  t('lib/tx/rollYear.js imports nothing, so comps.js stays runnable with no database',
+    !/^\s*import\s/m.test(read('lib/tx/rollYear.js')));
 }
 
 console.log(failures.length
