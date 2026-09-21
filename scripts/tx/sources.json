@@ -530,7 +530,10 @@
         "certified_2026_all": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataAllProperty/",
         "certified_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataJSON/",
         "layout_2026_json": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/AppraisalExportLayout/"
-      }
+      },
+      "loaded": true,
+      "loaded_at": "2026-09-21",
+      "rows_in_db": 299329
     },
     {
       "county": "Montgomery",
