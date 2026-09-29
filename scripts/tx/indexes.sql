@@ -31,8 +31,35 @@ create index if not exists tx_parcels_comp_lookup
 -- Widening fallback for thin neighbourhoods. Nueces has 792 neighbourhood codes
 -- with a median of 55 parcels, but 259 of them hold fewer than 25 — not enough
 -- for a defensible median — so those widen to the subdivision or market area.
-create index if not exists tx_parcels_subdv_lookup
-  on tx_parcels (cad_id, tax_year, abs_subdv_cd, state_class_code, living_area);
+--
+-- PARTIAL, as of 29 Sept 2026. It was created without the WHERE clause and was
+-- indexing 1,754,282 of 3,247,638 rows (54.0%) as NULL, on a t4g.micro.
+--
+-- The NULLs are not a parsing gap to go and fix. They are ENTIRELY Harris
+-- (1,184,538 rows, 100% null) and Dallas (569,020 rows, 100% null) — the two
+-- districts with bespoke loaders, scripts/tx/load-hcad.mjs and load-dcad.mjs,
+-- whose source exports carry no PACS subdivision code for those loaders to read.
+-- Every PACS district populates it 99.5%–100%: Tarrant, Jefferson and Taylor at
+-- exactly 0 nulls, Denton 1, Wichita 2, Kaufman 3, El Paso 86, Nueces 632.
+--
+-- Excluding them costs NOTHING, because lib/tx/comps.js:468 returns before
+-- issuing the query when the subject's own abs_subdv_cd is null, and line 487
+-- then binds it with .eq() — a strict equality, from which the planner derives
+-- abs_subdv_cd IS NOT NULL and so may still use this index. Every row dropped
+-- here is a row this query could never have matched.
+--
+-- Do this BEFORE the next batch of districts, not after: the Phase A PACS batch
+-- roughly doubles the table, and each of those districts populates the column,
+-- so the useful half of this index is about to grow while the dead half does not.
+--
+-- New NAME rather than a drop-and-recreate of the old one, because this file is
+-- applied whole by `push.mjs --indexes` on every run and a bare `drop index` here
+-- would rebuild a 1.5M-row index, under lock, every single time.
+create index if not exists tx_parcels_subdv_lookup_present
+  on tx_parcels (cad_id, tax_year, abs_subdv_cd, state_class_code, living_area)
+  where abs_subdv_cd is not null;
+
+drop index if exists tx_parcels_subdv_lookup;
 
 -- ── 2. Finding the customer's own parcel ────────────────────────────────────
 -- Address autocomplete and match. Trigram GIN on the BARE column, not on an
