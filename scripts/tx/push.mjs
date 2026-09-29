@@ -7,6 +7,7 @@
  *   node scripts/tx/push.mjs --county Nueces # just one
  *   node scripts/tx/push.mjs --indexes       # AFTER loading
  *   node scripts/tx/push.mjs --verify        # counts + the comp query
+ *   node scripts/tx/push.mjs --explain       # is each stratum's lookup actually indexed
  *
  * ============================================================================
  * WHY THIS EXISTS INSTEAD OF psql
@@ -317,7 +318,7 @@ try {
         + ` (${(r.too_thin/r.total*100).toFixed(1)}%) — these need the subdivision/market-area fallback`);
   }
 
-  if (!has('schema') && !has('indexes') && !has('verify') && !has('cases')) {
+  if (!has('schema') && !has('indexes') && !has('verify') && !has('cases') && !has('explain')) {
     const only = arg('county');
     const files = readdirSync('tx-data', { withFileTypes: true })
       .filter(d => d.isDirectory() && (!only || d.name.toLowerCase() === only.toLowerCase()))
@@ -351,6 +352,71 @@ try {
       grand += rows[0].n;
     }
     console.log(`\n  ${grand.toLocaleString()} rows in tx_parcels`);
+  }
+
+  /**
+   * IS THE COMP LOOKUP ACTUALLY USING AN INDEX?
+   *
+   * Added 29 Sept 2026, when tx_parcels_subdv_lookup was made PARTIAL
+   * (`where abs_subdv_cd is not null`) to stop indexing 1,754,282 null rows that
+   * Harris and Dallas will never populate. That only holds if the planner can
+   * still prove the predicate: `abs_subdv_cd = $1` is a strict operator, so it
+   * implies IS NOT NULL and the partial index remains usable. That was reasoned
+   * rather than measured, and reasoning about a planner is how you get a
+   * sequential scan over three million rows on a t4g.micro.
+   *
+   * The SQL below mirrors fetchStratum() in lib/tx/comps.js LITERALLY — same
+   * equality columns, same two `> 0` filters, same LIMIT. An EXPLAIN of a query
+   * the application does not issue is worse than no EXPLAIN at all, so if that
+   * function changes, change this with it.
+   */
+  if (has('explain')) {
+    const STRATA = [
+      ['neighborhood', 'neighborhood_code'],
+      ['subdivision',  'abs_subdv_cd'],
+    ];
+    console.log('\nSTRATUM LOOKUP PLANS — mirrors fetchStratum() in lib/tx/comps.js');
+    let sawSeqScan = false;
+    for (const [level, column] of STRATA) {
+      // A real subject, so the bound values have the selectivity the planner
+      // will actually meet. Any district that populates the column will do.
+      const pick = await client.query(
+        `select cad_id, tax_year, state_class_code, ${column} v
+           from tx_parcels
+          where ${column} is not null and state_class_code is not null
+            and living_area > 0 and appraised_value > 0
+          limit 1`);
+      if (!pick.rows.length) {
+        console.log(`  ${level.padEnd(13)} no district populates ${column} — nothing to plan`);
+        continue;
+      }
+      const s0 = pick.rows[0];
+      const plan = await client.query(
+        `explain (analyze, buffers, format text)
+         select account_number, living_area, year_built, appraised_value
+           from tx_parcels
+          where cad_id = $1 and tax_year = $2 and state_class_code = $3
+            and living_area > 0 and appraised_value > 0
+            and ${column} = $4
+          limit 250`,
+        [s0.cad_id, s0.tax_year, s0.state_class_code, s0.v]);
+      const text = plan.rows.map((r) => r['QUERY PLAN']).join('\n');
+      const idx = (text.match(/Index (?:Only )?Scan using ([a-z0-9_]+)/) || [])[1];
+      const seq = /Seq Scan on tx_parcels/.test(text);
+      if (seq) sawSeqScan = true;
+      const ms = (text.match(/Execution Time: ([0-9.]+) ms/) || [])[1];
+      console.log(`  ${level.padEnd(13)} cad ${String(s0.cad_id).padEnd(4)} ${column} = ${String(s0.v).slice(0, 12).padEnd(13)}`
+        + (seq ? 'SEQ SCAN' : `index: ${idx || '(none reported)'}`)
+        + (ms ? `   ${ms} ms` : ''));
+      if (seq || !idx) console.log(text.split('\n').slice(0, 6).map((l) => '      ' + l).join('\n'));
+    }
+    if (sawSeqScan) {
+      console.log('\n  ✗ A stratum lookup is sequential-scanning tx_parcels. Run --indexes,');
+      console.log('    and if that does not fix it the partial index predicate is not provable');
+      console.log('    from the query as written. This is the comp engine on every request.');
+    } else {
+      console.log('\n  ✓ every stratum lookup is index-backed');
+    }
   }
 
   if (has('verify')) {
