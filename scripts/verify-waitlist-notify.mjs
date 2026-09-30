@@ -292,6 +292,85 @@ t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
     FL_COUNTY_DATES['Alachua']?.note);
 }
 
+
+/**
+ * ============================================================================
+ * SECTION W — THE WALKTHROUGH FLAG CANNOT OPEN THE PAYMENT GATE.
+ * ============================================================================
+ * NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY exists so the Texas funnel can be walked
+ * for ONE county out of season. SALES_ENABLED is already 'true' in production,
+ * so the filing window is the only thing between a Texas visitor and a live card
+ * charge, and this flag lives one step away from it.
+ *
+ * The safety property: the flag sets `testWalkthrough` and NOTHING else — never
+ * canFile, never canPreOrder — because pages/api/checkout.js:82 refuses unless
+ * one of those is true. Section W is that property written as a test.
+ *
+ * INJECTION, and it has been run: make the flag also set `canFile: true` ->
+ * 10 FAILED, naming the payment gate. If this section ever passes with that
+ * injection in place, it is testing nothing.
+ *
+ * `t` is t(NAME, COND). Name first. Reversing it silently passes everything.
+ */
+{
+  const { getFilingWindowStatus: gw, windowBlocksEntry: wbe, isWalkthroughCounty } =
+    await import('../lib/filingWindows.js');
+
+  // pages/api/checkout.js:82, copied literally.
+  const checkoutRefuses = (st, cty) => {
+    const ws = gw(String(st || '').trim().toUpperCase(), cty, { strict: true });
+    return !ws || (!ws.canFile && !ws.canPreOrder);
+  };
+
+  const prior = process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY;
+  try {
+    for (const flag of ['TX:Denton', 'TX:Denton County', 'tx:denton', 'FL:Broward', 'GA:Fulton']) {
+      process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = flag;
+      const st = flag.split(':')[0].toUpperCase();
+      const cty = flag.split(':').slice(1).join(':');
+      const ws = gw(st, cty, { strict: true });
+      t(`W: the flag ${flag} matches its own county`, isWalkthroughCounty(st, cty));
+      t(`W: CHECKOUT STILL REFUSES ${st}/${cty} with the flag set`, checkoutRefuses(st, cty));
+      t(`W: canFile stays false for ${st}/${cty}`, ws && ws.canFile === false, ws && ws.canFile);
+      t(`W: canPreOrder stays false for ${st}/${cty}`, ws && ws.canPreOrder === false, ws && ws.canPreOrder);
+      t(`W: the flag is reported on the status for ${st}/${cty}`, ws && ws.testWalkthrough === true);
+      t(`W: entry is unblocked for ${st}/${cty}`, wbe(st, cty, ws) === false);
+    }
+
+    // A NULL county is the STATEWIDE question. pages/api/check.js:242 asks it for
+    // Texas to tell a visitor when the season opens; matching it there would
+    // unblock all 254 counties at once.
+    process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = 'TX:Denton';
+    t('W: a null county never matches the flag', !isWalkthroughCounty('TX', null));
+    t('W: an empty county never matches the flag', !isWalkthroughCounty('TX', ''));
+    const nullWs = gw('TX', null, { strict: true });
+    t('W: the statewide status is never flagged', nullWs && nullWs.testWalkthrough === false);
+    t('W: the statewide answer still blocks entry', wbe('TX', null, nullWs) === true);
+
+    // Only the named county opens. Every other county in the state stays shut.
+    for (const other of ['Tarrant', 'Harris', 'Dallas', 'El Paso', 'Collin']) {
+      const ws = gw('TX', other, { strict: true });
+      t(`W: ${other} is not opened by a Denton flag`, ws && ws.testWalkthrough === false);
+      t(`W: entry still blocked for ${other}`, wbe('TX', other, ws) === true);
+      t(`W: checkout still refuses ${other}`, checkoutRefuses('TX', other));
+    }
+
+    // Malformed values fail closed rather than opening something.
+    for (const bad of ['', '   ', 'TX', 'TX:', ':Denton', 'Denton', 'TX-Denton', 'TX:  ']) {
+      process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = bad;
+      t(`W: a malformed flag ${JSON.stringify(bad)} opens nothing`, !isWalkthroughCounty('TX', 'Denton'));
+    }
+    delete process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY;
+    t('W: an unset flag opens nothing', !isWalkthroughCounty('TX', 'Denton'));
+    const bare = gw('TX', 'Denton', { strict: true });
+    t('W: with no flag, Denton blocks entry like everywhere else', wbe('TX', 'Denton', bare) === true);
+    t('W: and checkout refuses it', checkoutRefuses('TX', 'Denton'));
+  } finally {
+    if (prior === undefined) delete process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY;
+    else process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = prior;
+  }
+}
+
 // ---------------------------------------------------------------------------
 console.log(`\nverify-waitlist-notify: ${pass} passed, ${failures.length} failed`);
 if (failures.length) {
