@@ -31,6 +31,7 @@ import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { getSupabaseAdmin } from './supabase';
 import { buildProtest } from '../../lib/tx/protest';
+import { DEFAULT_TAX_RATE } from '../../lib/tx/qualify';
 import { findComps } from '../../lib/tx/comps';
 import { isCovered, LOADED_CADS, coveredCadFromName } from '../../lib/tx/coverage';
 import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
@@ -281,6 +282,34 @@ export default async function handler(req, res) {
       county: LOADED_CADS[cadId] || null,
       taxYear,
       accountNumber,
+
+      /**
+       * THE SAVING THIS PACKET ACTUALLY SUPPORTS.
+       *
+       * qualify() estimates from a GENERIC reduction — REDUCTION_BY_CAD where a
+       * county has been measured, otherwise PLAUSIBLE_REDUCTION_PCT at 6.3%.
+       * That is the right figure before the comps have run, which is where
+       * /api/check uses it. It is the wrong figure here, because by this point
+       * the comp ladder HAS run and the ask is a measured number.
+       *
+       * Denton is the worked example. The generic path assumes 6.3% of
+       * $732,970 = $46,177 and reports about $1,016 a year. The packet asks for
+       * $599,337 — a $133,633 reduction, 18.2% — which at the same rate is about
+       * $2,940. The screen was quoting a third of what the evidence supports,
+       * under a label reading "at most".
+       *
+       * STILL A CEILING, AND STILL LABELLED ONE. DEFAULT_TAX_RATE is 2.2%
+       * statewide, not this county's adopted rate; tx_parcel_entities is not
+       * populated so exemptions are not subtracted per taxing unit; and it
+       * assumes the board grants the full ask. What changed is the REDUCTION the
+       * ceiling is built on, from an assumption to the one we are filing for.
+       */
+      estimatedSaving: packet.reductionSought > 0
+        ? Math.round(packet.reductionSought * DEFAULT_TAX_RATE) : null,
+      // NOT sending estimateIsUpperBound: it would always be true here and
+      // nothing reads it — verify-tx-dispatch asserts every field in this
+      // response is consumed, and it was right to object. The screen states the
+      // ceiling in words beside the figure instead.
 
       /**
        * WHAT THE OWNER CONFIRMS — added 15 Sept 2026.

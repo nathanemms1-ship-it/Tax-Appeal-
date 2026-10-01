@@ -1463,7 +1463,25 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
     const ws = getFilingWindowStatus(sc, countyName, { strict: true });
     if (windowBlocksEntry(sc, countyName, ws)) { onClosedWindow(sc, ws); return; }
     if (ws && ws.canPreOrder) { setErr(""); onNext(); return; }
-    if (checkedState !== sc) { setCheckedState(sc); setShowPopup(true); return; }
+    /*
+      A BRANCH THAT CONSUMES A CLICK AND DRAWS NOTHING.
+      DeadlinePopup returns null unless `ws.isOpen` — it counts down the days
+      left to file, which is meaningless out of season. This branch did not
+      check that, so with the window closed the first press set the flag,
+      returned into a popup that rendered nothing, and the visitor pressed again.
+      The second press found checkedState already set and advanced, which is why
+      it reads as "the button needs two clicks".
+
+      Surfaced 1 Oct 2026 by the Denton walkthrough, and introduced by the flag
+      that made it reachable: NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY unblocks entry
+      while isOpen is still false, which is the only combination where this
+      branch fires with nothing to show. In an ordinary season it is unreachable
+      — pre-orders return above, and an open window renders the popup.
+
+      The condition now matches the popup's own precondition, so the two cannot
+      disagree again.
+    */
+    if (checkedState !== sc && ws && ws.isOpen) { setCheckedState(sc); setShowPopup(true); return; }
     setErr(""); onNext();
   };
 
@@ -3155,7 +3173,8 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               [pd.isTxPacket
                 ? (pd.reductionSought ? `$${Number(pd.reductionSought).toLocaleString()}` : "—")
                 : pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
-              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.isTxPacket ? "Not yet known" : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—", "Potential annual savings"],
+              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.isTxPacket ? "—" : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—",
+                pd.isTxPacket ? "Estimated saving, every year" : "Potential annual savings"],
               // WAS THE LITERAL STRING "4–5".
               // It claimed four to five comparable sales on every petition,
               // including ones where the comps engine supplied none — which is
@@ -3200,6 +3219,30 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 </p>
               </div>
             )}
+          {/*
+            WHY THE SAVING GETS ITS OWN LINE INSTEAD OF A TILE CAPTION.
+            It is the only number on this screen the customer is actually
+            buying, and as a bare tile it read as small print beside the
+            overvaluation. Two facts make it mean something and neither is a
+            claim about the outcome: a Texas protest is filed EVERY year, and
+            the fee is $89 against the figure above it.
+
+            NO MULTIPLIER IS PRINTED. "11x your fee" is the shape of claim the
+            Texas Tax Protest suit against Ownwell is about, and the saving is a
+            ceiling rather than a promise. Stating the fee and the estimate side
+            by side lets the reader do that arithmetic themselves, which is the
+            honest version of the same point.
+          */}
+          {pd.isTxPacket && pd.savings > 0 && (
+            <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 14, marginTop: 2, marginBottom: 12, fontSize: 13, color: "#C7D6E8", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65 }}>
+              That is <strong style={{ color: C.gold }}>${Number(pd.savings).toLocaleString()} a year</strong>, for an
+              $89 filing — and Texas lets you protest again every year the district overshoots.
+              <div style={{ fontSize: 11.5, color: "#5A7A9F", marginTop: 6 }}>
+                A ceiling, not a promise: estimated at the county&rsquo;s current combined rate if the board
+                grants the full reduction we ask for. Next year&rsquo;s rates are not adopted until the autumn.
+              </div>
+            </div>
+          )}
           <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 12, fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif" }}>
             ⚖️ Drafted under {stateInfo.statute || "applicable state statutes"} · {pd.appraisalDistrict?.districtName || pd.county}
           </div>
@@ -3686,7 +3729,10 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
        * Texas Tax Protest suit against Ownwell.
        */
       isTxPacket: true,
-      savings: null,
+      // The packet's own figure now — see the note in pages/api/generate-50132.js.
+      // Null only if the route could not compute one, in which case the summary
+      // says so rather than falling back to 20%-of-value at an assumed rate.
+      savings: j.estimatedSaving ?? null,
     };
 
     /**

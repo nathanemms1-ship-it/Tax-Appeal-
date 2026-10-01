@@ -357,6 +357,63 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   }
 }
 
+
+/**
+ * ============================================================================
+ * THE QUOTED SAVING IS BUILT ON THE REDUCTION WE ACTUALLY ASK FOR.
+ * ============================================================================
+ * Found 1 Oct 2026. The screen quoted about $1,016 a year on 108 Brookdale Dr
+ * while the packet asked for a $133,633 reduction worth about $2,940 at the same
+ * rate — a third of the evidence, under a label reading "at most". The figure
+ * came from qualify()'s generic PLAUSIBLE_REDUCTION_PCT of 6.3%, which is right
+ * BEFORE the comps run and wrong after.
+ */
+{
+  /*
+    EVERY SOURCE SCAN IN THIS BLOCK RUNS ON STRIPPED CODE. Twice in one sitting a
+    guard here failed on the comment that explains the rule it enforces — the
+    note about not printing a multiplier contains the multiplier, and the note
+    about not shipping estimateIsUpperBound names the field. Same trap the
+    ROLL_YEAR guard hit on 7 and 20 Sept.
+  */
+  const stripComments = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const api = stripComments(readFileSync(path.join(root, 'pages/api/generate-50132.js'), 'utf8'));
+  const apply = readFileSync(path.join(root, 'pages/apply.js'), 'utf8');
+  const applyCode = stripComments(apply);
+  const { DEFAULT_TAX_RATE, PLAUSIBLE_REDUCTION_PCT } = await import('../lib/tx/qualify.js');
+
+  t('the packet returns a saving derived from reductionSought',
+    /estimatedSaving: packet\.reductionSought > 0/.test(api));
+  t('and it uses the shared rate rather than a literal',
+    /packet\.reductionSought \* DEFAULT_TAX_RATE/.test(api) && !/\* 0\.0(18|22)\b/.test(api));
+  // The ceiling is stated in WORDS beside the figure rather than as a response
+  // flag: it would always be true, and verify-tx-dispatch asserts every field
+  // the response sends is actually read by something.
+  t('the ceiling is stated where the figure is shown, not shipped as a dead flag',
+    /A ceiling, not a promise/.test(apply) && !/estimateIsUpperBound/.test(api));
+  t('the screen takes the packet figure, not the generic one',
+    /savings: j\.estimatedSaving/.test(apply));
+
+  // A real packet must never fall back to "20% of value at an assumed rate".
+  t('a Texas packet with no figure shows a dash, never an invented number',
+    /pd\.isTxPacket \? "—"/.test(apply));
+
+  // The arithmetic the guard exists to protect, run on the Brookdale numbers.
+  const market = 732970, requested = 599337;
+  const real = Math.round((market - requested) * DEFAULT_TAX_RATE);
+  const generic = Math.round(market * PLAUSIBLE_REDUCTION_PCT * DEFAULT_TAX_RATE);
+  t(`the measured ask is worth materially more than the generic assumption (${real} vs ${generic})`,
+    real > generic * 2);
+
+  // No multiplier claim. This is the Ownwell-suit shape.
+  t('no "x your fee" multiplier is printed next to the saving',
+    !/\d+\s*x\s+your\s+fee/i.test(applyCode) && !/times your fee/i.test(applyCode));
+  t('the saving is still labelled a ceiling where it is shown',
+    /A ceiling, not a promise/.test(apply));
+}
+
 if (failures.length) {
   console.error(`  ${failures.length} FAILED:`);
   for (const f of failures) console.error(`    ✗ ${f}`);

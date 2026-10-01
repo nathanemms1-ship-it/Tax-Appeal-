@@ -184,8 +184,11 @@ const apply = readFileSync('pages/apply.js', 'utf8');
     /isTxPacket: true/.test(src));
   t('TX: the overvaluation uses the packet\'s own reduction',
     /pd\.isTxPacket[\s\S]{0,120}pd\.reductionSought/.test(apply));
+  // The literal moved from "Not yet known" to an em dash on 1 Oct when the
+  // packet started carrying a real figure; what must not change is that a TX
+  // packet never falls through to the 20%-of-value guess below it.
   t('TX: no invented saving is printed on a Texas packet',
-    /pd\.isTxPacket \? "Not yet known"/.test(apply));
+    /pd\.isTxPacket \? "—"/.test(apply));
 }
 
 
