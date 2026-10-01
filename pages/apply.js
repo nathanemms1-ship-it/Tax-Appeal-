@@ -3282,9 +3282,23 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
               */
               <div style={{ padding: "0 20px 20px", background: C.white }}>
                 {txPreviewUrl ? (
+                  /*
+                    #toolbar=0 SUPPRESSES CHROME'S OWN PDF CHROME. The save,
+                    download, print and overflow controls across the top of this
+                    frame are the browser's viewer, not ours. They are noise on a
+                    preview — the customer has not bought the document yet, and
+                    the controls invite them to take it. navpanes and scrollbar
+                    go with it so a one-page preview does not render a sidebar.
+
+                    These are the Adobe open-parameters that Chrome's built-in
+                    viewer honours. Firefox's pdf.js ignores them and will still
+                    show its own bar; that degrades to the status quo rather than
+                    breaking, which is why this is a URL fragment and not a
+                    rebuild of the preview as an image.
+                  */
                   <iframe
                     title="Form 50-132 preview"
-                    src={txPreviewUrl}
+                    src={`${txPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                     style={{ width: "100%", height: 560, border: `1px solid ${C.border}`, borderRadius: 8, background: C.white }}
                   />
                 ) : (
@@ -3319,17 +3333,33 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                   protest DOCUMENT. This sentence lives in a React page, so the
                   rule is re-asserted over this file in verify-tx-form.mjs.
                 */}
-                <div style={{ background: C.amber, border: '1px solid #F0DFA8', borderRadius: 10, padding: '13px 15px', marginTop: 14, fontSize: 12.5, color: '#6B5618', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                  <strong style={{ display: 'block', marginBottom: 4 }}>If a hearing is scheduled, it is yours to attend</strong>
-                  Your appraisal district may set a hearing on this protest. You would need to attend it —
-                  in person, by phone or by video — or deliver a sworn affidavit with your evidence before
-                  it begins. Appraisal review boards generally dismiss a protest when the owner does
-                  neither, though Texas law lets you request a new hearing if you file a written statement
-                  showing good cause within four days of the missed hearing. TaxAppeal does not attend
-                  hearings, and your county sends the hearing notice to you, not to us.
+                {/*
+                  ORDER AND WEIGHT ARE BOTH DELIBERATE.
+
+                  It led with "if a hearing is scheduled, it is yours to attend"
+                  in an amber warning box, which made the rare case the headline
+                  and read as a caution about the product. The common case is
+                  that no hearing happens at all, so that goes first and the
+                  obligation follows it.
+
+                  Quiet styling, not amber: this is a standing condition of the
+                  filing, not a defect in it. It must still be legible and must
+                  still carry every element the guard checks — boards' practice
+                  rather than statute, the four-day § 41.45(e-1) cure beside the
+                  dismissal risk, and who receives the notice. Softening the
+                  LOOK is fine; softening the SUBSTANCE is the 18 Sept error.
+                */}
+                <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginTop: 14, fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                  <strong style={{ color: C.darkNavy, fontWeight: 600 }}>Most protests never reach a hearing.</strong>{' '}
+                  We request the informal conference with the appraisal office, which is where the
+                  majority are settled.
                   <br /><br />
-                  Most protests never reach a hearing — we request the informal conference with the
-                  appraisal office, which is where the majority are settled.
+                  If your appraisal district does set one, the hearing is yours to attend — in person, by
+                  phone or by video — or you can deliver a sworn affidavit with your evidence before it
+                  begins. Appraisal review boards generally dismiss a protest when the owner does neither,
+                  though Texas law lets you request a new hearing if you file a written statement showing
+                  good cause within four days of the missed hearing. TaxAppeal does not attend hearings,
+                  and your county sends the hearing notice to you, not to us.
                 </div>
               </div>
             ) : (
