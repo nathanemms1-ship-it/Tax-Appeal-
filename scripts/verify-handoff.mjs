@@ -149,6 +149,51 @@ t('a verdict withdraws itself when the address write did not land',
 const check = readFileSync('pages/check.js', 'utf8');
 const apply = readFileSync('pages/apply.js', 'utf8');
 
+/**
+ * ============================================================================
+ * THE CONDITION ANSWERS MUST REACH THE TEXAS PACKET.
+ * ============================================================================
+ * Found 1 Oct 2026 while walking the Denton funnel.
+ *
+ * StepDispute destructures `const { account, property, issues, costOverrides } =
+ * formData`, and the page passes them as SIBLINGS:
+ *   formData={{ account, property: {...property, notes}, issues, costOverrides }}
+ *
+ * The `property` STATE has no issues key — its shape is street, city, state,
+ * zip, email, propType, yearBuilt, notes and five manual* fields, and nothing
+ * ever writes one. So `property.issues` is permanently undefined.
+ *
+ * Both Texas /api/generate-50132 bodies read `property.issues` and
+ * `property.costOverrides`, which meant EVERY Texas packet was built with zero
+ * condition evidence no matter what the owner selected at the Property Issues
+ * step. appendConditionPage() in lib/tx/fill50132.js — built 20 Sept, 16
+ * assertions behind it — could never render, because packet.conditionExhibit was
+ * never populated. generate-50132.js:236 `issuesUntried: issues.length === 0`
+ * was also permanently true.
+ *
+ * Every OTHER consumer in the same component already used the destructured
+ * consts correctly (lines ~3295, 3362, 3377, 3447, 3462, 3606, 3732, 3746). Only
+ * the two Texas bodies reached through `property`, which is why it survived: the
+ * Florida path, which is the one that has been exercised, was always right.
+ */
+{
+  const txBodies = apply.match(/fetch\("\/api\/generate-50132"[\s\S]*?\}\),/g) || [];
+  t('TX: both generate-50132 call sites are present to check', txBodies.length === 2, txBodies.length);
+  for (const [i, body] of txBodies.entries()) {
+    t(`TX: generate-50132 body ${i + 1} sends the condition answers, not property.issues`,
+      /issues: issues \|\| \[\]/.test(body) && !/property\.issues/.test(body));
+    t(`TX: generate-50132 body ${i + 1} sends costOverrides, not property.costOverrides`,
+      /costOverrides: costOverrides \|\| \{\}/.test(body) && !/property\.costOverrides/.test(body));
+  }
+  // The root cause, asserted directly: the property state must not grow an
+  // `issues` key, because that would make `property.issues` start working for
+  // the wrong reason and hide the next version of this bug.
+  const shape = apply.match(/const \[property, setProperty\] = useState\((\{[^}]*\})\)/);
+  t('TX: the property state still has no issues key to be confused with',
+    !!shape && !/\bissues\b/.test(shape[1]) && !/costOverrides/.test(shape[1]));
+}
+
+
 // Every CTA that carries the address must carry the verdict. These are the two
 // buttons — eligible and rescuable — and they are the whole reason this exists.
 //

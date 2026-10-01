@@ -3217,8 +3217,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
               .filter(Boolean).join(', '),
           },
-          issues: property.issues || [],
-          costOverrides: property.costOverrides || {},
+          issues: issues || [],
+          costOverrides: costOverrides || {},
         }),
       });
       const j = await res.json();
@@ -3674,8 +3674,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
               mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
                 .filter(Boolean).join(', '),
             },
-            issues: property.issues || [],
-            costOverrides: property.costOverrides || {},
+            issues: issues || [],
+            costOverrides: costOverrides || {},
           }),
         });
         const txJson = await txRes.json();
