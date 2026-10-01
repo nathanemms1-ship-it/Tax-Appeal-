@@ -48,6 +48,20 @@ const C = {
  * ProgressBar maps each to the numbered step it displays as — without that the bar
  * renders as though the customer had not started, which reads as progress lost.
  */
+/**
+ * Section 1 of Form 50-132, spelled exactly as the PDF exports the options.
+ * MUST stay identical to OWNER_TYPES in lib/tx/fill50132.js — pdf-lib throws
+ * on an unknown option, and scripts/verify-tx-form.mjs asserts both lists
+ * against the blank form itself so a Comptroller rename is a red build.
+ */
+const TX_OWNER_TYPES = [
+  'Person Age 65 or Older',
+  'Disabled Person',
+  'Military Service Member',
+  'Military Veteran',
+  'Spouse of a Military Service Member or Veteran',
+];
+
 const STEPS = ["property", "issues", "account", "dispute"];
 /**
  * "Create Account" was accurate when this step created one. It no longer takes a
@@ -999,6 +1013,7 @@ function NoParcelRecord({ property, account, detail, onBack }) {
  * from a field labelled "First Name".
  */
 function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCents }) {
+  const isTX = String(property?.state || "").trim().toUpperCase() === "TX";
   const [err, setErr] = useState("");
   /**
    * CLOSED BY DEFAULT, AND THE DEFAULT IS THE PROPERTY.
@@ -1203,6 +1218,75 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
           <Field label="Last Name" id="ln" value={data.lastName} onChange={e => onChange("lastName", e.target.value)} placeholder="Smith" />
         </div>
         <Field label="Email Address" id="email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="jane@example.com" />
+
+        {/*
+          ==================================================================
+          TEXAS ONLY: THE TWO FIELDS FORM 50-132 ASKS FOR AND WE NEVER DID.
+          ==================================================================
+          Added 1 Oct 2026. Both optional, both skippable, and neither is shown
+          outside Texas — Florida's DR-486 and Georgia's PT-311A ask for
+          neither, so putting them on every state's funnel would be three
+          questions to serve one.
+
+          MOBILE. Section 6 of the 50-132 lets the district text the owner the
+          date, time and place of their hearing. That matters because Section 5
+          is filed blank by decision (1 Oct), which means the owner is the one
+          who has to attend or answer — so a reminder from the district is the
+          cheapest mitigation of the only failure that costs them the year.
+
+          BY TEXT, NEVER BY EMAIL. The form prints under the email box that
+          including it is "affirmatively consenting to its release under the
+          Public Information Act". Gov't Code § 552.137 protects an e-mail
+          address of a member of the public and waives it only on that person's
+          own affirmative consent. There is no such footnote on the mobile box.
+          We hold their email already and deliberately do not put it on the form.
+
+          It also fills Section 1's phone line, which has been blank on every
+          Texas form we have ever produced: fill50132 writes `ownerPhone` and
+          nothing ever populated it, because this step collects a name, an email
+          and a mailing address and never asked for a number.
+        */}
+        {isTX && (
+          <>
+            <Field label="Mobile Number (optional)" id="mobile" type="tel" value={data.mobile || ""}
+              onChange={e => onChange("mobile", e.target.value)} placeholder="(214) 555-0142" />
+            <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+              So your appraisal district can text you the date of any hearing. Your district still posts
+              the official notice to your address either way. We never put your email on the protest —
+              doing so would make it releasable under the Public Information Act.
+            </div>
+
+            {/*
+              SECTION 1 — § 41.66(j-2): an ARB "must schedule a hearing on a
+              protest filed by a property owner who is 65 years of age or older,
+              disabled, a military service member, a military veteran, or the
+              spouse of a military service member or military veteran before
+              scheduling a hearing on a protest filed by a designated agent".
+
+              Our customers file in their own name, so the priority is theirs to
+              take; an agent-filed competitor cannot get it for them at all. A
+              RADIO GROUP on the form, not five ticks, so this is a single
+              select. We hold no exemption data — only has_homestead — so it has
+              to be asked. The PACS exports do carry over-65, disabled and
+              veteran flags, so a later load could pre-fill it instead.
+            */}
+            <label style={{ display: "block", fontSize: 12.5, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 5 }}>
+              Does any of this apply to you? <span style={{ color: C.mutedGray }}>(optional)</span>
+            </label>
+            <select
+              value={data.ownerType || ""}
+              onChange={e => onChange("ownerType", e.target.value)}
+              style={{ width: "100%", background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "11px 12px", fontSize: 15, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}
+            >
+              <option value="">None of these / prefer not to say</option>
+              {TX_OWNER_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 16, lineHeight: 1.5 }}>
+              Texas law requires appraisal review boards to schedule these protests ahead of the ones
+              filed by tax agents. It does not affect the outcome, only how soon you are heard.
+            </div>
+          </>
+        )}
 
         {/* ==================================================================
             WHERE THE COUNTY WRITES TO. Added 25 Aug 2026.
@@ -3211,6 +3295,42 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 <p style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: "10px 2px 0" }}>
                   Pages 2 and 3 — the comparable-property grid drawn from {pd.county || "your county"}&rsquo;s own certified roll{(issues && issues.length) ? ", and your property-condition statement" : ""} — are prepared with your filing.
                 </p>
+
+                {/*
+                  ==============================================================
+                  THE HEARING DISCLOSURE. Section 5 is filed BLANK by decision
+                  (1 Oct 2026), which means an in-person hearing may be
+                  scheduled and the owner is the one who must attend it or
+                  answer it. That is a defensible choice — most protests resolve
+                  at the informal conference — but only if they are told before
+                  they pay rather than when a notice lands.
+
+                  THE WORDING IS NOT THE ONE APPROVED ON 18 SEPT. That draft
+                  read "my protest will be dismissed and I may lose my right to
+                  appeal for this tax year", which is the overstatement already
+                  corrected on 7 Sept: § 41.45(e-1) entitles an owner who fails
+                  to appear to a NEW hearing on a written good-cause statement
+                  filed within four days. Dismissal is real ARB PRACTICE —
+                  Collin says so outright — but it is not what the Tax Code
+                  says, and this document is relied on by a homeowner.
+
+                  scripts/verify-tx-protest.mjs has enforced "never print the
+                  dismissal risk without the cure" since 7 Sept, but it reads the
+                  protest DOCUMENT. This sentence lives in a React page, so the
+                  rule is re-asserted over this file in verify-tx-form.mjs.
+                */}
+                <div style={{ background: C.amber, border: '1px solid #F0DFA8', borderRadius: 10, padding: '13px 15px', marginTop: 14, fontSize: 12.5, color: '#6B5618', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                  <strong style={{ display: 'block', marginBottom: 4 }}>If a hearing is scheduled, it is yours to attend</strong>
+                  Your appraisal district may set a hearing on this protest. You would need to attend it —
+                  in person, by phone or by video — or deliver a sworn affidavit with your evidence before
+                  it begins. Appraisal review boards generally dismiss a protest when the owner does
+                  neither, though Texas law lets you request a new hearing if you file a written statement
+                  showing good cause within four days of the missed hearing. TaxAppeal does not attend
+                  hearings, and your county sends the hearing notice to you, not to us.
+                  <br /><br />
+                  Most protests never reach a hearing — we request the informal conference with the
+                  appraisal office, which is where the majority are settled.
+                </div>
               </div>
             ) : (
               <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(previewUnlocked ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
@@ -3450,7 +3570,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           taxYear: Number(txReview?.taxYear) || undefined,
           owner: {
             firstName: account.firstName, lastName: account.lastName,
-            email: account.email, phone: account.phone || '',
+            email: account.email, phone: account.mobile || '',
+            mobile: account.mobile || '', ownerType: account.ownerType || '',
             mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
               .filter(Boolean).join(', '),
           },
@@ -3566,7 +3687,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             taxYear: j.taxYear || undefined,
             owner: {
               name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
-              email: account.email, phone: account.phone || '',
+              email: account.email, phone: account.mobile || '',
+              mobile: account.mobile || '', ownerType: account.ownerType || '',
               mailing: resolveOwnerMailing(account, property) ? [
                 resolveOwnerMailing(account, property).street,
                 resolveOwnerMailing(account, property).city,

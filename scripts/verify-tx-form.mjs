@@ -300,6 +300,63 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     /private, no-store/.test(api) && /application\/pdf/.test(api));
 }
 
+
+/**
+ * ============================================================================
+ * SECTION 1, SECTION 6, AND THE DISCLOSURE THAT CARRIES ITS OWN CURE.
+ * ============================================================================
+ * Added 1 Oct 2026.
+ */
+{
+  const fillSrc = readFileSync(path.join(root, 'lib/tx/fill50132.js'), 'utf8');
+  const applySrc = readFileSync(path.join(root, 'pages/apply.js'), 'utf8');
+  const { OWNER_TYPES } = await import('../lib/tx/fill50132.js');
+
+  // THE OPTION STRINGS MUST BE THE FORM'S OWN. pdf-lib throws on an unknown
+  // option, so a Comptroller rename would otherwise surface as a 500 on a real
+  // order, in season. Compared against the blank PDF itself, not a copy of it.
+  const formOpts = blankDoc.getForm().getRadioGroup('Property owner type').getOptions();
+  t('Section 1 is a radio group with five options on the form itself', formOpts.length === 5, formOpts.length);
+  for (const o of formOpts) t(`OWNER_TYPES carries the form's option ${JSON.stringify(o)}`, OWNER_TYPES.has(o));
+  t('OWNER_TYPES invents nothing the form does not offer', [...OWNER_TYPES].every((o) => formOpts.includes(o)));
+  // The funnel's own copy of the list has to match, or the dropdown offers a
+  // value the filler will silently drop.
+  for (const o of formOpts) t(`the funnel offers the form's option ${JSON.stringify(o)}`, applySrc.includes(`'${o}'`));
+
+  // An unvalidated value from a browser reaching pdf-lib is a throw.
+  t('an owner type outside the set is ignored rather than passed to pdf-lib',
+    /OWNER_TYPES\.has\(f\.ownerType\)/.test(fillSrc));
+
+  // SECTION 6: text only. The email box carries a Public Information Act waiver
+  // in the form's own footnote; the mobile box does not.
+  t('the reminder is set by text', /choose\('Electronic reminder', 'Yes, by text'\)/.test(fillSrc));
+  t('the reminder is never set by email', !/Yes, by email/.test(fillSrc));
+  t('the email address is never written to the form', !/setText\('Email Address'/.test(fillSrc));
+  t('the mobile goes to Section 6\'s own field, not Section 1\'s phone box',
+    /setText\('Mobile Number', f\.ownerMobile\)/.test(fillSrc));
+
+  // SECTION 5 STAYS BLANK — decided 1 Oct. Asserted so it cannot drift back.
+  t('the appearance election is never selected', !/choose\('ARB hearing'/.test(fillSrc));
+
+  /**
+   * THE CURE RULE, APPLIED OUTSIDE THE DOCUMENT.
+   * verify-tx-protest.mjs has enforced this on the rendered protest since
+   * 7 Sept. The same sentence now appears in a React page, where that guard
+   * cannot see it, and the wording approved on 18 Sept contained exactly the
+   * error it exists to prevent.
+   */
+  const txDisclosure = /dismiss/i.test(applySrc) && /TaxAppeal does not attend\s+hearings/.test(applySrc);
+  t('the funnel states the hearing disclosure at all', txDisclosure);
+  if (txDisclosure) {
+    t('it never claims the Tax Code dismisses — it says boards generally do',
+      /boards generally dismiss/i.test(applySrc) && !/your protest will be dismissed and/i.test(applySrc));
+    t('the four-day § 41.45(e-1) cure is stated beside the dismissal risk',
+      /good cause within four days/i.test(applySrc));
+    t('it says who receives the hearing notice',
+      /sends the hearing notice to you, not to us/i.test(applySrc));
+  }
+}
+
 if (failures.length) {
   console.error(`  ${failures.length} FAILED:`);
   for (const f of failures) console.error(`    ✗ ${f}`);
