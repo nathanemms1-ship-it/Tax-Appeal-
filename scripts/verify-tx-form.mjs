@@ -258,6 +258,48 @@ const tmp = mkdtempSync(path.join(tmpdir(), 'tx-form-'));
 writeFileSync(path.join(tmp, 'sample.pdf'), bytes);
 console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it before shipping a change\n`);
 
+
+/**
+ * ============================================================================
+ * THE PREVIEW IS THE REAL FORM, UNSIGNED, PAGE ONE, WATERMARKED.
+ * ============================================================================
+ * Added 1 Oct 2026. Until now nothing in production called fill50132 at all —
+ * only this script did. The preview is its first live use, so the things that
+ * can only break in production are asserted here.
+ */
+{
+  const api = readFileSync(path.join(root, 'pages/api/generate-50132.js'), 'utf8');
+
+  // SAME ROUTE, NOT A NEW ONE. next.config.js traces ./forms/tx/** for
+  // '/api/generate-50132' and nothing else, so a separate preview endpoint
+  // would read the blank form from a path absent from its own bundle — green
+  // locally, throwing in season. If a second route ever needs the form, the
+  // tracing map must grow with it.
+  const traced = (nextConfig.match(/outputFileTracingIncludes:\s*\{([\s\S]*?)\}/) || [])[1] || '';
+  const routesUsingForm = ['pages/api/generate-50132.js']
+    .filter((f) => /fill50132/.test(readFileSync(path.join(root, f), 'utf8')));
+  for (const f of routesUsingForm) {
+    const route = f.replace(/^pages/, '').replace(/\.js$/, '');
+    t(`${route} reads the blank form, so next.config.js must trace it`,
+      traced.includes(`'${route}'`) || traced.includes(`"${route}"`));
+  }
+
+  t('the preview renders the real form rather than an HTML look-alike',
+    /b\.preview === true/.test(api) && /fill50132\(packet\)/.test(api));
+  t('the preview is UNSIGNED — fill50132 is called with no signature argument',
+    /await fill50132\(packet\)\)/.test(api) && !/fill50132\(packet,\s*sig/.test(api));
+  t('the preview is page one only', /copyPages\(filled, \[0\]\)/.test(api));
+  t('the preview carries a watermark drawn into the PDF, not the page',
+    /PREVIEW - NOT FILED/.test(api) && /rotate: degrees\(45\)/.test(api));
+  // WinAnsi fonts. An em dash or a middot in a StandardFont throws at draw
+  // time, in a route whose only other failure mode is a missing parcel.
+  const label = (api.match(/const label = '([^']*)'/) || [])[1] || '';
+  t('the watermark text is ASCII, because StandardFonts are WinAnsi',
+    label.length > 0 && /^[\x20-\x7E]+$/.test(label), label);
+  t('the preview is never cached by a shared proxy',
+    /private, no-store/.test(api) && /application\/pdf/.test(api));
+}
+
 if (failures.length) {
   console.error(`  ${failures.length} FAILED:`);
   for (const f of failures) console.error(`    ✗ ${f}`);

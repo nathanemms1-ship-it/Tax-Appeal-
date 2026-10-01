@@ -2806,7 +2806,7 @@ function renderEvidence(text) {
   });
 }
 
-function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature }) {
+function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature, txPreviewUrl }) {
   // What the customer will ACTUALLY be charged: $89 plus the Florida county VAB
   // filing fee. Every one of these labels used to read a hardcoded "$89" while a
   // Hillsborough customer was charged $139 — including the checkbox attesting that
@@ -3123,9 +3123,22 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
           <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Dispute Letter Preview</div>
+              {/*
+                TEXAS HAS NO LETTER, SO IT MUST NOT PROMISE ONE.
+                This panel said "the rest of your letter is being prepared — you
+                will see all of it after checkout" on every Texas packet. That
+                could never come true: the 20 Sept decision made this route
+                return facts rather than a document, and the Texas filing IS
+                Form 50-132 plus the s 41.43(b)(3) grid. The panel now shows the
+                form itself.
+              */}
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
+                {pd.isTxPacket ? "Your Form 50-132, as it will be filed" : "Dispute Letter Preview"}
+              </div>
               <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>
-                {isFLFlow
+                {pd.isTxPacket
+                  ? "Page 1 of the Comptroller's own form, filled from your county's roll. You sign it after checkout."
+                  : isFLFlow
                   ? "You'll see your complete petition after checkout, and sign it there."
                   : "You'll see your complete letter after checkout, and sign it there."}
               </div>
@@ -3173,7 +3186,35 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
                 pages/api/preview-unlock.js. NEXT_PUBLIC_PREVIEW_UNBLURRED still
                 works and is for local development only: it unblurs for EVERY
                 visitor and must never be set in production. */}
-            <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(previewUnlocked ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
+            {pd.isTxPacket ? (
+              /*
+                NOT BLURRED, AND THAT IS THE DECISION. Page one is the form with
+                the owner's own name, account number and the district's values —
+                the proof the work is real, and the thing a blur would destroy.
+                The comps grid and the condition exhibit, which are the evidence
+                a homeowner cannot assemble alone, are NOT in this page one and
+                stay behind the paywall. The watermark is drawn into the PDF
+                server-side, so it survives printing and saving.
+              */
+              <div style={{ padding: "0 20px 20px", background: C.white }}>
+                {txPreviewUrl ? (
+                  <iframe
+                    title="Form 50-132 preview"
+                    src={txPreviewUrl}
+                    style={{ width: "100%", height: 560, border: `1px solid ${C.border}`, borderRadius: 8, background: C.white }}
+                  />
+                ) : (
+                  <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: C.mutedGray, fontSize: 13, fontFamily: "'DM Sans', sans-serif", border: `1px dashed ${C.border}`, borderRadius: 8 }}>
+                    Filling your form&hellip;
+                  </div>
+                )}
+                <p style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: "10px 2px 0" }}>
+                  Pages 2 and 3 — the comparable-property grid drawn from {pd.county || "your county"}&rsquo;s own certified roll{(issues && issues.length) ? ", and your property-condition statement" : ""} — are prepared with your filing.
+                </p>
+              </div>
+            ) : (
+              <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(previewUnlocked ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
+            )}
           </div>
           {/* WHY THIS NOTICE IS PROMINENT.
               The blur is the paywall, and a customer who does not understand it
@@ -3355,6 +3396,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   const [txReview, setTxReview] = useState(null);
   // Open when the owner says the matched property is not theirs.
   const [txPickCounty, setTxPickCounty] = useState(false);
+  // Blob URL for the watermarked page one of the filled Form 50-132.
+  const [txPreviewUrl, setTxPreviewUrl] = useState(null);
+  useEffect(() => () => { if (txPreviewUrl) URL.revokeObjectURL(txPreviewUrl); }, [txPreviewUrl]);
   const [txPicking, setTxPicking] = useState(false);
   /**
    * NOT errMsg. `if (txReview)` returns before `if (errMsg)`, so anything set on
@@ -3493,6 +3537,52 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
       isTxPacket: true,
       savings: null,
     };
+
+    /**
+     * FETCH THE FILLED FORM, PAGE ONE, WATERMARKED.
+     *
+     * Texas has no prose letter — see the 20 Sept decision — so the panel that
+     * promised one now shows the Comptroller's own Form 50-132 with this owner's
+     * details on it. Same lib/tx/fill50132.js that produces the filing, rendered
+     * unsigned.
+     *
+     * Deliberately NOT part of the packet response: the blank form is 684 KB and
+     * base64 on every packet would be roughly 930 KB on a step that does not
+     * always show it. Fetched here as a blob, once, after the owner has
+     * confirmed the property is theirs.
+     *
+     * Failure is silent on purpose. The preview is reassurance; the case summary
+     * and the filing details above it carry the screen on their own, and an
+     * error block where a picture should be is worse than no picture.
+     */
+    (async () => {
+      try {
+        const r = await fetch('/api/generate-50132', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            preview: true,
+            street: addr, city: property.city || '', zip: property.zip || '',
+            taxYear: j.taxYear || undefined,
+            owner: {
+              name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
+              email: account.email, phone: account.phone || '',
+              mailing: resolveOwnerMailing(account, property) ? [
+                resolveOwnerMailing(account, property).street,
+                resolveOwnerMailing(account, property).city,
+                resolveOwnerMailing(account, property).state,
+                resolveOwnerMailing(account, property).zip,
+              ].filter(Boolean).join(', ') : '',
+            },
+            issues: issues || [], costOverrides: costOverrides || {},
+          }),
+        });
+        if (!r.ok) return;
+        const blob = await r.blob();
+        if (blob.type !== 'application/pdf') return;
+        setTxPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+      } catch (e) { /* silent — see above */ }
+    })();
     if (pd) Object.assign(pd, fields);
     else setPropData((prev) => ({ ...(prev || {}), ...fields }));
     setTxReview(null);
@@ -4282,7 +4372,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // already paid — no petition mailed, no check mailed, no confirmation email,
   // and save-order still writes dispute_status 'filed'. This omission broke 100%
   // of Florida orders.
-  return <DisputeLetter propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} flSignature={formData.flSignature} />;
+  return <DisputeLetter txPreviewUrl={txPreviewUrl} propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} flSignature={formData.flSignature} />;
 }
 
 /**

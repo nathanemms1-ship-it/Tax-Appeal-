@@ -142,6 +142,80 @@ export default async function handler(req, res) {
       parcel, comps, taxYear, issues, costOverrides, owner: b.owner || {},
     });
 
+    /**
+     * ======================================================================
+     * PREVIEW MODE: THE REAL FORM, PAGE ONE, WATERMARKED.
+     * ======================================================================
+     * Added 1 Oct 2026. The Texas dispute step showed a "Dispute Letter
+     * Preview" panel reading "the rest of your letter is being prepared" — a
+     * promise that could never come true, because on 20 Sept this route stopped
+     * returning a document at all and Texas has no prose letter. It has Form
+     * 50-132 and the s 41.43(b)(3) grid.
+     *
+     * So show the form. Not a rendering OF it — the actual Comptroller PDF,
+     * filled by lib/tx/fill50132.js, which is the same function that produces
+     * the filing. An HTML look-alike is exactly the defect febfec5 removed.
+     *
+     * UNSIGNED. fill50132(packet) with no second argument leaves Section 8's
+     * signature and date blank, which is what a pre-payment preview must be.
+     *
+     * PAGE ONE ONLY, and that is a product decision, not a technical limit.
+     * Page one is the Comptroller's form carrying the owner's own name, account
+     * number and the district's own values — the proof that the work is real.
+     * The comps grid and the condition exhibit are the evidence a homeowner
+     * cannot assemble alone, and they stay behind the paywall.
+     *
+     * fill50132 calls form.flatten() before returning, so the field values are
+     * page content by the time this copies page one. An unflattened copy would
+     * lose them to the widget dictionaries left behind.
+     *
+     * SAME ROUTE, NOT A NEW ONE, DELIBERATELY. next.config.js traces
+     * ./forms/tx/** into the bundle for '/api/generate-50132' and nothing else.
+     * A new endpoint would read the blank form from a path that is not in its
+     * bundle, pass every local test, and throw in production — the exact
+     * failure the error text in fill50132.js:93 describes. It also avoids
+     * duplicating the parcel resolution above.
+     *
+     * NOT IN THE JSON. The blank form alone is 684 KB, so base64 on every
+     * packet response would put roughly 930 KB on a funnel step that does not
+     * always show a preview. The browser asks for this separately, as a blob.
+     */
+    if (b.preview === true) {
+      const { PDFDocument, StandardFonts, rgb, degrees } = await import('pdf-lib');
+      const { fill50132 } = await import('../../lib/tx/fill50132');
+
+      const filled = await PDFDocument.load(await fill50132(packet));
+      const out = await PDFDocument.create();
+      const [page] = await out.copyPages(filled, [0]);
+      out.addPage(page);
+
+      const font = await out.embedFont(StandardFonts.HelveticaBold);
+      const { width, height } = page.getSize();
+      const label = 'PREVIEW - NOT FILED';
+      // ASCII only. These are WinAnsi fonts and an em dash or a middot is a
+      // throw at draw time, in a route that has no other way to fail.
+      const size = 44;
+      const w = font.widthOfTextAtSize(label, size);
+      page.drawText(label, {
+        x: (width - w * Math.cos(Math.PI / 4)) / 2,
+        y: (height - w * Math.sin(Math.PI / 4)) / 2,
+        size,
+        font,
+        color: rgb(0.78, 0.12, 0.12),
+        opacity: 0.22,
+        rotate: degrees(45),
+      });
+
+      const bytes = await out.save();
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="protest-preview.pdf"');
+      // Same rule as /apply itself in next.config.js: this renders the owner's
+      // address, account number and appraised value and must never sit in a
+      // shared proxy.
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      return res.status(200).send(Buffer.from(bytes));
+    }
+
     // A refusal is a 200. It is a finding, not an error, and the caller has to
     // show it to the customer rather than retry.
     /**
