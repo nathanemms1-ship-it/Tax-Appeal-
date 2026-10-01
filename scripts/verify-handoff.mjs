@@ -151,6 +151,48 @@ const apply = readFileSync('pages/apply.js', 'utf8');
 
 /**
  * ============================================================================
+ * THE ADDRESS EARNS THE VERDICT BEFORE THE VERDICT EARNS THE QUESTIONS.
+ * ============================================================================
+ * That sentence is the funnel's own stated rule, from the STEPS header in
+ * pages/apply.js, and Texas broke it from the day the Texas roll went in:
+ * property -> issues, so the first thing a Texas owner was asked was whether
+ * their foundation was cracked, before being shown a single figure about their
+ * own house. The valuation did not surface until StepDispute, after their name
+ * and email. Florida had `florida-check` for this since August; Texas had
+ * nothing, and nothing failed, because an ABSENT screen is not a broken one.
+ *
+ * Found 1 Oct 2026 by walking the Denton funnel, not by any test.
+ *
+ * Georgia is deliberately NOT asserted here: we hold no Georgia roll, so it has
+ * nothing to put on such a screen and still routes straight to `issues`. When a
+ * GA roll lands, this is the assertion to extend.
+ */
+{
+  t('TX: a Texas address routes to a verdict screen, not straight to the condition questions',
+    /sc === 'TX' \? 'texas-check'/.test(apply));
+  t('TX: the verdict screen is actually rendered',
+    /step === "texas-check" && <StepTexasCheck/.test(apply));
+  t('TX: and the component it names exists',
+    /function StepTexasCheck\(/.test(apply));
+  // Without this the progress bar renders as though the customer had not
+  // started, which reads as progress lost. Same reason florida-check is mapped.
+  t('TX: texas-check is mapped in SUBSTEPS so the progress bar does not reset',
+    /SUBSTEPS = \{[^}]*'texas-check': 'issues'/.test(apply));
+  // It reads the roll through the same route /check uses, which is the only one
+  // that knows the cap arithmetic. A screen that invented its own would drift.
+  t('TX: the verdict screen derives its answer from /api/check',
+    /function StepTexasCheck\([\s\S]*?fetch\('\/api\/check'/.test(apply));
+  // The saving is a ceiling. 2027 rates are not adopted until the autumn and
+  // tx_parcel_entities is not populated, so an unqualified figure is a promise
+  // we cannot keep -- and inflated savings claims are what the Texas Tax Protest
+  // suit against Ownwell is about.
+  t('TX: no saving is shown on the verdict screen without the ceiling caveat',
+    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?ceiling rather than a figure we can promise/.test(apply));
+}
+
+
+/**
+ * ============================================================================
  * THE CONDITION ANSWERS MUST REACH THE TEXAS PACKET.
  * ============================================================================
  * Found 1 Oct 2026 while walking the Denton funnel.

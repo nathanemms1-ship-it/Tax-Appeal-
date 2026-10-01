@@ -188,7 +188,7 @@ function ProgressBar({ currentStep }) {
   // BACKWARDS on pass two, on the screen where a marginal customer is deciding
   // whether to carry on, which is the exact symptom this map exists to prevent.
   // `issues` is the position that is right for one pass and adjacent for the other.
-  const SUBSTEPS = { 'florida-check': 'issues', 'florida-fee': 'account' };
+  const SUBSTEPS = { 'florida-check': 'issues', 'texas-check': 'issues', 'florida-fee': 'account' };
   const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
@@ -1577,6 +1577,194 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
  * continue, because refusing on absence of evidence would turn an outage into
  * lost customers who were perfectly eligible.
  */
+/**
+ * ============================================================================
+ * THE TEXAS VERDICT SCREEN. Added 1 Oct 2026.
+ * ============================================================================
+ * The funnel's own rule, from the header of this file: "the address earns the
+ * verdict, the verdict earns the condition questions." Florida has had a screen
+ * for that since August — `florida-check`, between property and issues. TEXAS
+ * HAD NONE. It went property -> issues, so the first thing a Texas owner was
+ * asked was whether their foundation was cracked, before the site had told them
+ * a single number about their own house. The valuation did not appear until
+ * StepDispute, three screens later, after their name and email.
+ *
+ * Caught by Nathan walking the Denton funnel on 1 Oct: "straight to property
+ * issues. No evaluation of the value."
+ *
+ * The engine was never missing. pages/api/check.js has been fully Texas-capable
+ * for weeks — it returns the matched parcel, the cap arithmetic, the eligibility
+ * verdict and a saving ceiling. It had no screen in /apply, and pages/check.js
+ * has no Texas branch either, so nothing rendered it.
+ *
+ * DELIBERATELY LIGHTER THAN THE FLORIDA SCREEN. Florida runs a second call to
+ * /api/comps here because an arms-length sale can refute a petition outright and
+ * that must be known before taking money. Texas has no such refuter at this
+ * stage, and the comp set belongs on the review-and-sign screen where the
+ * s 41.43(b)(3) case is actually assembled. This screen answers one question:
+ * can a protest move this owner's bill, and by roughly how much.
+ *
+ * THE SAVING IS A CEILING AND SAYS SO. 2027 rates are not adopted until the
+ * autumn, tx_parcel_entities is not populated, and exemptions are not subtracted
+ * per taxing unit. qualify.js says this in its own header; the 18 Sept review
+ * design settled that the figure stays but is always labelled. Inflated protest
+ * marketing is the subject of the Texas Tax Protest suit against Ownwell.
+ */
+function StepTexasCheck({ property, onEligible, onBack }) {
+  const [state, setState] = useState({ status: 'loading', data: null });
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            street: property.street, city: property.city,
+            state: 'TX', zip: property.zip, source: 'apply',
+          }),
+        });
+        const j = await res.json();
+        if (cancelled) return;
+        if (!res.ok) { setState({ status: 'unavailable', data: null }); return; }
+        if (!j?.found) { setState({ status: 'noparcel', data: j }); return; }
+        setState({ status: 'done', data: j });
+      } catch (e) {
+        if (!cancelled) setState({ status: 'unavailable', data: null });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [property.street, property.city, property.zip, retryNonce]);
+
+  const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
+  const wrap = { maxWidth: 620, margin: '0 auto', padding: '48px 24px' };
+  const h2 = { fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 };
+  const body = { color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 };
+
+  if (state.status === 'loading') {
+    return (
+      <div style={{ ...wrap, textAlign: 'center' }}>
+        <h2 style={h2}>Reading the county&rsquo;s own roll&hellip;</h2>
+        <p style={body}>Matching your address against the appraisal district&rsquo;s certified data.</p>
+      </div>
+    );
+  }
+
+  /*
+    A MISS IS NOT A REFUSAL. The geocoder picked the district and the geocoder
+    can be wrong — the same reason StepDispute carries a county picker. Send them
+    on rather than stopping them: every gate downstream still fires, and the
+    packet step can still match them in a district we hold.
+  */
+  if (state.status === 'noparcel' || state.status === 'unavailable') {
+    return (
+      <div style={wrap}>
+        <h2 style={h2}>We couldn&rsquo;t match that address to a county record</h2>
+        <p style={body}>
+          {state.status === 'unavailable'
+            ? 'The county lookup did not respond. This is on our side, not yours.'
+            : 'We hold the certified roll for your district but could not find this address on it. That is usually a spelling or a unit number, and sometimes a city that crosses a county line.'}
+        </p>
+        <p style={{ ...body, fontSize: 14 }}>
+          You can carry on — we search the roll again when the protest is prepared, and you can pick a
+          different county there if we matched the wrong one. Nothing is charged before you have seen
+          the finished document.
+        </p>
+        <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={() => setRetryNonce((n) => n + 1)}>
+          Try the lookup again
+        </button>
+        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
+          Continue anyway
+        </button>
+        <button style={secondaryBtn} onClick={onBack}>← Check the address</button>
+      </div>
+    );
+  }
+
+  const d = state.data || {};
+  const p = d.parcel || {};
+  const rows = [
+    ['District market value', money(d.marketValue)],
+    ['You are taxed on', money(d.appraisedValue)],
+    d.isCapped ? ['Held below market by', money(d.requiredReduction)] : null,
+    d.isCapped ? ['Your bill only moves below', money(d.breakEvenMarketValue)] : null,
+  ].filter(Boolean);
+
+  /*
+    CAPPED BEYOND REACH IS THE ONE HONEST NO. s 23.23 holds the taxed value below
+    market, so a reduction has to clear the whole gap before a single dollar
+    reaches the bill. The 18 Sept design settled the framing: this is good news
+    told plainly, not a failure, because the cap is already doing for free what a
+    protest would be trying to do. The file-anyway route stays, de-emphasised,
+    per the 7 Sept decision that a caution informs rather than refuses.
+  */
+  if (!d.eligible) {
+    return (
+      <div style={wrap}>
+        <h2 style={h2}>A protest wouldn&rsquo;t lower your bill this year</h2>
+        <p style={body}>{d.capStatement || 'Your taxed value is held below the district’s market value, so a reduction would not reach your tax bill.'}</p>
+        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
+          {p.address ? <><strong>{p.address}</strong><br /></> : null}
+          {rows.map(([k, v]) => <div key={k}>{k}: {v}</div>)}
+        </div>
+        <p style={{ ...body, fontSize: 14 }}>
+          The homestead cap is already doing for you, for free, what a protest would be trying to do.
+          That changes if the market cools or your appraised value catches up — we re-read every roll.
+        </p>
+        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
+          File anyway — I understand it may not change my bill
+        </button>
+        <button style={secondaryBtn} onClick={onBack}>← Check a different property</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={wrap}>
+      <h2 style={h2}>This one is worth protesting</h2>
+      <p style={body}>{d.capStatement || 'You are taxed on the district’s full market value, so every dollar of reduction lowers your bill.'}</p>
+
+      <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
+        {p.address ? <><strong>{p.address}</strong><br /></> : null}
+        <span style={{ color: C.mutedGray, fontSize: 13 }}>
+          {[d.county ? `${d.county} County` : null,
+            p.parcelId ? `Account ${p.parcelId}` : null,
+            p.livingArea ? `${Number(p.livingArea).toLocaleString()} sq ft` : null,
+            p.yearBuilt ? `built ${p.yearBuilt}` : null,
+            p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' · ')}
+        </span>
+        <div style={{ marginTop: 10 }}>
+          {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+        </div>
+      </div>
+
+      {/*
+        THE CEILING, LABELLED, NEVER A PROMISE. See the header of this component
+        and qualify.js. estimateIsUpperBound comes from the API rather than being
+        assumed here, so if the estimate ever becomes exact the wording follows it.
+      */}
+      {d.estimatedSaving > 0 && (
+        <div style={{ background: C.amber, border: '1px solid #F0DFA8', borderRadius: 10, padding: '13px 16px', marginBottom: 20, fontSize: 13.5, color: '#6B5618', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+          <strong>Up to about {money(d.estimatedSaving)} a year{d.estimateIsUpperBound ? ', at most' : ''}.</strong><br />
+          Estimated at your county&rsquo;s current combined tax rate. Next year&rsquo;s rates are not adopted
+          until the autumn, so this is a ceiling rather than a figure we can promise.
+        </div>
+      )}
+
+      <p style={{ ...body, fontSize: 14 }}>
+        Next we ask about anything wrong with the property the district may not know — foundation,
+        roof, flooding, a busy road. Those become evidence attached to your protest. Skip them if
+        there is nothing to report.
+      </p>
+
+      <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>Continue</button>
+      <button style={secondaryBtn} onClick={onBack}>← Not my property</button>
+    </div>
+  );
+}
+
 function StepFloridaCheck({ property, account, onEligible, onBack, issues, costOverrides, onAddIssues, alreadyAsked, autoAdvance }) {
   const [state, setState] = useState({ status: 'loading', data: null, comps: null });
   /**
@@ -4779,7 +4967,13 @@ function ApplyFunnel() {
               setFlRescueReturn(true);
               setStep('issues');
             } else {
-              setStep(sc === 'FL' ? 'florida-check' : 'issues');
+              /*
+                TEXAS GETS A VERDICT SCREEN TOO, for the reason the header of
+                StepTexasCheck gives. Georgia still goes straight to `issues`:
+                we hold no Georgia roll, so there is nothing to tell them yet and
+                an empty verdict screen is worse than none.
+              */
+              setStep(sc === 'FL' ? 'florida-check' : sc === 'TX' ? 'texas-check' : 'issues');
             }
             window.scrollTo(0,0);
           }} onUnsupportedState={s => setUnsupportedState(s)} onClosedWindow={(sc, ws) => setClosedWindow({ stateCode: sc, windowStatus: ws })} />}
@@ -4789,6 +4983,7 @@ function ApplyFunnel() {
               hand. It is step 3 now, so jumping to the fee screen from here would
               reach the review page with no name on the petition and no address to
               send the confirmation to. */}
+          {step === "texas-check" && <StepTexasCheck property={property} onEligible={() => { setStep("issues"); window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
           {step === "florida-check" && <StepFloridaCheck property={property} account={account} issues={issues} costOverrides={costOverrides} alreadyAsked={flRescueReturn} autoAdvance={flAutoAdvance} onAddIssues={(isRescue) => { setFlAutoAdvance(false); if (isRescue) setFlRescueReturn(true); setStep("issues"); window.scrollTo(0,0); }} onEligible={() => { setFlAutoAdvance(false); if (flRescueReturn || flIssuesDone) { setStep("account"); } else { setStep("issues"); } window.scrollTo(0,0); }} onBack={() => { clearHandoff(); setStep("property"); window.scrollTo(0,0); }} />}
           {step === "issues" && <StepIssues selectedIssues={issues} onToggle={toggleIssue} property={property} costOverrides={costOverrides} onCostChange={setCost} onNext={afterIssues} onBack={() => {
             /*
