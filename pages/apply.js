@@ -3065,8 +3065,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
           <div className="two-col-summary">
             {[
-              [pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
-              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—", "Potential annual savings"],
+              // A TEXAS PACKET KNOWS ITS OWN REDUCTION — see applyTxPacket. The
+              // 20%-of-value fallbacks below are for the states where we hold no
+              // roll and must not be applied on top of real figures.
+              [pd.isTxPacket
+                ? (pd.reductionSought ? `$${Number(pd.reductionSought).toLocaleString()}` : "—")
+                : pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
+              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.isTxPacket ? "Not yet known" : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—", "Potential annual savings"],
               // WAS THE LITERAL STRING "4–5".
               // It claimed four to five comparable sales on every petition,
               // including ones where the comps engine supplied none — which is
@@ -3439,6 +3444,54 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
       compCount: j.compCount ?? 0,
       hasGrid: j.hasGrid ?? null,
       txCautions: (j.cautions || []).map((c) => c.code),
+
+      /**
+       * ==================================================================
+       * THE ROLL'S FACTS HAVE TO WIN, OR THE PREVIEW DESCRIBES A DIFFERENT
+       * PROPERTY THAN THE ONE BEING FILED ON.
+       * ==================================================================
+       * Found 1 Oct 2026 walking the Denton funnel. This function copied five
+       * fields, and NONE of them were the figures the screen actually prints.
+       *
+       * Every Texas preview therefore showed /api/lookup's numbers — a model
+       * estimate — under a heading that reads "FILING DETAILS, PLEASE CHECK
+       * THESE ARE CORRECT". On 108 Brookdale Dr it read:
+       *
+       *   Parcel / folio number    Not listed in county records   (roll: 000000004148)
+       *   Current assessed value   $710,089                       (roll: $732,970)
+       *   Value we are requesting  $582,273                       (packet: $599,337)
+       *
+       * `compCount` was the single correct number on the page, because it was
+       * the only displayed field this list happened to carry.
+       *
+       * The petition itself was always right — generate-50132 re-reads the roll
+       * server-side and takes no value from the browser. So this was never a
+       * wrong filing; it was a preview of a filing that did not exist, shown to
+       * the owner for confirmation. That is arguably worse: s 41.44 asks the
+       * owner to identify their property, and this screen told them the county
+       * had no record of it while holding the account number.
+       */
+      parcelId: j.accountNumber || null,
+      assessedValue: j.appraisedValue ?? null,
+      targetReduction: j.requestedValue ?? null,
+      county: j.county || null,
+      taxYear: j.taxYear ?? null,
+      rawAddress: j.situsAddress || null,
+      livingArea: j.livingArea ?? null,
+      yearBuilt: j.yearBuilt ?? null,
+      /**
+       * A MARKER, SO THE SUMMARY STOPS GUESSING. The two headline figures fall
+       * back to `assessedValue * 0.20` for the overvaluation and that again
+       * times 0.018 for the saving — a 20% reduction at an assumed rate,
+       * invented for a screen the owner reads before paying. With a real packet
+       * both are known: the overvaluation IS reductionSought. The saving is not
+       * known here, because generate-50132 returns no rate and 2027 rates are
+       * not adopted until the autumn, so it shows as unavailable rather than as
+       * a number we made up. Inflated savings claims are the subject of the
+       * Texas Tax Protest suit against Ownwell.
+       */
+      isTxPacket: true,
+      savings: null,
     };
     if (pd) Object.assign(pd, fields);
     else setPropData((prev) => ({ ...(prev || {}), ...fields }));

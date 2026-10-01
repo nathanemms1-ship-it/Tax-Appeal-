@@ -151,6 +151,46 @@ const apply = readFileSync('pages/apply.js', 'utf8');
 
 /**
  * ============================================================================
+ * THE TEXAS PREVIEW MUST SHOW THE ROLL, NOT THE ESTIMATE.
+ * ============================================================================
+ * applyTxPacket folds the finished packet into the letter screen. It carried
+ * five fields and none of them were the ones the screen prints, so every Texas
+ * preview displayed /api/lookup's model estimate under the heading "FILING
+ * DETAILS, PLEASE CHECK THESE ARE CORRECT" — including "Parcel / folio number:
+ * Not listed in county records" while holding account 000000004148.
+ *
+ * Each field below is one the DisputeLetter summary or filing-details grid
+ * reads directly. If a field is added to that grid, add it here too.
+ */
+{
+  const fn = apply.match(/const applyTxPacket = \(j, pd = null\) => \{[\s\S]*?\n  \};/);
+  t('TX: applyTxPacket is present to check', !!fn);
+  const src = fn ? fn[0] : '';
+  for (const [field, from] of [
+    ['parcelId', 'j.accountNumber'],
+    ['assessedValue', 'j.appraisedValue'],
+    ['targetReduction', 'j.requestedValue'],
+    ['county', 'j.county'],
+    ['taxYear', 'j.taxYear'],
+    ['rawAddress', 'j.situsAddress'],
+  ]) {
+    t(`TX: the preview takes ${field} from the packet (${from}), not the estimate`,
+      new RegExp(`${field}: ${from.replace('.', '\\.')}`).test(src));
+  }
+  // The headline figures must not fall back to "20% of value at an assumed
+  // rate" once a real packet exists. Inflated savings claims are the subject of
+  // the Texas Tax Protest suit against Ownwell, and this screen is pre-payment.
+  t('TX: a real packet marks itself so the summary stops guessing',
+    /isTxPacket: true/.test(src));
+  t('TX: the overvaluation uses the packet\'s own reduction',
+    /pd\.isTxPacket[\s\S]{0,120}pd\.reductionSought/.test(apply));
+  t('TX: no invented saving is printed on a Texas packet',
+    /pd\.isTxPacket \? "Not yet known"/.test(apply));
+}
+
+
+/**
+ * ============================================================================
  * THE ADDRESS EARNS THE VERDICT BEFORE THE VERDICT EARNS THE QUESTIONS.
  * ============================================================================
  * That sentence is the funnel's own stated rule, from the STEPS header in
