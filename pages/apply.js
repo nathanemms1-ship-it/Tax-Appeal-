@@ -5,7 +5,7 @@ import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
-import { getFilingWindowStatus, windowBlocksEntry } from '../lib/filingWindows';
+import { getFilingWindowStatus, windowBlocksEntry, walkthroughState } from '../lib/filingWindows';
 import { LOADED_COUNTY_NAMES, coveredCadFromName } from '../lib/tx/coverage';
 import { SERVING_FROM } from '../lib/stateService';
 import { resolveOwnerMailing } from '../lib/ownerMailing';
@@ -1314,7 +1314,21 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
     // version below reads NAME and strips " County", which produces "Saint Johns"
     // and misses the table.
     let countyName = null;
-    if (sc === "GA" || sc === "FL") {
+    /*
+      TEXAS NORMALLY RESOLVES NO COUNTY HERE, AND THAT IS CORRECT — it has ONE
+      statewide window, so the county establishes nothing this gate needs.
+
+      The exception is the walkthrough flag. It opens exactly one (state, county)
+      pair, so it cannot match without a county, and on 30 Sept it shipped unable
+      to fire for that reason: countyName was null for Texas, a null county never
+      matches by design, and entry stayed blocked for the county it had been set
+      to open. The flag was live in the bundle and wired to nothing.
+
+      So: fetch the county when the flag names this state. Production behaviour is
+      untouched — with no flag set, walkthroughState() is null, Texas resolves no
+      county exactly as before, and this branch is GA/FL only.
+    */
+    if (sc === "GA" || sc === "FL" || walkthroughState() === sc) {
       setChecking(true);
       try {
         const r = await fetch("/api/resolve-county", {

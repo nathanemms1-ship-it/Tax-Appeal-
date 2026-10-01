@@ -313,8 +313,8 @@ t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
  * `t` is t(NAME, COND). Name first. Reversing it silently passes everything.
  */
 {
-  const { getFilingWindowStatus: gw, windowBlocksEntry: wbe, isWalkthroughCounty } =
-    await import('../lib/filingWindows.js');
+  const { getFilingWindowStatus: gw, windowBlocksEntry: wbe, isWalkthroughCounty,
+    walkthroughState: fwState } = await import('../lib/filingWindows.js');
 
   // pages/api/checkout.js:82, copied literally.
   const checkoutRefuses = (st, cty) => {
@@ -365,6 +365,50 @@ t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
     const bare = gw('TX', 'Denton', { strict: true });
     t('W: with no flag, Denton blocks entry like everywhere else', wbe('TX', 'Denton', bare) === true);
     t('W: and checkout refuses it', checkoutRefuses('TX', 'Denton'));
+
+    /**
+     * ------------------------------------------------------------------
+     * W2 — THE FLAG MUST BE WIRED TO THE CALL SITE IT EXISTS FOR.
+     * ------------------------------------------------------------------
+     * Shipped 30 Sept, live in the production bundle, and completely inert.
+     * Every assertion above passed; none of them asked whether pages/apply.js
+     * could ever hand this gate a county.
+     *
+     * It could not. apply.js resolves a county ONLY for GA and FL — Texas has a
+     * single statewide window, so it never needed one — and a null county never
+     * matches the flag, by design, because pages/api/check.js:242 asks the
+     * statewide question and matching it would unblock all 254 counties.
+     *
+     * So the flag was correct, safe, thoroughly tested, and attached to nothing.
+     * These two assertions are the wiring.
+     */
+    process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = 'TX:Denton';
+    t('W2: walkthroughState names the flagged state', fwState() === 'TX', fwState());
+
+    // THE BUG, STATED AS A TEST. Step 1 with no county resolved still blocks —
+    // which is right, and is exactly why the branch below has to run.
+    {
+      const nullWs = gw('TX', null, { strict: true });
+      t('W2: with no county resolved, step 1 still blocks even with the flag set',
+        wbe('TX', null, nullWs) === true);
+      const dentonWs = gw('TX', 'Denton', { strict: true });
+      t('W2: once a county IS resolved, step 1 lets it through',
+        wbe('TX', 'Denton', dentonWs) === false);
+    }
+
+    // And the wiring itself: apply.js must fetch a county whenever the flag names
+    // the state being entered. A source check, because the branch is a React event
+    // handler that cannot be invoked from here.
+    {
+      const applySrc = (await import('node:fs')).readFileSync('pages/apply.js', 'utf8');
+      t('W2: apply.js imports walkthroughState', /walkthroughState/.test(applySrc));
+      const branch = applySrc.match(/if \(sc === "GA" \|\| sc === "FL"[\s\S]*?\) \{/);
+      t('W2: apply.js resolves a county when the flag names this state',
+        !!branch && /walkthroughState\(\) === sc/.test(branch[0]), branch && branch[0]);
+      t('W2: and it still resolves one for GA and FL regardless',
+        !!branch && /sc === "GA"/.test(branch[0]) && /sc === "FL"/.test(branch[0]));
+    }
+    process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = 'TX:Denton';
   } finally {
     if (prior === undefined) delete process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY;
     else process.env.NEXT_PUBLIC_TEST_WALKTHROUGH_COUNTY = prior;
