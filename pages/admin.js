@@ -1,32 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 
-const C = {
-  navy:     "#1B3A6B",
-  gold:     "#FFC940",
-  darkNavy: "#0F1F3D",
-  bg:       "#F4F7FC",
-  lightBlue:"#EEF3FB",
-  bodyGray: "#5A6B82",
-  mutedGray:"#8596AF",
-  border:   "#E8EDF4",
-  white:    "#FFFFFF",
-  green:    "#2E7D52",
-  red:      "#C0392B",
-  amber:    "#FFF8E6",
-  /*
-    OUR-FAILURE VIOLET. Not red: red already means `refused`, which is a correct,
-    healthy answer -- a homeowner an appeal genuinely cannot help. Painting our own
-    bugs the same colour as our most common legitimate outcome is how they hide.
-
-    Checked with the palette validator against the other four at ΔE: it is never the
-    worst adjacent pair under normal vision or either CVD simulation. The palette's
-    pre-existing complaints (gold sits above the lightness band, red↔green is 7.0 in
-    deutan) are unchanged by it -- the red↔green adjacency is why the stack now
-    carries 2px gaps, which is the secondary encoding that pair requires.
-  */
-  violet:   "#6B4FA8",
-};
+import { C } from "../lib/theme";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -42,9 +17,9 @@ function formatMoney(cents) {
 
 function StatusBadge({ status }) {
   const styles = {
-    filed:    { bg: "#EEF3FB", color: "#1B3A6B", label: "Filed" },
-    approved: { bg: "#E6F4ED", color: "#2E7D52", label: "Approved" },
-    denied:   { bg: "#FEE8E7", color: "#C0392B", label: "Denied" },
+    filed:    { bg: C.lightBlue, color: C.navy, label: "Filed" },
+    approved: { bg: "#E6F4ED", color: C.green, label: "Approved" },
+    denied:   { bg: "#FEE8E7", color: C.red, label: "Denied" },
     pending:  { bg: "#FFF8E6", color: "#7A5C10", label: "Pending" },
   };
   const s = styles[status] || styles.pending;
@@ -57,10 +32,10 @@ function StatusBadge({ status }) {
 
 function LobBadge({ status }) {
   const map = {
-    dispatched: { bg: "#E6F4ED", color: "#2E7D52", label: "Dispatched" },
+    dispatched: { bg: "#E6F4ED", color: C.green, label: "Dispatched" },
     pending:    { bg: "#FFF8E6", color: "#7A5C10", label: "Pending" },
-    delivered:  { bg: "#E6F4ED", color: "#2E7D52", label: "Delivered" },
-    failed:     { bg: "#FEE8E7", color: "#C0392B", label: "Failed" },
+    delivered:  { bg: "#E6F4ED", color: C.green, label: "Delivered" },
+    failed:     { bg: "#FEE8E7", color: C.red, label: "Failed" },
   };
   const s = map[status] || map.pending;
   return (
@@ -90,11 +65,11 @@ function LobBadge({ status }) {
  */
 function StripeBadge({ stripe }) {
   const map = {
-    active:        { bg: "#E6F4ED", color: "#2E7D52", label: "Payouts on" },
+    active:        { bg: "#E6F4ED", color: C.green, label: "Payouts on" },
     pending:       { bg: "#FFF8E6", color: "#7A5C10", label: "Setup incomplete" },
-    not_connected: { bg: "#FEE8E7", color: "#C0392B", label: "No bank" },
-    error:         { bg: "#FEE8E7", color: "#C0392B", label: "Stripe error" },
-    unknown:       { bg: "#EEF3FB", color: "#1B3A6B", label: "Unknown" },
+    not_connected: { bg: "#FEE8E7", color: C.red, label: "No bank" },
+    error:         { bg: "#FEE8E7", color: C.red, label: "Stripe error" },
+    unknown:       { bg: C.lightBlue, color: C.navy, label: "Unknown" },
   };
   const st = map[stripe?.status] || map.unknown;
   return (
@@ -1316,7 +1291,7 @@ export default function Admin() {
               ["Revenue", formatMoney(stats?.totalRevenue || 0), "💰", C.green],
               ["Est. Savings", stats?.totalSavings ? '$' + Number(stats.totalSavings).toLocaleString() : '$0', "📊", C.gold],
               ["Queued", queuedOrders.length, "🎟️", C.navy],
-              ["Filed", stats?.filed || 0, "📬", "#1B3A6B"],
+              ["Filed", stats?.filed || 0, "📬", C.navy],
               ["Approved", stats?.approved || 0, "✓", C.green],
               ["Denied", stats?.denied || 0, "✗", C.red],
             ].map(([label, value, icon, color]) => (

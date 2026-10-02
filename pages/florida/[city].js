@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { floridaCities } from '../../lib/floridaCities';
 import { taglineFor } from '../../lib/flTaglines';
 import { breadcrumbSchema } from '../../lib/breadcrumbs';
+import { C } from "../../lib/theme";
 
 
 
@@ -215,19 +216,19 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
         const windowOpen = new Date(windowOpenISO);
         const windowClose = new Date(windowCloseISO);
         const today = new Date();
-        const barStyle = { background: '#FFC940', color: '#0F1F3D', textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
+        const barStyle = { background: C.gold, color: C.darkNavy, textAlign: 'center', padding: '10px 16px', fontSize: 14, fontWeight: 600 };
         if (today >= preOrderOpen && today < windowOpen) {
           const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
           return (
             <div style={barStyle}>
-              🔒 Reserve your {city.county} County spot now — TRIM notices start arriving in {days} days. Lock in today&apos;s {priceLine}; we file the moment your county&apos;s window opens. <a href="/apply" style={{ color: '#0F1F3D', textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+              🔒 Reserve your {city.county} County spot now — TRIM notices start arriving in {days} days. Lock in today&apos;s {priceLine}; we file the moment your county&apos;s window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
             </div>
           );
         }
         if (today >= windowOpen && today <= windowClose) {
           return (
             <div style={barStyle}>
-              🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: '#0F1F3D', textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+              🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
             </div>
           );
         }

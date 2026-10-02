@@ -39,7 +39,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 import { BUSINESS_NAME, BUSINESS_ADDRESS } from '../lib/businessInfo';
-const C = { navy:'#1B3A6B',gold:'#C9A84C',darkNavy:'#0F1F3D',bg:'#F4F7FC',lightBlue:'#EEF3FB',bodyGray:'#5A6B82',mutedGray:'#8596AF',border:'#E8EDF4',white:'#FFFFFF',green:'#16a34a',lightGreen:'#f0fdf4' };
+import { C as THEME } from "../lib/theme";
+// Local additions this page still owns; everything else is the shared palette.
+const C = { ...THEME, lightGreen: "#f0fdf4" };
 
 /** Florida's county filing fee, from lib/flCountyFees.js. Pass-through, not ours. */
 const FL_FEE_RANGE = '$15–$50';
@@ -109,7 +111,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
             <div style={{fontSize:9,textTransform:'uppercase',letterSpacing:'1.5px',color:C.mutedGray}}>Property Tax Dispute</div>
           </div>
         </Link>
-        <Link href="/apply"><button style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'10px 22px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>File an appeal →</button></Link>
+        <Link href="/apply"><button style={{background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'10px 22px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>File an appeal →</button></Link>
       </div>
       <section style={{background:C.navy,padding:'64px 40px'}}>
         <div className="container">
@@ -117,14 +119,14 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
           <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,color:C.white,marginBottom:16,maxWidth:600}}>
             Earn $20 every time a client files their property tax appeal
           </h1>
-          <p style={{fontSize:18,color:'#8596AF',lineHeight:1.6,maxWidth:560,marginBottom:40}}>
+          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:560,marginBottom:40}}>
             Share your unique link. When a homeowner clicks it and completes a paid filing, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
           </p>
           <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
             {/* "$89 — Customer pays" was flatly untrue for every Florida customer,
                 who pays $89 plus a county filing fee of $15–$50. */}
             {[['$20','Per referral, flat'],['$89 + county fee','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
-              <div key={l} style={{background:'#0F1F3D',borderRadius:10,padding:'16px',textAlign:'center'}}>
+              <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:'16px',textAlign:'center'}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:'#5A7A9F',marginTop:4}}>{l}</div>
               </div>
@@ -307,12 +309,12 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     <div style={{fontSize:20,fontWeight:500,color:C.navy,letterSpacing:1}}>{result.code}</div>
                   </div>
                   <div style={{background:'#f8fafc',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,wordBreak:'break-all',fontSize:13,color:C.bodyGray}}>{result.referralLink}</div>
-                  <button onClick={copyLink} style={{background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 24px',fontSize:14,fontWeight:500,cursor:'pointer',width:'100%',fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>{copied?'✅ Copied!':'📋 Copy My Referral Link'}</button>
+                  <button onClick={copyLink} style={{background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'12px 24px',fontSize:14,fontWeight:500,cursor:'pointer',width:'100%',fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>{copied?'✅ Copied!':'📋 Copy My Referral Link'}</button>
                   <a href={`/partners/dashboard?ref=${result.code}&email=${encodeURIComponent(form.email)}&token=${encodeURIComponent(result.dashboardToken || '')}`} style={{display:'block',width:'100%',background:'transparent',color:C.navy,border:`1.5px solid ${C.navy}`,borderRadius:8,padding:'11px 24px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'center',textDecoration:'none',marginBottom:12,boxSizing:'border-box'}}>View my dashboard →</a>
                   <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
                     <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>Set up your payout account</div>
                     <p style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:12}}>Connect your bank account through Stripe to receive monthly payouts. Takes about 2 minutes — Stripe handles all tax forms automatically.</p>
-                    <button onClick={handleStripeConnect} disabled={connectLoading} style={{display:'block',width:'100%',background:C.navy,color:'#fff',border:'none',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',cursor:connectLoading?'not-allowed':'pointer',opacity:connectLoading?0.7:1,fontFamily:"'DM Sans',sans-serif"}}>{connectLoading?'Redirecting to Stripe...':'Connect Bank Account via Stripe →'}</button>
+                    <button onClick={handleStripeConnect} disabled={connectLoading} style={{display:'block',width:'100%',background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',cursor:connectLoading?'not-allowed':'pointer',opacity:connectLoading?0.7:1,fontFamily:"'DM Sans',sans-serif"}}>{connectLoading?'Redirecting to Stripe...':'Connect Bank Account via Stripe →'}</button>
                     <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
                   </div>
                   <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $20.</p>

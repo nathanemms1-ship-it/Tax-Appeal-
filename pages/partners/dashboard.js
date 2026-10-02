@@ -58,12 +58,7 @@ function flSeasonPrompt(now = new Date()) {
   return `Florida's filing season is closed for this year. It reopens ${FL_OPEN_LABEL}${opens ? ` ${opens.getFullYear()}` : ''} — there is nothing to chase until then, and your referrals stay credited to you.`;
 }
 
-const C = {
-  navy: '#1B3A6B', gold: '#FFC940', darkNavy: '#0F1F3D', bg: '#F4F7FC',
-  lightBlue: '#EEF3FB', bodyGray: '#5A6B82', mutedGray: '#8596AF',
-  border: '#E8EDF4', white: '#FFFFFF', green: '#2E7D52', lightGreen: '#f0fdf4',
-  red: '#C0392B',
-};
+import { C } from "../../lib/theme";
 
 const STATE_LABELS = { TX: 'Texas', FL: 'Florida', GA: 'Georgia', AR: 'Arkansas', AL: 'Alabama' };
 
@@ -83,7 +78,7 @@ function CopyButton({ text }) {
     navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); });
   };
   return (
-    <button onClick={copy} style={{ background: copied ? C.green : C.navy, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', transition: 'background 0.2s' }}>
+    <button onClick={copy} style={{ background: copied ? C.green : C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', transition: 'background 0.2s' }}>
       {copied ? '✅ Copied!' : '📋 Copy link'}
     </button>
   );
@@ -123,7 +118,7 @@ function StripeStatusBadge({ stripe, refCode, email }) {
       <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 16px' }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: '#92400e', marginBottom: 6 }}>⏳ Stripe setup incomplete</div>
         <div style={{ fontSize: 12, color: '#78350f', marginBottom: 10 }}>Your Stripe account was created but bank details aren't verified yet. Complete setup to receive monthly payouts.</div>
-        <button onClick={handleConnect} disabled={loading} style={{ background: C.navy, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+        <button onClick={handleConnect} disabled={loading} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
           {loading ? 'Redirecting...' : 'Complete Stripe Setup →'}
         </button>
       </div>
@@ -134,7 +129,7 @@ function StripeStatusBadge({ stripe, refCode, email }) {
     <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px' }}>
       <div style={{ fontSize: 13, fontWeight: 500, color: C.red, marginBottom: 6 }}>🏦 Connect your bank to get paid</div>
       <div style={{ fontSize: 12, color: '#7f1d1d', marginBottom: 10 }}>You haven't connected a bank account yet. Without it, we can't send your monthly payouts. Takes about 2 minutes via Stripe.</div>
-      <button onClick={handleConnect} disabled={loading} style={{ background: C.navy, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+      <button onClick={handleConnect} disabled={loading} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
         {loading ? 'Redirecting...' : 'Connect Bank Account via Stripe →'}
       </button>
     </div>
@@ -305,7 +300,7 @@ export default function PartnerDashboard() {
               {authError && (
                 <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: C.red }}>{authError}</div>
               )}
-              <button type="submit" disabled={authLoading} style={{ width: '100%', background: C.navy, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 24px', fontSize: 15, fontWeight: 500, cursor: authLoading ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: authLoading ? 0.7 : 1 }}>
+              <button type="submit" disabled={authLoading} style={{ width: '100%', background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '13px 24px', fontSize: 15, fontWeight: 500, cursor: authLoading ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: authLoading ? 0.7 : 1 }}>
                 {authLoading ? 'Loading...' : 'View My Dashboard →'}
               </button>
             </form>
@@ -329,7 +324,7 @@ export default function PartnerDashboard() {
           <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, marginBottom: 8 }}>Something went wrong</h2>
           <p style={{ color: C.bodyGray, fontSize: 14, marginBottom: 20 }}>{errorMsg}</p>
-          <button onClick={() => setStatus('auth')} style={{ background: C.navy, color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 14, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+          <button onClick={() => setStatus('auth')} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 14, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
         </div>
       )}
 
@@ -557,10 +552,10 @@ export default function PartnerDashboard() {
                 </div>
                 {data.thisMonth.referrals === 0 ? (
                   <>
-                    <p style={{ fontSize: 13, color: '#8596AF', lineHeight: 1.7, marginBottom: 14 }}>
+                    <p style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.7, marginBottom: 14 }}>
                       {seasonPrompt}
                     </p>
-                    <div style={{ background: '#0F1F3D', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#8596AF', lineHeight: 1.7, fontStyle: 'italic' }}>
+                    <div style={{ background: C.darkNavy, borderRadius: 10, padding: '12px 16px', fontSize: 12, color: C.mutedGray, lineHeight: 1.7, fontStyle: 'italic' }}>
                       {/* "$89 flat" is true in Texas and Georgia and FALSE in Florida,
                           where the county's mandatory VAB filing fee ($15–$50, set by
                           statute per county) is charged on top — see pages/florida.js
@@ -572,7 +567,7 @@ export default function PartnerDashboard() {
                   </>
                 ) : (
                   <>
-                    <p style={{ fontSize: 13, color: '#8596AF', lineHeight: 1.7, marginBottom: 14 }}>
+                    <p style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.7, marginBottom: 14 }}>
                       You&apos;ve referred <strong style={{ color: C.white }}>{data.thisMonth.referrals} homeowner{data.thisMonth.referrals !== 1 ? 's' : ''}</strong> this month, worth ${data.thisMonth.earnings}. It goes out in the settlement run on the 1st{data.stripe.status === 'active' ? '' : ' — once your bank account is connected'}.
                     </p>
                     <p style={{ fontSize: 12, color: '#5A7A9F', lineHeight: 1.6 }}>

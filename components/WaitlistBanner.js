@@ -1,3 +1,4 @@
+import { C } from "../lib/theme";
 /**
  * Site-wide "not filing yet" banner, rendered from _app.js on every page while
  * sales are paused.
@@ -25,8 +26,8 @@ export default function WaitlistBanner() {
     <div
       role="status"
       style={{
-        background: '#0F1F3D',
-        color: '#FFFFFF',
+        background: C.darkNavy,
+        color: C.white,
         padding: '11px 20px',
         fontSize: 14,
         lineHeight: 1.5,
@@ -34,11 +35,11 @@ export default function WaitlistBanner() {
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       }}
     >
-      <strong style={{ color: '#FFC940' }}>We&apos;re not filing yet.</strong>{' '}
+      <strong style={{ color: C.gold }}>We&apos;re not filing yet.</strong>{' '}
       TaxAppeal USA is finishing county verification before taking any orders.{' '}
       <a
         href="/apply"
-        style={{ color: '#FFFFFF', textDecoration: 'underline', fontWeight: 600, whiteSpace: 'nowrap' }}
+        style={{ color: C.white, textDecoration: 'underline', fontWeight: 600, whiteSpace: 'nowrap' }}
       >
         Join the waitlist →
       </a>

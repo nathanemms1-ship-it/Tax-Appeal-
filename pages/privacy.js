@@ -1,6 +1,7 @@
 // pages/privacy.js
 import Head from 'next/head';
 import Link from 'next/link';
+import { C } from "../lib/theme";
 
 export default function Privacy() {
   return (
@@ -11,7 +12,7 @@ export default function Privacy() {
         <meta name="robots" content="noindex" />
       </Head>
       <div style={{ background: '#f4f6f9', minHeight: '100vh', padding: '40px 20px', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', background: '#fff', borderRadius: 8, padding: '48px 52px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', background: C.white, borderRadius: 8, padding: '48px 52px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>

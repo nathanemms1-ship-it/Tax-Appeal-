@@ -17,10 +17,7 @@ import { OUTCOME_DISCLAIMER } from '../lib/stats';
  * Do not add a card here whose number you cannot open the source document and find.
  */
 
-const C = {
-  navy: '#1B3A6B', darkNavy: '#0F1F3D', bodyGray: '#5A6B82',
-  mutedGray: '#8596AF', border: '#E8EDF4', white: '#FFFFFF',
-};
+import { C } from "../lib/theme";
 
 export default function JurisdictionOutcomes({ heading, intro, cards = [], footnote }) {
   const valid = cards.filter((c) => c && c.stat && c.source && c.url);

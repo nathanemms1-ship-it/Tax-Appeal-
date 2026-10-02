@@ -2,11 +2,7 @@ import { useState } from 'react';
 // Single source of truth for FL VAB fees — lib/flCountyFees.js
 export { getFlVabFee } from '../lib/flCountyFees';
 
-const C = {
-navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", red: "#C0392B",
-};
+import { C } from "../lib/theme";
 
 /**
 * StepFloridaFee — Florida VAB fee disclosure + DR-486 e-signature authorization
@@ -149,7 +145,7 @@ Two things to confirm before checkout: the county this property is in, and the f
 ORDER SUMMARY — {countyDisplay.toUpperCase()}
 </div>
 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ color: '#8596AF' }}>TaxAppeal service fee</span>
+<span style={{ color: C.mutedGray }}>TaxAppeal service fee</span>
 <span style={{ color: C.white, fontWeight: 500 }}>$89</span>
 </div>
 {/* County confirmation, inline.
@@ -164,14 +160,14 @@ onClick={() => setCountyConfirmed(!countyConfirmed)}
 style={{ marginBottom: 14, padding: '14px 16px', background: countyConfirmed ? 'rgba(46,125,82,0.16)' : 'rgba(255,201,64,0.12)', border: `1.5px solid ${countyConfirmed ? 'rgba(120,200,150,0.5)' : 'rgba(255,201,64,0.45)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}
 >
 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
-<div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${countyConfirmed ? '#7ED6A5' : '#FFC940'}`, background: countyConfirmed ? '#2E7D52' : 'transparent', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+<div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${countyConfirmed ? '#7ED6A5' : C.gold}`, background: countyConfirmed ? C.green : 'transparent', color: C.white, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 {countyConfirmed ? '\u2713' : ''}
 </div>
 <div style={{ flex: 1, fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.55 }}>
 <div style={{ color: C.white, fontWeight: 600, marginBottom: 3 }}>
 Confirm this property is in {feeData?.county} County
 </div>
-<div style={{ color: '#8596AF', fontSize: 12 }}>
+<div style={{ color: C.mutedGray, fontSize: 12 }}>
 Your county decides the filing fee, who the fee cheque is made out to, and which
 Value Adjustment Board receives your petition. It is on your TRIM notice and your
 tax bill.{onChangeCounty ? ' ' : ''}
@@ -203,7 +199,7 @@ Not {feeData?.county}? Change it
 
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
 <div>
-<div style={{ color: '#8596AF' }}>{countyDisplay} VAB filing fee</div>
+<div style={{ color: C.mutedGray }}>{countyDisplay} VAB filing fee</div>
 <div style={{ fontSize: 11, color: '#5A7A9F', marginTop: 3 }}>Required by Florida law § 194.013 · paid to {payableTo}</div>
 </div>
 <span style={{ color: C.white, fontWeight: 500, flexShrink: 0, marginLeft: 12 }}>{vabFeeDisplay}</span>

@@ -4,18 +4,14 @@ import { useRouter } from 'next/router';
 // slugs, which showed up here as 13 pairs of identical-looking cards.
 import { publishedPosts as posts } from '../../lib/blogPosts';
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../../lib/theme";
 
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const categoryColors = {
-  Texas: { bg: "#EEF3FB", text: "#1B3A6B" },
+  Texas: { bg: C.lightBlue, text: C.navy },
   Georgia: { bg: "#FFF8E1", text: "#8B6914" },
-  Florida: { bg: "#E8F5E9", text: "#2E7D52" },
+  Florida: { bg: "#E8F5E9", text: C.green },
   Education: { bg: "#F3E5F5", text: "#6A1B9A" },
 };
 
@@ -63,7 +59,7 @@ export default function BlogIndex() {
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </a>
-        <button className="btn-primary" onClick={() => router.push('/apply')}>Start my dispute →</button>
+        <button className="btn-primary" onClick={() => router.push('/apply')}>Check your property →</button>
       </div>
 
       {/* Hero */}
@@ -73,7 +69,7 @@ export default function BlogIndex() {
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.15, marginBottom: 14 }}>
             Property Tax Protest Guides
           </h1>
-          <p style={{ fontSize: 17, color: "#8596AF", lineHeight: 1.6, maxWidth: 580 }}>
+          <p style={{ fontSize: 17, color: C.mutedGray, lineHeight: 1.6, maxWidth: 580 }}>
             County-by-county guides, deadline information, and expert tips for protesting your property taxes in Texas, Georgia, and Florida.
           </p>
         </div>
@@ -113,9 +109,9 @@ export default function BlogIndex() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "56px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.white, marginBottom: 12 }}>Ready to file your protest?</h2>
-        <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>$89 flat fee. You sign it, we file it. You keep 100% of your savings.</p>
+        <p style={{ fontSize: 15, color: C.mutedGray, marginBottom: 24 }}>$89 flat fee. You sign it, we file it. You keep 100% of your savings.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 16, padding: "16px 40px" }} onClick={() => router.push('/apply')}>
-          Start My Dispute — $89 →
+          Check your property — free
         </button>
       </section>
 

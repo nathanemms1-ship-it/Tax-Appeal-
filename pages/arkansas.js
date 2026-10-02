@@ -28,11 +28,7 @@ import { stateSaleStatus } from '../lib/stateService';
  * it has to come from filingWindows, not from here.
  */
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../lib/theme";
 
 const FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 

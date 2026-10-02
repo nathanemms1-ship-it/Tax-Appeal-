@@ -546,6 +546,18 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   }
 
   /*
+    A DISTRICT-RATE CAUTION MUST NOT OUTLIVE THE PARCEL FIGURE.
+    ------------------------------------------------------------------------
+    3700 Lake Grove Ct, Corinth: one caution, `saving_below_fee`, on a packet
+    asking $375,140 and worth ~$13,637/yr. qualify() runs before the comp
+    ladder and estimates from a district rate; the caution survived next to
+    the figure that supersedes it. Third occurrence of this shape in two days.
+  */
+  t('buildProtest drops saving_below_fee once the packet clears the fee',
+    /Math\.round\(askGap \* DEFAULT_TAX_RATE\) >= SERVICE_FEE/.test(protest)
+    && /CAUTION_CODES\.SAVING_BELOW_FEE\) cautions\.splice/.test(protest));
+
+  /*
     ======================================================================
     WE PREPARE DOCUMENTS. WE DO NOT DECIDE WHO MAY PROTEST.
     ======================================================================

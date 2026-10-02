@@ -18,7 +18,7 @@ import { stateSaleStatus } from '../lib/stateService';
  * this page again with no copy edit.
  */
 
-const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
+import { C } from "../lib/theme";
 const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap";
 
 // Module scope: the faqs array below is also emitted as schema.org FAQPage
@@ -86,13 +86,13 @@ export default function Bentonville() {
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Bentonville, Arkansas</div>
           <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{SVC.selling ? "Bentonville Property Tax Appeal — $89 Flat Fee" : "How to appeal your Bentonville property taxes"}</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{SVC.selling ? "Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals. TaxAppeal files your certified protest letter for a flat $89." : `Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals, which Ark. Code §26-27-317 makes due ${DEADLINE_RULE}. We are not filing Arkansas appeals ourselves this season — we open for ${SVC.servingFrom}.`}</p>
+          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>{SVC.selling ? "Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals. TaxAppeal files your certified protest letter for a flat $89." : `Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals, which Ark. Code §26-27-317 makes due ${DEADLINE_RULE}. We are not filing Arkansas appeals ourselves this season — we open for ${SVC.servingFrom}.`}</p>
           <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
             {(SVC.selling
               ? [["Aug 17","2026 Deadline"],["0%","Of your savings taken"],["$89","Flat fee"],["Benton County","Service area"]]
               : [["3rd Mon","Of August — deadline"],["0%","Of your savings taken"],[String(SVC.servingFrom),"Season we open"],["Benton County","Where we will file"]]
             ).map(([n,l]) => (
-              <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:16,textAlign:"center"}}>
+              <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:16,textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>

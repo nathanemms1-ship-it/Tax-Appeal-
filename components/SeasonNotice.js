@@ -26,11 +26,7 @@ import { stateSaleStatus } from '../lib/stateService';
  * route; it is now true because both ends read the same map.
  */
 
-const C = {
-  navy: '#1B3A6B', darkNavy: '#0F1F3D', gold: '#FFC940', bg: '#F4F7FC',
-  white: '#FFFFFF', border: '#E8EDF4', body: '#5A6B82', muted: '#8596AF',
-  green: '#2E7D52', red: '#C0392B',
-};
+import { C } from "../lib/theme";
 
 /* The email, address and submit controls are width:100% with 14-22px of horizontal
  * padding and a 1.5px border. This component ships no stylesheet and inherits no

@@ -9,11 +9,7 @@ import { counties as ALL_COUNTIES } from '../lib/countyData';
 import { FL_TAGLINES } from '../lib/flTaglines';
 import { breadcrumbSchema } from '../lib/breadcrumbs';
 
-const C = {
-navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../lib/theme";
 
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -210,7 +206,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
 </div>
 </a>
-<button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }} onClick={go}>Start my dispute →</button>
+<button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }} onClick={go}>Check your property →</button>
 </div>
 
 {/* Hero */}
@@ -226,7 +222,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
 Appeal Your Florida Property Taxes — $89 + County Fee
 </h1>
-<p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
+<p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 12 }}>
 Stop overpaying. We draft a formal VAB petition, you sign it, and we pay your county&apos;s mandatory filing fee and mail everything 7+ days before your deadline to ensure timely receipt. No percentage cuts. Keep 100% of your savings.
 </p>
 {/* The state page gets the line carrying the number — it is the page where the
@@ -252,13 +248,13 @@ $104–$139 total, depending on your county
 </div>
 </div>
 
-<div style={{ background: "#C0392B", display: "inline-block", borderRadius: 6, padding: "8px 14px", fontSize: 13, color: C.white, fontWeight: 500, marginBottom: 24 }}>
+<div style={{ background: C.red, display: "inline-block", borderRadius: 6, padding: "8px 14px", fontSize: 13, color: C.white, fontWeight: 500, marginBottom: 24 }}>
 ⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
 </div>
 
 <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
 {[["$89", "Service fee"], ["0%", "Of your savings taken"], ["You", "Sign the petition"], ["67", "FL counties"]].map(([n, l]) => (
-<div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+<div key={l} style={{ background: C.darkNavy, borderRadius: 10, padding: "16px", textAlign: "center" }}>
 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
 </div>
@@ -312,16 +308,16 @@ File My Florida Appeal — $89 + County Fee →
 <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
 <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 12 }}>Typical Florida Firm</div>
-<div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "#C0392B", marginBottom: 8 }}>25–40% of savings</div>
+<div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.red, marginBottom: 8 }}>25–40% of savings</div>
 <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16 }}>On a $2,000 annual reduction, you would pay $500–$800 in fees every single year.</p>
 {["Contingency fee every year", "May cherry-pick easy cases", "You lose a large portion of savings", "Some charge upfront plus contingency"].map(item => (
-<div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: "#C0392B" }}>✗ {item}</div>
+<div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.red }}>✗ {item}</div>
 ))}
 </div>
 <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
 <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal USA</div>
 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$89 + county fee. Period.</div>
-<p style={{ fontSize: 14, color: "#8596AF", lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 plus your county's VAB fee (typically $15–$50) once and keep the rest. Every year after that, the savings are 100% yours.</p>
+<p style={{ fontSize: 14, color: C.mutedGray, lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 plus your county's VAB fee (typically $15–$50) once and keep the rest. Every year after that, the savings are 100% yours.</p>
 {["$89 service + your county's fee, that's it", "County VAB fee paid on your behalf", "Keep 100% of your savings", "Mailed 7+ days before your deadline"].map(item => (
 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
 ))}
@@ -407,7 +403,7 @@ Your deadline, filing fee and Value Adjustment Board are all set by your county 
 {/* CTA */}
 <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
 <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Florida property taxes?</h2>
-<p style={{ fontSize: 16, color: "#8596AF", marginBottom: 8 }}>File before your county's VAB deadline. $89 flat plus the county filing fee — we never take a percentage.</p>
+<p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 8 }}>File before your county's VAB deadline. $89 flat plus the county filing fee — we never take a percentage.</p>
 <p style={{ fontSize: 14, color: "#5A7A9F", marginBottom: 28 }}>$89 service fee plus your county's mandatory VAB filing fee (typically $15–$50) — the exact amount depends on your county. You sign your petition; we pay the county fee and mail it.</p>
 <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
 Start My Florida Appeal — $89 + County Fee →

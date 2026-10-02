@@ -30,10 +30,7 @@ import Head from 'next/head';
  * - It must not collect payment details of any kind.
  */
 
-const C = {
-  navy: '#1B3A6B', darkNavy: '#0F1F3D', gold: '#FFC940', bg: '#F4F7FC',
-  white: '#FFFFFF', border: '#E8EDF4', body: '#5A6B82', muted: '#8596AF', green: '#2E7D52',
-};
+import { C } from "../lib/theme";
 
 // All five advertised states. The funnel only sells TX/GA/FL, but the waitlist
 // should capture Arkansas and Alabama demand rather than turn it away — those
@@ -161,12 +158,12 @@ export default function WaitlistForm() {
         ) : (
           <form onSubmit={submit} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px 26px' }}>
             <div style={field}>
-              <label style={label} htmlFor="wl-email">Email address <span style={{ color: '#C0392B' }}>*</span></label>
+              <label style={label} htmlFor="wl-email">Email address <span style={{ color: C.red }}>*</span></label>
               <input id="wl-email" style={input} type="email" required value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" />
             </div>
 
             <div style={field}>
-              <label style={label} htmlFor="wl-state">State <span style={{ color: '#C0392B' }}>*</span></label>
+              <label style={label} htmlFor="wl-state">State <span style={{ color: C.red }}>*</span></label>
               <select id="wl-state" style={input} required value={form.state} onChange={set('state')}>
                 <option value="">Select your state</option>
                 {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
@@ -189,7 +186,7 @@ export default function WaitlistForm() {
             </div>
 
             {status === 'error' && (
-              <div style={{ background: '#FCEDEA', border: '1px solid #E9B5AB', borderRadius: 8, padding: '11px 13px', fontSize: 14, color: '#C0392B', marginBottom: 16 }}>
+              <div style={{ background: '#FCEDEA', border: '1px solid #E9B5AB', borderRadius: 8, padding: '11px 13px', fontSize: 14, color: C.red, marginBottom: 16 }}>
                 {errorMsg}
               </div>
             )}

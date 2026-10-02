@@ -23,7 +23,7 @@ import { useRouter } from 'next/router';
  * a redirect. Worth revisiting if the page is ever restructured.
  */
 
-const C = { navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC", lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF", border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52" };
+import { C } from "../lib/theme";
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 export default function WhyCertifiedMail() {
@@ -63,8 +63,8 @@ export default function WhyCertifiedMail() {
             ].map(({ state, rule, safe }) => (
               <div key={state} style={{ background: safe ? C.lightBlue : "#FFF0F0", border: `1.5px solid ${safe ? C.border : "#FFCCCC"}`, borderRadius: 10, padding: "14px 20px", minWidth: 160, textAlign: "center" }}>
                 <div style={{ fontWeight: 700, color: C.darkNavy, fontSize: 14, marginBottom: 6 }}>{state}</div>
-                <div style={{ fontSize: 12, color: safe ? C.bodyGray : "#C0392B", lineHeight: 1.5 }}>{rule}</div>
-                {!safe && <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: "#C0392B" }}>Receipt required -- not postmark</div>}
+                <div style={{ fontSize: 12, color: safe ? C.bodyGray : C.red, lineHeight: 1.5 }}>{rule}</div>
+                {!safe && <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: C.red }}>Receipt required -- not postmark</div>}
               </div>
             ))}
           </div>
@@ -102,7 +102,7 @@ export default function WhyCertifiedMail() {
             ].map(([label, diy, ta], idx) => (
               <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, paddingBottom: 12, marginBottom: 12, borderBottom: idx < 5 ? `1px solid ${C.border}` : "none", fontSize: 13 }}>
                 <div style={{ color: C.darkNavy, fontWeight: 600 }}>{label}</div>
-                <div style={{ color: "#C0392B" }}>No -- {diy}</div>
+                <div style={{ color: C.red }}>No -- {diy}</div>
                 <div style={{ color: C.green, fontWeight: 500 }}>Yes -- {ta}</div>
               </div>
             ))}

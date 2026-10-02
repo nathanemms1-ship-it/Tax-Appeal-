@@ -1,3 +1,4 @@
+import { C } from "../lib/theme";
 // components/DisclaimerFooter.js
 // Low-visibility, site-wide disclaimer. Rendered from pages/_app.js at the very
 // bottom of every page, below the nav links and copyright line.
@@ -42,7 +43,7 @@ export default function DisclaimerFooter() {
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 10.5,
         lineHeight: 1.6,
-        color: "#8596AF",
+        color: C.mutedGray,
         textAlign: "center",
       }}
     >

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { C } from "../../lib/theme";
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -17,11 +18,11 @@ export default function ResetPassword() {
   const styles = {
     page: { minHeight: '100vh', background: '#0b1120', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#e2e8f0' },
     header: { borderBottom: '1px solid #1e293b', padding: '16px 28px', background: '#0f172a' },
-    logo: { color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 20 },
+    logo: { color: C.white, textDecoration: 'none', fontWeight: 700, fontSize: 20 },
     card: { background: '#162032', border: '1px solid #1e293b', borderRadius: 16, padding: '28px 32px', marginBottom: 20 },
     label: { color: '#64748b', fontSize: 13, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', display: 'block', marginBottom: 8 },
     input: { width: '100%', padding: '13px 16px', background: '#0b1120', border: '1px solid #1e293b', borderRadius: 10, color: '#e2e8f0', fontSize: 16, outline: 'none', boxSizing: 'border-box' },
-    btn: { width: '100%', padding: '14px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
+    btn: { width: '100%', padding: '14px', background: '#22c55e', color: C.white, border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
   };
 
   const handleSubmit = async (e) => {
@@ -64,7 +65,7 @@ export default function ResetPassword() {
         </header>
         <main style={{ maxWidth: 480, margin: '0 auto', padding: '52px 20px 80px' }}>
           <div style={{ marginBottom: 36 }}>
-            <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 700, margin: '0 0 8px' }}>Set New Password</h1>
+            <h1 style={{ color: C.white, fontSize: 28, fontWeight: 700, margin: '0 0 8px' }}>Set New Password</h1>
             <p style={{ color: '#475569', margin: 0, fontSize: 15 }}>
               {email ? `Resetting password for ${decodeURIComponent(email)}` : 'Enter your new password below.'}
             </p>
@@ -78,7 +79,7 @@ export default function ResetPassword() {
                 <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
                   Your password has been successfully reset. You can now log in to your appeal portal.
                 </p>
-                <a href="/portal" style={{ display: 'inline-block', padding: '13px 32px', background: '#22c55e', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+                <a href="/portal" style={{ display: 'inline-block', padding: '13px 32px', background: '#22c55e', color: C.white, borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
                   Go to Portal Login →
                 </a>
               </div>

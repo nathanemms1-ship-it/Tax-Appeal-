@@ -47,12 +47,7 @@ import { breadcrumbSchema, SITE_ORIGIN } from '../lib/breadcrumbs';
  * /counties/{slug} can honestly render Home → Texas → Harris County.
  */
 
-const C = {
-  darkNavy: '#0F1F3D',
-  mutedGray: '#8596AF',
-  border: '#E8EDF4',
-  white: '#FFFFFF',
-};
+import { C } from "../lib/theme";
 
 export default function Breadcrumb({ trail, selfUrl, background = C.white }) {
   const crumbs = (trail || []).filter((c) => c && c.name);

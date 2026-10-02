@@ -33,17 +33,7 @@ import CountyRollFacts from '../../components/CountyRollFacts';
 import SeasonNotice from '../../components/SeasonNotice';
 import { stateSaleStatus } from '../../lib/stateService';
 
-const C = {
-  navy: "#1B2A4A",
-  navyLight: "#243454",
-  gold: "#C9A84C",
-  goldDim: "#8B6F2E",
-  white: "#FFFFFF",
-  offWhite: "#F8F7F4",
-  text: "#1A1A2E",
-  muted: "#666680",
-  green: "#1A7A4A",
-};
+import { C } from "../../lib/theme";
 
 const stateTerms = {
   TX: { verb: "protest", noun: "protest", deadline: TX_DEADLINE, process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: String(TX_TAX_YEAR) },

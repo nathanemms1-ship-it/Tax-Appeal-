@@ -80,14 +80,7 @@ import { stashVerdict } from '../lib/checkHandoff';
  * separate question this page does not answer.
  */
 
-const C = {
-  navy: '#1B3A6B', darkNavy: '#0F1F3D', gold: '#FFC940', bg: '#F4F7FC',
-  white: '#FFFFFF', border: '#E8EDF4', body: '#5A6B82', muted: '#8596AF',
-  green: '#2E7D52', amber: '#B8860B', amberBg: '#FFF8E6',
-  // Matches C.lightBlue in pages/apply.js. The condition invitation appears on
-  // both pages and must not change colour halfway through the funnel.
-  lightBlue: '#EEF3FB', lightBlueBorder: '#C5D3E8',
-};
+import { C } from "../lib/theme";
 
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 

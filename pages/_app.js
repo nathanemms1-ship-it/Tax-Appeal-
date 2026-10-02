@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import DisclaimerFooter from '../components/DisclaimerFooter'
 import WaitlistBanner from '../components/WaitlistBanner'
 import FL_COUNTY_FEES from '../lib/flCountyFees'
+import { cssVars } from '../lib/theme'
 
 /**
  * THE SITE-WIDE PRICE RANGE, DERIVED — NOT TYPED.
@@ -108,6 +109,19 @@ export default function App({ Component, pageProps }) {
 
   return (
     <>
+      {/*
+        THE PALETTE, AS CSS CUSTOM PROPERTIES. Added 2 Oct 2026.
+
+        Every colour on this site is a JS value handed to an inline `style`
+        prop, which works for React and leaves nothing for the places React
+        cannot reach: `<style jsx global>`, `:hover`, `::placeholder`, media
+        queries and print rules. So those were all hardcoded separately, and
+        a hardcoded colour does not change when the theme does.
+
+        `cssVars` is generated from the same object lib/theme.js exports, so
+        there is still exactly one place a colour is decided.
+      */}
+      <style jsx global>{`:root { ${cssVars} }`}</style>
       {/* Google tag (gtag.js) — loads when EITHER a GA4 or a Google Ads ID is set */}
       {TAG_LOADER_ID && (
         <>

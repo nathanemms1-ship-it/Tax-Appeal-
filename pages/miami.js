@@ -3,7 +3,7 @@ import { breadcrumbSchema } from '../lib/breadcrumbs';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
-const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52" };
+import { C } from "../lib/theme";
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const faqs = [
@@ -137,21 +137,21 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div style={{maxWidth:900,margin:"0 auto"}}>
 <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Miami, Florida — Property Tax Appeal Service</div>
 <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Miami Property Tax Appeal — $104 All-In</h1>
-<p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:16}}>Miami home values have surged to record highs, and many Miami-Dade homeowners are significantly over-assessed. TaxAppeal files your formal VAB petition and pays the mandatory county fee — all for $104 total.</p>
+<p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:16}}>Miami home values have surged to record highs, and many Miami-Dade homeowners are significantly over-assessed. TaxAppeal files your formal VAB petition and pays the mandatory county fee — all for $104 total.</p>
 {/* Pricing breakdown */}
 <div style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"12px 16px",marginBottom:20,display:"inline-flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
-<span style={{fontSize:13,color:"#8596AF"}}><span style={{color:C.gold,fontWeight:700}}>$89</span> service fee</span>
+<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$89</span> service fee</span>
 <span style={{color:"#5A7A9F"}}>+</span>
-<span style={{fontSize:13,color:"#8596AF"}}><span style={{color:C.gold,fontWeight:700}}>$15</span> Miami-Dade VAB fee <span style={{fontSize:11,color:"#5A7A9F"}}>(required by FL law)</span></span>
+<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$15</span> Miami-Dade VAB fee <span style={{fontSize:11,color:"#5A7A9F"}}>(required by FL law)</span></span>
 <span style={{color:"#5A7A9F"}}>=</span>
 <span style={{fontSize:14,color:C.white,fontWeight:700}}>$104 total — you sign it, we file and pay the county fee</span>
 </div>
-<div style={{background:"#C0392B",display:"inline-block",borderRadius:6,padding:"8px 14px",fontSize:13,color:C.white,fontWeight:500,marginBottom:24,marginLeft:0}}>
+<div style={{background:C.red,display:"inline-block",borderRadius:6,padding:"8px 14px",fontSize:13,color:C.white,fontWeight:500,marginBottom:24,marginLeft:0}}>
 ⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
 </div>
 <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
 {[["$89","Service fee"],["$104","All-in total"],["0%","Of your savings taken"],["Miami-Dade","Service area"]].map(([n,l]) => (
-<div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
+<div key={l} style={{background:C.darkNavy,borderRadius:10,padding:"16px",textAlign:"center"}}>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
 </div>
@@ -218,16 +218,16 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div className="compare-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Typical Miami Firm</div>
-<div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:"#C0392B",marginBottom:8}}>25–40% of savings</div>
+<div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.red,marginBottom:8}}>25–40% of savings</div>
 <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,marginBottom:16}}>On a $2,800 reduction, that's $700–$1,120 in fees — every single year.</p>
 {["Contingency fee every year","May cherry-pick easy cases","You lose a large portion of savings"].map(item => (
-<div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:"#C0392B"}}>✗ {item}</div>
+<div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.red}}>✗ {item}</div>
 ))}
 </div>
 <div style={{background:C.navy,borderRadius:12,padding:24}}>
 <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$104 all-in. Period.</div>
-<p style={{fontSize:14,color:"#8596AF",lineHeight:1.7,marginBottom:16}}>Same $2,800 reduction. Pay $104 once (including the county fee) and keep $2,696. Every year after is 100% yours.</p>
+<p style={{fontSize:14,color:C.mutedGray,lineHeight:1.7,marginBottom:16}}>Same $2,800 reduction. Pay $104 once (including the county fee) and keep $2,696. Every year after is 100% yours.</p>
 {["$89 service + $15 Miami-Dade VAB fee, total","County VAB fee paid on your behalf","Keep 100% of your savings","Mailed 7+ days early"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
 ))}
@@ -252,7 +252,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 
 <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your Miami property taxes?</h2>
-<p style={{fontSize:16,color:"#8596AF",marginBottom:8}}>Join Miami homeowners saving money every year.</p>
+<p style={{fontSize:16,color:C.mutedGray,marginBottom:8}}>Join Miami homeowners saving money every year.</p>
 <p style={{fontSize:14,color:"#5A7A9F",marginBottom:28}}>$89 service fee + $15 Miami-Dade VAB fee = $104 all-in. We handle the county payment for you.</p>
 <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Miami Appeal — $104 All-In →</button>
 </section>

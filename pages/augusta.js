@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52"};
+import { C } from "../lib/theme";
 const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 const faqs=[["What is the Augusta GA property tax appeal deadline?","45 days from the date on your Notice of Assessment, mailed April–June by Richmond County."],["How do I appeal Augusta property taxes?","File a formal appeal with the Richmond County Board of Tax Assessors before the 45-day deadline. TaxAppeal prepares comparable sales evidence and files via certified mail for $89."],["Is there a filing fee for Augusta property tax appeals?","No. Georgia BOE appeals are free."],["Can my Augusta assessment go up if I appeal?","Yes. Georgia is a two-way review state. TaxAppeal only files when comparable evidence clearly supports a reduction."],["Does TaxAppeal serve Augusta and surrounding areas?","Yes. TaxAppeal serves all Richmond County properties including Augusta, Hephzibah, and Blythe."]];
 export default function Augusta(){
@@ -26,10 +26,10 @@ export default function Augusta(){
       <div style={{maxWidth:900,margin:"0 auto"}}>
         <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Augusta, Georgia — Property Tax Appeal Service</div>
         <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Augusta Property Tax Appeal — $89 Flat Fee</h1>
-        <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>Augusta homeowners: challenge your Richmond County assessment before the 45-day deadline from your Notice of Assessment. TaxAppeal files your formal BOE appeal for $89 flat.</p>
+        <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>Augusta homeowners: challenge your Richmond County assessment before the 45-day deadline from your Notice of Assessment. TaxAppeal files your formal BOE appeal for $89 flat.</p>
         <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
           {[["45 days","Appeal window"],["40%","Assessment ratio"],["$89","Flat fee"],["Richmond Co.","Service area"]].map(([n,l])=>(
-            <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>
+            <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:"16px",textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div><div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div></div>
           ))}
         </div>
         <button className="btn-p" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Augusta Appeal — $89 →</button>

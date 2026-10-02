@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { useState } from 'react';
 import SeasonNotice, { SeasonNavCta } from '../components/SeasonNotice';
 import { stateSaleStatus } from '../lib/stateService';
+import { C } from "../lib/theme";
 
 /**
  * ALABAMA IS NOT ON SALE, AND THIS PAGE USED TO SAY IT WAS.
@@ -23,7 +24,6 @@ import { stateSaleStatus } from '../lib/stateService';
  * CTA are now DERIVED from lib/stateService.js rather than typed here. Delete
  * Alabama's line from SERVING_FROM and this page sells again with no edit.
  */
-const C={navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF",green:"#2E7D52"};
 const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');";
 
 // Module scope on purpose: stateSaleStatus is pure and clock-independent, so the

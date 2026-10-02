@@ -31,14 +31,7 @@ import countyStats from '../lib/tx/countyStats.json';
  * the top of scripts/tx/county-stats.mjs.
  */
 
-const C = {
-  navy: '#1B2A4A',
-  gold: '#C9A84C',
-  white: '#FFFFFF',
-  text: '#1A1A2E',
-  muted: '#666680',
-  rule: '#E5E3DC',
-};
+import { C } from "../lib/theme";
 
 const fmt = (n) => (n === null || n === undefined ? null : Number(n).toLocaleString());
 const money = (n) => (n === null || n === undefined ? null : `$${Math.round(n).toLocaleString()}`);

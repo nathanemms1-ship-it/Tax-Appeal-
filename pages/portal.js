@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { C } from "../lib/theme";
 
 const C_EMAIL = 'customerservice@taxappealusa.com';
 
@@ -179,11 +180,11 @@ export default function Portal() {
   const styles = {
     page: { minHeight: '100vh', background: '#0b1120', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#e2e8f0' },
     header: { borderBottom: '1px solid #1e293b', padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a' },
-    logo: { color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 20, letterSpacing: '-0.3px' },
+    logo: { color: C.white, textDecoration: 'none', fontWeight: 700, fontSize: 20, letterSpacing: '-0.3px' },
     card: { background: '#162032', border: '1px solid #1e293b', borderRadius: 16, padding: '28px 32px', marginBottom: 20 },
     label: { color: '#64748b', fontSize: 13, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' },
     input: { width: '100%', padding: '13px 16px', background: '#0b1120', border: '1px solid #1e293b', borderRadius: 10, color: '#e2e8f0', fontSize: 16, outline: 'none', boxSizing: 'border-box' },
-    btn: { width: '100%', padding: '14px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
+    btn: { width: '100%', padding: '14px', background: '#22c55e', color: C.white, border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
     outlineBtn: { background: 'none', border: '1px solid #1e293b', color: '#64748b', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
     linkBtn: { background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'none' }
   };
@@ -239,7 +240,7 @@ export default function Portal() {
           {view === 'login' && (
             <>
               <div style={{ marginBottom: 36 }}>
-                <h1 style={{ color: '#fff', fontSize: 30, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.5px' }}>My Appeal Portal</h1>
+                <h1 style={{ color: C.white, fontSize: 30, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.5px' }}>My Appeal Portal</h1>
                 <p style={{ color: '#475569', margin: 0, fontSize: 16 }}>Track the status of your property tax dispute.</p>
               </div>
               <div style={styles.card}>
@@ -285,7 +286,7 @@ export default function Portal() {
           {view === 'forgot' && (
             <>
               <div style={{ marginBottom: 36 }}>
-                <h1 style={{ color: '#fff', fontSize: 30, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.5px' }}>Reset Your Password</h1>
+                <h1 style={{ color: C.white, fontSize: 30, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.5px' }}>Reset Your Password</h1>
                 <p style={{ color: '#475569', margin: 0, fontSize: 16 }}>Enter your email and we'll send a reset link.</p>
               </div>
               <div style={styles.card}>
@@ -341,7 +342,7 @@ export default function Portal() {
             <>
               <div style={{ marginBottom: 36 }}>
                 <p style={{ color: '#22c55e', fontSize: 13, fontWeight: 600, margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Appeal Portal</p>
-                <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: '-0.4px' }}>
+                <h1 style={{ color: C.white, fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: '-0.4px' }}>
                   {order.customer_name ? `Welcome, ${order.customer_name.split(' ')[0]}` : 'Your Dispute'}
                 </h1>
               </div>
@@ -351,7 +352,7 @@ export default function Portal() {
                 <div style={{ fontSize: 36, lineHeight: 1 }}>{status.icon}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-                    <span style={{ background: status.color, color: '#fff', padding: '3px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+                    <span style={{ background: status.color, color: C.white, padding: '3px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
                       {status.label}
                     </span>
                     {order.decision_date && (
@@ -379,7 +380,7 @@ export default function Portal() {
 
               {order.lob_tracking_number && (
 <div style={styles.card}>
-<h3 style={{ color: '#fff', fontSize: 15, fontWeight: 600, margin: '0 0 16px' }}>USPS Tracking</h3>
+<h3 style={{ color: C.white, fontSize: 15, fontWeight: 600, margin: '0 0 16px' }}>USPS Tracking</h3>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
 <div>
 <div style={{ color: '#cbd5e1', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{order.lob_tracking_number}</div>
@@ -399,7 +400,7 @@ Track on USPS.com →
 
 {/* Property Details */}
               <div style={styles.card}>
-                <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 600, margin: '0 0 20px' }}>Property Details</h3>
+                <h3 style={{ color: C.white, fontSize: 15, fontWeight: 600, margin: '0 0 20px' }}>Property Details</h3>
                 <div style={{ display: 'grid', gap: 14 }}>
                   {[
                     { label: 'Property Address', value: order.property_address },
@@ -418,7 +419,7 @@ Track on USPS.com →
 
               {/* Timeline */}
               <div style={styles.card}>
-                <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 600, margin: '0 0 28px' }}>Appeal Timeline</h3>
+                <h3 style={{ color: C.white, fontSize: 15, fontWeight: 600, margin: '0 0 28px' }}>Appeal Timeline</h3>
                 {timelineSteps.map((step, i) => (
                   <div key={i} style={{ display: 'flex', gap: 16, marginBottom: i < timelineSteps.length - 1 ? 28 : 0 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>

@@ -2,6 +2,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { BUSINESS_NAME, LEGAL_ENTITY, LEGAL_ENTITY_STATE, LEGAL_ENTITY_FILE_NUMBER, BUSINESS_ADDRESS_LINES, SUPPORT_EMAIL } from '../lib/businessInfo';
+import { C } from "../lib/theme";
 
 export default function Terms() {
   return (
@@ -12,7 +13,7 @@ export default function Terms() {
         <meta name="robots" content="noindex" />
       </Head>
       <div style={{ background: '#f4f6f9', minHeight: '100vh', padding: '40px 20px', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', background: '#fff', borderRadius: 8, padding: '48px 52px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', background: C.white, borderRadius: 8, padding: '48px 52px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -73,13 +74,13 @@ export default function Terms() {
             </p>
 
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>11. Two-Way Review Risk (Georgia and Alabama).</strong> In Georgia (O.C.G.A. §48-5-311) and Alabama (Code of Alabama §40-3-20), the Board of Equalization or Board of Tax Assessors has authority to <strong>increase, decrease, or maintain</strong> your property's assessed value during the appeal process. Unlike Texas, Florida, or Arkansas, filing an appeal in Georgia or Alabama does not guarantee that your assessed value will remain the same or decrease. TaxAppeal USA reviews comparable sales data before filing any Georgia or Alabama appeal and only proceeds when the evidence clearly supports a reduction in assessed value. By authorizing TaxAppeal USA to file a Georgia or Alabama property tax appeal for you, you acknowledge this two-way review risk and confirm that you have reviewed and agreed with the comparable sales evidence supporting your appeal.
             </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>12. Florida &mdash; Value Adjustment Board Petitions.</strong>{' '}
               <strong>You sign your own petition.</strong> Fla. Stat. &sect; 194.011(3) requires a petition to the
               Value Adjustment Board to be signed by the taxpayer, or else to be accompanied by the taxpayer&rsquo;s
@@ -104,19 +105,19 @@ export default function Terms() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>13. Alabama Filing Authorization.</strong> By completing checkout, you authorize TaxAppeal USA to prepare and file your property tax appeal with your county Board of Equalization on your behalf. Your appeal is signed by you and filed in your name; TaxAppeal USA does not act as your agent or representative and will not represent you before the Board of Equalization or in any hearing. This electronic authorization is recorded with your full name, email address, property address, and the date and time of authorization, and is included as a separate page in your USPS certified mail filing. This authorization is limited to the specific property and tax year identified in your order and does not constitute a general power of attorney. Note: Mobile County, Alabama maintains its own filing requirements. If your property is in Mobile County, TaxAppeal USA will contact you regarding any additional requirements.
 </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>14. Alabama Circuit Court Appeals.</strong> If you are dissatisfied with the Alabama Board of Equalization's decision and wish to pursue further appeal, you may file a petition with the Circuit Court of your county. This second level of appeal is not covered by TaxAppeal USA's service. To preserve your Circuit Court appeal rights, Alabama law requires that you pay your assessed property taxes by December 31 of the tax year, or post a bond in double the amount of the taxes due. TaxAppeal USA is not responsible for advising you on or facilitating Circuit Court appeals. If you wish to pursue a Circuit Court appeal, we strongly recommend consulting a licensed Alabama attorney.
             </p>
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: "#5A6B82", lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>
               <strong>15. Arkansas and Alabama Deadline.</strong> Arkansas and Alabama use postmark deadlines for property tax appeals. Your appeal must be postmarked by the applicable deadline date. TaxAppeal USA files via USPS certified mail 7–10 days before the posted deadline to ensure timely delivery with tracked, documented proof of mailing. However, TaxAppeal USA is not responsible for postal delays, incorrect addresses provided by the customer, or county office closures that may affect receipt.
             </p>
           </div>

@@ -3,19 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SignatureStep from '../components/SignatureStep';
 
-const C = {
-  navy:     "#1B3A6B",
-  gold:     "#FFC940",
-  darkNavy: "#0F1F3D",
-  bg:       "#F4F7FC",
-  lightBlue:"#EEF3FB",
-  bodyGray: "#5A6B82",
-  mutedGray:"#8596AF",
-  border:   "#E8EDF4",
-  white:    "#FFFFFF",
-  green:    "#2E7D52",
-  amber:    "#FFF8E6",
-};
+import { C } from "../lib/theme";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -545,7 +533,7 @@ function SetPasswordCard({ sessionId, email, isPreOrder }) {
           : <>We email you every update, so you do not need one. It just saves you a reset link the first time you come back to check on your appeal.</>}
       </div>
       {status === 'error' && message && (
-        <div style={{ fontSize: 12.5, color: C.red || '#C0392B', marginBottom: 10 }}>{message}</div>
+        <div style={{ fontSize: 12.5, color: C.red || C.red, marginBottom: 10 }}>{message}</div>
       )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input

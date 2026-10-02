@@ -10,17 +10,7 @@ import Breadcrumb from '../../components/Breadcrumb';
 import { SITE_ORIGIN } from '../../lib/breadcrumbs';
 import { currentTaxYear, deadlineSentence, deadlineShort } from '../../lib/tx/protestDeadline';
 
-const C = {
-  navy: "#1B3A6B",
-  gold: "#FFC940",
-  darkNavy: "#0F1F3D",
-  bg: "#F4F7FC",
-  lightBlue: "#EEF3FB",
-  bodyGray: "#5A6B82",
-  mutedGray: "#8596AF",
-  border: "#E8EDF4",
-  white: "#FFFFFF",
-};
+import { C } from "../../lib/theme";
 
 export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSentenceText }) {
   const [openFaq, setOpenFaq] = useState(null);
@@ -159,7 +149,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
           <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display',serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
             {city.name} Property Tax Protest — $89 Flat Fee
           </h1>
-          <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
+          <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
             {city.description} TaxAppeal files your formal protest with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
@@ -174,7 +164,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
               [deadlineText, `${taxYear} filing deadline`],
               [city.county + " Co.", "Service area"],
             ].map(([n, l]) => (
-              <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+              <div key={l} style={{ background: C.darkNavy, borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: n.length > 8 ? 14 : 26, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
               </div>
@@ -351,7 +341,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
         <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 34, color: C.white, marginBottom: 12 }}>
           Ready to protest your {city.name} property taxes?
         </h2>
-        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>
+        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28, maxWidth: 560, margin: "0 auto 28px" }}>
           {/* Was: "Join {city.name} homeowners saving an average of ${formattedSavings}/year."
               Two separate problems in one sentence. `city.avgSavings` is a hardcoded
               per-city number in lib/texasCities.js with no source behind it, and no

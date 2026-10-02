@@ -23,12 +23,7 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Se
  */
 const TX_SERVICE_FEE = 89;
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52", amber: "#FFF8E6",
-  red: "#C0392B", orange: "#E67E22", blue: "#2980B9", teal: "#27AE60", purple: "#8E44AD",
-};
+import { C } from "../lib/theme";
 
 /**
  * THE ORDER OF THE FUNNEL. Changed 23 Aug 2026, and the change is the point.
@@ -155,7 +150,7 @@ const D = {
   panel:   "#16202F",   // card
   panelAlt:"#1B2636",   // inset rows
   line:    "#263448",   // borders
-  heading: "#FFFFFF",
+  heading: C.white,
   body:    "#9FB0C6",
   muted:   "#7A8BA3",   // uppercase labels
   accent:  "#7D9BF2",   // the ask, primary action
@@ -563,8 +558,8 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
         {(isTooClose || datesCertain) && (
         <div style={{ background: C.darkNavy, borderRadius: 12, padding: "24px", marginBottom: 24, display: "inline-block", width: "100%" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>{isTooClose ? windowStatus.daysUntilHard : daysToPreOrder}</div>
-          <div style={{ fontSize: 14, color: "#8596AF", fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until pre-orders open"}</div>
-          <div style={{ fontSize: 12, color: "#8596AF", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
+          <div style={{ fontSize: 14, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until pre-orders open"}</div>
+          <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
         </div>
         )}
         <LeadCapture
@@ -1181,7 +1176,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
             line about where they actually are, and clamped: fontSize 38 was a
             hardcoded pixel value in a file with no clamp() and no vw units. */}
         <h2 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.6rem, 5.2vw, 2.375rem)", color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>Last step before we prepare your filing.</h2>
-        <p style={{ fontSize: 20, fontWeight: 700, color: "#1B3A6B", marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. You sign it — we do the rest.</p>
+        <p style={{ fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. You sign it — we do the rest.</p>
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
         <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>&lt;5%</div>
@@ -1358,7 +1353,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
             <select
               value={data.ownerType || ""}
               onChange={e => onChange("ownerType", e.target.value)}
-              style={{ width: "100%", background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "11px 12px", fontSize: 15, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}
+              style={{ width: "100%", background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "11px 12px", fontSize: 15, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}
             >
               <option value="">None of these / prefer not to say</option>
               {TX_OWNER_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -3299,7 +3294,7 @@ function LoadingScreen({ addr }) {
           const done = doneStages.includes(i); const active = i === activeStage;
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < LOAD_STAGES.length - 1 ? `1px solid ${C.border}` : "none", background: active ? C.bg : C.white, opacity: i > activeStage && !done ? 0.45 : 1, transition: "all 0.3s" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: done ? C.navy : active ? C.gold : "#E8EDF4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, animation: active ? "pulse 1.5s ease-in-out infinite" : "none" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: done ? C.navy : active ? C.gold : C.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, animation: active ? "pulse 1.5s ease-in-out infinite" : "none" }}>
                 {done ? <span style={{ color: C.white, fontSize: 14 }}>✓</span> : active ? "⟳" : i + 1}
               </div>
               <div style={{ flex: 1 }}>
@@ -3345,7 +3340,7 @@ function renderEvidence(text) {
     const parts = String(line).split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
     return parts.map((part, i) =>
       /^\*\*[^*]+\*\*$/.test(part)
-        ? <strong key={`${keyBase}-${i}`} style={{ color: "#0F1F3D" }}>{part.slice(2, -2)}</strong>
+        ? <strong key={`${keyBase}-${i}`} style={{ color: C.darkNavy }}>{part.slice(2, -2)}</strong>
         : <span key={`${keyBase}-${i}`}>{part}</span>
     );
   };
@@ -3357,7 +3352,7 @@ function renderEvidence(text) {
     const h2 = line.match(/^##\s+(.*)$/);
     if (h2) {
       return (
-        <div key={i} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: "#1B3A6B", marginTop: 16, marginBottom: 6 }}>
+        <div key={i} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: C.navy, marginTop: 16, marginBottom: 6 }}>
           {h2[1]}
         </div>
       );
@@ -3365,7 +3360,7 @@ function renderEvidence(text) {
     const h1 = line.match(/^#\s+(.*)$/);
     if (h1) {
       return (
-        <div key={i} style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: "#0F1F3D", marginTop: i === 0 ? 0 : 20, marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #E8EDF4" }}>
+        <div key={i} style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy, marginTop: i === 0 ? 0 : 20, marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #E8EDF4" }}>
           {h1[1]}
         </div>
       );
@@ -3374,7 +3369,7 @@ function renderEvidence(text) {
     if (bullet) {
       return (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4 }}>
-          <span style={{ color: "#8596AF" }}>•</span>
+          <span style={{ color: C.mutedGray }}>•</span>
           <span>{inline(bullet[1], i)}</span>
         </div>
       );
@@ -5281,18 +5276,18 @@ function FloridaCountyPicker({ info, onConfirm, onBack }) {
         {info.message}
       </p>
 
-      <label style={{ display: "block", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#5A6B82", fontWeight: 500, marginBottom: 6 }}>
+      <label style={{ display: "block", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: C.bodyGray, fontWeight: 500, marginBottom: 6 }}>
         County
       </label>
       <select
         value={picked}
         onChange={(e) => setPicked(e.target.value)}
-        style={{ width: "100%", background: "#F8FAFD", border: "1.5px solid #DDE4EE", borderRadius: 7, padding: "12px 13px", fontSize: 15, color: "#0F1F3D", marginBottom: 8 }}
+        style={{ width: "100%", background: "#F8FAFD", border: "1.5px solid #DDE4EE", borderRadius: 7, padding: "12px 13px", fontSize: 15, color: C.darkNavy, marginBottom: 8 }}
       >
         <option value="">Select your county…</option>
         {counties.map((c) => <option key={c} value={c}>{c} County</option>)}
       </select>
-      <p style={{ fontSize: 12, color: "#8596AF", lineHeight: 1.6, marginBottom: 22 }}>
+      <p style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.6, marginBottom: 22 }}>
         Your county sets the filing fee, who the fee cheque is made out to, and which
         Value Adjustment Board receives your petition — so this has to be right. It is on
         your TRIM notice and your tax bill.
@@ -5301,11 +5296,11 @@ function FloridaCountyPicker({ info, onConfirm, onBack }) {
       <button
         onClick={() => picked && onConfirm(picked)}
         disabled={!picked}
-        style={{ width: "100%", padding: "14px 28px", borderRadius: 8, border: "none", background: picked ? "#1B3A6B" : "#C5D0E0", color: "#fff", fontSize: 15, fontWeight: 500, cursor: picked ? "pointer" : "not-allowed", marginBottom: 10 }}
+        style={{ width: "100%", padding: "14px 28px", borderRadius: 8, border: "none", background: picked ? C.navy : "#C5D0E0", color: C.white, fontSize: 15, fontWeight: 500, cursor: picked ? "pointer" : "not-allowed", marginBottom: 10 }}
       >
         Continue with {picked ? `${picked} County` : "my county"}
       </button>
-      <button onClick={onBack} style={{ width: "100%", padding: "12px 28px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", fontSize: 14, color: "#5A6B82", cursor: "pointer" }}>
+      <button onClick={onBack} style={{ width: "100%", padding: "12px 28px", borderRadius: 8, border: "1px solid #ccc", background: C.white, fontSize: 14, color: C.bodyGray, cursor: "pointer" }}>
         ← Back
       </button>
     </div>
@@ -5890,7 +5885,7 @@ function ApplyFunnel() {
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         input::placeholder, textarea::placeholder { color: #B0BECF; }
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #1B3A6B !important; background: #FFFFFF !important; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--c-navy) !important; background: var(--c-white) !important; }
         button:hover:not(:disabled) { opacity: 0.88; }
         button:active:not(:disabled) { transform: scale(0.98); }
         textarea { font-family: 'DM Sans', sans-serif !important; }

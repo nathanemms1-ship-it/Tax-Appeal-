@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { getGaSuburbBySlug, getAllGaSuburbSlugs } from '../../lib/georgiaSuburbs';
 
-const C = { navy:"#1B3A6B",gold:"#FFC940",darkNavy:"#0F1F3D",bg:"#F4F7FC",lightBlue:"#EEF3FB",bodyGray:"#5A6B82",mutedGray:"#8596AF",border:"#E8EDF4",white:"#FFFFFF" };
+import { C } from "../../lib/theme";
 
 export default function GeorgiaCityPage({ city }) {
   const [openFaq, setOpenFaq] = useState(null);
@@ -63,10 +63,10 @@ export default function GeorgiaCityPage({ city }) {
         <div className="container">
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>{city.name}, Georgia · {city.metro} Area · Property Tax Appeal</div>
           <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{city.name} Property Tax Appeal — $89 Flat Fee</h1>
-          <p style={{fontSize:18,color:"#8596AF",lineHeight:1.6,maxWidth:640,marginBottom:32}}>{city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.</p>
+          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>{city.description} TaxAppeal files your formal appeal with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
             {[["45 days","Appeal window"],["$89","Flat fee"],["0%","Of your savings taken"],[city.county+" Co.","Service area"]].map(([n,l])=>(
-              <div key={l} style={{background:"#0F1F3D",borderRadius:10,padding:"16px",textAlign:"center"}}>
+              <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:26,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
@@ -181,7 +181,7 @@ export default function GeorgiaCityPage({ city }) {
 
       <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your {city.name} property taxes?</h2>
-        <p style={{fontSize:16,color:"#8596AF",marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners — we check whether an appeal can actually lower your bill before you pay. $89 flat — 45-day deadline from your notice.</p>
+        <p style={{fontSize:16,color:C.mutedGray,marginBottom:28,maxWidth:560,margin:"0 auto 28px"}}>{city.name} homeowners — we check whether an appeal can actually lower your bill before you pay. $89 flat — 45-day deadline from your notice.</p>
         <Link href="/apply"><button className="btn-gold">File My {city.name} Appeal — $89 →</button></Link>
         <p style={{fontSize:13,color:"#5A7A9F",marginTop:16}}>O.C.G.A. § 48-5-311 · {city.district} · USPS Certified Mail Filing</p>
       </section>

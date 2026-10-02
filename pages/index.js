@@ -24,19 +24,7 @@ const SELLING = sellingStates();
 const PENDING = pendingStates();
 const SELLING_TEXT = nameList(SELLING);
 
-const C = {
-  navy:     "#1B3A6B",
-  gold:     "#FFC940",
-  darkNavy: "#0F1F3D",
-  bg:       "#F4F7FC",
-  lightBlue:"#EEF3FB",
-  bodyGray: "#5A6B82",
-  mutedGray:"#8596AF",
-  border:   "#E8EDF4",
-  white:    "#FFFFFF",
-  green:    "#2E7D52",
-  amber:    "#FFF8E6",
-};
+import { C } from "../lib/theme";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -487,7 +475,7 @@ export default function Landing() {
         <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. You sign it, we do the rest.</p>
         <div className="hero-cta-wrap">
           <button className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={go}>
-            Start my dispute — $89 →
+            Check your property — free
           </button>
           <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
         </div>
@@ -508,23 +496,23 @@ export default function Landing() {
                 This block previously read "Over 7,200 Homeowners and counting / with a
                 total savings over $3.2 Million!" TaxAppeal USA has not yet filed its
                 first petition. See lib/stats.js for why that mattered. */}
-      <div style={{ background: "#1B3A6B", padding: "48px 32px", textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: "#FFC940", textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#FFFFFF", lineHeight: 1.2, marginBottom: 10 }}>
+      <div style={{ background: C.navy, padding: "48px 32px", textAlign: "center" }}>
+        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.white, lineHeight: 1.2, marginBottom: 10 }}>
           Most over-assessed homeowners never say anything
         </div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: "#8596AF", marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: C.mutedGray, marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
           The National Taxpayers Union Foundation estimates that{" "}
-          <span style={{ color: "#FFC940", fontWeight: 700 }}>{STATS.US_OVERASSESSED.value}</span>{" "}
+          <span style={{ color: C.gold, fontWeight: 700 }}>{STATS.US_OVERASSESSED.value}</span>{" "}
           of taxable property in the United States is over-assessed — and that{" "}
-          <span style={{ color: "#FFC940", fontWeight: 700 }}>fewer than 5%</span>{" "}
+          <span style={{ color: C.gold, fontWeight: 700 }}>fewer than 5%</span>{" "}
           of taxpayers ever challenge it.
         </div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "#FFC940" }}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>
           Don&apos;t Delay, Dispute Today!
         </div>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#6B84A6", marginTop: 18 }}>
-          Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: "#8596AF", textDecoration: "underline" }}>National Taxpayers Union Foundation</a>. Estimate by an advocacy organization, not a peer-reviewed study.
+          Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: C.mutedGray, textDecoration: "underline" }}>National Taxpayers Union Foundation</a>. Estimate by an advocacy organization, not a peer-reviewed study.
         </div>
       </div>
 
@@ -536,10 +524,10 @@ export default function Landing() {
           of Consumer Reviews and Testimonials), which carries per-violation civil
           penalties. Do not reintroduce testimonials until they are real, verifiable,
           and given with the customer's permission. See lib/stats.js. */}
-      <div style={{ background: "#F4F7FC", padding: "56px 0" }}>
+      <div style={{ background: C.bg, padding: "56px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 36, padding: "0 32px" }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: "#0F1F3D", marginBottom: 10 }}>What the county records actually show</div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#5A6B82", maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 10 }}>What the county records actually show</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.bodyGray, maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
             Every figure below comes from a county&apos;s own published records or a peer-reviewed study of them — each one linked to its source.
           </div>
         </div>
@@ -568,18 +556,18 @@ export default function Landing() {
               url: 'https://floridarevenue.com/property/Documents/dr529_report.xlsx',
             },
           ].map((c, i) => (
-            <div key={i} style={{ background: "#FFFFFF", border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: "#1B3A6B", lineHeight: 1 }}>{c.stat}</div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F1F3D", marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, color: "#8596AF", marginTop: 14, lineHeight: 1.5 }}>
-                Source: <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: "#5A6B82" }}>{c.src}</a>
+            <div key={i} style={{ background: C.white, border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.navy, lineHeight: 1 }}>{c.stat}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: C.darkNavy, marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, color: C.mutedGray, marginTop: 14, lineHeight: 1.5 }}>
+                Source: <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: C.bodyGray }}>{c.src}</a>
               </div>
             </div>
           ))}
         </div>
 
-        <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8596AF", lineHeight: 1.65, textAlign: "center" }}>
+        <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.mutedGray, lineHeight: 1.65, textAlign: "center" }}>
           {OUTCOME_DISCLAIMER}
         </div>
       </div>
@@ -718,7 +706,7 @@ export default function Landing() {
               <thead>
                 <tr style={{ background: C.navy, color: C.white }}>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>
-                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500, color: '#FFC940' }}>✓ TaxAppeal USA</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500, color: C.gold }}>✓ TaxAppeal USA</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>AppealDesk ($49)</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Abode Money</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 500 }}>Contingency Firms</th>
@@ -788,7 +776,7 @@ export default function Landing() {
           also named two states apply.js refuses.
         */}
         <p>We prepare and mail property tax appeals in Texas, Georgia and Florida.</p>
-        <button className="footer-cta-btn" onClick={go}>Start my dispute — $89 →</button>
+        <button className="footer-cta-btn" onClick={go}>Check your property — free</button>
         <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
           You won't be charged until your appeal is ready to file.
         </div>

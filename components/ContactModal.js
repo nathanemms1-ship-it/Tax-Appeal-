@@ -18,10 +18,7 @@ import { useState, useEffect } from 'react';
  * dead end with another.
  */
 
-const C = {
-  navy: '#1B3A6B', darkNavy: '#0F1F3D', bodyGray: '#5A6B82', mutedGray: '#8596AF',
-  border: '#E8EDF4', white: '#FFFFFF', green: '#2E7D52', red: '#C0392B',
-};
+import { C } from "../lib/theme";
 
 const CONTACT_ADDRESS = 'customerservice@taxappealusa.com';
 

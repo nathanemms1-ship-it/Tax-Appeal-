@@ -7,11 +7,7 @@ import Breadcrumb from '../components/Breadcrumb';
 import { SITE_ORIGIN } from '../lib/breadcrumbs';
 import { currentTaxYear, deadlineShort, deadlineSentence } from '../lib/tx/protestDeadline';
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../lib/theme";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -152,7 +148,7 @@ export default function Texas() {
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </a>
-        <button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }} onClick={go}>Start my dispute →</button>
+        <button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }} onClick={go}>Check your property →</button>
       </div>
 
       {/* Hero */}
@@ -168,12 +164,12 @@ export default function Texas() {
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, lineHeight: 1.15, marginBottom: 16 }}>
             Protest Your Texas Property Taxes for $89 Flat
           </h1>
-          <p style={{ fontSize: 18, color: "#8596AF", lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
+          <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
             Stop overpaying. We draft a formal protest letter backed by comparable sales data and legal citations under Texas Tax Code §41.41 & §41.43. You sign it, we file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
           </p>
           <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
             {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["Certified", "Mail with tracking"], ["254", "TX counties"]].map(([n, l]) => (
-              <div key={l} style={{ background: "#0F1F3D", borderRadius: 10, padding: "16px", textAlign: "center" }}>
+              <div key={l} style={{ background: C.darkNavy, borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
               </div>
@@ -327,7 +323,7 @@ export default function Texas() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to protest your Texas property taxes?</h2>
-        <p style={{ fontSize: 16, color: "#8596AF", marginBottom: 28 }}>Texas lets you protest your appraised value every single year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28 }}>Texas lets you protest your appraised value every single year. $89 flat — no hidden fees, no percentage cuts.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
           Start My Texas Protest — $89 →
         </button>

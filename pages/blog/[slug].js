@@ -7,11 +7,7 @@ import { publishedPosts as posts, getPostBySlug, getAllSlugs } from '../../lib/b
 import Breadcrumb from '../../components/Breadcrumb';
 import { SITE_ORIGIN } from '../../lib/breadcrumbs';
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../../lib/theme";
 
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -156,7 +152,7 @@ export default function BlogPost({ post, coverage }) {
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </a>
-        <button className="btn-primary" onClick={() => router.push('/apply')}>Start my dispute →</button>
+        <button className="btn-primary" onClick={() => router.push('/apply')}>Check your property →</button>
       </div>
 
       {/* Was a hand-rolled trail with no BreadcrumbList behind it — visible to a
@@ -185,7 +181,7 @@ export default function BlogPost({ post, coverage }) {
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, lineHeight: 1.2, marginBottom: 16, maxWidth: 720 }}>
             {post.title}
           </h1>
-          <p style={{ fontSize: 16, color: "#8596AF", lineHeight: 1.6, maxWidth: 680 }}>
+          <p style={{ fontSize: 16, color: C.mutedGray, lineHeight: 1.6, maxWidth: 680 }}>
             {post.metaDescription}
           </p>
         </div>
@@ -249,7 +245,7 @@ export default function BlogPost({ post, coverage }) {
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, marginBottom: 10, lineHeight: 1.3 }}>
                   File your protest for $89 flat
                 </div>
-                <p style={{ fontSize: 13, color: "#8596AF", lineHeight: 1.6, marginBottom: 18 }}>
+                <p style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.6, marginBottom: 18 }}>
                   We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
                 </p>
                 <div style={{ marginBottom: 16 }}>
@@ -264,7 +260,7 @@ export default function BlogPost({ post, coverage }) {
                   style={{ background: C.gold, color: C.darkNavy, width: "100%", fontSize: 14, padding: "13px 0" }}
                   onClick={() => window.location.href = '/apply'}
                 >
-                  Start My Dispute — $89 →
+                  Check your property — free
                 </button>
               </div>
 
@@ -321,7 +317,7 @@ export default function BlogPost({ post, coverage }) {
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.white, marginBottom: 12 }}>
           Ready to protest your property taxes?
         </h2>
-        <p style={{ fontSize: 15, color: "#8596AF", marginBottom: 24 }}>
+        <p style={{ fontSize: 15, color: C.mutedGray, marginBottom: 24 }}>
           $89 flat fee. You sign it, we file it. You keep 100% of your savings.
         </p>
         <button
@@ -329,7 +325,7 @@ export default function BlogPost({ post, coverage }) {
           style={{ background: C.gold, color: C.darkNavy, fontSize: 16, padding: "16px 44px" }}
           onClick={() => router.push('/apply')}
         >
-          Start My Dispute — $89 →
+          Check your property — free
         </button>
       </section>
 

@@ -11,11 +11,7 @@
 // Props: letter, ownerName, propertyAddress, sending (bool), onSigned(fn)
 import { useRef, useState, useEffect } from "react";
 
-const C = {
-  navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
-  lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
-  border: "#E8EDF4", white: "#FFFFFF", green: "#2E7D52",
-};
+import { C } from "../lib/theme";
 
 export default function SignatureStep({
   letter, ownerName, propertyAddress, sending, onSigned,
@@ -154,27 +150,27 @@ export default function SignatureStep({
 
       {isFL && (
         <div style={{ background: "#F7FAFF", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: "#1B3A6B", fontWeight: 600, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: C.navy, fontWeight: 600, marginBottom: 10 }}>
             Form DR-486, Part 3 — your signature
           </div>
-          <div style={{ fontSize: 13, color: "#5A6B82", lineHeight: 1.65, marginBottom: 14 }}>
-            <strong style={{ color: "#0F1F3D" }}>Under penalties of perjury</strong>, I declare that I am the
+          <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginBottom: 14 }}>
+            <strong style={{ color: C.darkNavy }}>Under penalties of perjury</strong>, I declare that I am the
             owner of the property described above, that I have read this petition, and that the facts stated
             in it are true. The complete petition is shown above — nothing is hidden.
           </div>
 
-          <div style={{ fontSize: 13, color: "#5A6B82", marginBottom: 8 }}>Will you attend the hearing, if one is scheduled?</div>
-          <div onClick={() => setFlWillAttend(false)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${!flWillAttend ? "#1B3A6B" : C.border}`, background: !flWillAttend ? "#EEF4FF" : "#fff", cursor: "pointer", marginBottom: 8 }}>
-            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${!flWillAttend ? "#1B3A6B" : "#C5D0E0"}`, background: !flWillAttend ? "#1B3A6B" : "#fff" }} />
+          <div style={{ fontSize: 13, color: C.bodyGray, marginBottom: 8 }}>Will you attend the hearing, if one is scheduled?</div>
+          <div onClick={() => setFlWillAttend(false)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${!flWillAttend ? C.navy : C.border}`, background: !flWillAttend ? "#EEF4FF" : C.white, cursor: "pointer", marginBottom: 8 }}>
+            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${!flWillAttend ? C.navy : "#C5D0E0"}`, background: !flWillAttend ? C.navy : C.white }} />
             <span style={{ fontSize: 13, lineHeight: 1.5 }}>No — decide my petition on the written evidence.</span>
           </div>
-          <div onClick={() => setFlWillAttend(true)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flWillAttend ? "#1B3A6B" : C.border}`, background: flWillAttend ? "#EEF4FF" : "#fff", cursor: "pointer", marginBottom: 12 }}>
-            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${flWillAttend ? "#1B3A6B" : "#C5D0E0"}`, background: flWillAttend ? "#1B3A6B" : "#fff" }} />
+          <div onClick={() => setFlWillAttend(true)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flWillAttend ? C.navy : C.border}`, background: flWillAttend ? "#EEF4FF" : C.white, cursor: "pointer", marginBottom: 12 }}>
+            <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 2, border: `1.5px solid ${flWillAttend ? C.navy : "#C5D0E0"}`, background: flWillAttend ? C.navy : C.white }} />
             <span style={{ fontSize: 13, lineHeight: 1.5 }}>Yes — I want a hearing. TaxAppeal cannot attend for you; you would appear yourself.</span>
           </div>
 
-          <div onClick={() => setFlShareInfo(!flShareInfo)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : C.border}`, background: flShareInfo ? "#EEF4FF" : "#fff", cursor: "pointer" }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${flShareInfo ? "#1B3A6B" : "#C5D0E0"}`, background: flShareInfo ? "#1B3A6B" : "#fff", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{flShareInfo ? "\u2713" : ""}</div>
+          <div onClick={() => setFlShareInfo(!flShareInfo)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 7, border: `1.5px solid ${flShareInfo ? C.navy : C.border}`, background: flShareInfo ? "#EEF4FF" : C.white, cursor: "pointer" }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${flShareInfo ? C.navy : "#C5D0E0"}`, background: flShareInfo ? C.navy : C.white, color: C.white, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{flShareInfo ? "\u2713" : ""}</div>
             {/*
               This label previously described only the PREPARATION use, but the same
               authorization on the petition also names the Clerk of the Value Adjustment
