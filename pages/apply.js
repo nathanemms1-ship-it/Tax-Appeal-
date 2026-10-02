@@ -1715,6 +1715,12 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
 function StepTexasCheck({ property, onEligible, onBack }) {
   const [state, setState] = useState({ status: 'loading', data: null });
   const [retryNonce, setRetryNonce] = useState(0);
+  /**
+   * THE COUNTY THE OWNER TOLD US, when the geocoder could not work it out.
+   * Added 2 Oct 2026. In the dependency list below, so choosing one re-runs the
+   * lookup against that district's roll rather than needing a second button.
+   */
+  const [pickedCounty, setPickedCounty] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -1726,6 +1732,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
           body: JSON.stringify({
             street: property.street, city: property.city,
             state: 'TX', zip: property.zip, source: 'apply',
+            ...(pickedCounty ? { county: pickedCounty } : {}),
           }),
         });
         const j = await res.json();
@@ -1738,7 +1745,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [property.street, property.city, property.zip, retryNonce]);
+  }, [property.street, property.city, property.zip, retryNonce, pickedCounty]);
 
   const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
   const wrap = { maxWidth: 620, margin: '0 auto', padding: '48px 24px' };
@@ -1750,6 +1757,86 @@ function StepTexasCheck({ property, onEligible, onBack }) {
       <div style={{ ...wrap, textAlign: 'center' }}>
         <h2 style={h2}>Reading the county&rsquo;s own roll&hellip;</h2>
         <p style={body}>Matching your address against the appraisal district&rsquo;s certified data.</p>
+      </div>
+    );
+  }
+
+  /*
+    ==========================================================================
+    WE COULD NOT WORK OUT THE COUNTY, SO WE ASK. 2 Oct 2026.
+    ==========================================================================
+    Nathan: "we are going to run into many properties that determining the
+    county is going to be difficult we will have to fall back on the customer
+    to tell us, then we can proceed and hopefully find the address on the
+    correct roll."
+
+    This is not a failure screen and it is not styled as one. The owner knows
+    their county; the geocoder is the one guessing. The only thing that has
+    gone wrong is that we asked a machine a question a person can answer.
+
+    10312 Barron Dr, Aubrey 76227 is the case that produced it -- a real parcel
+    on the Denton roll we hold in full, answered with "your state's filing
+    window is closed". See the county_unresolved branch in pages/api/check.js.
+
+    LOADED_COUNTY_NAMES, not a list from the response: one list, imported, so
+    the options cannot drift from the districts we can actually search.
+  */
+  if (state.data?.reason === 'county_unresolved' || state.data?.needsCounty === true) {
+    // Only offer a county we can actually search. A suggestion we hold no roll
+    // for would be a button that cannot work.
+    const raw = state.data?.suggestedCounty || null;
+    const suggested = raw && LOADED_COUNTY_NAMES.includes(raw) ? raw : null;
+    return (
+      <div style={wrap}>
+        <h2 style={h2}>
+          {suggested ? `Is this property in ${suggested} County?` : 'Which county is this property in?'}
+        </h2>
+        <p style={body}>
+          {state.data?.message
+            || 'We could not work out which county this address is in. Tell us and we will search that district\u2019s roll directly.'}
+        </p>
+
+        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
+          <strong>{[property.street, property.city, property.zip].filter(Boolean).join(', ')}</strong>
+        </div>
+
+        {/* ONE TAP WHEN WE HAVE A CANDIDATE. The ZIP centroid is usually right;
+            it is only untrustworthy where a ZIP straddles a county line, and the
+            owner settles that instantly. Making them search a ten-item list for
+            a county we already suspect is work we created. */}
+        {suggested && (
+          <button
+            style={{ ...primaryBtn, marginBottom: 12 }}
+            onClick={() => { setState({ status: 'loading', data: null }); setPickedCounty(suggested); }}
+          >
+            Yes &mdash; it is in {suggested} County
+          </button>
+        )}
+
+        <label htmlFor="tx-county-pick" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>
+          {suggested ? 'No \u2014 it is in a different county' : 'County'}
+        </label>
+        <select
+          id="tx-county-pick"
+          defaultValue=""
+          onChange={(e) => { if (e.target.value) { setState({ status: 'loading', data: null }); setPickedCounty(e.target.value); } }}
+          style={{ width: '100%', background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 7, padding: '12px 12px', fontSize: 15, color: C.darkNavy, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}
+        >
+          <option value="">Select your county&hellip;</option>
+          {LOADED_COUNTY_NAMES.map((n) => (
+            <option key={n} value={n}>{n} County</option>
+          ))}
+        </select>
+
+        {/* The waitlist path is not lost by asking first. If none of these is
+            theirs, they are genuinely outside coverage and the original answer
+            was right -- it was only ever wrong for addresses inside it. */}
+        <p style={{ ...body, fontSize: 13.5 }}>
+          Not listed? Those are the Texas districts whose rolls we hold today. We are loading more
+          every month &mdash; go back and we will take your details so you hear when yours is ready.
+        </p>
+
+        <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
       </div>
     );
   }

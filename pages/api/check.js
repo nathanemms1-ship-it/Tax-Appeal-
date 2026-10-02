@@ -187,6 +187,33 @@ export default async function handler(req, res) {
      */
     let txCad = null;
     let txCounty = null;
+
+    /**
+     * ========================================================================
+     * THE COUNTY THE CUSTOMER TOLD US, WHEN THE GEOCODER COULD NOT.
+     * ========================================================================
+     * Added 2 Oct 2026. Nathan: "we should ask the customer to list the county
+     * when we cant determine so we can try and search again."
+     *
+     * The design always said this. pages/api/resolve-county.js: "If all three
+     * fail the caller shows the customer a county picker rather than
+     * proceeding on a guess." This caller never did, and what it did instead
+     * was worse than nothing -- see the county_unresolved branch below.
+     *
+     * VALIDATED, NOT TRUSTED. It is a body field, so it goes through
+     * coveredCadFromName, which only resolves names we actually hold a roll
+     * for. An unknown or malformed county yields no cad and falls through to
+     * the same unresolved answer, so this can widen nothing.
+     */
+    const askedCounty = cap(b.county, 120);
+    const askedCad = askedCounty ? coveredCadFromName(askedCounty) : null;
+
+    // `place` is scoped to the block below; these are the facts the answer after
+    // it needs: did we fail to place this address confidently, and if the ZIP
+    // centroid offered a county, which one, so we can ask rather than hunt.
+    let couldNotPlace = false;
+    let suggestedCounty = null;
+
     if (!(zip && isFloridaZip(zip))) {
       let place = null;
       try {
@@ -196,6 +223,19 @@ export default async function handler(req, res) {
         // through to the Florida roll, which is what happened before this
         // branch existed and is the honest degradation.
         console.error('[check] county resolution failed:', e.message);
+      }
+
+      // The customer's answer stands in for a geocoder that could not place the
+      // address -- never over one that could. A resolved county is evidence; a
+      // typed one is a claim, and the claim only matters where evidence is
+      // absent. findParcel still has to match the address on that district's
+      // roll, so a wrong guess produces a miss rather than a wrong parcel.
+      // `place.state` is the test, not `place.county`: a zip-centroid match HAS
+      // a county and no state, and is exactly the case the customer was asked
+      // to confirm. Their answer supersedes it. Only a confident, state-bearing
+      // address match outranks what the owner told us.
+      if (askedCad && !(place && place.found && place.county && place.state)) {
+        place = { found: true, state: 'TX', county: askedCounty, source: 'customer' };
       }
 
       if (place && place.found && place.state === 'TX') {
@@ -303,6 +343,41 @@ export default async function handler(req, res) {
             message: `We do not yet hold the appraisal roll for ${txCounty} County, Texas, so we cannot check this property. Tell us your email and we will let you know the moment we do.`,
           });
         }
+      } else if (!place || !place.found || !place.county) {
+        // Placed nowhere. Not the same as placed outside coverage -- see the
+        // county_unresolved answer below, which this flag reaches.
+        couldNotPlace = true;
+      } else if (place.found && place.county && !place.state) {
+        /**
+         * A ZIP-CENTROID MATCH. WE HAVE A COUNTY AND WE MUST NOT ACT ON IT ALONE.
+         * ====================================================================
+         * This is the branch 10312 Barron Dr, Aubrey 76227 needed and did not
+         * have. resolveCounty DOES answer for it:
+         *
+         *     { found: true, county: 'Denton', source: 'zip-centroid',
+         *       confidence: 'zip' }
+         *
+         * Correct, too. But the centroid path deliberately returns no `state`,
+         * and the Texas branch above tests `place.state === 'TX'`, so the whole
+         * answer was discarded and the address fell to the ZIP branch, which
+         * reads a non-Florida ZIP as a foreign state. A Denton homeowner was
+         * told their state's filing window is closed. We had the right county
+         * in hand at the time.
+         *
+         * NOT fixed by letting a centroid stand in for an address match.
+         * resolve-county.js is explicit: "It resolves the CENTROID of the ZIP,
+         * not the property... some straddle a line, and county drives the
+         * filing fee, the cheque payee and which government office receives the
+         * petition. So the caller must have the customer CONFIRM a zip-centroid
+         * result rather than accept it silently."
+         *
+         * This caller is the one that never did. So: carry the county forward
+         * as a SUGGESTION, and ask. The owner confirms in one tap instead of
+         * searching a list, and a straddled ZIP is caught by the person who
+         * actually knows the answer.
+         */
+        couldNotPlace = true;
+        suggestedCounty = place.county;
       } else if (place && place.found && place.state && place.state !== 'FL') {
         // A state we know we are not selling in today. Same answer the ZIP
         // branch gave, now reached without needing the visitor to type a ZIP.
@@ -314,6 +389,61 @@ export default async function handler(req, res) {
           message: 'Your state\'s filing window is closed right now — there is nothing that can be filed until it reopens. Tell us your state and we\'ll email you the moment it does, with time to spare before the deadline.',
         });
       }
+    }
+
+    /**
+     * ==========================================================================
+     * WE COULD NOT PLACE IT. ASK, DO NOT GUESS, AND DO NOT INVENT A REFUSAL.
+     * ==========================================================================
+     * Added 2 Oct 2026, from 10312 Barron Dr, Aubrey 76227 -- a real parcel on a
+     * Denton roll we hold in full, 299,329 rows. The answer it got was:
+     *
+     *     reason:  outside_coverage
+     *     message: "Your state's filing window is closed right now..."
+     *
+     * Both false. We cover Texas, we hold Denton, and nothing about that
+     * address's state was ever established -- the geocoder simply missed, and
+     * the ZIP branch below reads a non-Florida ZIP as a foreign state. A
+     * homeowner in a county we serve was told we do not serve them, with no way
+     * forward. That is the worst class of answer this endpoint can give: wrong,
+     * confident, and terminal.
+     *
+     * Nathan, 2 Oct: "we are going to run into many properties that determining
+     * the county is going to be difficult we will have to fall back on the
+     * customer to tell us, then we can proceed and hopefully find the address
+     * on the correct roll."
+     *
+     * So this is a first-class path, not an edge case. The customer knows their
+     * county; the geocoder is the one guessing. `b.county` above feeds straight
+     * back into coveredCadFromName and the roll search runs again.
+     *
+     * THE COUNTY LIST IS NOT SENT. The client already imports
+     * LOADED_COUNTY_NAMES from lib/tx/coverage, and shipping a second copy in a
+     * response body is two lists that have to agree -- the drift this codebase
+     * keeps paying for.
+     *
+     * THE WAITLIST PATH SURVIVES. If they are genuinely outside coverage, none
+     * of the offered counties is theirs, and the screen still takes their state
+     * and their email. We lose no lead by asking first.
+     */
+    if (couldNotPlace && !askedCad) {
+      await recordCheckOutcome({ outcome: 'county_unresolved', source, county: suggestedCounty });
+      return res.status(200).json({
+        found: false,
+        reason: 'county_unresolved',
+        needsCounty: true,
+        // Present when the ZIP centroid produced one. The screen pre-selects it
+        // and asks for a confirmation rather than making the owner search.
+        suggestedCounty,
+        message: suggestedCounty
+          ? `This address looks like it is in ${suggestedCounty} County, but we worked that out `
+            + 'from the ZIP code rather than the street, and some ZIPs cross a county line. '
+            + 'Confirm the county and we will search that district\'s roll.'
+          : 'We could not work out which county this address is in. That is usually a '
+            + 'rural route, a new subdivision, or a city that crosses a county line — not a '
+            + 'problem with your property. Tell us the county and we will search that '
+            + 'district\'s roll directly.',
+      });
     }
 
     if (zip && !isFloridaZip(zip)) {

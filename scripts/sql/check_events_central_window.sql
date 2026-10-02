@@ -77,7 +77,7 @@ as $$
     count(*) filter (where e.outcome in (
       'no_parcel_near_miss', 'lookup_failed', 'error', 'bad_input'))::bigint as our_failure,
     count(*) filter (where e.outcome in (
-      'outside_coverage', 'no_parcel', 'ambiguous'))::bigint     as no_answer
+      'outside_coverage', 'no_parcel', 'ambiguous', 'county_unresolved'))::bigint as no_answer
   from check_events e
   where e.checked_on > (((now() at time zone 'America/Chicago')::date) - make_interval(days => days))
   group by e.checked_on

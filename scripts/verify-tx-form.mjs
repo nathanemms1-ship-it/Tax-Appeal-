@@ -468,6 +468,44 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
 
   /*
     ======================================================================
+    AN ADDRESS WE CANNOT PLACE IS A QUESTION, NOT A REFUSAL.
+    ======================================================================
+    10312 Barron Dr, Aubrey 76227 -- on a Denton roll we hold in full -- was
+    answered "Your state's filing window is closed right now". We had the
+    right county at the time: resolveCounty returns {found:true,
+    county:'Denton', source:'zip-centroid'} with NO `state`, and the Texas
+    branch tested `place.state === 'TX'`, so the answer was discarded.
+
+    resolve-county.js has always said what to do with a centroid: "the caller
+    must have the customer CONFIRM a zip-centroid result rather than accept it
+    silently." These assert the caller finally does.
+  */
+  t('a zip-centroid match is detected by its missing state, not treated as placed',
+    /place\.found && place\.county && !place\.state/.test(check));
+  t('and it becomes a suggestion to confirm rather than a silent county',
+    /suggestedCounty = place\.county/.test(check));
+  t('an unplaceable address returns county_unresolved, not outside_coverage',
+    /reason: 'county_unresolved'/.test(check) && /needsCounty: true/.test(check));
+  t('the outcome is in the closed vocabulary',
+    /county_unresolved:/.test(stripComments(readFileSync(path.join(root, 'lib/checkOutcomes.js'), 'utf8'))));
+
+  // The owner's answer is a claim, not evidence. It is validated against the
+  // rolls we hold, and it never overrides a confident address match.
+  t('a customer-supplied county is validated against the loaded rolls',
+    /coveredCadFromName\(askedCounty\)/.test(check));
+  t('and it supersedes only a match that lacks a state',
+    /askedCad && !\(place && place\.found && place\.county && place\.state\)/.test(check));
+
+  t('the screen offers the suggestion as a one-tap confirmation',
+    /Yes &mdash; it is in \{suggested\} County/.test(apply));
+  t('and only suggests a county whose roll we actually hold',
+    /LOADED_COUNTY_NAMES\.includes\(raw\)/.test(applyCode));
+  t('choosing a county re-runs the lookup rather than needing a second button',
+    /setPickedCounty/.test(applyCode)
+    && /retryNonce, pickedCounty\]/.test(applyCode));
+
+  /*
+    ======================================================================
     WE PREPARE DOCUMENTS. WE DO NOT DECIDE WHO MAY PROTEST.
     ======================================================================
     Nathan, 2 Oct: "we still have to let them proceed if they would like, we
