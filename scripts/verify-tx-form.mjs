@@ -529,8 +529,14 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   t('the fee warning has a screen of its own rather than borrowing the capped one',
     /d\.savingWarning === true/.test(applyCode)
     && /We don&rsquo;t think this one is worth the fee/.test(apply));
-  t('a parcel-derived saving above the fee supersedes the district-rate warning',
-    /d\.estimateBasis === 'parcel' && d\.estimatedSaving >= 89/.test(applyCode));
+  // Both directions. 640 Orchid Hill Ln, Copper Canyon: district rate predicts
+  // ~$416 so savingWarning is false, comps support $27, fee is $89. The first
+  // version of this only suppressed the warning and never raised one.
+  t('once a parcel figure exists it decides the fee question, not the district rate',
+    /\(d\.estimateBasis === 'parcel' && d\.estimatedSaving != null\)\s*\?\s*d\.estimatedSaving < TX_SERVICE_FEE/.test(applyCode));
+  t('and the fee is one constant rather than a literal per screen',
+    /const TX_SERVICE_FEE = 89;/.test(applyCode)
+    && !/estimatedSaving >= 89/.test(applyCode));
 
   // No Texas verdict may dead-end. Each discouraging screen states the facts
   // and still offers the owner the route they are entitled to.

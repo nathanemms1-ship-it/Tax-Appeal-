@@ -16,6 +16,13 @@ import { curePriceFor, totalCostToCure } from '../lib/costToCure';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
+/**
+ * THE FILING FEE, ONCE. Three screens compare a saving against it and a fourth
+ * prints it; a literal in each is four things that have to agree. Mirrors
+ * TX_SERVICE_FEE in lib/tx/qualify.js, which is what the server gates on.
+ */
+const TX_SERVICE_FEE = 89;
+
 const C = {
   navy: "#1B3A6B", gold: "#FFC940", darkNavy: "#0F1F3D", bg: "#F4F7FC",
   lightBlue: "#EEF3FB", bodyGray: "#5A6B82", mutedGray: "#8596AF",
@@ -2021,14 +2028,33 @@ function StepTexasCheck({ property, onEligible, onBack }) {
     Suppressed when the comp ladder found a real case worth more than the fee:
     that warning came from a DISTRICT rate and the parcel figure supersedes it.
   */
-  const feeWarning = d.savingWarning === true
-    && !(d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && d.estimatedSaving >= 89);
+  /*
+    THE FEE TEST RUNS ON THE BEST FIGURE WE HAVE, IN BOTH DIRECTIONS.
+    ------------------------------------------------------------------------
+    The first version only asked whether qualify()'s DISTRICT warning should be
+    suppressed by a better parcel figure. It missed the mirror case, and
+    640 Orchid Hill Ln, Copper Canyon found it: a $556,620 house where the
+    district rate predicts about $416 a year, so `savingWarning` is false --
+    but the comparables support a $27 ask. That would have rendered "This one
+    is worth protesting / $27 a year / $135 over five years" above an $89 fee.
+
+    Exactly the failure this week's work exists to stop, arrived at from the
+    other side. So: once a parcel figure exists it decides, and the district
+    warning is only consulted when there is no parcel figure to consult.
+  */
+  const feeWarning = (d.estimateBasis === 'parcel' && d.estimatedSaving != null)
+    ? d.estimatedSaving < TX_SERVICE_FEE
+    : d.savingWarning === true;
 
   if (feeWarning) {
     return (
       <div style={wrap}>
         <h2 style={h2}>We don&rsquo;t think this one is worth the fee</h2>
-        <p style={body}>{d.message || 'A realistic reduction on this property would save less in tax than the $89 it costs to file.'}</p>
+        <p style={body}>
+          {d.estimateBasis === 'parcel' && d.estimatedSaving != null
+            ? `Your neighbours support a reduction worth about ${money(d.estimatedSaving)} a year — less than the $${TX_SERVICE_FEE} it costs to file.`
+            : (d.message || `A realistic reduction on this property would save less in tax than the $${TX_SERVICE_FEE} it costs to file.`)}
+        </p>
 
         <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
           {p.address ? <><strong>{p.address}</strong><br /></> : null}
