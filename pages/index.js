@@ -24,9 +24,9 @@ const SELLING = sellingStates();
 const PENDING = pendingStates();
 const SELLING_TEXT = nameList(SELLING);
 
-import { C } from "../lib/theme";
+import { C, FONTS, FONT_IMPORT } from "../lib/theme";
 
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
+// FONT_IMPORT now comes from lib/theme.js with the palette.
 
 export default function Landing() {
   const router = useRouter();
@@ -105,9 +105,9 @@ export default function Landing() {
       <style dangerouslySetInnerHTML={{ __html: `
         ${FONT_IMPORT}
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
+        body { font-family: ${FONTS.body}; background: ${C.bg}; color: ${C.darkNavy}; }
         a { text-decoration: none; color: inherit; }
-        button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
+        button { font-family: ${FONTS.body}; cursor: pointer; }
 
         .btn-primary {
           background: ${C.navy};
@@ -164,72 +164,107 @@ export default function Landing() {
           display: flex; align-items: center; justify-content: center;
           font-size: 18px;
         }
-        .logo-name { font-family: 'DM Serif Display', serif; font-size: 18px; color: ${C.darkNavy}; }
+        .logo-name { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -0.4px; font-size: 19px; color: ${C.darkNavy}; }
         .logo-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: ${C.mutedGray}; margin-top: 1px; }
         .nav-right { display: flex; align-items: center; gap: 12px; }
 
         /* HERO */
         .hero {
           background: ${C.bg};
-          padding: 64px 40px 48px;
-          text-align: center;
-          border-bottom: 1.5px solid ${C.border};
+          padding: 72px 40px 64px;
+          text-align: left;
         }
+        .hero-inner {
+          max-width: 1140px; margin: 0 auto;
+          display: flex; flex-wrap: wrap; gap: 48px; align-items: center;
+        }
+        /* 999 so the copy takes every spare pixel and the card keeps its
+           width, and both stack cleanly at phone size. */
+        .hero-copy { flex: 999 1 460px; min-width: 0; }
+
         .eyebrow {
-          display: inline-flex; align-items: center; gap: 7px;
-          background: ${C.lightBlue};
-          border: 1px solid #C5D3E8;
-          border-radius: 20px;
-          padding: 5px 14px;
-          font-size: 12px;
+          display: inline-block;
+          background: #E3F0EA;
+          border-radius: 8px;
+          padding: 7px 14px;
+          font-size: 12.5px;
+          font-weight: 700;
           color: ${C.navy};
           margin-bottom: 22px;
         }
         .hero h1 {
-          font-family: 'DM Serif Display', serif;
-          font-size: 42px;
+          font-family: ${FONTS.display};
+          font-size: 56px;
+          font-weight: 800;
+          letter-spacing: -1.8px;
           color: ${C.darkNavy};
-          line-height: 1.12;
+          line-height: 1.08;
           max-width: 620px;
-          margin: 0 auto 16px;
+          margin: 0 0 22px;
         }
         .hero-sub {
-          font-size: 16px;
+          font-size: 18.5px;
           color: ${C.bodyGray};
-          max-width: 500px;
-          margin: 0 auto 32px;
-          line-height: 1.6;
+          max-width: 540px;
+          margin: 0 0 32px;
+          line-height: 1.7;
         }
-        .hero-cta-wrap { margin-bottom: 20px; }
-        .hero-note { font-size: 12px; color: ${C.mutedGray}; margin-top: 10px; }
-        .trust-row {
-          display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
-          margin-top: 20px;
+        .hero-sub strong { color: ${C.darkNavy}; }
+        .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .btn-hero { font-size: 16.5px; padding: 18px 32px; border-radius: 12px; font-weight: 700; }
+        .hero-note { font-size: 14px; color: ${C.mutedGray}; }
+
+        /* PRICE CARD — the right-hand column. Soft shadow, not a border: a
+           hairline on a warm ground reads as a form field. */
+        .price-card {
+          flex: 1 1 320px; min-width: 0;
+          background: ${C.white};
+          border-radius: 22px;
+          padding: 32px;
+          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 16px 40px rgba(33,31,28,0.06);
         }
-        .trust-item { font-size: 12px; color: ${C.mutedGray}; display: flex; align-items: center; gap: 6px; }
+        .price-label { font-size: 12.5px; color: ${C.mutedGray}; font-weight: 600; margin-bottom: 14px; }
+        .price-figure {
+          font-family: ${FONTS.display};
+          font-size: 66px; font-weight: 800; line-height: 1;
+          letter-spacing: -2.5px; color: ${C.darkNavy};
+        }
+        .price-sub { font-size: 14.5px; color: ${C.mutedGray}; margin: 10px 0 24px; }
+        .price-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 13px; }
+        .price-list li {
+          font-size: 14.5px; color: ${C.bodyGray};
+          display: flex; gap: 11px; align-items: flex-start;
+        }
+        .price-list li::before { content: '\\2713'; color: ${C.navy}; font-weight: 800; flex-shrink: 0; }
 
         /* STATS ROW */
         .stats-row {
+          max-width: 1140px;
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 14px;
-          max-width: 600px;
-          margin: 32px auto 0;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+          margin: 56px auto 0;
         }
         .stat-card {
           background: ${C.white};
-          border: 1.5px solid ${C.border};
-          border-radius: 10px;
-          padding: 16px;
-          text-align: center;
+          border-radius: 16px;
+          padding: 28px;
+          text-align: left;
         }
-        .stat-num { font-family: 'DM Serif Display', serif; font-size: 26px; color: ${C.navy}; }
-        .stat-label { font-size: 11px; color: ${C.mutedGray}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+        .stat-num {
+          font-family: ${FONTS.display};
+          font-size: 36px; font-weight: 800; line-height: 1;
+          letter-spacing: -1px; color: ${C.navy};
+        }
+        .stat-label {
+          font-size: 14.5px; color: ${C.bodyGray}; line-height: 1.6;
+          margin-top: 10px; text-transform: none; letter-spacing: 0;
+        }
 
         /* SECTIONS */
         .section { padding: 56px 40px; border-bottom: 1.5px solid ${C.border}; }
         .section-inner { max-width: 820px; margin: 0 auto; }
-        .section-title { font-family: 'DM Serif Display', serif; font-size: 30px; color: ${C.darkNavy}; text-align: center; margin-bottom: 10px; }
+        .section-title { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1px; font-size: 34px; color: ${C.darkNavy}; text-align: center; margin-bottom: 10px; }
         .section-sub { font-size: 15px; color: ${C.bodyGray}; text-align: center; margin-bottom: 36px; line-height: 1.6; }
 
         /* HOW IT WORKS */
@@ -261,7 +296,7 @@ export default function Landing() {
           gap: 24px;
           margin-bottom: 20px;
         }
-        .stat-big { font-family: 'DM Serif Display', serif; font-size: 52px; color: ${C.gold}; line-height: 1; flex-shrink: 0; }
+        .stat-big { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.5px; font-size: 52px; color: ${C.gold}; line-height: 1; flex-shrink: 0; }
         .stat-text h3 { font-size: 16px; font-weight: 500; color: ${C.white}; margin-bottom: 6px; }
         .stat-text p { font-size: 13px; color: ${C.mutedGray}; line-height: 1.6; }
 
@@ -283,7 +318,7 @@ export default function Landing() {
         .price-left { flex: 1 1 auto; min-width: 0; }
         .price-right { flex: 0 0 260px; min-width: 0; }
         .price-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #B8860B; font-weight: 500; margin-bottom: 4px; }
-        .price-amount { font-family: 'DM Serif Display', serif; font-size: 42px; color: ${C.darkNavy}; line-height: 1; }
+        .price-amount { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.5px; font-size: 42px; color: ${C.darkNavy}; line-height: 1; }
         .price-note { font-size: 12px; color: #B8860B; margin-top: 4px; }
         .price-divider { width: 1.5px; background: #FFD97A; align-self: stretch; flex-shrink: 0; }
         .price-right p { font-size: 14px; color: ${C.bodyGray}; line-height: 1.65; }
@@ -353,7 +388,7 @@ export default function Landing() {
           padding: 64px 40px;
           text-align: center;
         }
-        .footer-cta h2 { font-family: 'DM Serif Display', serif; font-size: 34px; color: ${C.white}; margin-bottom: 12px; }
+        .footer-cta h2 { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.2px; font-size: 38px; color: ${C.white}; margin-bottom: 12px; }
         .footer-cta p { font-size: 15px; color: ${C.mutedGray}; margin-bottom: 28px; }
         .footer-cta-btn {
           background: ${C.gold};
@@ -417,11 +452,17 @@ export default function Landing() {
         @media (max-width: 768px) {
           .nav { padding: 14px 16px; }
           .nav-right .btn-ghost { display: none; }
-          .hero { padding: 40px 16px 32px; }
-          .hero h1 { font-size: 28px; }
-          .hero-sub { font-size: 14px; }
-          .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-          .stat-num { font-size: 20px; }
+          .hero { padding: 44px 18px 40px; }
+          .hero-inner { gap: 32px; }
+          .hero h1 { font-size: 34px; letter-spacing: -1px; }
+          .hero-sub { font-size: 16px; }
+          .price-card { padding: 24px; }
+          .price-figure { font-size: 52px; }
+          /* One column on a phone: three stat cards side by side at 360px
+             gives each about 100px, which clips the sentence inside them. */
+          .stats-row { grid-template-columns: 1fr; gap: 12px; margin-top: 36px; }
+          .stat-card { padding: 22px; }
+          .stat-num { font-size: 30px; }
           .section { padding: 36px 16px; }
           .steps { grid-template-columns: 1fr; gap: 12px; }
           .stat-banner { flex-direction: column; text-align: center; gap: 12px; }
@@ -468,27 +509,73 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/*
+        HERO — rebuilt 2 Oct 2026 to the approved sample.
+
+        What changed and why, because "it doesn't look like the mockup" was
+        four separate things and only one of them was colour:
+
+          CENTRED  -> TWO COLUMN. Everything was stacked down the middle,
+            which is why the page read as busy: eight centred elements in a
+            column give the eye no place to rest. The sample puts the argument
+            on the left and the price on the right, so there are two things to
+            look at instead of eight.
+
+          SERIF    -> SANS at 800. DM Serif Display is formal and traditional;
+            it was right for the navy brand. The green brand is modern and
+            direct, and the sample used Plus Jakarta Sans heavy.
+
+          EMOJI    -> GONE. The trust row was four emoji chips and the eyebrow
+            had a shield. Emoji render differently on every platform, date a
+            page instantly, and are the first thing that makes a paid service
+            look amateur. The same facts now sit in the price card as plain
+            checkmarks, where somebody deciding to spend $89 is actually
+            looking.
+
+          BORDERED CARDS -> soft-shadow cards. Hairline borders on a warm
+            ground read as a form; shadow reads as a surface.
+      */}
       <section className="hero">
-        <div className="eyebrow">🛡️ You sign it — we mail it for you</div>
-        <h1>We fight your property tax bill. You keep the savings.</h1>
-        <p className="hero-sub">No forms to mail. No county offices to call. Flat $89 fee — no percentage cuts. You sign it, we do the rest.</p>
-        <div className="hero-cta-wrap">
-          <button className="btn-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={go}>
-            Check your property — free
-          </button>
-          <div className="hero-note">You won't be charged until your appeal is ready to file.</div>
+        <div className="hero-inner">
+          <div className="hero-copy">
+            <div className="eyebrow">Texas · Georgia · Florida</div>
+            <h1>We fight your property tax bill. You keep the savings.</h1>
+            <p className="hero-sub">
+              A flat <strong>$89</strong>. We build the case from your county&rsquo;s own roll, prepare the
+              protest and mail it for you with tracking. No percentage of your savings, ever.
+            </p>
+            <div className="hero-actions">
+              <button className="btn-primary btn-hero" onClick={go}>Check your property — free</button>
+              <span className="hero-note">No charge until your appeal is ready to file.</span>
+            </div>
+          </div>
+
+          <aside className="price-card">
+            <div className="price-label">Everything included for</div>
+            <div className="price-figure">$89</div>
+            <div className="price-sub">Flat rate. No hidden cuts.</div>
+            <ul className="price-list">
+              <li>Real comparable sales evidence</li>
+              <li>State-specific legal citations</li>
+              <li>We mail the appeal for you</li>
+              <li>Proof of mailing sent to you</li>
+            </ul>
+          </aside>
         </div>
-        <div className="trust-row">
-          <div className="trust-item">🔒 256-bit encrypted</div>
-          <div className="trust-item">⏱️ Takes 4 minutes</div>
-          <div className="trust-item">📬 Mailing included</div>
-          <div className="trust-item">✅ TX · GA · FL · AR · AL</div>
-        </div>
+
         <div className="stats-row">
-          <div className="stat-card"><div className="stat-num">$89</div><div className="stat-label">Flat fee</div></div>
-          <div className="stat-card"><div className="stat-num">0%</div><div className="stat-label">Of your savings taken</div></div>
-          <div className="stat-card"><div className="stat-num">4 min</div><div className="stat-label">To complete</div></div>
+          <div className="stat-card">
+            <div className="stat-num">5%</div>
+            <div className="stat-label">Fewer than 5% of taxpayers ever challenge their assessment.</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-num">4 min</div>
+            <div className="stat-label">To answer a few questions and review your finished protest.</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-num">100%</div>
+            <div className="stat-label">Of what you save stays yours. We never take a cut.</div>
+          </div>
         </div>
       </section>
 
@@ -497,18 +584,18 @@ export default function Landing() {
                 total savings over $3.2 Million!" TaxAppeal USA has not yet filed its
                 first petition. See lib/stats.js for why that mattered. */}
       <div style={{ background: C.navy, padding: "48px 32px", textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.white, lineHeight: 1.2, marginBottom: 10 }}>
+        <div style={{ fontFamily: FONTS.body, fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
+        <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-1.2px", fontSize: 40, color: C.white, lineHeight: 1.15, marginBottom: 12 }}>
           Most over-assessed homeowners never say anything
         </div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, color: C.mutedGray, marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
+        <div style={{ fontFamily: FONTS.body, fontSize: 18, color: "#CFE0D8", marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
           The National Taxpayers Union Foundation estimates that{" "}
           <span style={{ color: C.gold, fontWeight: 700 }}>{STATS.US_OVERASSESSED.value}</span>{" "}
           of taxable property in the United States is over-assessed — and that{" "}
           <span style={{ color: C.gold, fontWeight: 700 }}>fewer than 5%</span>{" "}
           of taxpayers ever challenge it.
         </div>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>
+        <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-0.6px", fontSize: 26, color: C.white }}>
           Don&apos;t Delay, Dispute Today!
         </div>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#6B84A6", marginTop: 18 }}>

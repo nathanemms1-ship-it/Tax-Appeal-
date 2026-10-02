@@ -219,8 +219,19 @@ const apply = readFileSync('pages/apply.js', 'utf8');
     /function StepTexasCheck\(/.test(apply));
   // Without this the progress bar renders as though the customer had not
   // started, which reads as progress lost. Same reason florida-check is mapped.
+  //
+  // 2 Oct: this pinned `'issues'`, copied from the florida-check line. The
+  // mapping was wrong and the assertion was holding it in place -- the bar lit
+  // PROPERTY ISSUES above a screen that had asked about no issues and was
+  // showing the owner their appraised value. florida-check genuinely runs
+  // after the condition questions; texas-check runs before them.
+  //
+  // Now asserts the two things that matter: it is mapped at all (the bar does
+  // not reset), and it is mapped to the step the screen actually belongs to.
   t('TX: texas-check is mapped in SUBSTEPS so the progress bar does not reset',
-    /SUBSTEPS = \{[^}]*'texas-check': 'issues'/.test(apply));
+    /SUBSTEPS = \{[^}]*'texas-check':\s*'(property|issues|account|dispute)'/.test(apply));
+  t('TX: and it is mapped to the property step, because it is the address verdict',
+    /SUBSTEPS = \{[^}]*'texas-check': 'property'/.test(apply));
   // It reads the roll through the same route /check uses, which is the only one
   // that knows the cap arithmetic. A screen that invented its own would drift.
   t('TX: the verdict screen derives its answer from /api/check',

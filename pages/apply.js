@@ -146,29 +146,41 @@ const disabledBtn = { ...primaryBtn, background: "#C5D0E0", cursor: "not-allowed
  * from it. They looked like two different products.
  */
 const D = {
-  bg:      "#0E1626",   // page
-  panel:   "#16202F",   // card
-  panelAlt:"#1B2636",   // inset rows
-  line:    "#263448",   // borders
-  heading: C.white,
-  body:    "#9FB0C6",
-  muted:   "#7A8BA3",   // uppercase labels
-  accent:  "#7D9BF2",   // the ask, primary action
-  good:    "#6ED29B",
-  goodBg:  "#17322A",
-  warn:    "#D9A441",
-  danger:  "#F08B86",
-  dangerBg:"#2A1518",
-  dangerLn:"#4A2328",
+  /*
+    These screens were built DARK on 2 Oct, to the 18 Sept mockups, hours
+    before the site theme was chosen. Nathan then picked the light green
+    theme, which left the Texas verdict and review screens as the only dark
+    surfaces on the site -- a black page between a cream homepage and a cream
+    funnel.
+
+    The names stay (`panel`, `line`, `heading`...) because 200-odd call sites
+    use them and the ROLES did not change. Only the values did, onto the
+    shared palette, so these screens now re-theme with everything else rather
+    than holding a second private theme. Same lesson as the 24 palettes.
+  */
+  bg:      C.bg,          // warm off-white page
+  panel:   C.white,
+  panelAlt:C.lightBlue,   // inset rows
+  line:    C.border,
+  heading: C.darkNavy,
+  body:    C.bodyGray,
+  muted:   C.mutedGray,
+  accent:  C.navy,        // the ask, primary action -- deep green
+  good:    C.navy,
+  goodBg:  "#E3F0EA",
+  warn:    C.gold,
+  danger:  C.red,
+  dangerBg:"#FBECEA",
+  dangerLn:"#F0D4CF",
 };
-const dWrap   = { background: D.bg, minHeight: "100vh", padding: "48px 24px", fontFamily: "'DM Sans', sans-serif" };
+const dWrap   = { background: D.bg, minHeight: "100vh", padding: "44px 24px", fontFamily: "'DM Sans', sans-serif" };
 const dInner  = { maxWidth: 620, margin: "0 auto" };
 const dH2     = { fontFamily: "'DM Serif Display', serif", fontSize: 27, color: D.heading, margin: "0 0 6px", lineHeight: 1.25 };
 const dSub    = { fontSize: 13.5, color: D.muted, margin: "0 0 22px" };
 const dBody   = { fontSize: 14.5, color: D.body, lineHeight: 1.7, marginBottom: 18 };
 const dPanel  = { background: D.panel, border: `1px solid ${D.line}`, borderRadius: 12, padding: "20px 22px", marginBottom: 16 };
 const dLabel  = { fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1.2, color: D.muted, fontWeight: 700, marginBottom: 14 };
-const dPrimary= { background: D.accent, color: "#0E1626", border: "none", borderRadius: 9, padding: "15px 24px", fontSize: 15, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
+const dPrimary= { background: D.accent, color: C.white, border: "none", borderRadius: 9, padding: "15px 24px", fontSize: 15, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
 const dGhost  = { background: "transparent", color: D.body, border: `1px solid ${D.line}`, borderRadius: 9, padding: "13px 24px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
 const dQuiet  = { background: "none", color: D.muted, border: "none", padding: "10px 0 0", fontSize: 13.5, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
 const dNote   = { fontSize: 12, color: D.muted, lineHeight: 1.55, marginTop: 12 };
@@ -279,7 +291,19 @@ function ProgressBar({ currentStep }) {
   // BACKWARDS on pass two, on the screen where a marginal customer is deciding
   // whether to carry on, which is the exact symptom this map exists to prevent.
   // `issues` is the position that is right for one pass and adjacent for the other.
-  const SUBSTEPS = { 'florida-check': 'issues', 'texas-check': 'issues', 'florida-fee': 'account' };
+  /*
+    THE TEXAS VERDICT BELONGS TO "YOUR PROPERTY", NOT "PROPERTY ISSUES".
+    ------------------------------------------------------------------------
+    `texas-check` was mapped to `issues` when it was added, copying the
+    florida-check line above it. But florida-check genuinely runs after the
+    condition questions, and texas-check runs BEFORE them -- it is the verdict
+    on the address the visitor just typed.
+
+    So the progress bar lit step 2, PROPERTY ISSUES, above a screen that had
+    not asked about a single issue and was still showing the owner their own
+    appraised value. Caught by Nathan on the Denton walkthrough, 2 Oct.
+  */
+  const SUBSTEPS = { 'florida-check': 'issues', 'texas-check': 'property', 'florida-fee': 'account' };
   const idx = STEPS.indexOf(SUBSTEPS[currentStep] || currentStep);
   return (
     <div className="progress-bar-wrap" style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
@@ -2063,7 +2087,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             <div style={{ fontSize: 14.5, fontWeight: 700, color: D.danger, marginBottom: 8 }}>
               A protest would not lower your tax bill this year.
             </div>
-            <div style={{ fontSize: 13.5, color: "#E0B5B2", lineHeight: 1.65 }}>
+            <div style={{ fontSize: 13.5, color: "#7A3028", lineHeight: 1.65 }}>
               {d.message || d.capStatement}
             </div>
           </div>
@@ -2295,7 +2319,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             <DRow label="Value we will ask for" value={money(d.evidence.requestedValue)} strong accent={D.accent} size={24} />
           )}
           {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
-            <DRow label={`If ${(Number(p.rollYear || d.taxYear) || 2026) + 1} rates match ${p.rollYear || d.taxYear || 'this year'}, that&rsquo;s about`}
+            <DRow label={`If ${(Number(p.rollYear || d.taxYear) || 2026) + 1} rates match ${p.rollYear || d.taxYear || 'this year'}, that’s about`}
               value={`${money(d.estimatedSaving)} / year`} strong />
           )}
 
@@ -2315,8 +2339,8 @@ function StepTexasCheck({ property, onEligible, onBack }) {
         {/* The fee against the figure, and the fact that makes it recur. No
             multiplier is printed -- the Ownwell claim shape. */}
         {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
-          <div style={{ ...dPanel, background: D.goodBg, border: `1px solid #1F4A38` }}>
-            <div style={{ fontSize: 14.5, color: "#CDE9DA", lineHeight: 1.7 }}>
+          <div style={{ ...dPanel, background: D.goodBg, border: `1px solid #BFE0CE` }}>
+            <div style={{ fontSize: 14.5, color: "#1F4A3C", lineHeight: 1.7 }}>
               <strong style={{ color: D.good }}>Texas lets you protest every year.</strong>{' '}
               Hold that reduction and it is about <strong style={{ color: D.good }}>{money(d.estimatedSaving * 5)} over five years</strong>.
               Your cost to file is <strong style={{ color: D.good }}>${TX_SERVICE_FEE}</strong>.
@@ -4975,7 +4999,7 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
               <DRow label="Value we will ask for" value={fmtUsd(txReview.requestedValue)} strong accent={D.accent} size={25} />
             )}
             {txReview.estimatedSaving > 0 && (
-              <DRow label={`If ${nextYear} rates match ${txReview.taxYear || 'this year'}, that&rsquo;s about`}
+              <DRow label={`If ${nextYear} rates match ${txReview.taxYear || 'this year'}, that’s about`}
                 value={`${fmtUsd(txReview.estimatedSaving)} / year`} strong />
             )}
             {txReview.estimatedSaving > 0 && (
