@@ -267,8 +267,22 @@ if (elPaso && !isMailable(elPaso)) {
   const screen = applySrc.slice(applySrc.indexOf('if (txReview) {'), applySrc.indexOf('if (errMsg) {'));
   t('there is a review screen for it', screen.length > 500);
   t('which is not styled as a failure', !/Lookup failed|Try Again/.test(screen));
-  t('and offers to continue with the protest anyway',
-    /applyTxPacket\(txReview\)/.test(screen) && /that&rsquo;s my property/.test(screen));
+  /*
+    2 Oct: the primary button's words moved with the 18 Sept redesign, from
+    "Yes, that's my property" to "Sign and continue to payment". The literal is
+    not the property worth asserting -- the 15 Sept reasoning is that an owner
+    must be able to REJECT a match, because the district is picked by the
+    geocoder and applied as an .eq() filter, so a miss in a metro where street
+    names repeat can return a real parcel belonging to somebody else.
+
+    So this now asserts the mechanism rather than the copy: the screen offers
+    to proceed, AND it offers a way out that re-runs the search in another
+    county. A redesign may reword either; it may not remove either.
+  */
+  t('and offers to continue with the protest',
+    /applyTxPacket\(txReview\)/.test(screen));
+  t('and offers a way to reject the match rather than only accept it',
+    /not my property/i.test(screen) && /setTxPickCounty\(true\)/.test(screen));
 
   /**
    * The screen must show the ROLL RECORD, not just the county name. A homeowner

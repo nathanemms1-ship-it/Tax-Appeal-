@@ -438,7 +438,7 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   // than a decision about who may buy. Replaced by the proceed-route
   // assertions further down.
   t('the no-case screen states when payment happens, not whether we will allow it',
-    /you will see the finished document before anything is charged/.test(apply));
+    /[Yy]ou will see the finished document before anything is charged/.test(apply));
 
   /*
     THE MULTI-YEAR FIGURE IS PARCEL-ONLY. On a district median it would be a
@@ -584,7 +584,9 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   for (const [label, needle] of [
     ['no case found', 'I understand there may be no case'],
     ['saving below the fee', 'I understand it may save less than it costs'],
-    ['capped beyond reach', 'I understand it may not change my bill'],
+    // Reworded by the 18 Sept design, which is more explicit than the old copy:
+    // it names the finding ("won't") rather than hedging it ("may not").
+    ['capped beyond reach', 'I understand it won&rsquo;t change my bill and I want to file anyway'],
   ]) {
     t(`the "${label}" screen still offers to file`, apply.includes(needle));
   }

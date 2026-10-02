@@ -352,6 +352,24 @@ export default async function handler(req, res) {
        * One source, both callers, nothing to keep in step by hand.
        */
       estimatedSaving: packet.estimatedSaving,
+
+      /**
+       * THE TWO NUMBERS THE REVIEW SCREEN IS AN ARGUMENT ABOUT. Added 2 Oct.
+       *
+       * The 18 Sept design leads with "Median for N similar homes nearby" and
+       * "Your position — X% above the median", because that pair IS the
+       * s 41.43(b)(3) case in two lines: what the neighbours are appraised at
+       * per square foot, and how far above them this house sits. The route
+       * returned neither, so the screen could only show the ask and the
+       * saving -- the conclusion without the reasoning.
+       *
+       * Both already exist on the packet. This is a copy, not a computation.
+       */
+      medianPerSqft: packet.grid?.medianAppraisedPerSqft ?? null,
+      // comps.js already computed this as subjectAppraisedPerSqft and the grid
+      // carries it. Recomputing here would be a second implementation of the
+      // same division that can drift from the one the PDF prints.
+      subjectPerSqft: packet.grid?.subject?.appraisedPerSqft ?? null,
       // NOT sending estimateIsUpperBound: it would always be true here and
       // nothing reads it — verify-tx-dispatch asserts every field in this
       // response is consumed, and it was right to object. The screen states the

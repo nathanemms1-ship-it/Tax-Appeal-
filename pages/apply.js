@@ -127,6 +127,81 @@ const primaryBtn = { background: C.navy, color: C.white, border: "none", borderR
 const secondaryBtn = { background: "transparent", color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%", transition: "border-color 0.2s" };
 const disabledBtn = { ...primaryBtn, background: "#C5D0E0", cursor: "not-allowed" };
 
+/**
+ * ============================================================================
+ * THE TEXAS VERDICT AND REVIEW PALETTE — dark, and deliberately so.
+ * ============================================================================
+ * Built 2 Oct 2026 from the mockups approved on 18 Sept
+ * (TX_Review_Screen_Design_2026-09-18). Those were approved and then never
+ * built: every working day after 18 Sept went into making the FILING correct
+ * -- the real PDF, ROLL_YEAR, the preview, the comp figures -- and the screen
+ * grew functionally instead of to the design. Nothing was tracking the design,
+ * so it fell off quietly. Nathan found it again by going back to the mockups.
+ *
+ * WHY DARK, on these screens only. The address form, the condition questions
+ * and the account step are data entry and stay light. These are the screens
+ * where the customer READS a finding about their own house and decides whether
+ * to spend $89 -- the county's figures, the position against the neighbours,
+ * the ask, and the cautions. Dark separates "we are telling you something"
+ * from "we are asking you something", and it is what the approved mockups
+ * used.
+ *
+ * ONE PALETTE for step 1 and step 4, because they are two halves of the same
+ * argument: step 1 says what the roll shows, step 4 shows the document built
+ * from it. They looked like two different products.
+ */
+const D = {
+  bg:      "#0E1626",   // page
+  panel:   "#16202F",   // card
+  panelAlt:"#1B2636",   // inset rows
+  line:    "#263448",   // borders
+  heading: "#FFFFFF",
+  body:    "#9FB0C6",
+  muted:   "#7A8BA3",   // uppercase labels
+  accent:  "#7D9BF2",   // the ask, primary action
+  good:    "#6ED29B",
+  goodBg:  "#17322A",
+  warn:    "#D9A441",
+  danger:  "#F08B86",
+  dangerBg:"#2A1518",
+  dangerLn:"#4A2328",
+};
+const dWrap   = { background: D.bg, minHeight: "100vh", padding: "48px 24px", fontFamily: "'DM Sans', sans-serif" };
+const dInner  = { maxWidth: 620, margin: "0 auto" };
+const dH2     = { fontFamily: "'DM Serif Display', serif", fontSize: 27, color: D.heading, margin: "0 0 6px", lineHeight: 1.25 };
+const dSub    = { fontSize: 13.5, color: D.muted, margin: "0 0 22px" };
+const dBody   = { fontSize: 14.5, color: D.body, lineHeight: 1.7, marginBottom: 18 };
+const dPanel  = { background: D.panel, border: `1px solid ${D.line}`, borderRadius: 12, padding: "20px 22px", marginBottom: 16 };
+const dLabel  = { fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1.2, color: D.muted, fontWeight: 700, marginBottom: 14 };
+const dPrimary= { background: D.accent, color: "#0E1626", border: "none", borderRadius: 9, padding: "15px 24px", fontSize: 15, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
+const dGhost  = { background: "transparent", color: D.body, border: `1px solid ${D.line}`, borderRadius: 9, padding: "13px 24px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
+const dQuiet  = { background: "none", color: D.muted, border: "none", padding: "10px 0 0", fontSize: 13.5, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%" };
+const dNote   = { fontSize: 12, color: D.muted, lineHeight: 1.55, marginTop: 12 };
+
+/** A label/value row, the unit both screens are built from. */
+function DRow({ label, value, strong, accent, size }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, padding: "9px 0", borderBottom: `1px solid ${D.line}` }}>
+      <span style={{ fontSize: 14, color: D.body }}>{label}</span>
+      <span style={{ fontSize: size || (strong ? 17 : 14.5), fontWeight: strong ? 700 : 500, color: accent || (strong ? D.heading : D.heading), whiteSpace: "nowrap" }}>{value}</span>
+    </div>
+  );
+}
+
+/** The position pill — green when the house is above its neighbours, which is
+ *  the case we can argue; neutral when it is not. */
+function DPill({ text, tone }) {
+  const tones = {
+    good:   { bg: D.goodBg,   fg: D.good },
+    danger: { bg: D.dangerBg, fg: D.danger },
+    flat:   { bg: D.panelAlt, fg: D.body },
+  };
+  const t = tones[tone] || tones.flat;
+  return (
+    <span style={{ background: t.bg, color: t.fg, borderRadius: 20, padding: "4px 11px", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap" }}>{text}</span>
+  );
+}
+
 function AnnouncementBar() {
   return (
     <div className="announcement-bar-inner" style={{ background: C.navy, color: C.white, textAlign: "center", padding: "10px 20px", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
@@ -1755,9 +1830,18 @@ function StepTexasCheck({ property, onEligible, onBack }) {
   }, [property.street, property.city, property.zip, retryNonce, pickedCounty]);
 
   const money = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : null);
-  const wrap = { maxWidth: 620, margin: '0 auto', padding: '48px 24px' };
-  const h2 = { fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 };
-  const body = { color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 };
+  const perSqft = (n) => (n ? `$${Number(n).toFixed(2)} / sq ft` : null);
+
+  /*
+    DARK, per the 18 Sept design. `wrap` wraps the whole viewport rather than a
+    card, so the page itself is dark rather than a dark box on a light page.
+  */
+  const wrap = { ...dWrap };
+  const h2 = { ...dH2 };
+  const body = { ...dBody };
+  const primaryBtn = dPrimary;      // shadows the module-level light buttons
+  const secondaryBtn = dQuiet;      // for the whole component, deliberately
+
 
   if (state.status === 'loading') {
     return (
@@ -1803,7 +1887,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             || 'We could not work out which county this address is in. Tell us and we will search that district\u2019s roll directly.'}
         </p>
 
-        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ background: D.panelAlt, border: `1px solid ${D.line}`, borderRadius: 10, padding: '14px 16px', marginBottom: 18, fontSize: 14, color: D.heading, fontFamily: "'DM Sans', sans-serif" }}>
           <strong>{[property.street, property.city, property.zip].filter(Boolean).join(', ')}</strong>
         </div>
 
@@ -1820,14 +1904,14 @@ function StepTexasCheck({ property, onEligible, onBack }) {
           </button>
         )}
 
-        <label htmlFor="tx-county-pick" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>
+        <label htmlFor="tx-county-pick" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: D.heading, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>
           {suggested ? 'No \u2014 it is in a different county' : 'County'}
         </label>
         <select
           id="tx-county-pick"
           defaultValue=""
           onChange={(e) => { if (e.target.value) { setState({ status: 'loading', data: null }); setPickedCounty(e.target.value); } }}
-          style={{ width: '100%', background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 7, padding: '12px 12px', fontSize: 15, color: C.darkNavy, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}
+          style={{ width: '100%', background: D.panelAlt, border: `1px solid ${D.line}`, borderRadius: 7, padding: '12px 12px', fontSize: 15, color: D.heading, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}
         >
           <option value="">Select your county&hellip;</option>
           {LOADED_COUNTY_NAMES.map((n) => (
@@ -1881,6 +1965,17 @@ function StepTexasCheck({ property, onEligible, onBack }) {
 
   const d = state.data || {};
   const p = d.parcel || {};
+
+  /** The county line under every heading, so the owner always knows which roll
+   *  this verdict came off. Declared HERE, after `d` and `p`: the loading and
+   *  no-parcel screens return above this point, and a component-top definition
+   *  would be callable from them with `d` still in its temporal dead zone. */
+  const SubHead = () => (
+    <div style={dSub}>
+      {[d.county ? `${d.county} Central Appraisal District` : null,
+        p.parcelId ? `Account ${p.parcelId}` : null].filter(Boolean).join('  \u00B7  ')}
+    </div>
+  );
   const rows = [
     ['District market value', money(d.marketValue)],
     ['You are taxed on', money(d.appraisedValue)],
@@ -1897,22 +1992,112 @@ function StepTexasCheck({ property, onEligible, onBack }) {
     per the 7 Sept decision that a caution informs rather than refuses.
   */
   if (!d.eligible) {
+    /*
+      ========================================================================
+      CAPPED BEYOND REACH — A CHART PROBLEM, NOT A COPY PROBLEM.
+      ========================================================================
+      The 18 Sept design's finding, verbatim from the doc: "$398,600 market,
+      $286,400 taxed" does not explain itself -- people cannot see why a
+      protest fails to help. What works is a three-bar scale with a dashed line
+      at the taxed value: the district's market value AND the best realistic
+      protest result both sit to the RIGHT of the line. Nothing a protest does
+      crosses it. One look, no arithmetic.
+
+      The screen this replaces had the same two numbers in a list and asked the
+      owner to do the comparison in their head.
+
+      REFRAMED AS GOOD NEWS, BECAUSE IT IS. They are paying tax on the gap less
+      than the district's own valuation, and most owners have no idea the s
+      23.23 cap is why. And the primary action is a free one -- the gap closes
+      if the market cools or the appraised value catches up, which is a
+      customer for a season when the product actually works.
+    */
+    const mkt = Number(d.marketValue) || 0;
+    const tax = Number(d.appraisedValue) || 0;
+    const optPct = 0.135;                       // a strong result, for scale only
+    const best = Math.round(mkt * (1 - optPct));
+    const scale = (v) => (mkt > 0 ? Math.max(6, Math.min(100, (v / mkt) * 100)) : 0);
+    const bar = (label, value, tone) => (
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, position: 'relative', height: 30 }}>
+            <div style={{ position: 'absolute', inset: 0, background: D.panelAlt, borderRadius: 5 }} />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${scale(value)}%`,
+              background: tone === 'danger' ? D.dangerBg : D.panelAlt,
+              border: `1px solid ${tone === 'danger' ? D.dangerLn : D.line}`, borderRadius: 5 }} />
+            <span style={{ position: 'absolute', left: 11, top: 7, fontSize: 12.5, color: D.body, whiteSpace: 'nowrap' }}>{label}</span>
+          </div>
+          <span style={{ fontSize: 13.5, color: D.heading, fontWeight: 600, width: 90, textAlign: 'right' }}>{money(value)}</span>
+        </div>
+      </div>
+    );
+
     return (
       <div style={wrap}>
-        <h2 style={h2}>A protest wouldn&rsquo;t lower your bill this year</h2>
-        <p style={body}>{d.capStatement || 'Your taxed value is held below the district’s market value, so a reduction would not reach your tax bill.'}</p>
-        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
-          {p.address ? <><strong>{p.address}</strong><br /></> : null}
-          {rows.map(([k, v]) => <div key={k}>{k}: {v}</div>)}
+        <div style={dInner}>
+          <h2 style={h2}>Don&rsquo;t file this year &mdash; it can&rsquo;t lower your bill</h2>
+          <SubHead />
+
+          <div style={dPanel}>
+            <div style={dLabel}>Why</div>
+            <DRow label="What the district says your home is worth" value={money(d.marketValue)} strong />
+            <DRow label="You&rsquo;re actually taxed on" value={money(d.appraisedValue)} strong />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', marginBottom: 14 }}>
+              <span style={{ fontSize: 14, color: D.body }}>The difference</span>
+              <DPill tone="danger" text={`${money(d.requiredReduction)} in your favour`} />
+            </div>
+
+            <div style={{ fontSize: 13, color: D.body, marginBottom: 10, lineHeight: 1.55 }}>
+              Your bill only moves if the value drops below the dashed line &mdash; and a protest can&rsquo;t get there:
+            </div>
+
+            {/* The dashed line sits at the TAXED value, which is the whole
+                argument. Both bars above it end to its right. */}
+            <div style={{ position: 'relative' }}>
+              {mkt > 0 && (
+                <div style={{ position: 'absolute', left: `calc(${scale(tax)}% - ${scale(tax) * 1.02}px)`, top: 0, bottom: 0,
+                  borderLeft: `1px dashed ${D.danger}`, opacity: 0.7, pointerEvents: 'none', zIndex: 2 }} />
+              )}
+              {bar("District's market value", mkt)}
+              {bar(`A strong ${(optPct * 100).toFixed(1)}% reduction`, best)}
+              {bar("What you're taxed on", tax, 'danger')}
+            </div>
+          </div>
+
+          <div style={{ ...dPanel, background: D.dangerBg, border: `1px solid ${D.dangerLn}` }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: D.danger, marginBottom: 8 }}>
+              A protest would not lower your tax bill this year.
+            </div>
+            <div style={{ fontSize: 13.5, color: "#E0B5B2", lineHeight: 1.65 }}>
+              {d.message || d.capStatement}
+            </div>
+          </div>
+
+          <p style={{ ...body, fontSize: 14 }}>
+            This is good news, and most people never see it. You&rsquo;re already paying tax on{' '}
+            {money(d.requiredReduction)} less than the district&rsquo;s own valuation. The cap is doing for you,
+            for free, what a protest would be trying to do.
+          </p>
+
+          <div style={dPanel}>
+            <div style={dLabel}>What we&rsquo;d actually suggest</div>
+            <p style={{ fontSize: 14.5, color: D.body, lineHeight: 1.7, margin: "0 0 16px" }}>
+              Nothing, this year. The gap closes if the market cools or your appraised value catches up &mdash; if
+              that happens, a protest starts working again. We&rsquo;ll watch it and write to you, at no charge.
+            </p>
+            {/* The no-sale still captures. A customer for a season when the
+                product actually works is worth more than an $89 refund. */}
+            <button style={{ ...dPrimary, marginBottom: 10 }} onClick={onBack}>
+              Email me if this changes &mdash; free
+            </button>
+            <button style={dGhost} onClick={onEligible}>
+              I understand it won&rsquo;t change my bill and I want to file anyway &mdash; ${TX_SERVICE_FEE}
+            </button>
+            <div style={{ ...dNote, textAlign: 'center' }}>We would rather tell you this than take the ${TX_SERVICE_FEE}.</div>
+          </div>
+
+          <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
         </div>
-        <p style={{ ...body, fontSize: 14 }}>
-          The homestead cap is already doing for you, for free, what a protest would be trying to do.
-          That changes if the market cools or your appraised value catches up — we re-read every roll.
-        </p>
-        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
-          File anyway — I understand it may not change my bill
-        </button>
-        <button style={secondaryBtn} onClick={onBack}>← Check a different property</button>
       </div>
     );
   }
@@ -1942,71 +2127,51 @@ function StepTexasCheck({ property, onEligible, onBack }) {
   if (d.evidence && d.evidence.hasCase === false) {
     return (
       <div style={wrap}>
-        <h2 style={h2}>We don&rsquo;t have a case for this one yet</h2>
-        <p style={body}>
-          We compared your house against {d.evidence.compCount || 'the'} similar properties in the
-          appraisal district&rsquo;s own neighbourhood. It is appraised at or below them, so there is
-          no over-appraisal to argue from the roll alone.
-        </p>
+        <div style={dInner}>
+          <h2 style={h2}>We don&rsquo;t have a case for this one yet</h2>
+          <SubHead />
 
-        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
-          {p.address ? <><strong>{p.address}</strong><br /></> : null}
-          <span style={{ color: C.mutedGray, fontSize: 13 }}>
-            {[d.county ? `${d.county} County` : null,
-              p.parcelId ? `Account ${p.parcelId}` : null,
-              p.livingArea ? `${Number(p.livingArea).toLocaleString()} sq ft` : null,
-              p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' \u00B7 ')}
-          </span>
-          <div style={{ marginTop: 10 }}>
-            {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+          <div style={dPanel}>
+            <div style={dLabel}>What the county&rsquo;s own roll shows</div>
+            <DRow label={`Your appraised value (${p.rollYear || d.taxYear || ''})`.trim()} value={money(d.appraisedValue)} />
+            {d.evidence?.medianPerSqft && (
+              <DRow label={`Median for ${d.evidence.compCount || 'similar'} similar homes nearby`} value={perSqft(d.evidence.medianPerSqft)} />
+            )}
+            {d.evidence?.medianPerSqft && d.evidence?.subjectPerSqft && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0' }}>
+                <span style={{ fontSize: 14, color: D.body }}>Your position</span>
+                <DPill tone="flat" text={`${Math.abs(((d.evidence.subjectPerSqft / d.evidence.medianPerSqft) - 1) * 100).toFixed(1)}% below the median`} />
+              </div>
+            )}
           </div>
-        </div>
 
-        <p style={{ ...body, fontSize: 14 }}>
-          That is not the whole test. The comparison above uses what the district already knows.
-          If something is wrong with the property it has never seen &mdash; foundation movement, a
-          failing roof, flooding, a busy road &mdash; that can bring the market value down even when
-          the neighbours cannot. Those are the next few questions, and they are free to answer.
-        </p>
-
-        {/*
-          AND IF THEY STILL WANT TO FILE, THEY FILE. We prepare documents; we do
-          not decide who may protest. Every Texas owner may file under s 41.41
-          whatever our comparison says, s 41.44(d) does not require an opinion of
-          value for the notice to be sufficient, and a protest preserves every
-          ground whether or not we found one today. Telling an owner we will not
-          help them would also be us acting on our own opinion of their
-          property's value, which is the one thing this service does not do.
-
-          So: the facts above, the limitation stated, and the decision theirs.
-        */}
-        {/*
-          BOTH FACTS WHEN BOTH ARE TRUE. Most no-case parcels are also below the
-          fee threshold -- all three low-value Denton parcels probed on 2 Oct
-          came back no-case AND saving_below_fee. This screen wins the ordering
-          because it is the more specific finding, so it has to carry the fee
-          point too rather than letting it go unsaid.
-        */}
-        {d.savingWarning === true && (
-          <p style={{ ...body, fontSize: 14 }}>
-            Separately: even a solid reduction on a property at this value would save less in tax
-            than the $89 it costs to file.
+          <p style={body}>
+            It is appraised at or below its neighbours, so there is no over-appraisal to argue from the
+            roll alone.
           </p>
-        )}
 
-        <p style={{ ...body, fontSize: 14 }}>
-          You can still file. A protest keeps every argument open, costs you nothing to keep on the
-          table, and you will see the finished document before anything is charged &mdash; we will
-          show you exactly what it does and does not claim.
-        </p>
+          {d.savingWarning === true && (
+            <p style={{ ...body, fontSize: 14 }}>
+              Separately: even a solid reduction on a property at this value would save less in tax
+              than the ${TX_SERVICE_FEE} it costs to file.
+            </p>
+          )}
 
-        <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>
-          Answer the condition questions
-        </button>
-        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
-          File anyway &mdash; I understand there may be no case
-        </button>
-        <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
+          <div style={dPanel}>
+            <div style={dLabel}>That is not the whole test</div>
+            <p style={{ fontSize: 14.5, color: D.body, lineHeight: 1.7, margin: "0 0 14px" }}>
+              The comparison above uses what the district already knows. If something is wrong with the
+              property it has never seen &mdash; foundation movement, a failing roof, flooding, a busy road &mdash;
+              that can bring the market value down even when the neighbours cannot. Those are the next few
+              questions, and they are free to answer.
+            </p>
+            <button style={{ ...dPrimary, marginBottom: 10 }} onClick={onEligible}>Answer the condition questions</button>
+            <button style={dGhost} onClick={onEligible}>File anyway &mdash; I understand there may be no case</button>
+            <div style={{ ...dNote, textAlign: 'center' }}>You will see the finished document before anything is charged.</div>
+          </div>
+
+          <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
+        </div>
       </div>
     );
   }
@@ -2049,123 +2214,130 @@ function StepTexasCheck({ property, onEligible, onBack }) {
   if (feeWarning) {
     return (
       <div style={wrap}>
-        <h2 style={h2}>We don&rsquo;t think this one is worth the fee</h2>
-        <p style={body}>
-          {d.estimateBasis === 'parcel' && d.estimatedSaving != null
-            ? `Your neighbours support a reduction worth about ${money(d.estimatedSaving)} a year — less than the $${TX_SERVICE_FEE} it costs to file.`
-            : (d.message || `A realistic reduction on this property would save less in tax than the $${TX_SERVICE_FEE} it costs to file.`)}
-        </p>
+        <div style={dInner}>
+          <h2 style={h2}>We don&rsquo;t think this one is worth the fee</h2>
+          <SubHead />
 
-        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
-          {p.address ? <><strong>{p.address}</strong><br /></> : null}
-          <span style={{ color: C.mutedGray, fontSize: 13 }}>
-            {[d.county ? `${d.county} County` : null,
-              p.parcelId ? `Account ${p.parcelId}` : null,
-              p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' \u00B7 ')}
-          </span>
-          <div style={{ marginTop: 10 }}>
-            {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+          <div style={dPanel}>
+            <div style={dLabel}>What the county&rsquo;s own roll shows</div>
+            <DRow label={`Your appraised value (${p.rollYear || d.taxYear || ''})`.trim()} value={money(d.appraisedValue)} />
+            {d.evidence?.medianPerSqft && (
+              <DRow label={`Median for ${d.evidence.compCount || 'similar'} similar homes nearby`} value={perSqft(d.evidence.medianPerSqft)} />
+            )}
+            {d.evidence?.requestedValue && (
+              <DRow label="Value we could ask for" value={money(d.evidence.requestedValue)} />
+            )}
+            {d.estimatedSaving != null && d.estimateBasis === 'parcel' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0' }}>
+                <span style={{ fontSize: 14, color: D.body }}>That is worth about</span>
+                <DPill tone="danger" text={`${money(d.estimatedSaving)} / year, against a $${TX_SERVICE_FEE} fee`} />
+              </div>
+            )}
           </div>
+
+          <p style={body}>
+            {d.estimateBasis === 'parcel' && d.estimatedSaving != null
+              ? `Your neighbours support a reduction worth about ${money(d.estimatedSaving)} a year — less than the $${TX_SERVICE_FEE} it costs to file.`
+              : (d.message || `A realistic reduction on this property would save less in tax than the $${TX_SERVICE_FEE} it costs to file.`)}
+          </p>
+          <p style={{ ...body, fontSize: 14 }}>
+            That estimate is a ceiling and it does not subtract your homestead exemptions, so the real
+            figure is likely lower still. We would rather say so now than take the fee.
+          </p>
+
+          <div style={dPanel}>
+            <div style={dLabel}>It is still your call</div>
+            <p style={{ fontSize: 14.5, color: D.body, lineHeight: 1.7, margin: "0 0 14px" }}>
+              If you want it filed, we will prepare it &mdash; and you will see the finished document before
+              anything is charged.
+            </p>
+            <button style={dGhost} onClick={onEligible}>
+              File anyway &mdash; I understand it may save less than it costs
+            </button>
+          </div>
+
+          <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
         </div>
-
-        <p style={{ ...body, fontSize: 14 }}>
-          That estimate is a ceiling and it does not subtract your homestead exemptions, so the real
-          figure is likely lower still. We would rather say so now than take the fee.
-        </p>
-
-        {/* Same reasoning as the no-case screen above: ours is an estimate, not
-            a decision. s 41.41 is the owner's right, not our gift. */}
-        <p style={{ ...body, fontSize: 14 }}>
-          It is still your call. If you want it filed, we will prepare it &mdash; and you will see the
-          finished document before anything is charged.
-        </p>
-
-        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
-          File anyway &mdash; I understand it may save less than it costs
-        </button>
-        <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
       </div>
     );
   }
 
+  /*
+    ==========================================================================
+    THE CASE, IN THE ORDER THE 18 SEPT DESIGN PUT IT.
+    ==========================================================================
+    What the county says -> what the neighbours are at -> where this house sits
+    -> what we will ask for -> what that is worth. Reasoning first, conclusion
+    last. The screen this replaced led with the conclusion and never showed the
+    median or the position, so the figure arrived unexplained.
+
+    `medianPerSqft` and `subjectPerSqft` come off the same comp set the
+    petition is built from -- see lib/tx/lookup.js. If they are missing the
+    rows simply do not render; nothing here invents a comparison.
+  */
+  const med = d.evidence?.medianPerSqft || null;
+  const subj = d.evidence?.subjectPerSqft || null;
+  const abovePct = med && subj ? ((subj / med) - 1) * 100 : null;
+
   return (
     <div style={wrap}>
-      <h2 style={h2}>This one is worth protesting</h2>
-      <p style={body}>{d.capStatement || 'You are taxed on the district’s full market value, so every dollar of reduction lowers your bill.'}</p>
+      <div style={dInner}>
+        <h2 style={h2}>This one is worth protesting</h2>
+        <SubHead />
 
-      <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
-        {p.address ? <><strong>{p.address}</strong><br /></> : null}
-        <span style={{ color: C.mutedGray, fontSize: 13 }}>
-          {[d.county ? `${d.county} County` : null,
-            p.parcelId ? `Account ${p.parcelId}` : null,
-            p.livingArea ? `${Number(p.livingArea).toLocaleString()} sq ft` : null,
-            p.yearBuilt ? `built ${p.yearBuilt}` : null,
-            p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' · ')}
-        </span>
-        <div style={{ marginTop: 10 }}>
-          {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+        <div style={dPanel}>
+          <div style={dLabel}>What the county&rsquo;s own roll shows</div>
+          <DRow label={`Your appraised value (${p.rollYear || d.taxYear || ''})`.trim()} value={money(d.appraisedValue)} />
+          {med && <DRow label={`Median for ${d.evidence?.compCount || 'similar'} similar homes nearby`} value={perSqft(med)} />}
+          {abovePct !== null && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', borderBottom: `1px solid ${D.line}` }}>
+              <span style={{ fontSize: 14, color: D.body }}>Your position</span>
+              <DPill tone={abovePct > 0 ? 'good' : 'flat'}
+                text={abovePct > 0 ? `${abovePct.toFixed(1)}% above the median` : `${Math.abs(abovePct).toFixed(1)}% below the median`} />
+            </div>
+          )}
+          {d.evidence?.requestedValue && (
+            <DRow label="Value we will ask for" value={money(d.evidence.requestedValue)} strong accent={D.accent} size={24} />
+          )}
+          {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
+            <DRow label={`If ${(Number(p.rollYear || d.taxYear) || 2026) + 1} rates match ${p.rollYear || d.taxYear || 'this year'}, that&rsquo;s about`}
+              value={`${money(d.estimatedSaving)} / year`} strong />
+          )}
+
+          {/*
+            THE CEILING, BESIDE THE FIGURE, NEVER BELOW THE FOLD. Unchanged in
+            substance from 1 Oct: a statewide rate, exemptions not yet
+            subtracted per taxing unit, and the board granting the full ask.
+          */}
+          {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
+            <div style={dNote}>
+              Tax figure is an estimate. Next year&rsquo;s rates are not adopted until the autumn and it does
+              not yet subtract your exemptions per taxing unit &mdash; so treat it as a ceiling, not a promise.
+            </div>
+          )}
         </div>
+
+        {/* The fee against the figure, and the fact that makes it recur. No
+            multiplier is printed -- the Ownwell claim shape. */}
+        {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
+          <div style={{ ...dPanel, background: D.goodBg, border: `1px solid #1F4A38` }}>
+            <div style={{ fontSize: 14.5, color: "#CDE9DA", lineHeight: 1.7 }}>
+              <strong style={{ color: D.good }}>Texas lets you protest every year.</strong>{' '}
+              Hold that reduction and it is about <strong style={{ color: D.good }}>{money(d.estimatedSaving * 5)} over five years</strong>.
+              Your cost to file is <strong style={{ color: D.good }}>${TX_SERVICE_FEE}</strong>.
+            </div>
+          </div>
+        )}
+
+        <p style={{ ...body, fontSize: 14 }}>
+          Next we ask about anything wrong with the property the district may not know &mdash; foundation,
+          roof, flooding, a busy road. Those become evidence attached to your protest. Skip them if
+          there is nothing to report.
+        </p>
+
+        <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>Continue</button>
+        <button style={secondaryBtn} onClick={onBack}>&larr; Not my property</button>
       </div>
-
-      {/*
-        THE FIGURE, AND WHY IT IS ALLOWED TO BE THIS LOUD. Rebuilt 1 Oct 2026.
-        =====================================================================
-        Two things changed and only together do they justify the size of it.
-
-        1. IT IS THIS HOUSE'S NUMBER NOW. `estimateBasis === 'parcel'` means
-           /api/check ran the comp ladder and this is the reduction we will
-           actually ask the board for, off the same packet field the case-built
-           screen reads. Before, it was a district rate -- 2.9x low here, and
-           invented on a house with no case at all.
-
-        2. AMBER WAS WORKING AGAINST IT. #FFF8E6 with a #6B5618 body is the
-           caution palette used elsewhere in this file for cost-to-cure warnings
-           and deadline notices. It was carrying the single best piece of news
-           on the page. Gain reads green.
-
-        THE MULTI-YEAR LINE. Nathan's call, 1 Oct. It is arithmetic on one
-        figure, stated as a condition ("hold that reduction") rather than a
-        forecast, and it is rendered ONLY when estimateBasis is 'parcel'. On a
-        district median it would be the Ownwell claim shape -- a projection built
-        on a statistic the owner is not in. There is a guard on that.
-
-        NO MULTIPLIER IS PRINTED against the fee. The fee and the figure sit next
-        to each other and the reader does their own arithmetic, which is the same
-        point made honestly.
-      */}
-      {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
-        <div style={{ background: '#F0F8F3', border: `1px solid #BFE0CD`, borderLeft: `4px solid ${C.green}`, borderRadius: 10, padding: '18px 20px', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
-          <div style={{ fontSize: 34, lineHeight: 1.1, fontWeight: 700, color: C.green, letterSpacing: '-0.5px' }}>
-            {money(d.estimatedSaving)}<span style={{ fontSize: 17, fontWeight: 600 }}> a year</span>
-          </div>
-          <div style={{ fontSize: 13.5, color: '#2F4F3E', marginTop: 6, lineHeight: 1.6 }}>
-            Based on {d.evidence?.compCount ? `${d.evidence.compCount} comparable properties` : 'comparable properties'} in
-            your own neighbourhood, from {d.county ? `${d.county} County` : 'the appraisal district'}&rsquo;s own roll &mdash;
-            not an average, and not our opinion.
-          </div>
-
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #D6EADF', fontSize: 14, color: C.darkNavy, lineHeight: 1.7 }}>
-            <strong>Texas lets you protest every year.</strong> Hold that reduction and it is about{' '}
-            <strong>{money(d.estimatedSaving * 5)} over five years</strong>. Your cost to file is <strong>$89</strong>.
-          </div>
-
-          <div style={{ marginTop: 12, fontSize: 11.5, color: '#5C7A69', lineHeight: 1.55 }}>
-            A ceiling, not a promise. It assumes the board grants the full reduction we ask for and uses
-            a statewide tax rate &mdash; next year&rsquo;s rates are not adopted until the autumn &mdash; and it does not
-            subtract your homestead exemptions, so your own figure will be lower. The five-year line
-            assumes the reduction holds and is not a forecast of future rates.
-          </div>
-        </div>
-      )}
-
-      <p style={{ ...body, fontSize: 14 }}>
-        Next we ask about anything wrong with the property the district may not know — foundation,
-        roof, flooding, a busy road. Those become evidence attached to your protest. Skip them if
-        there is nothing to report.
-      </p>
-
-      <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>Continue</button>
-      <button style={secondaryBtn} onClick={onBack}>← Not my property</button>
     </div>
   );
 }
@@ -4722,132 +4894,190 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
    * sufficient on owner, property and dissatisfaction alone.
    */
   if (txReview) {
-    const fmtUsd = (v) => (v || v === 0 ? `$${Number(v).toLocaleString()}` : '—');
-    const rows = [
-      ['District market value', txReview.marketValue],
-      ['You are taxed on', txReview.appraisedValue],
-      txReview.isCapped ? ['Capped below market by', txReview.requiredReduction] : null,
-      txReview.isCapped ? ['Your bill only changes below', txReview.breakEvenMarketValue] : null,
-      txReview.requestedValue ? ['We would ask the board for', txReview.requestedValue] : null,
-    ].filter((r) => r && Number.isFinite(Number(r[1])) && Number(r[1]) > 0);
+    /*
+      ==========================================================================
+      REVIEW AND SIGN — built to the 18 Sept design, 2 Oct 2026.
+      ==========================================================================
+      Two states, as the mockups had them:
+
+        CLEAN     "Review your protest, then sign it"
+        CAUTIONS  "Your protest is ready — N things to know first"
+
+      It also stays the CONFIRMATION screen it became on 15 Sept: the district
+      is chosen by the geocoder and used as an .eq() filter on the roll, so a
+      miss in a metro where street names repeat can return a real parcel
+      belonging to somebody else. Every packet stops here, clean or not.
+
+      WHAT THE DESIGN ADDED that the shipped screen never had: the median
+      $/sq ft, the position against it, and the ask as the hero figure. The old
+      screen printed market value, taxed value and the ask as four equal rows —
+      the conclusion with none of the reasoning, which is the same defect the
+      step-1 screen had.
+
+      CAUTION CODES ARE RENDERED. The design shows `cap_artifact_only` and
+      `insufficient_comparables` under their text. They look technical because
+      they are: they are the words a customer can quote back to us, and they
+      are what a support reply can be keyed to.
+    */
+    const fmtUsd = (v) => (v || v === 0 ? `$${Number(v).toLocaleString()}` : '\u2014');
+    const fmtSqft = (v) => (v ? `$${Number(v).toFixed(2)} / sq ft` : null);
+    const nCautions = (txReview.cautions || []).length;
+    const rMed = txReview.medianPerSqft || null;
+    const rSubj = txReview.subjectPerSqft || null;
+    const rAbove = rMed && rSubj ? ((rSubj / rMed) - 1) * 100 : null;
+    const nextYear = (Number(txReview.taxYear) || 2026) + 1;
 
     return (
-      <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 24px" }}>
-        <div style={cardStyle}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-            Is this your property?
+      <div style={dWrap}>
+        <div style={{ ...dInner, maxWidth: 660 }}>
+          <h2 style={dH2}>
+            {nCautions === 0
+              ? 'Review your protest, then sign it'
+              : `Your protest is ready \u2014 ${nCautions === 1 ? 'one thing' : `${nCautions} things`} to know first`}
           </h2>
-
-          {/*
-            THE RECORD WE MATCHED, IN THE OWNER'S OWN TERMS.
-            They cannot reliably confirm "Harris" — most people do not know their
-            appraisal district. They can confirm their square footage and what the
-            district says their house is worth.
-          */}
-          <div style={{ background: "#F5F8FC", border: `1px solid ${C.border}`, borderRadius: 8, padding: "16px 18px", marginBottom: 16 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>
-              {txReview.county ? `${txReview.county} County appraisal roll` : 'Appraisal roll'}
-            </div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: C.darkNavy, fontWeight: 600, marginBottom: 4 }}>
-              {txReview.situsAddress || addr}
-            </div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bodyGray }}>
-              {[
-                txReview.accountNumber ? `Account ${txReview.accountNumber}` : null,
-                txReview.livingArea ? `${Number(txReview.livingArea).toLocaleString()} sq ft` : null,
-                txReview.yearBuilt ? `built ${txReview.yearBuilt}` : null,
-              ].filter(Boolean).join('  ·  ')}
-            </div>
+          <div style={dSub}>
+            {[txReview.county ? `${txReview.county} Central Appraisal District` : null,
+              txReview.accountNumber ? `Account ${txReview.accountNumber}` : null].filter(Boolean).join('  \u00B7  ')}
           </div>
 
-          {txPickCounty && (
-            <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: "14px 16px", marginBottom: 16 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.6, color: C.bodyGray, marginTop: 0, marginBottom: 10 }}>
-                We work out your county from the address, and it can be wrong where a
-                city crosses a county line. Pick the county your property is actually in
-                and we will search that district&rsquo;s roll instead.
-              </p>
-              <select
-                disabled={txPicking}
-                defaultValue=""
-                onChange={(e) => e.target.value && retryTxWithCounty(e.target.value)}
-                style={{ width: "100%", background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "11px 12px", fontSize: 15, color: C.darkNavy }}
-              >
-                <option value="">{txPicking ? 'Searching…' : 'Select your county…'}</option>
-                {LOADED_COUNTY_NAMES.map((n) => (
-                  <option key={n} value={n}>{n} County</option>
-                ))}
-              </select>
-              {txPickError && (
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.6, color: C.red, marginTop: 10, marginBottom: 0 }}>
-                  {txPickError}
-                </p>
-              )}
+          {/* The record we matched, in the owner's own terms. They cannot
+              reliably confirm "Harris" — most people do not know their
+              appraisal district. They can confirm their square footage and
+              what the district says the house is worth. */}
+          <div style={dPanel}>
+            <div style={dLabel}>What the county&rsquo;s own roll shows</div>
+            <div style={{ fontSize: 15.5, color: D.heading, fontWeight: 600, marginBottom: 2 }}>
+              {txReview.situsAddress || addr}
             </div>
-          )}
-
-          {txReview.cautions.length > 0 && (
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
-              Your protest is ready to file. There {txReview.cautions.length === 1 ? 'is one thing' : `are ${txReview.cautions.length} things`}{' '}
-              about it you should know first.
-            </p>
-          )}
-
-          {txReview.cautions.map((c) => (
-            <div key={c.code} style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: "14px 16px", marginBottom: 12 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, margin: 0 }}>
-                {c.message}
-              </p>
+            <div style={{ fontSize: 12.5, color: D.muted, marginBottom: 14 }}>
+              {[txReview.livingArea ? `${Number(txReview.livingArea).toLocaleString()} sq ft` : null,
+                txReview.yearBuilt ? `built ${txReview.yearBuilt}` : null].filter(Boolean).join('  \u00B7  ')}
             </div>
-          ))}
 
-          {rows.length > 0 && (
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, margin: "18px 0" }}>
-              {rows.map(([label, value]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
-                  <span>{label}</span><strong style={{ color: C.darkNavy }}>{fmtUsd(value)}</strong>
+            <DRow label={`Your appraised value (${txReview.taxYear || ''})`.trim()} value={fmtUsd(txReview.appraisedValue)} />
+            {rMed && <DRow label={`Median for ${txReview.compCount || 'similar'} similar homes nearby`} value={fmtSqft(rMed)} />}
+            {rAbove !== null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', borderBottom: `1px solid ${D.line}` }}>
+                <span style={{ fontSize: 14, color: D.body }}>Your position</span>
+                <DPill tone={rAbove > 0 ? 'good' : 'flat'}
+                  text={rAbove > 0 ? `${rAbove.toFixed(1)}% above the median` : `${Math.abs(rAbove).toFixed(1)}% below the median`} />
+              </div>
+            )}
+            {/* CAPPED OWNERS SEE THE CAP HERE TOO. s 23.23 holds the taxed
+                value below market, so the ask has to clear the whole gap
+                before a dollar reaches the bill. Dropping these rows in the
+                redesign left marketValue, requiredReduction, breakEvenMarketValue
+                and isCapped unread -- caught by verify-tx-dispatch, which
+                asserts every field the route sends is consumed. */}
+            {txReview.isCapped && (
+              <>
+                <DRow label="District market value" value={fmtUsd(txReview.marketValue)} />
+                <DRow label="Capped below market by" value={fmtUsd(txReview.requiredReduction)} />
+                <DRow label="Your bill only changes below" value={fmtUsd(txReview.breakEvenMarketValue)} />
+              </>
+            )}
+            {txReview.requestedValue > 0 && (
+              <DRow label="Value we will ask for" value={fmtUsd(txReview.requestedValue)} strong accent={D.accent} size={25} />
+            )}
+            {txReview.estimatedSaving > 0 && (
+              <DRow label={`If ${nextYear} rates match ${txReview.taxYear || 'this year'}, that&rsquo;s about`}
+                value={`${fmtUsd(txReview.estimatedSaving)} / year`} strong />
+            )}
+            {txReview.estimatedSaving > 0 && (
+              <div style={dNote}>
+                Tax figure is an estimate. {nextYear} rates aren&rsquo;t adopted until the autumn, and it does not
+                yet subtract your exemptions per taxing unit &mdash; so treat it as a ceiling, not a promise.
+              </div>
+            )}
+          </div>
+
+          {/* ORDER MATTERS — the 18 Sept decision. The subtle ones lead:
+              cap_artifact_only first, because an owner needs telling that
+              their case rests on the neighbours being capped rather than on
+              them being over-appraised. */}
+          {nCautions > 0 && (
+            <div style={dPanel}>
+              <div style={dLabel}>{nCautions === 1 ? 'One thing to know' : `${nCautions} things to know`}</div>
+              {txReview.cautions.map((c, idx) => (
+                <div key={c.code} style={{ display: 'flex', gap: 12, paddingBottom: 16, marginBottom: 16, borderBottom: idx < nCautions - 1 ? `1px solid ${D.line}` : 'none' }}>
+                  <div style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 11, background: D.panelAlt, border: `1px solid ${D.warn}`, color: D.warn, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, lineHeight: 1.7, color: D.body, margin: "0 0 7px" }}>{c.message}</p>
+                    <code style={{ fontSize: 11.5, color: D.muted, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+                      {c.code}{txReview.confidence ? `  \u00B7  confidence: ${txReview.confidence}` : ''}
+                    </code>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 18 }}>
-            {txReview.compCount > 0
-              ? `Built from ${txReview.compCount} comparable ${txReview.compCount === 1 ? 'property' : 'properties'} on `
-              : 'Drawn from '}
-            {txReview.county ? `${txReview.county} Central Appraisal District's` : "the appraisal district's"}{' '}
-            own {txReview.taxYear} appraisal roll. You haven&rsquo;t been charged yet, and the
-            decision to file is yours — every Texas owner has the right to protest their own
-            appraisal whatever we think of the evidence.
-          </p>
+          {/*
+            THE CONDITION ROUTE, KEPT. Restored after the 2 Oct redesign dropped
+            it and verify-tx-dispatch reported `issuesUntried` unread.
 
-          {txReview.issuesUntried && onAddIssues && (
-            <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 12 }}>
-                <strong>The roll describes a house in average condition.</strong> It does not know
-                about a failed roof, a dead air conditioner or an original kitchen. What those cost
-                to put right is evidence the district has not accounted for.
+            It is the one thing an owner can add that we cannot: the district
+            priced this house from the outside. A weak comp case plus a failed
+            roof is a different petition, and this is the only screen where
+            that is still addable.
+          */}
+          {txReview.issuesUntried && (
+            <div style={dPanel}>
+              <div style={dLabel}>Anything wrong with the property?</div>
+              <p style={{ fontSize: 14.5, lineHeight: 1.7, color: D.body, margin: "0 0 14px" }}>
+                The district priced this house without going inside it. It knows nothing about a failed
+                roof, a dead air conditioner or an original kitchen. What those cost to put right is
+                evidence it has not accounted for &mdash; and it strengthens the petition above.
               </p>
-              <button style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }} onClick={onAddIssues}>
-                Tell us what&rsquo;s wrong with the property →
+              <button style={dGhost} onClick={() => onAddIssues(true)}>
+                Tell us what&rsquo;s wrong with the property &rarr;
               </button>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <button style={{ ...primaryBtn, width: "auto", padding: "12px 24px" }}
-              onClick={() => applyTxPacket(txReview)}>
-              Yes, that&rsquo;s my property →
+          {txPickCounty && (
+            <div style={dPanel}>
+              <div style={dLabel}>Not your property?</div>
+              <p style={{ fontSize: 14, lineHeight: 1.65, color: D.body, margin: "0 0 12px" }}>
+                We work out your county from the address, and it can be wrong where a city crosses a
+                county line. Pick the county your property is actually in and we will search that
+                district&rsquo;s roll instead.
+              </p>
+              <select
+                disabled={txPicking}
+                defaultValue=""
+                onChange={(e) => e.target.value && retryTxWithCounty(e.target.value)}
+                style={{ width: "100%", background: D.panelAlt, border: `1px solid ${D.line}`, borderRadius: 7, padding: "12px", fontSize: 15, color: D.heading }}
+              >
+                <option value="">{txPicking ? 'Searching\u2026' : 'Select your county\u2026'}</option>
+                {LOADED_COUNTY_NAMES.map((n) => (
+                  <option key={n} value={n}>{n} County</option>
+                ))}
+              </select>
+              {txPickError && (
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, color: D.danger, marginTop: 10, marginBottom: 0 }}>{txPickError}</p>
+              )}
+            </div>
+          )}
+
+          <div style={dPanel}>
+            <button style={{ ...dPrimary, marginBottom: 10 }} onClick={() => applyTxPacket(txReview)}>
+              {nCautions === 0 ? `Sign and continue to payment \u2014 $${TX_SERVICE_FEE}` : `I\u2019ve read these \u2014 sign and continue to payment \u2014 $${TX_SERVICE_FEE}`}
             </button>
+            <div style={{ ...dNote, textAlign: 'center', marginTop: 0, marginBottom: 14 }}>
+              {nCautions === 0
+                ? 'Nothing on this packet gave us pause.'
+                : 'We\u2019ll record what you were shown here alongside your order.'}
+              {' '}The decision to file is yours.
+            </div>
             {!txPickCounty && (
-              <button style={{ ...secondaryBtn, width: "auto", padding: "11px 22px" }}
-                onClick={() => setTxPickCounty(true)}>
+              <button style={{ ...dGhost, marginBottom: 10 }} onClick={() => setTxPickCounty(true)}>
                 That&rsquo;s not my property
               </button>
             )}
-            <button style={{ ...secondaryBtn, width: "auto", padding: "11px 22px" }} onClick={onRestart}>
-              Not this year
-            </button>
+            <button style={dQuiet} onClick={onRestart}>Not this year</button>
           </div>
         </div>
       </div>
