@@ -506,6 +506,47 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
 
   /*
     ======================================================================
+    THE SECOND CALLER HAD THE SAME DEFECT, AND IT REACHED STEP 4.
+    ======================================================================
+    /api/check was fixed for the stateless zip-centroid on 2 Oct.
+    /api/generate-50132 was not, and it resolves the county independently.
+    640 Orchid Hill Ln, Copper Canyon cleared three screens and then showed
+    "Lookup failed / not_texas" on a Denton property -- because the customer
+    had already confirmed Denton and this route asked the geocoder again.
+
+    Two properties now hold: the confirmed county TRAVELS, and a route that
+    cannot place an address ASKS in the same vocabulary /api/check uses.
+  */
+  t('the packet route accepts the county the owner already confirmed',
+    /coveredCadFromName\(b\.county\.trim\(\)\)/.test(api));
+  t('and a stateless centroid asks rather than claiming not_texas',
+    /place\?\.found && place\.county && !place\.state/.test(api)
+    && /error: 'county_unresolved'/.test(api));
+  // Both call sites: the preview and the filing. A preview resolved differently
+  // from the document it previews is the 1 Oct defect over again.
+  t('the funnel carries the confirmed county into both packet calls',
+    (applyCode.match(/county: property\.county \|\| undefined,/g) || []).length >= 2);
+
+  /*
+    AND NO CUSTOMER READS A MACHINE CODE. Every throw in run() put the API's
+    own token into errMsg, and errMsg renders verbatim -- "not_texas", in a red
+    box, under "Lookup failed", at step 4 of 4, on a Texas house.
+  */
+  t('error codes are mapped to sentences before they reach the screen',
+    /const TX_ERROR_COPY = Object\.freeze\(/.test(applyCode)
+    && /friendlyTxError/.test(applyCode));
+  t('an unknown code falls back to a sentence rather than printing the token',
+    /\|\| 'We could not prepare the protest for this property/.test(applyCode));
+  t('a county-fixable failure opens the picker instead of a dead Try Again',
+    /COUNTY_FIXABLE/.test(applyCode) && /setTxPickCounty\(true\)/.test(applyCode));
+  t('and the picker is reachable without a successful lookup first',
+    /if \(txPickCounty && !txReview\)/.test(applyCode));
+  for (const code of ['not_texas', 'county_unresolved', 'no_parcel', 'ambiguous']) {
+    t(`"${code}" has customer-facing copy`, new RegExp(`${code}:\\s*'`).test(applyCode));
+  }
+
+  /*
+    ======================================================================
     WE PREPARE DOCUMENTS. WE DO NOT DECIDE WHO MAY PROTEST.
     ======================================================================
     Nathan, 2 Oct: "we still have to let them proceed if they would like, we

@@ -415,6 +415,63 @@ t('Florida is servable to begin with', !SERVING_FROM.FL, SERVING_FROM.FL);
   }
 }
 
+/**
+ * ===========================================================================
+ * SECTION D — THE DEADLINE MOVES OFF A WEEKEND WHERE THE STATUTE MOVES IT.
+ * ===========================================================================
+ * Tex. Tax Code s 1.06: an act due on a Saturday, Sunday or legal holiday is
+ * timely on the next regular business day. FILING_WINDOWS.TX says hardDay 15
+ * flat, which is right for 2026 (a Friday) and wrong for the first season we
+ * sell into: 15 May 2027 is a SATURDAY and the deadline is Monday the 17th.
+ *
+ * Closing early is the safe direction for correctness and the expensive one
+ * for revenue -- the last 48 hours before a tax deadline are when late filers
+ * file. Both are reasons to get the date right rather than approximately
+ * right.
+ */
+{
+  const { observedDeadline, WEEKEND_SHIFT_STATES, getFilingWindowStatus } =
+    await import('../lib/filingWindows.js');
+  const d = (y, m, day) => new Date(y, m - 1, day);
+  const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+
+  t('TX is on the weekend-shift list with its statute named',
+    WEEKEND_SHIFT_STATES.TX && /1\.06/.test(WEEKEND_SHIFT_STATES.TX));
+
+  t('a Saturday deadline moves to the Monday', iso(observedDeadline('TX', d(2027, 5, 15))) === '2027-05-17',
+    iso(observedDeadline('TX', d(2027, 5, 15))));
+  t('a Sunday deadline moves to the Monday', iso(observedDeadline('TX', d(2027, 5, 16))) === '2027-05-17',
+    iso(observedDeadline('TX', d(2027, 5, 16))));
+  for (const [y, day] of [[2026, 15], [2028, 15], [2029, 15], [2030, 15]]) {
+    const got = iso(observedDeadline('TX', d(y, 5, day)));
+    t(`a weekday deadline is untouched (${y})`, got === `${y}-05-${day}`, got);
+  }
+
+  // A state we have NOT verified must not be silently extended. Georgia and
+  // Florida probably have an equivalent rule; neither has been read.
+  for (const st of ['GA', 'FL', 'AL', 'AR']) {
+    t(`${st} is not shifted on an unverified assumption`,
+      iso(observedDeadline(st, d(2027, 9, 18))) === '2027-09-18');
+  }
+  t('an unknown state is returned unchanged',
+    iso(observedDeadline('ZZ', d(2027, 5, 15))) === '2027-05-15');
+  t('a null date does not throw', observedDeadline('TX', null) === null);
+
+  // And the status object itself must carry the moved date, not just the
+  // helper -- the helper being right and unused is the 30 Sept failure mode.
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const nodePath = await import('node:path');
+  const here = nodePath.dirname(fileURLToPath(import.meta.url));
+  const src = readFileSync(nodePath.join(here, '..', 'lib/filingWindows.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  t('getFilingWindowStatus builds hardDeadline through observedDeadline',
+    /hardDeadline = observedDeadline\(stateCode,/.test(src));
+  t('and nothing else constructs a raw hard deadline',
+    !/hardDeadline = new Date\(year, hardMonth/.test(src));
+  t('getFilingWindowStatus still answers for TX', !!getFilingWindowStatus('TX', null));
+}
+
 // ---------------------------------------------------------------------------
 console.log(`\nverify-waitlist-notify: ${pass} passed, ${failures.length} failed`);
 if (failures.length) {

@@ -3907,6 +3907,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
    * picker, where it was written to appear.
    */
   const [txPickError, setTxPickError] = useState("");
+  // The county the geocoder suggested but could not confirm, so the rescue
+  // picker can pre-select it instead of making them search the list.
+  const [txCountyRescue, setTxCountyRescue] = useState(null);
 
   /**
    * Move a Texas packet into propData and show it.
@@ -4067,6 +4070,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           body: JSON.stringify({
             preview: true,
             street: addr, city: property.city || '', zip: property.zip || '',
+            // Same county as the filing. A preview resolved differently from
+            // the document it previews is the defect found on 1 Oct, again.
+            county: property.county || undefined,
             taxYear: j.taxYear || undefined,
             owner: {
               name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
@@ -4108,6 +4114,38 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
    * in the larger type was the wrong one.
    */
   const [errTransient, setErrTransient] = useState(false);
+
+/**
+ * ERROR CODES ARE FOR US. SENTENCES ARE FOR THE CUSTOMER.
+ * ==========================================================================
+ * Added 2 Oct 2026. Nathan, testing 640 Orchid Hill Ln, got a screen reading
+ * "Lookup failed" over a red box containing the single word `not_texas`, on a
+ * Texas property, at step 4 of 4, after three screens had succeeded.
+ *
+ * Every `throw new Error(j?.error || ...)` in run() puts the API's machine
+ * code straight into errMsg, and errMsg is rendered verbatim. That has been
+ * true for every failure this funnel can reach, not just this one -- the codes
+ * are short, lowercase and look like a crash.
+ *
+ * Unknown codes still fall through to a generic sentence rather than being
+ * printed, because an unrecognised code is exactly the case where we do not
+ * know what to tell someone, and the raw token tells them nothing either.
+ */
+const TX_ERROR_COPY = Object.freeze({
+  not_texas: 'We could not confirm which county this property is in, so we have not prepared the protest yet. Pick your county below and we will search that district\u2019s roll.',
+  county_unresolved: 'We could not work out which county this property is in \u2014 usually a rural route, a new subdivision, or a city that crosses a county line. Pick your county below and we will search that district\u2019s roll.',
+  not_covered: 'We do not yet hold the appraisal roll for that county, so we cannot prepare a protest for it today.',
+  no_parcel: 'We could not find this address on that county\u2019s roll. That is usually a unit number or a street-name spelling \u2014 or the wrong county.',
+  ambiguous: 'That address matched more than one parcel on the roll, so we have not guessed which one is yours.',
+  lookup_failed: 'The county lookup did not respond. This is on our side, not yours.',
+  no_database: 'The county lookup did not respond. This is on our side, not yours.',
+});
+const friendlyTxError = (code) => TX_ERROR_COPY[code]
+  || 'We could not prepare the protest for this property. This is on our side, not yours.';
+// A failure the owner can clear by naming their county, rather than by retrying
+// the thing that just failed deterministically.
+const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parcel', 'ambiguous']);
+
   const ran = useRef(false);
   const { account, property, issues, costOverrides } = formData;
   const addr = `${property.street}, ${property.city}, ${property.state} ${property.zip}`;
@@ -4501,6 +4539,11 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             street: addr,
             city: property.city || '',
             zip: property.zip || '',
+            // THE COUNTY THE OWNER ALREADY SETTLED. Without it this route asks
+            // the geocoder again and discards a zip-centroid answer, which is
+            // how 640 Orchid Hill Ln reached the dispute step and died on
+            // "not_texas" after the customer had confirmed Denton at step 1.
+            county: property.county || undefined,
             taxYear: Number(taxYear) || undefined,
             owner: {
               firstName: account.firstName,
@@ -4515,7 +4558,21 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
           }),
         });
         const txJson = await txRes.json();
-        if (!txRes.ok) throw new Error(txJson?.error || 'Could not prepare the Texas protest');
+        if (!txRes.ok) {
+          const code = txJson?.error || '';
+          // Not a dead end when the owner can fix it by naming their county.
+          // retryTxWithCounty posts a cadId directly and bypasses the geocoder
+          // entirely, so it is the exact remedy for every code in this list.
+          if (COUNTY_FIXABLE.includes(code)) {
+            setErrTransient(false);
+            setErrMsg(friendlyTxError(code));
+            setTxCountyRescue(txJson?.suggestedCounty || null);
+            setTxPickCounty(true);
+            setLoading(false);
+            return;
+          }
+          throw new Error(friendlyTxError(code));
+        }
 
         /**
          * CAUTIONS PAUSE THE FLOW. THEY NEVER END IT.
@@ -4792,6 +4849,81 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
               Not this year
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+    ==========================================================================
+    THE COUNTY RESCUE SCREEN. 2 Oct 2026.
+    ==========================================================================
+    The picker already existed and was reachable from exactly one place: the
+    "Is this your property?" review screen, which only renders after a lookup
+    SUCCEEDS. So the one situation where a customer most needs to name their
+    county -- the lookup just failed because we could not work the county out
+    -- was the one situation the picker could not be reached from.
+
+    640 Orchid Hill Ln landed on "Lookup failed / not_texas" with a Try Again
+    button that would deterministically fail again, and a Start over button
+    that throws away four screens of their work.
+
+    retryTxWithCounty posts a cadId straight to the route and never consults
+    the geocoder, so it is the actual remedy. This screen is the way in.
+  */
+  if (txPickCounty && !txReview) {
+    const rescue = txCountyRescue && LOADED_COUNTY_NAMES.includes(txCountyRescue)
+      ? txCountyRescue : null;
+    return (
+      <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+        <div style={cardStyle}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10 }}>
+            {rescue ? `Is this property in ${rescue} County?` : "Which county is this property in?"}
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14.5, lineHeight: 1.7, color: C.bodyGray, marginTop: 0, marginBottom: 16 }}>
+            {errMsg}
+          </p>
+          <div style={{ background: C.bg, borderRadius: 8, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
+            <strong>{addr}</strong>
+          </div>
+
+          {rescue && (
+            <button
+              style={{ ...primaryBtn, marginBottom: 12 }}
+              disabled={txPicking}
+              onClick={() => retryTxWithCounty(rescue)}
+            >
+              {txPicking ? "Searching\u2026" : `Yes \u2014 it is in ${rescue} County`}
+            </button>
+          )}
+
+          <label htmlFor="tx-county-rescue" style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>
+            {rescue ? "No \u2014 it is in a different county" : "County"}
+          </label>
+          <select
+            id="tx-county-rescue"
+            disabled={txPicking}
+            defaultValue=""
+            onChange={(e) => e.target.value && retryTxWithCounty(e.target.value)}
+            style={{ width: "100%", background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 7, padding: "12px", fontSize: 15, color: C.darkNavy, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}
+          >
+            <option value="">{txPicking ? "Searching\u2026" : "Select your county\u2026"}</option>
+            {LOADED_COUNTY_NAMES.map((n) => (
+              <option key={n} value={n}>{n} County</option>
+            ))}
+          </select>
+
+          {txPickError && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, lineHeight: 1.6, color: C.red, marginTop: 0, marginBottom: 14 }}>
+              {txPickError}
+            </p>
+          )}
+
+          {/* Their answers are not thrown away by asking. Start over is still
+              offered, de-emphasised, because it costs them four screens. */}
+          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>
+            &larr; Start over
+          </button>
         </div>
       </div>
     );

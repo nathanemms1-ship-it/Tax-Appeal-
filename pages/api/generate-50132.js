@@ -83,10 +83,51 @@ export default async function handler(req, res) {
     }
     try {
       const place = await resolveCounty({ street, city: b.city, zip: b.zip });
-      if (!place?.found || place.state !== 'TX') {
-        return res.status(400).json({ error: 'not_texas', county: place?.county || null, state: place?.state || null });
+
+      /**
+       * ====================================================================
+       * THE SAME DEFECT /api/check HAD, IN THE SECOND CALLER. 2 Oct 2026.
+       * ====================================================================
+       * Nathan hit this testing 640 Orchid Hill Ln, Copper Canyon: steps 1-3
+       * passed, and the dispute step rendered "Lookup failed / not_texas".
+       *
+       * resolveCounty answers for that address -- {found:true, county:'Denton',
+       * source:'zip-centroid'} -- but the centroid path deliberately returns no
+       * `state`, so `place.state !== 'TX'` rejected a Denton property as not
+       * being in Texas. /api/check was fixed for this earlier the same day and
+       * this route was not, which is how it survived to the dispute step: the
+       * customer confirmed their county at step 1, and this route then asked
+       * the geocoder again and ignored the answer.
+       *
+       * Two changes. The confirmed county travels in the body and is used; and
+       * a stateless centroid with no confirmed county returns the same
+       * county_unresolved shape /api/check returns, so the UI can ask rather
+       * than print an error code at somebody.
+       *
+       * SAFE because findParcel still has to match the street on that
+       * district's roll. A wrong county yields no_parcel, never a wrong parcel.
+       */
+      const askedCad = typeof b.county === 'string' ? coveredCadFromName(b.county.trim()) : null;
+
+      if (askedCad && !(place?.found && place.county && place.state)) {
+        cadId = askedCad;
+      } else if (place?.found && place.county && !place.state) {
+        return res.status(400).json({
+          error: 'county_unresolved',
+          needsCounty: true,
+          suggestedCounty: place.county,
+          county: place.county,
+        });
+      } else if (!place?.found || place.state !== 'TX') {
+        return res.status(400).json({
+          error: place?.found ? 'not_texas' : 'county_unresolved',
+          needsCounty: !place?.found,
+          suggestedCounty: null,
+          county: place?.county || null,
+          state: place?.state || null,
+        });
       }
-      cadId = coveredCadFromName(place.county);
+      if (!cadId) cadId = coveredCadFromName(place.county);
       if (!cadId || !isCovered(cadId)) {
         return res.status(400).json({ error: 'not_covered', county: place.county });
       }

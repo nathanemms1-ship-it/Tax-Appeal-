@@ -249,7 +249,22 @@ if (elPaso && !isMailable(elPaso)) {
   t('and the owner can say the matched property is not theirs',
     /retryTxWithCounty/.test(apply) && /LOADED_COUNTY_NAMES/.test(apply));
 
-  const screen = apply.slice(apply.indexOf('if (txReview) {'), apply.indexOf('if (errMsg) {'));
+  /*
+    STRIPPED FIRST. THE SELF-DOCUMENTATION TRAP, FOURTH OCCURRENCE.
+    ------------------------------------------------------------------------
+    This slice used to run over raw source. On 2 Oct a county-rescue screen was
+    added between `if (txReview)` and `if (errMsg)`, and its comment explains
+    the bug it fixes by quoting the screen the customer used to get -- which
+    contains both of the strings this assertion forbids. The assertion failed on
+    prose describing why the thing it checks for is bad.
+
+    Same shape as the ROLL_YEAR guard on 7 and 20 Sept and the multiplier guard
+    on 1 Oct. Any assertion about what the UI SAYS must read code, not comments.
+  */
+  const applySrc = apply
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const screen = applySrc.slice(applySrc.indexOf('if (txReview) {'), applySrc.indexOf('if (errMsg) {'));
   t('there is a review screen for it', screen.length > 500);
   t('which is not styled as a failure', !/Lookup failed|Try Again/.test(screen));
   t('and offers to continue with the protest anyway',
