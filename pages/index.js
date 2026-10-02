@@ -142,7 +142,9 @@ export default function Landing() {
           font-size: 13px;
           line-height: 1.4;
         }
-        .ann-bar strong { color: ${C.gold}; }
+        /* The emphasis in the top strip -- "25 days", "we handle the paperwork".
+           C.gold is 2.13:1 on green; onDarkAccent is 4.73. */
+        .ann-bar strong { color: ${C.onDarkAccent}; }
 
         /* NAV */
         .nav {
@@ -157,12 +159,15 @@ export default function Landing() {
           z-index: 100;
         }
         .logo { display: flex; align-items: center; gap: 10px; }
+        /* An inline SVG, not an emoji. The hero's emoji trust row came out for
+           a reason -- emoji render differently on every platform and date a
+           page instantly -- and the logo was the last one left. */
         .logo-mark {
-          width: 34px; height: 34px;
+          width: 36px; height: 36px;
           background: ${C.navy};
-          border-radius: 6px;
+          border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 18px;
+          flex-shrink: 0;
         }
         .logo-name { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -0.4px; font-size: 19px; color: ${C.darkNavy}; }
         .logo-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: ${C.mutedGray}; margin-top: 1px; }
@@ -287,28 +292,34 @@ export default function Landing() {
         .step p { font-size: 13px; color: ${C.bodyGray}; line-height: 1.65; }
 
         /* STAT BANNER */
+        /* OPTION B, 2 Oct: this was a near-black card on a cream page -- the
+           only dark surface on the site, and its body text sat at 2.42:1.
+           White card, green figure, shadow instead of a border. */
         .stat-banner {
-          background: ${C.darkNavy};
-          border-radius: 12px;
-          padding: 22px 28px;
+          background: ${C.white};
+          border-radius: 16px;
+          padding: 28px 32px;
           display: flex;
           align-items: center;
-          gap: 24px;
+          gap: 30px;
           margin-bottom: 20px;
+          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 14px 34px rgba(33,31,28,0.05);
         }
-        .stat-big { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.5px; font-size: 52px; color: ${C.gold}; line-height: 1; flex-shrink: 0; }
-        .stat-text h3 { font-size: 16px; font-weight: 500; color: ${C.white}; margin-bottom: 6px; }
-        .stat-text p { font-size: 13px; color: ${C.mutedGray}; line-height: 1.6; }
+        .stat-big { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -2.2px; font-size: 54px; color: ${C.navy}; line-height: 1; flex-shrink: 0; }
+        .stat-text h3 { font-size: 17.5px; font-weight: 700; color: ${C.darkNavy}; margin-bottom: 7px; }
+        .stat-text p { font-size: 14.5px; color: ${C.bodyGray}; line-height: 1.65; }
 
         /* PRICE CALLOUT */
+        /* The amber ground forced ochre body copy at 2.73:1. White card, green
+           figure, and the divider becomes the pale green tint. */
         .price-box {
-          background: ${C.amber};
-          border: 1.5px solid #FFD97A;
-          border-radius: 12px;
-          padding: 20px 24px;
+          background: ${C.white};
+          border-radius: 16px;
+          padding: 28px 32px;
           display: flex;
           align-items: center;
-          gap: 24px;
+          gap: 32px;
+          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 14px 34px rgba(33,31,28,0.05);
         }
         /* Was flex-shrink: 0. The 24 Aug county-fee sentence below made this column's
            max-content width 1174px inside an 820px .price-box; unable to shrink, it
@@ -318,10 +329,10 @@ export default function Landing() {
         .price-left { flex: 1 1 auto; min-width: 0; }
         .price-right { flex: 0 0 260px; min-width: 0; }
         .price-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #B8860B; font-weight: 500; margin-bottom: 4px; }
-        .price-amount { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.5px; font-size: 42px; color: ${C.darkNavy}; line-height: 1; }
-        .price-note { font-size: 12px; color: #B8860B; margin-top: 4px; }
-        .price-divider { width: 1.5px; background: #FFD97A; align-self: stretch; flex-shrink: 0; }
-        .price-right p { font-size: 14px; color: ${C.bodyGray}; line-height: 1.65; }
+        .price-amount { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.8px; font-size: 44px; color: ${C.navy}; line-height: 1; }
+        .price-note { font-size: 13px; color: ${C.mutedGray}; margin-top: 8px; line-height: 1.6; }
+        .price-divider { width: 3px; background: #E3F0EA; align-self: stretch; flex-shrink: 0; border-radius: 2px; }
+        .price-right p { font-size: 14.5px; color: ${C.bodyGray}; line-height: 1.7; }
         .price-right strong { color: ${C.darkNavy}; }
 
         /* CHECKLIST */
@@ -388,18 +399,23 @@ export default function Landing() {
           padding: 64px 40px;
           text-align: center;
         }
-        .footer-cta h2 { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.2px; font-size: 38px; color: ${C.white}; margin-bottom: 12px; }
-        .footer-cta p { font-size: 15px; color: ${C.mutedGray}; margin-bottom: 28px; }
+        /* THE ONLY GREEN GROUND ON THE PAGE, and the last thing on it. Its
+           text uses the onDark tokens -- mutedGray here was 1.24:1. The button
+           is white, not ochre: on green, white is 6.44:1 and ochre is 2.13,
+           and this is the one element that should be loudest. */
+        .footer-cta h2 { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.3px; font-size: 38px; color: ${C.onDarkHeading}; margin-bottom: 12px; }
+        .footer-cta p { font-size: 16.5px; color: ${C.onDarkBody}; margin: 0 auto 28px; max-width: 520px; line-height: 1.6; }
+        .footer-cta-note { font-size: 13.5px; color: ${C.onDarkBody}; margin-top: 16px; }
         .footer-cta-btn {
-          background: ${C.gold};
-          color: ${C.darkNavy};
+          background: ${C.white};
+          color: ${C.navy};
           border: none;
-          border-radius: 8px;
-          padding: 16px 40px;
-          font-size: 16px;
-          font-weight: 500;
+          border-radius: 12px;
+          padding: 17px 34px;
+          font-size: 16.5px;
+          font-weight: 800;
           cursor: pointer;
-          font-family: 'DM Sans', sans-serif;
+          font-family: ${FONTS.body};
           transition: opacity 0.2s;
         }
         .footer-cta-btn:hover { opacity: 0.88; }
@@ -497,7 +513,14 @@ export default function Landing() {
       {/* Nav */}
       <nav className="nav">
         <div className="logo">
-          <div className="logo-mark">🏠</div>
+          <div className="logo-mark">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 10.2 12 3l9 7.2" />
+              <path d="M5.5 9.4V20h13V9.4" />
+              <path d="M10 20v-5.2h4V20" />
+            </svg>
+          </div>
           <div>
             <div className="logo-name">TaxAppeal</div>
             <div className="logo-sub">Property Tax Dispute</div>
@@ -583,22 +606,31 @@ export default function Landing() {
                 This block previously read "Over 7,200 Homeowners and counting / with a
                 total savings over $3.2 Million!" TaxAppeal USA has not yet filed its
                 first petition. See lib/stats.js for why that mattered. */}
-      <div style={{ background: C.navy, padding: "48px 32px", textAlign: "center" }}>
-        <div style={{ fontFamily: FONTS.body, fontSize: 12, color: C.gold, textTransform: "uppercase", letterSpacing: "3px", marginBottom: 16 }}>Why homeowners appeal</div>
-        <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-1.2px", fontSize: 40, color: C.white, lineHeight: 1.15, marginBottom: 12 }}>
+      {/*
+        OPTION B, 2 Oct: this was a full-bleed green band in the middle of the
+        page, and the third colour change before the fold. Now a light section.
+
+        Its source line was #6B84A6 on green — 1.9:1, effectively invisible,
+        which matters more here than anywhere else on the page: it is the
+        attribution that keeps the 30–60% claim honest. An unreadable citation
+        is a citation we are not really making.
+
+        "Don't Delay, Dispute Today!" is dropped. It was a slogan between a
+        statistic and its source, and B is the option that removes things.
+      */}
+      <div style={{ background: C.bg, padding: "64px 32px", textAlign: "center", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ fontFamily: FONTS.body, fontSize: 12, fontWeight: 700, color: C.navy, textTransform: "uppercase", letterSpacing: "2.4px", marginBottom: 16 }}>Why homeowners appeal</div>
+        <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-1.4px", fontSize: 40, color: C.darkNavy, lineHeight: 1.12, marginBottom: 16, maxWidth: 760, marginLeft: "auto", marginRight: "auto" }}>
           Most over-assessed homeowners never say anything
         </div>
-        <div style={{ fontFamily: FONTS.body, fontSize: 18, color: "#CFE0D8", marginBottom: 16, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
+        <div style={{ fontFamily: FONTS.body, fontSize: 18, color: C.bodyGray, marginBottom: 18, maxWidth: 720, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
           The National Taxpayers Union Foundation estimates that{" "}
-          <span style={{ color: C.gold, fontWeight: 700 }}>{STATS.US_OVERASSESSED.value}</span>{" "}
+          <strong style={{ color: C.navy }}>{STATS.US_OVERASSESSED.value}</strong>{" "}
           of taxable property in the United States is over-assessed — and that{" "}
-          <span style={{ color: C.gold, fontWeight: 700 }}>fewer than 5%</span>{" "}
+          <strong style={{ color: C.navy }}>fewer than 5%</strong>{" "}
           of taxpayers ever challenge it.
         </div>
-        <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-0.6px", fontSize: 26, color: C.white }}>
-          Don&apos;t Delay, Dispute Today!
-        </div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#6B84A6", marginTop: 18 }}>
+        <div style={{ fontFamily: FONTS.body, fontSize: 12.5, color: C.mutedGray, marginTop: 18 }}>
           Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: C.mutedGray, textDecoration: "underline" }}>National Taxpayers Union Foundation</a>. Estimate by an advocacy organization, not a peer-reviewed study.
         </div>
       </div>
@@ -864,8 +896,9 @@ export default function Landing() {
         */}
         <p>We prepare and mail property tax appeals in Texas, Georgia and Florida.</p>
         <button className="footer-cta-btn" onClick={go}>Check your property — free</button>
-        <div style={{ marginTop: 16, fontSize: 12, color: C.mutedGray }}>
-          You won't be charged until your appeal is ready to file.
+        {/* mutedGray here was 1.24:1 on the green. onDarkBody is 4.69. */}
+        <div className="footer-cta-note">
+          You won&apos;t be charged until your appeal is ready to file.
         </div>
       </div>
 

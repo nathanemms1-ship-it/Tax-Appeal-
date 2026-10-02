@@ -158,7 +158,7 @@ export default function Arkansas() {
         .faq-a { padding: 0 20px 16px; font-size: 14px; color: ${C.bodyGray}; line-height: 1.7; }
         .footer-cta { background: ${C.navy}; padding: 64px 40px; text-align: center; }
         .footer-cta h2 { font-family: 'DM Serif Display', serif; font-size: 34px; color: ${C.white}; margin-bottom: 12px; }
-        .footer-cta p { font-size: 15px; color: ${C.mutedGray}; margin-bottom: 28px; }
+        .footer-cta p { font-size: 15px; color: ${C.onDarkBody}; margin-bottom: 28px; }
         .footer { background: ${C.darkNavy}; padding: 24px 40px; text-align: center; }
         .footer p { font-size: 13px; color: ${C.mutedGray}; line-height: 1.8; }
         .footer a { color: ${C.mutedGray}; }
