@@ -431,8 +431,14 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   t('and the screen for it offers the condition questions instead of a figure',
     /hasCase === false/.test(applyCode)
     && /We don&rsquo;t have a case for this one yet/.test(apply));
-  t('the no-case screen promises they will be told rather than charged',
-    /we will tell you so and you will not be charged/.test(apply));
+  // Was: asserted the no-case screen promised "you will not be charged".
+  // Removed 2 Oct -- that is a promise to WITHHOLD the service, which is not
+  // ours to make. The honest version is that nothing is charged before they
+  // have seen the document, which is a fact about the order of events rather
+  // than a decision about who may buy. Replaced by the proceed-route
+  // assertions further down.
+  t('the no-case screen states when payment happens, not whether we will allow it',
+    /you will see the finished document before anything is charged/.test(apply));
 
   /*
     THE MULTI-YEAR FIGURE IS PARCEL-ONLY. On a district median it would be a
@@ -459,6 +465,46 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     t(`every loaded district has a measured reduction rate${missing.length ? ` (missing: ${missing.join(', ')})` : ''}`,
       missing.length === 0);
   }
+
+  /*
+    ======================================================================
+    WE PREPARE DOCUMENTS. WE DO NOT DECIDE WHO MAY PROTEST.
+    ======================================================================
+    Nathan, 2 Oct: "we still have to let them proceed if they would like, we
+    are just document prep, we cant deny them we are not giving them advice,
+    just the facts."
+
+    Every Texas owner may protest under s 41.41 whatever our estimate says, and
+    s 41.44(d) does not require an opinion of value for the notice to be
+    sufficient. Refusing on the strength of our own figure would also edge
+    toward an opinion of value under Occupations Code s 1103.003 -- the thing
+    this service is built not to do.
+
+    This matters more after 1 Oct, not less: REDUCTION_BY_CAD came in BELOW the
+    placeholder in all five districts measured, which moves the fee threshold in
+    Harris from roughly a $64k house to roughly a $150k house. A hard refuse
+    would have closed the door on that slice as a silent side effect of a more
+    accurate number.
+  */
+  t('saving_below_fee is a warning to the customer, not a refusal by us',
+    /hardRefuseOnSaving: false/.test(lookup));
+  t('the fee warning has a screen of its own rather than borrowing the capped one',
+    /d\.savingWarning === true/.test(applyCode)
+    && /We don&rsquo;t think this one is worth the fee/.test(apply));
+  t('a parcel-derived saving above the fee supersedes the district-rate warning',
+    /d\.estimateBasis === 'parcel' && d\.estimatedSaving >= 89/.test(applyCode));
+
+  // No Texas verdict may dead-end. Each discouraging screen states the facts
+  // and still offers the owner the route they are entitled to.
+  for (const [label, needle] of [
+    ['no case found', 'I understand there may be no case'],
+    ['saving below the fee', 'I understand it may save less than it costs'],
+    ['capped beyond reach', 'I understand it may not change my bill'],
+  ]) {
+    t(`the "${label}" screen still offers to file`, apply.includes(needle));
+  }
+  t('and neither new screen promises to withhold the service',
+    !/you will not be charged/.test(apply));
 
   /*
     THE AMBER IS GONE FROM THE FIGURE. #FFF8E6 / #6B5618 is the caution palette

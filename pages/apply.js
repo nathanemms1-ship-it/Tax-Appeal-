@@ -1875,12 +1875,100 @@ function StepTexasCheck({ property, onEligible, onBack }) {
           the neighbours cannot. Those are the next few questions, and they are free to answer.
         </p>
 
-        <p style={{ ...body, fontSize: 14, fontWeight: 600, color: C.darkNavy }}>
-          If they don&rsquo;t turn up a case either, we will tell you so and you will not be charged.
+        {/*
+          AND IF THEY STILL WANT TO FILE, THEY FILE. We prepare documents; we do
+          not decide who may protest. Every Texas owner may file under s 41.41
+          whatever our comparison says, s 41.44(d) does not require an opinion of
+          value for the notice to be sufficient, and a protest preserves every
+          ground whether or not we found one today. Telling an owner we will not
+          help them would also be us acting on our own opinion of their
+          property's value, which is the one thing this service does not do.
+
+          So: the facts above, the limitation stated, and the decision theirs.
+        */}
+        {/*
+          BOTH FACTS WHEN BOTH ARE TRUE. Most no-case parcels are also below the
+          fee threshold -- all three low-value Denton parcels probed on 2 Oct
+          came back no-case AND saving_below_fee. This screen wins the ordering
+          because it is the more specific finding, so it has to carry the fee
+          point too rather than letting it go unsaid.
+        */}
+        {d.savingWarning === true && (
+          <p style={{ ...body, fontSize: 14 }}>
+            Separately: even a solid reduction on a property at this value would save less in tax
+            than the $89 it costs to file.
+          </p>
+        )}
+
+        <p style={{ ...body, fontSize: 14 }}>
+          You can still file. A protest keeps every argument open, costs you nothing to keep on the
+          table, and you will see the finished document before anything is charged &mdash; we will
+          show you exactly what it does and does not claim.
         </p>
 
         <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>
           Answer the condition questions
+        </button>
+        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
+          File anyway &mdash; I understand there may be no case
+        </button>
+        <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
+      </div>
+    );
+  }
+
+  /*
+    WORTH LESS THAN THE FEE -- STATED, NOT ENFORCED.
+    ========================================================================
+    Added 2 Oct 2026, with `hardRefuseOnSaving: false` in lib/tx/lookup.js.
+
+    qualify() used to return eligible:false here and this component rendered
+    the CAPPED screen for it, whose heading reads "A protest wouldn't lower
+    your bill this year" above a capStatement that for an uncapped house says
+    "every dollar of reduction lowers your bill". The two directly contradicted
+    each other, and the whole thing was a refusal we are not entitled to make.
+
+    `savingWarning` has existed on the verdict since 7 Sept and nothing had
+    ever read it. This is the screen it was for.
+
+    Suppressed when the comp ladder found a real case worth more than the fee:
+    that warning came from a DISTRICT rate and the parcel figure supersedes it.
+  */
+  const feeWarning = d.savingWarning === true
+    && !(d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && d.estimatedSaving >= 89);
+
+  if (feeWarning) {
+    return (
+      <div style={wrap}>
+        <h2 style={h2}>We don&rsquo;t think this one is worth the fee</h2>
+        <p style={body}>{d.message || 'A realistic reduction on this property would save less in tax than the $89 it costs to file.'}</p>
+
+        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
+          {p.address ? <><strong>{p.address}</strong><br /></> : null}
+          <span style={{ color: C.mutedGray, fontSize: 13 }}>
+            {[d.county ? `${d.county} County` : null,
+              p.parcelId ? `Account ${p.parcelId}` : null,
+              p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' \u00B7 ')}
+          </span>
+          <div style={{ marginTop: 10 }}>
+            {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+          </div>
+        </div>
+
+        <p style={{ ...body, fontSize: 14 }}>
+          That estimate is a ceiling and it does not subtract your homestead exemptions, so the real
+          figure is likely lower still. We would rather say so now than take the fee.
+        </p>
+
+        {/* Same reasoning as the no-case screen above: ours is an estimate, not
+            a decision. s 41.41 is the owner's right, not our gift. */}
+        <p style={{ ...body, fontSize: 14 }}>
+          It is still your call. If you want it filed, we will prepare it &mdash; and you will see the
+          finished document before anything is charged.
+        </p>
+
+        <button style={{ ...primaryBtn, background: C.white, color: C.navy, border: `1.5px solid ${C.navy}`, marginBottom: 10 }} onClick={onEligible}>
+          File anyway &mdash; I understand it may save less than it costs
         </button>
         <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
       </div>
