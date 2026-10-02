@@ -56,7 +56,7 @@ import { isFloridaZip, LOADED_COUNTY_NAMES, LOADED_COUNTIES } from '../../lib/do
 // Census geocoder is what supplies it, via the county name.
 import { coveredCadFromName, isCovered, LOADED_CADS } from '../../lib/tx/coverage';
 import { resolveCounty } from './resolve-county';
-import { txLookupAndQualify } from '../../lib/tx/lookup';
+import { txLookupAndQualify, txOutcomeFor } from '../../lib/tx/lookup';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { recordCheckOutcome } from '../../lib/recordCheck';
 /**
@@ -244,14 +244,35 @@ export default async function handler(req, res) {
             ? new Date(w.openDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
             : null;
 
+          /**
+           * `withComps` RUNS THE EVIDENCE LADDER HERE, AT STEP 1. Added 1 Oct.
+           *
+           * Without it this screen quoted a district-rate estimate: 2.9x low on
+           * a house with a strong case, and a fabricated $441 a year on one
+           * whose comparables produce nothing to ask for. Timed against
+           * production it costs nothing measurable -- see the note in
+           * lib/tx/lookup.js. The verdict a visitor reads is now about their
+           * house rather than about their county.
+           */
           const tx = await txLookupAndQualify(
             { street, cadId: txCad, zip },
-            { issues: Array.isArray(b.issues) ? b.issues : [], costOverrides: b.costOverrides || {} },
+            {
+              issues: Array.isArray(b.issues) ? b.issues : [],
+              costOverrides: b.costOverrides || {},
+              withComps: true,
+            },
           );
 
           // `outcome` is the shared funnel label; `reason` stays the Texas one,
           // because it selects the copy. See TX_REASON_TO_OUTCOME.
-          const outcome = tx.found ? tx.outcome : tx.reason;
+          //
+          // `outcomeOverride` is set only by the evidence pass, for a parcel the
+          // cap test passes and the comparables do not. Recording that as
+          // `no_cap_differential` would bank it as a sellable lead when it is a
+          // house we are about to talk someone out of filing on.
+          const outcome = tx.found
+            ? (tx.outcomeOverride ? txOutcomeFor(tx.outcomeOverride) : tx.outcome)
+            : tx.reason;
           await recordCheckOutcome({ outcome, source, county: tx.county || txCounty });
 
           return res.status(200).json({

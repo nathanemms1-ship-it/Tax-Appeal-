@@ -384,10 +384,89 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   const applyCode = stripComments(apply);
   const { DEFAULT_TAX_RATE, PLAUSIBLE_REDUCTION_PCT } = await import('../lib/tx/qualify.js');
 
-  t('the packet returns a saving derived from reductionSought',
-    /estimatedSaving: packet\.reductionSought > 0/.test(api));
-  t('and it uses the shared rate rather than a literal',
-    /packet\.reductionSought \* DEFAULT_TAX_RATE/.test(api) && !/\* 0\.0(18|22)\b/.test(api));
+  const protest = stripComments(readFileSync(path.join(root, 'lib/tx/protest.js'), 'utf8'));
+  const lookup = stripComments(readFileSync(path.join(root, 'lib/tx/lookup.js'), 'utf8'));
+  const check = stripComments(readFileSync(path.join(root, 'pages/api/check.js'), 'utf8'));
+
+  /*
+    ======================================================================
+    ONE SOURCE FOR THE SAVING. The assertion this whole episode was missing.
+    ======================================================================
+    Every guard written before 1 Oct checked each screen against its OWN
+    source, which is exactly how both screens could pass and still quote
+    $1,016 and $2,940 for one house. These check the relationship instead.
+  */
+  t('the saving formula lives in buildProtest',
+    /estimatedSaving: askGap > 0 \? Math\.round\(askGap \* DEFAULT_TAX_RATE\) : null/.test(protest));
+  t('generate-50132 reads that field rather than deriving its own',
+    /estimatedSaving: packet\.estimatedSaving/.test(api)
+    && !/DEFAULT_TAX_RATE/.test(api));
+  t('the step-1 lookup reads the same packet field',
+    /estimatedSaving = packet\.estimatedSaving/.test(lookup));
+  t('no route multiplies reductionSought by a rate itself',
+    !/reductionSought\s*\*\s*(DEFAULT_TAX_RATE|0\.0)/.test(api)
+    && !/reductionSought\s*\*\s*(DEFAULT_TAX_RATE|0\.0)/.test(lookup)
+    && !/reductionSought\s*\*\s*(DEFAULT_TAX_RATE|0\.0)/.test(check));
+  t('and nobody re-introduces a hardcoded rate',
+    !/\* 0\.0(18|22)\b/.test(api) && !/\* 0\.0(18|22)\b/.test(lookup));
+
+  /*
+    THE EVIDENCE PASS MUST ACTUALLY RUN AT STEP 1. Without `withComps` the
+    whole fix is inert -- the same way the walkthrough flag shipped correct,
+    tested, and attached to nothing on 30 Sept.
+  */
+  t('/api/check runs the comp ladder', /withComps: true/.test(check));
+  t('the lookup only runs it when asked', /opts\.withComps === true/.test(lookup));
+
+  /*
+    NO DISTRICT FALLBACK ON A HOUSE WITH NO CASE. The measured medians are
+    computed over FILABLE cases; a parcel the comps refused is not in that
+    population, and quoting it one anyway is the claim shape this exists to
+    stop. 1457 Forestglen Dr was quoted $441 a year that way.
+  */
+  t('a parcel with no case gets a null saving, not a district estimate',
+    /hasCase: false/.test(lookup)
+    && /estimatedSaving = null;/.test(lookup)
+    && /estimateBasis = 'none';/.test(lookup));
+  t('and the screen for it offers the condition questions instead of a figure',
+    /hasCase === false/.test(applyCode)
+    && /We don&rsquo;t have a case for this one yet/.test(apply));
+  t('the no-case screen promises they will be told rather than charged',
+    /we will tell you so and you will not be charged/.test(apply));
+
+  /*
+    THE MULTI-YEAR FIGURE IS PARCEL-ONLY. On a district median it would be a
+    projection built on a statistic the owner is not a member of.
+  */
+  t('the five-year line renders only on a parcel-derived figure',
+    /d\.estimateBasis === 'parcel'/.test(applyCode));
+  t('the five-year figure is arithmetic on the quoted saving',
+    /d\.estimatedSaving \* 5/.test(applyCode));
+  t('it is stated as a condition, not a forecast',
+    /Hold that reduction/.test(apply) && /assumes the reduction holds/.test(apply));
+  t('the exemption caveat is stated where the figure is shown',
+    /does not\s+subtract your homestead exemptions/.test(apply.replace(/\s+/g, ' ')));
+
+  /*
+    EVERY LOADED DISTRICT IS MEASURED. The statewide fallback was 1.9-2.3x high
+    on the five metros measured 1 Oct, in the direction that over-promises. This
+    turns the fallback into a tripwire for an unmeasured load.
+  */
+  {
+    const { REDUCTION_BY_CAD } = await import('../lib/tx/qualify.js');
+    const { LOADED_CAD_IDS } = await import('../lib/tx/coverage.js');
+    const missing = LOADED_CAD_IDS.filter((c) => !REDUCTION_BY_CAD[c]);
+    t(`every loaded district has a measured reduction rate${missing.length ? ` (missing: ${missing.join(', ')})` : ''}`,
+      missing.length === 0);
+  }
+
+  /*
+    THE AMBER IS GONE FROM THE FIGURE. #FFF8E6 / #6B5618 is the caution palette
+    this file uses for cost-to-cure warnings and deadline notices; it was
+    carrying the best news on the page.
+  */
+  t('the step-1 saving is not rendered in the caution palette',
+    !/background: C\.amber[^}]*}}>\s*<div style=\{\{ fontSize: 34/.test(applyCode));
   // The ceiling is stated in WORDS beside the figure rather than as a response
   // flag: it would always be true, and verify-tx-dispatch asserts every field
   // the response sends is actually read by something.

@@ -1823,6 +1823,70 @@ function StepTexasCheck({ property, onEligible, onBack }) {
     );
   }
 
+  /*
+    NO EVIDENCE: THE CAP SAYS YES AND THE COMPARABLES SAY NOTHING YET.
+    ========================================================================
+    Added 1 Oct 2026, when /api/check started running the comp ladder.
+
+    This screen did not exist because this answer did not exist. The verdict was
+    cap arithmetic alone, so an owner whose house is appraised at or BELOW its
+    neighbours was told "this one is worth protesting" and quoted a district-rate
+    saving -- $441 a year on 1457 Forestglen Dr -- and then handed a Form 50-132
+    with the opinion-of-value box blank, because the comparables produced nothing
+    to ask for. They would have paid $89 for a petition that asks for nothing.
+
+    WHAT IS NOT SAID HERE, DELIBERATELY: a county-typical saving. The measured
+    district medians are computed over FILABLE cases, and this parcel is by
+    definition not one of them. See the note on estimatedSaving in protest.js.
+
+    WHAT IS SAID IS STILL TRUE AND STILL FORWARD-LOOKING. The equity ground under
+    s 41.43(b)(3) is empty; the market-value ground under s 41.41(a)(1) is not
+    tested until the condition questions have been answered, and a roof or a
+    foundation the district has never seen can carry a case this screen cannot.
+    So the next step is offered, without a number attached to it.
+  */
+  if (d.evidence && d.evidence.hasCase === false) {
+    return (
+      <div style={wrap}>
+        <h2 style={h2}>We don&rsquo;t have a case for this one yet</h2>
+        <p style={body}>
+          We compared your house against {d.evidence.compCount || 'the'} similar properties in the
+          appraisal district&rsquo;s own neighbourhood. It is appraised at or below them, so there is
+          no over-appraisal to argue from the roll alone.
+        </p>
+
+        <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '16px 18px', marginBottom: 18, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.8 }}>
+          {p.address ? <><strong>{p.address}</strong><br /></> : null}
+          <span style={{ color: C.mutedGray, fontSize: 13 }}>
+            {[d.county ? `${d.county} County` : null,
+              p.parcelId ? `Account ${p.parcelId}` : null,
+              p.livingArea ? `${Number(p.livingArea).toLocaleString()} sq ft` : null,
+              p.rollYear ? `${p.rollYear} certified roll` : null].filter(Boolean).join(' \u00B7 ')}
+          </span>
+          <div style={{ marginTop: 10 }}>
+            {rows.map(([k, v]) => <div key={k}>{k}: <strong>{v}</strong></div>)}
+          </div>
+        </div>
+
+        <p style={{ ...body, fontSize: 14 }}>
+          That is not the whole test. The comparison above uses what the district already knows.
+          If something is wrong with the property it has never seen &mdash; foundation movement, a
+          failing roof, flooding, a busy road &mdash; that can bring the market value down even when
+          the neighbours cannot. Those are the next few questions, and they are free to answer.
+        </p>
+
+        <p style={{ ...body, fontSize: 14, fontWeight: 600, color: C.darkNavy }}>
+          If they don&rsquo;t turn up a case either, we will tell you so and you will not be charged.
+        </p>
+
+        <button style={{ ...primaryBtn, marginBottom: 10 }} onClick={onEligible}>
+          Answer the condition questions
+        </button>
+        <button style={secondaryBtn} onClick={onBack}>&larr; Check a different property</button>
+      </div>
+    );
+  }
+
   return (
     <div style={wrap}>
       <h2 style={h2}>This one is worth protesting</h2>
@@ -1843,15 +1907,53 @@ function StepTexasCheck({ property, onEligible, onBack }) {
       </div>
 
       {/*
-        THE CEILING, LABELLED, NEVER A PROMISE. See the header of this component
-        and qualify.js. estimateIsUpperBound comes from the API rather than being
-        assumed here, so if the estimate ever becomes exact the wording follows it.
+        THE FIGURE, AND WHY IT IS ALLOWED TO BE THIS LOUD. Rebuilt 1 Oct 2026.
+        =====================================================================
+        Two things changed and only together do they justify the size of it.
+
+        1. IT IS THIS HOUSE'S NUMBER NOW. `estimateBasis === 'parcel'` means
+           /api/check ran the comp ladder and this is the reduction we will
+           actually ask the board for, off the same packet field the case-built
+           screen reads. Before, it was a district rate -- 2.9x low here, and
+           invented on a house with no case at all.
+
+        2. AMBER WAS WORKING AGAINST IT. #FFF8E6 with a #6B5618 body is the
+           caution palette used elsewhere in this file for cost-to-cure warnings
+           and deadline notices. It was carrying the single best piece of news
+           on the page. Gain reads green.
+
+        THE MULTI-YEAR LINE. Nathan's call, 1 Oct. It is arithmetic on one
+        figure, stated as a condition ("hold that reduction") rather than a
+        forecast, and it is rendered ONLY when estimateBasis is 'parcel'. On a
+        district median it would be the Ownwell claim shape -- a projection built
+        on a statistic the owner is not in. There is a guard on that.
+
+        NO MULTIPLIER IS PRINTED against the fee. The fee and the figure sit next
+        to each other and the reader does their own arithmetic, which is the same
+        point made honestly.
       */}
-      {d.estimatedSaving > 0 && (
-        <div style={{ background: C.amber, border: '1px solid #F0DFA8', borderRadius: 10, padding: '13px 16px', marginBottom: 20, fontSize: 13.5, color: '#6B5618', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          <strong>Up to about {money(d.estimatedSaving)} a year{d.estimateIsUpperBound ? ', at most' : ''}.</strong><br />
-          Estimated at your county&rsquo;s current combined tax rate. Next year&rsquo;s rates are not adopted
-          until the autumn, so this is a ceiling rather than a figure we can promise.
+      {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
+        <div style={{ background: '#F0F8F3', border: `1px solid #BFE0CD`, borderLeft: `4px solid ${C.green}`, borderRadius: 10, padding: '18px 20px', marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ fontSize: 34, lineHeight: 1.1, fontWeight: 700, color: C.green, letterSpacing: '-0.5px' }}>
+            {money(d.estimatedSaving)}<span style={{ fontSize: 17, fontWeight: 600 }}> a year</span>
+          </div>
+          <div style={{ fontSize: 13.5, color: '#2F4F3E', marginTop: 6, lineHeight: 1.6 }}>
+            Based on {d.evidence?.compCount ? `${d.evidence.compCount} comparable properties` : 'comparable properties'} in
+            your own neighbourhood, from {d.county ? `${d.county} County` : 'the appraisal district'}&rsquo;s own roll &mdash;
+            not an average, and not our opinion.
+          </div>
+
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #D6EADF', fontSize: 14, color: C.darkNavy, lineHeight: 1.7 }}>
+            <strong>Texas lets you protest every year.</strong> Hold that reduction and it is about{' '}
+            <strong>{money(d.estimatedSaving * 5)} over five years</strong>. Your cost to file is <strong>$89</strong>.
+          </div>
+
+          <div style={{ marginTop: 12, fontSize: 11.5, color: '#5C7A69', lineHeight: 1.55 }}>
+            A ceiling, not a promise. It assumes the board grants the full reduction we ask for and uses
+            a statewide tax rate &mdash; next year&rsquo;s rates are not adopted until the autumn &mdash; and it does not
+            subtract your homestead exemptions, so your own figure will be lower. The five-year line
+            assumes the reduction holds and is not a forecast of future rates.
+          </div>
         </div>
       )}
 
@@ -3237,9 +3339,13 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
             <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 14, marginTop: 2, marginBottom: 12, fontSize: 13, color: "#C7D6E8", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65 }}>
               That is <strong style={{ color: C.gold }}>${Number(pd.savings).toLocaleString()} a year</strong>, for an
               $89 filing — and Texas lets you protest again every year the district overshoots.
+              Hold that reduction and it is about{' '}
+              <strong style={{ color: C.gold }}>${Number(pd.savings * 5).toLocaleString()} over five years</strong>.
               <div style={{ fontSize: 11.5, color: "#5A7A9F", marginTop: 6 }}>
-                A ceiling, not a promise: estimated at the county&rsquo;s current combined rate if the board
-                grants the full reduction we ask for. Next year&rsquo;s rates are not adopted until the autumn.
+                A ceiling, not a promise: estimated at a statewide rate if the board grants the full
+                reduction we ask for, before your homestead exemptions, so your own figure will be
+                lower. Next year&rsquo;s rates are not adopted until the autumn, and the five-year line
+                assumes the reduction holds rather than forecasting them.
               </div>
             </div>
           )}

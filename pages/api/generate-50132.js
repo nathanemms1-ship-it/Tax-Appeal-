@@ -31,7 +31,6 @@ import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { getSupabaseAdmin } from './supabase';
 import { buildProtest } from '../../lib/tx/protest';
-import { DEFAULT_TAX_RATE } from '../../lib/tx/qualify';
 import { findComps } from '../../lib/tx/comps';
 import { isCovered, LOADED_CADS, coveredCadFromName } from '../../lib/tx/coverage';
 import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
@@ -304,8 +303,14 @@ export default async function handler(req, res) {
        * assumes the board grants the full ask. What changed is the REDUCTION the
        * ceiling is built on, from an assumption to the one we are filing for.
        */
-      estimatedSaving: packet.reductionSought > 0
-        ? Math.round(packet.reductionSought * DEFAULT_TAX_RATE) : null,
+      /**
+       * 1 Oct, second pass: this route no longer does the arithmetic. The
+       * formula moved into buildProtest so /api/check can read the identical
+       * field, because two routes each deriving "the saving" from the same
+       * inputs is how the $1,016 / $2,940 split happened in the first place.
+       * One source, both callers, nothing to keep in step by hand.
+       */
+      estimatedSaving: packet.estimatedSaving,
       // NOT sending estimateIsUpperBound: it would always be true here and
       // nothing reads it — verify-tx-dispatch asserts every field in this
       // response is consumed, and it was right to object. The screen states the

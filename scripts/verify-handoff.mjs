@@ -229,8 +229,20 @@ const apply = readFileSync('pages/apply.js', 'utf8');
   // tx_parcel_entities is not populated, so an unqualified figure is a promise
   // we cannot keep -- and inflated savings claims are what the Texas Tax Protest
   // suit against Ownwell is about.
+  //
+  // 1 Oct: the literal moved -- the box was rebuilt out of the amber caution
+  // palette and the caveat now also names the exemptions and the five-year
+  // assumption, so it reads "A ceiling, not a promise." The INTENT is
+  // unchanged and the assertion is stricter than it was: the figure, the
+  // caveat, and the exemption disclosure must all be inside the component.
   t('TX: no saving is shown on the verdict screen without the ceiling caveat',
-    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?ceiling rather than a figure we can promise/.test(apply));
+    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?A ceiling, not a promise/.test(apply));
+  t('TX: the verdict screen discloses that exemptions are not subtracted',
+    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?subtract your homestead exemptions/.test(apply));
+  // A figure this size must be the parcel's own. The district rate was 2.9x low
+  // on 108 Brookdale Dr and invented $441 a year on 1457 Forestglen Dr.
+  t('TX: the verdict figure is gated on a parcel-derived basis',
+    /function StepTexasCheck\([\s\S]*?d\.estimateBasis === 'parcel'/.test(apply));
 }
 
 
