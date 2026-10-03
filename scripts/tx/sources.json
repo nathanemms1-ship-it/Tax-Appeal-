@@ -131,7 +131,9 @@
         "certified_2025": "https://bellcad.org/wp-content/uploads/2025/07/2025-Bell-County-Certified-Export.7z"
       },
       "notes": "NOT PACS. Bell publishes an 'Appraisal Export Layout 8.0.33.xlsx' on its data page, but the actual export is 12 tab-delimited .tab files — externalnal, externalbld, externalland, externalsale, externalexemptions and others — most carrying a header row. Confirmed by opening the archive. The published layout document describes a format this district does not ship. Second district found doing this; treat every published layout as a hint, not a contract.",
-      "verified_format_at": "2026-08-16"
+      "verified_format_at": "2026-08-16",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 with the new scripts/tx/load-tab.mjs from 2026-Bell-County-Certified-Export-1.zip (152,646,234 bytes, members dated 29 Jul 2026). externalnal.tab carries heated area, year built, NBHD CD, subdivision and all value stages per account. 113,656 residential rows, 108,555 A1. Cap arithmetic (APPRAISED - HMS CAP - CB CAP = ASSESSED) misses by >$5 on 12 rows. No situs ZIP in the export."
     },
     {
       "county": "Cameron",
@@ -356,7 +358,7 @@
       "cad_name": "Johnson County Appraisal District",
       "site": "https://johnsoncad.com",
       "data_page": "https://johnsoncad.com/downloads/",
-      "format": "PACS",
+      "format": "TAB_DELIM",
       "access": "free",
       "login": false,
       "confidence": "verified",
@@ -364,7 +366,9 @@
         "certified_2026": "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
         "preliminary_2026": "https://johnsoncad.com/wp-content/uploads/2026/06/2026-Preliminary-Data-06-16-26-1.zip"
       },
-      "notes": "Certified filename is an opaque batch number — the listing page must be parsed, the URL cannot be constructed."
+      "notes": "Certified filename is an opaque batch number — the listing page must be parsed, the URL cannot be constructed.",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-tab.mjs. NOT PACS despite the catalogue: BATCH_896.all_.zip (45,043,599 bytes, 10 Aug 2026) is the same external*.tab set as Bell. Account key is ACCOUNT (R-prefixed); GEO ACCOUNT NUM matches the acreage file strap. 60,014 residential rows, 49,151 A1. 574 repeated accounts dropped as identical; 4 repeat with different values (first kept, logged). Cap arithmetic held on every row. No situs ZIP in the export."
     },
     {
       "county": "Victoria",
