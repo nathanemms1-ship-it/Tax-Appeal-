@@ -168,7 +168,7 @@ const D = {
   muted:   C.mutedGray,
   accent:  C.navy,        // the ask, primary action -- deep green
   good:    C.navy,
-  goodBg:  "#E3F0EA",
+  goodBg:  C.greenBg,
   warn:    C.gold,
   danger:  C.red,
   dangerBg:"#FBECEA",
@@ -2088,7 +2088,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             <div style={{ fontSize: 14.5, fontWeight: 700, color: D.danger, marginBottom: 8 }}>
               A protest would not lower your tax bill this year.
             </div>
-            <div style={{ fontSize: 13.5, color: "#7A3028", lineHeight: 1.65 }}>
+            <div style={{ fontSize: 13.5, color: C.bodyGray, lineHeight: 1.65 }}>
               {d.message || d.capStatement}
             </div>
           </div>
@@ -2340,8 +2340,8 @@ function StepTexasCheck({ property, onEligible, onBack }) {
         {/* The fee against the figure, and the fact that makes it recur. No
             multiplier is printed -- the Ownwell claim shape. */}
         {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
-          <div style={{ ...dPanel, background: D.goodBg, border: `1px solid #BFE0CE` }}>
-            <div style={{ fontSize: 14.5, color: "#1F4A3C", lineHeight: 1.7 }}>
+          <div style={{ ...dPanel, background: D.goodBg, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 14.5, color: C.bodyGray, lineHeight: 1.7 }}>
               <strong style={{ color: D.good }}>Texas lets you protest every year.</strong>{' '}
               Hold that reduction and it is about <strong style={{ color: D.good }}>{money(d.estimatedSaving * 5)} over five years</strong>.
               Your cost to file is <strong style={{ color: D.good }}>${TX_SERVICE_FEE}</strong>.

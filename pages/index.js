@@ -181,7 +181,7 @@ export default function Landing() {
 
         .eyebrow {
           display: inline-block;
-          background: #E3F0EA;
+          background: ${C.lightBlue};
           border-radius: 8px;
           padding: 7px 14px;
           font-size: 12.5px;
@@ -323,7 +323,7 @@ export default function Landing() {
         .price-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #B8860B; font-weight: 500; margin-bottom: 4px; }
         .price-amount { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.8px; font-size: 44px; color: ${C.navy}; line-height: 1; }
         .price-note { font-size: 13px; color: ${C.mutedGray}; margin-top: 8px; line-height: 1.6; }
-        .price-divider { width: 3px; background: #E3F0EA; align-self: stretch; flex-shrink: 0; border-radius: 2px; }
+        .price-divider { width: 3px; background: ${C.border}; align-self: stretch; flex-shrink: 0; border-radius: 2px; }
         .price-right p { font-size: 14.5px; color: ${C.bodyGray}; line-height: 1.7; }
         .price-right strong { color: ${C.darkNavy}; }
 
