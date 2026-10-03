@@ -23,7 +23,7 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Se
  */
 const TX_SERVICE_FEE = 89;
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 import LogoMark from '../components/LogoMark';
 
 /**
@@ -187,6 +187,63 @@ const dQuiet  = { background: "none", color: D.muted, border: "none", padding: "
 const dNote   = { fontSize: 12, color: D.muted, lineHeight: 1.55, marginTop: 12 };
 
 /** A label/value row, the unit both screens are built from. */
+/**
+ * ==========================================================================
+ * THE MONEY, PULLED OUT OF THE TABLE. Option C, 3 Oct 2026.
+ * ==========================================================================
+ * Nathan: "I really want a way to highlight the potential yearly savings
+ * numbers... that is what converts sales."
+ *
+ * He asked for bright green or a red circle. Measuring the screen first said
+ * the colour was the smaller half of the problem:
+ *
+ *   "Value we will ask for"  ......... 25px, accent navy, bold
+ *   "...that's about $718 / year" .... 17px
+ *
+ * The number a homeowner is buying rendered a third smaller than an internal
+ * filing figure that means nothing to them. $426,984 was the loudest thing
+ * on a card whose job is to sell $718. Colour cannot fix that -- green at
+ * 17px still loses to navy at 25px.
+ *
+ * WHY NOT WHAT WAS ASKED FOR:
+ *   RED is this site's error colour (C.red -- failed lookups, refusals).
+ *   Beside money it reads "something is wrong", not "you gain".
+ *   BRIGHT GREEN fails contrast on white: #16A34A 3.3, #00C853 2.24,
+ *   #00E676 1.67. C.green #2E7D52 is 5.03 and is about as bright as green
+ *   gets while staying readable. Measured, not guessed.
+ *
+ * So: the ask demotes to an ordinary row, and the saving leaves the table
+ * for a block of its own carrying the three numbers that decide it --
+ * $718 a year, $3,590 over five, $89 to file. The comparison is the close:
+ * it costs less than two months of what it saves.
+ *
+ * Every colour here is an existing token on C.greenBg, all measured:
+ * green 4.51, darkNavy 14.65, bodyGray 4.87. No new literal.
+ *
+ * THE CEILING LINE STAYS UNDER THE FIGURE. The bigger and greener the
+ * number, the more work that sentence does -- statewide rate, exemptions not
+ * subtracted, board granting the full ask. It is the line between confident
+ * and overclaiming, and it is the positioning Nathan chose.
+ */
+function SavingsBlock({ perYear, fiveYear, fee }) {
+  return (
+    <div style={{
+      marginTop: 14, background: C.greenBg, border: `1px solid ${C.border}`,
+      borderRadius: 12, padding: '18px 20px', textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '1.3px', color: C.green, marginBottom: 7 }}>
+        WHAT THIS IS WORTH TO YOU
+      </div>
+      <div style={{ fontFamily: FONTS.display, fontSize: 40, fontWeight: 800, color: C.green, letterSpacing: '-1.6px', lineHeight: 1 }}>
+        {perYear}<span style={{ fontSize: 17, letterSpacing: 0 }}> / year</span>
+      </div>
+      <div style={{ fontSize: 13.5, color: C.darkNavy, marginTop: 10, lineHeight: 1.6 }}>
+        <strong>{fiveYear}</strong> over five years &middot; your cost to file is <strong>${fee}</strong>
+      </div>
+    </div>
+  );
+}
+
 function DRow({ label, value, strong, accent, size }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, padding: "9px 0", borderBottom: `1px solid ${D.line}` }}>
@@ -2317,11 +2374,7 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             </div>
           )}
           {d.evidence?.requestedValue && (
-            <DRow label="Value we will ask for" value={money(d.evidence.requestedValue)} strong accent={D.accent} size={24} />
-          )}
-          {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
-            <DRow label={`If ${(Number(p.rollYear || d.taxYear) || 2026) + 1} rates match ${p.rollYear || d.taxYear || 'this year'}, that’s about`}
-              value={`${money(d.estimatedSaving)} / year`} strong />
+            <DRow label="Value we will ask for" value={money(d.evidence.requestedValue)} strong />
           )}
 
           {/*
@@ -2330,6 +2383,9 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             subtracted per taxing unit, and the board granting the full ask.
           */}
           {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
+            <SavingsBlock perYear={money(d.estimatedSaving)} fiveYear={money(d.estimatedSaving * 5)} fee={TX_SERVICE_FEE} />
+          )}
+          {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
             <div style={dNote}>
               Tax figure is an estimate. Next year&rsquo;s rates are not adopted until the autumn and it does
               not yet subtract your exemptions per taxing unit &mdash; so treat it as a ceiling, not a promise.
@@ -2337,14 +2393,17 @@ function StepTexasCheck({ property, onEligible, onBack }) {
           )}
         </div>
 
-        {/* The fee against the figure, and the fact that makes it recur. No
-            multiplier is printed -- the Ownwell claim shape. */}
+        {/* The five-year figure and the $89 moved INTO SavingsBlock above --
+            they were the same three numbers rendered twice, which is how two
+            copies of one figure drift apart. What is left here is the fact
+            that makes it recur, which the block does not say. Still no
+            multiplier printed: that is the Ownwell claim shape. */}
         {d.estimatedSaving > 0 && d.estimateBasis === 'parcel' && (
           <div style={{ ...dPanel, background: D.goodBg, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 14.5, color: C.bodyGray, lineHeight: 1.7 }}>
               <strong style={{ color: D.good }}>Texas lets you protest every year.</strong>{' '}
-              Hold that reduction and it is about <strong style={{ color: D.good }}>{money(d.estimatedSaving * 5)} over five years</strong>.
-              Your cost to file is <strong style={{ color: D.good }}>${TX_SERVICE_FEE}</strong>.
+              A reduction you win now is the base the district starts from next year, so the
+              figure above is not a one-off.
             </div>
           </div>
         )}
@@ -4997,11 +5056,11 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
               </>
             )}
             {txReview.requestedValue > 0 && (
-              <DRow label="Value we will ask for" value={fmtUsd(txReview.requestedValue)} strong accent={D.accent} size={25} />
+              <DRow label="Value we will ask for" value={fmtUsd(txReview.requestedValue)} strong />
             )}
             {txReview.estimatedSaving > 0 && (
-              <DRow label={`If ${nextYear} rates match ${txReview.taxYear || 'this year'}, that’s about`}
-                value={`${fmtUsd(txReview.estimatedSaving)} / year`} strong />
+              <SavingsBlock perYear={fmtUsd(txReview.estimatedSaving)}
+                fiveYear={fmtUsd(txReview.estimatedSaving * 5)} fee={TX_SERVICE_FEE} />
             )}
             {txReview.estimatedSaving > 0 && (
               <div style={dNote}>

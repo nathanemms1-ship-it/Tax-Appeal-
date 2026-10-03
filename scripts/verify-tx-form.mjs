@@ -431,6 +431,51 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     !/\* 0\.0(18|22)\b/.test(api) && !/\* 0\.0(18|22)\b/.test(lookup));
 
   /*
+    ======================================================================
+    THE SAVING OUTRANKS THE ASK. Option C, 3 Oct 2026.
+    ======================================================================
+    Nathan asked for the yearly saving highlighted -- "that is what converts
+    sales". Measuring first found the emphasis inverted: the ask rendered at
+    24/25px with the accent colour, the saving at 17px. The number the
+    customer is buying was a third smaller than an internal filing figure.
+
+    What is pinned here is the OUTCOME, not the design. A later pass may
+    restyle SavingsBlock freely. It may not put the ask back above the
+    saving, and it may not quote the saving in a colour that cannot be read.
+
+    INJECTION: restore `size={25}` on the ask DRow -> FAILS.
+  */
+  t('the saving has a block of its own, not a table row',
+    /function SavingsBlock\(/.test(applyCode)
+    && (applyCode.match(/<SavingsBlock\b/g) || []).length === 2);
+  t('both Texas screens use it — step 1 and the review screen',
+    /perYear=\{money\(d\.estimatedSaving\)\}/.test(applyCode)
+    && /perYear=\{fmtUsd\(txReview\.estimatedSaving\)\}/.test(applyCode));
+  t('the ask no longer outsizes the saving on either screen',
+    !/label="Value we will ask for"[^/]*size=\{\d+\}/.test(applyCode));
+  t('the five-year figure and the fee are quoted once, beside the yearly one',
+    (applyCode.match(/estimatedSaving \* 5/g) || []).length === 2   // one per screen, both inside SavingsBlock
+    && /fiveYear=\{money\(d\.estimatedSaving \* 5\)\}/.test(applyCode));
+  /*
+    The colour. C.green on C.greenBg is 4.51 — measured, and the brightest
+    green that clears AA here. Nathan suggested a brighter one; #16A34A is
+    3.3 on white and #00C853 is 2.24, so they are pinned OUT by name rather
+    than left to be re-added by someone who did not measure.
+  */
+  t('the saving is quoted in the palette green, on the palette green ground',
+    /color: C\.green/.test(applyCode) && /background: C\.greenBg/.test(applyCode));
+  t('and not in an unreadable brighter green, or in the error red',
+    !/#(16A34A|00C853|00E676|22C55E)/i.test(applyCode)
+    && !/color: C\.red[^;]*\n[^}]*estimatedSaving/.test(applyCode));
+  /*
+    THE CEILING SURVIVES THE EMPHASIS. The bigger the number gets, the more
+    that sentence is doing. It is the difference between confident and
+    overclaiming.
+  */
+  t('the ceiling line is still rendered beside the figure on both screens',
+    (applyCode.match(/treat it as a ceiling, not a promise/g) || []).length === 2);
+
+  /*
     THE EVIDENCE PASS MUST ACTUALLY RUN AT STEP 1. Without `withComps` the
     whole fix is inert -- the same way the walkthrough flag shipped correct,
     tested, and attached to nothing on 30 Sept.
