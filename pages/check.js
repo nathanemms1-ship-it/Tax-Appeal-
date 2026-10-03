@@ -81,6 +81,7 @@ import { stashVerdict } from '../lib/checkHandoff';
  */
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 const fmt = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
 
@@ -519,7 +520,7 @@ export default function CheckPage() {
 
         <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🏠</div>
+            <LogoMark size={36} />
             <div>
               <div style={{ fontFamily: '"DM Serif Display", serif', fontSize: 19, color: C.darkNavy, lineHeight: 1 }}>TaxAppeal</div>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.5px', color: C.muted, whiteSpace: 'nowrap' }}>Property Tax Dispute</div>

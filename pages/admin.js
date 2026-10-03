@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -1228,7 +1229,7 @@ export default function Admin() {
       {/* Nav */}
       <div style={{ background: C.darkNavy, padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏠</div>
+          <LogoMark size={32} />
           <div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.white }}>TaxAppeal</div>
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Admin Dashboard</div>

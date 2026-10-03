@@ -10,6 +10,7 @@ import { FL_TAGLINES } from '../lib/flTaglines';
 import { breadcrumbSchema } from '../lib/breadcrumbs';
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -200,7 +201,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
 {/* Nav */}
 <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: "16px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-<div style={{ width: 34, height: 34, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
+<LogoMark />
 <div>
 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: C.darkNavy }}>TaxAppeal USA</div>
 <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>

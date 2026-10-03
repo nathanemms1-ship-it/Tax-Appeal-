@@ -64,6 +64,36 @@ for (const [name, hex] of [['navy', '#1B3A6B'], ['gold', '#FFC940'], ['green', '
     offenders.length === 0);
 }
 
+// ── 2b. The logo is a component, not 39 copies ─────────────────────────────
+/*
+  Nathan, 2 Oct: "the logo on just the landing page is different."
+
+  It was different because the mark was never a component -- it was inline
+  markup repeated in 39 files in five spellings (34px and 32px, single and
+  double quotes, one whitespace-free variant). Changing the homepage changed
+  one of thirty-nine.
+
+  Third duplication of the session, after 24 palettes and 37 font imports.
+  Each one was invisible until something made the copies disagree.
+*/
+{
+  const emojiLogos = files.filter((f) => />\s*\u{1F3E0}\s*<\/div>/u.test(readFileSync(f, 'utf8')));
+  t(`no page draws the logo as an emoji${emojiLogos.length ? ' (' + emojiLogos.map((f) => path.relative(root, f)).join(', ') + ')' : ''}`,
+    emojiLogos.length === 0);
+
+  // A second inline mark would drift from the component the same way.
+  const inlineMarks = files.filter((f) => {
+    if (f.endsWith('LogoMark.js')) return false;
+    return /className="logo-mark"/.test(strip(readFileSync(f, 'utf8')));
+  });
+  t(`no page hand-rolls the logo mark${inlineMarks.length ? ' (' + inlineMarks.map((f) => path.relative(root, f)).join(', ') + ')' : ''}`,
+    inlineMarks.length === 0);
+
+  // And every page that shows a logo reaches for the one component.
+  const users = files.filter((f) => /<LogoMark[\s/>]/.test(readFileSync(f, 'utf8')));
+  t(`the shared logo mark is used site-wide (${users.length} pages)`, users.length >= 35);
+}
+
 // ── 3. Nothing light-ground sits on a dark ground ───────────────────────────
 /*
   The green theme shipped with ONE set of values, all assuming a light

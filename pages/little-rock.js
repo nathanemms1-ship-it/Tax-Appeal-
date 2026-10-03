@@ -17,6 +17,7 @@ import { stateSaleStatus } from '../lib/stateService';
  */
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 const FONT = "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap";
 
 // Module scope: the faqs array below is also emitted as schema.org FAQPage
@@ -60,7 +61,7 @@ export default function LittleRock() {
       {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
       <style dangerouslySetInnerHTML={{ __html: `@import url('${FONT}');*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;}.btn:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:26px!important;}}` }} />
       <div style={{background:C.white,borderBottom:"1.5px solid "+C.border,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.darkNavy}}>TaxAppeal USA</div><div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:C.mutedGray}}>Property Tax Dispute</div></div></a>
+        <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><LogoMark /><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.darkNavy}}>TaxAppeal USA</div><div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:C.mutedGray}}>Property Tax Dispute</div></div></a>
         {SVC.selling
           ? <button className="btn" style={{padding:"10px 22px",fontSize:14}}>Start my appeal</button>
           : <SeasonNavCta stateCode="AR" />}

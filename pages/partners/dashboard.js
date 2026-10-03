@@ -59,6 +59,7 @@ function flSeasonPrompt(now = new Date()) {
 }
 
 import { C } from "../../lib/theme";
+import LogoMark from '../../components/LogoMark';
 
 const STATE_LABELS = { TX: 'Texas', FL: 'Florida', GA: 'Georgia', AR: 'Arkansas', AL: 'Alabama' };
 
@@ -254,7 +255,7 @@ export default function PartnerDashboard() {
       {/* Nav */}
       <div style={{ background: C.white, borderBottom: `1.5px solid ${C.border}`, padding: '14px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 32, height: 32, background: C.navy, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🏠</div>
+          <LogoMark size={32} />
           <div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>TaxAppeal USA</div>
             <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '1.5px', color: C.mutedGray }}>Partner Dashboard</div>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 const faqs = [["How do I appeal my Atlanta property taxes?","File a formal appeal with the Fulton County Board of Assessors within 45 days of your Notice of Assessment. TaxAppeal prepares your appeal letter with comparable sales evidence and files via USPS certified mail."],["What is the Fulton County Board of Assessors?","The Fulton County Board of Assessors determines the fair market value of all properties in Fulton County, including Atlanta. Georgia assesses property at 40% of fair market value. If your value is overstated, you pay too much."],["How much can Atlanta homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges $89 flat — you keep 100% of your savings."],["What is the Atlanta property tax appeal deadline?","45 days from the date on your Notice of Assessment, which is typically mailed between April and June each year."],["Can I appeal my Atlanta property taxes every year?","Yes. Georgia homeowners can file a new appeal every year. Each spring assessment notice resets the 45-day window."]];
 
@@ -46,7 +47,7 @@ export default function Atlanta() {
 
       <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}>
-          <div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div>
+          <LogoMark />
           <div>
             <div style={{fontFamily:"'DM Serif Display',serif",fontSize:18,color:C.darkNavy}}>TaxAppeal USA</div>
             <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:C.mutedGray}}>Property Tax Dispute</div>

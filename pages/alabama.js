@@ -3,6 +3,7 @@ import { useState } from 'react';
 import SeasonNotice, { SeasonNavCta } from '../components/SeasonNotice';
 import { stateSaleStatus } from '../lib/stateService';
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 /**
  * ALABAMA IS NOT ON SALE, AND THIS PAGE USED TO SAY IT WAS.
@@ -55,7 +56,7 @@ export default function Alabama(){
     {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
     <style dangerouslySetInnerHTML={{ __html: `${FONT} *{box-sizing:border-box;margin:0;padding:0;} body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};} .btn-p{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:15px;font-weight:500;cursor:pointer;transition:background 0.2s;} .btn-p:hover{background:${C.gold};color:${C.darkNavy};} @media(max-width:768px){.g4,.g2{grid-template-columns:1fr 1fr!important;}.g3{grid-template-columns:1fr!important;}.ht{font-size:28px!important;}}` }} />
     <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><div style={{width:34,height:34,background:C.navy,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏠</div><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:16,color:C.darkNavy}}>TaxAppeal</div><div style={{fontSize:10,color:C.mutedGray,letterSpacing:"0.5px"}}>PROPERTY TAX DISPUTE</div></div></a>
+      <a href="/" style={{display:"flex",alignItems:"center",gap:10,textDecoration:"none"}}><LogoMark /><div><div style={{fontFamily:"'DM Serif Display',serif",fontSize:16,color:C.darkNavy}}>TaxAppeal</div><div style={{fontSize:10,color:C.mutedGray,letterSpacing:"0.5px"}}>PROPERTY TAX DISPUTE</div></div></a>
       <SeasonNavCta stateCode="AL" />
     </div>
     <div style={{background:C.darkNavy,padding:"64px 40px 56px",textAlign:"center"}}>

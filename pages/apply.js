@@ -24,6 +24,7 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Se
 const TX_SERVICE_FEE = 89;
 
 import { C } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 /**
  * THE ORDER OF THE FUNNEL. Changed 23 Aug 2026, and the change is the point.
@@ -251,7 +252,7 @@ function NavBar({ step, account, property }) {
   return (
     <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏠</div>
+        <LogoMark size={36} />
         <div>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 19, color: C.darkNavy, lineHeight: 1 }}>TaxAppeal</div>
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>

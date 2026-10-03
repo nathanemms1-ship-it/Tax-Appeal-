@@ -25,6 +25,7 @@ const PENDING = pendingStates();
 const SELLING_TEXT = nameList(SELLING);
 
 import { C, FONTS, FONT_IMPORT } from "../lib/theme";
+import LogoMark from '../components/LogoMark';
 
 // FONT_IMPORT now comes from lib/theme.js with the palette.
 
@@ -159,16 +160,7 @@ export default function Landing() {
           z-index: 100;
         }
         .logo { display: flex; align-items: center; gap: 10px; }
-        /* An inline SVG, not an emoji. The hero's emoji trust row came out for
-           a reason -- emoji render differently on every platform and date a
-           page instantly -- and the logo was the last one left. */
-        .logo-mark {
-          width: 36px; height: 36px;
-          background: ${C.navy};
-          border-radius: 9px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
+        /* .logo-mark removed: components/LogoMark.js owns the mark now. */
         .logo-name { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -0.4px; font-size: 19px; color: ${C.darkNavy}; }
         .logo-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: ${C.mutedGray}; margin-top: 1px; }
         .nav-right { display: flex; align-items: center; gap: 12px; }
@@ -513,14 +505,7 @@ export default function Landing() {
       {/* Nav */}
       <nav className="nav">
         <div className="logo">
-          <div className="logo-mark">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 10.2 12 3l9 7.2" />
-              <path d="M5.5 9.4V20h13V9.4" />
-              <path d="M10 20v-5.2h4V20" />
-            </svg>
-          </div>
+          <LogoMark size={36} radius={9} />
           <div>
             <div className="logo-name">TaxAppeal</div>
             <div className="logo-sub">Property Tax Dispute</div>
