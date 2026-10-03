@@ -407,7 +407,8 @@ if (elPaso && !isMailable(elPaso)) {
   for (const [loader, file] of [['load.mjs', '../scripts/tx/load.mjs'],
                                 ['load-dcad.mjs', '../scripts/tx/load-dcad.mjs'],
                                 ['load-hcad.mjs', '../scripts/tx/load-hcad.mjs'],
-                                ['load-tab.mjs', '../scripts/tx/load-tab.mjs']]) {
+                                ['load-tab.mjs', '../scripts/tx/load-tab.mjs'],
+                                ['load-collin.mjs', '../scripts/tx/load-collin.mjs']]) {
     const src = readFileSync(new URL(file, import.meta.url), 'utf8');
     const block = /const COLS = \[([\s\S]*?)\];/.exec(src)?.[1] || '';
     const cols = block.split(',').map((x) => x.trim().replace(/^'|'$/g, ''))

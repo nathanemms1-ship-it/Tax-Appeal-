@@ -434,7 +434,7 @@
       "cad_name": "Collin Central Appraisal District",
       "site": "https://collincad.org",
       "data_page": "https://collincad.org/open-data-portal/",
-      "format": "ACCESS_MDB",
+      "format": "COLLIN_CSV",
       "access": "free",
       "login": "full export requires open-records; Lite export is a public folder",
       "confidence": "verified",
@@ -443,7 +443,9 @@
         "lite_database": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabaseCurrent.zip",
         "code_lists": "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/CodeFileLists.xls"
       },
-      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain. 18 Sept 2026: data.texas.gov also carries a PRELIMINARY Collin dataset (nne4-8riu) alongside the certified years - the only in-season dataset found on any district so far. NOT VERIFIED: data.texas.gov is denied at the agent egress gateway and the Socrata pages are JS-rendered, so its schema is unread. Given 5tkr-3759 carries no values, assume this one does not either until the Socrata metadata endpoint api/views/nne4-8riu.json is read."
+      "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain. 18 Sept 2026: data.texas.gov also carries a PRELIMINARY Collin dataset (nne4-8riu) alongside the certified years - the only in-season dataset found on any district so far. NOT VERIFIED: data.texas.gov is denied at the agent egress gateway and the Socrata pages are JS-rendered, so its schema is unread. Given 5tkr-3759 carries no values, assume this one does not either until the Socrata metadata endpoint api/views/nne4-8riu.json is read.",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-collin.mjs from AppraisalData-Public-2026.csv (396,554,129 bytes, dataDate 28 Sept 2026) in the same public folder - a flat one-row-per-property CSV, so no .mdb reader was needed. NO certified snapshot is published: this is certification plus supplements; 15,859 class-A rows still marked Preliminary were excluded. 8,304 undivided-interest shares merged into 4,092 properties. 344,247 class-A rows (Collin uses A, not A1 - pass --class=A to sellable.mjs). The folder also carries ApprNotices.csv (April notice values) and ARBProtests.csv - worth a look for in-season data."
     },
     {
       "county": "Williamson",
