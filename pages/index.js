@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { STATS, OUTCOME_DISCLAIMER } from '../lib/stats';
 import { sellingStates, pendingStates, nameList, stateSaleStatus } from '../lib/stateService';
+import { homeAnnouncement } from '../lib/filingWindows';
 
 /**
  * THE HOMEPAGE CLAIMED FIVE STATES AND THE FUNNEL SELLS THREE.
@@ -507,15 +508,36 @@ export default function Landing() {
       ` }} />
 
 {/* Announcement bar — TRIM countdown for Florida */}
+      {/*
+        THE STRIP READS THE SEASON. IT DOES NOT CARRY ITS OWN COPY OF IT.
+
+        This used to be a hardcoded new Date('2026-08-15') with two branches
+        and no third one, so from 15 Aug onward its fallback -- "Florida TRIM
+        notices are arriving now, you have 25 days" -- was permanent. Florida
+        closed on 18 Sept. The most prominent sentence on the site had been
+        false for a fortnight, and would have gone on being false in 2027.
+
+        Nathan found it, not the build. Now the dates come from the same
+        FILING_WINDOWS every deadline, county page and mailing check uses, and
+        `closed` is a case the function has to return rather than a state it
+        can fall through into.
+      */}
       <div className="ann-bar">
         {(() => {
-          const trimDate = new Date('2026-08-15');
-          const today = new Date();
-          const days = Math.ceil((trimDate - today) / (1000 * 60 * 60 * 24));
-          if (days > 0) {
-            return <>🚨 Florida TRIM notices arrive in <strong>{days} days</strong> — file your VAB petition before the 25-day deadline or wait a full year.</>;
+          const a = homeAnnouncement(sellingStates());
+          const when = (iso) => new Date(iso).toLocaleDateString('en-US',
+            { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+          const names = nameList(a.states.map((c) => stateSaleStatus(c).name));
+
+          if (a.kind === 'open') {
+            return <>{names} {a.states.length > 1 ? 'are' : 'is'} open — <strong>{a.days} days</strong> left to file. We prepare it, you sign it, we mail it.</>;
           }
-          return <>🚨 Florida TRIM notices are arriving now — you have <strong>25 days</strong> to file your VAB petition. Don&apos;t miss your window.</>;
+          if (a.kind === 'preorder') {
+            return <>{names} opens {when(a.date)} — <strong>reserve your spot</strong> and we file the day the window opens.</>;
+          }
+          // CLOSED. Say so. /check is not gated by the season, and it is the
+          // one thing a visitor can actually do today, so that is the ask.
+          return <>Filing season is closed. {names} reopen{a.states.length > 1 ? '' : 's'} <strong>{when(a.date)}</strong> — you can still check your property free.</>;
         })()}
       </div>
 

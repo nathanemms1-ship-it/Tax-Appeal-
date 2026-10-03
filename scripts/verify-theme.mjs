@@ -286,6 +286,12 @@ const ratio = (a, b) => {
   t(`no page names a webfont it never loads${uniq.length ? ' (' + uniq.join('; ') + ')' : ''}`, uniq.length === 0);
 
   // The logotype is not the display face. It must not follow a theme change.
+  // Plus Jakarta's `fi` merges the letters and drops the dot on the i, so
+  // "filing" rendered as a smudge. Off globally; one place, all 47 pages.
+  const app = strip(readFileSync(path.join(root, 'pages/_app.js'), 'utf8'));
+  t('common ligatures are off site-wide (Plus Jakarta turns "fi" into a smudge)',
+    /font-variant-ligatures:\s*no-common-ligatures/.test(app));
+
   t('the theme gives the logotype its own token', /wordmark:\s*"'DM Serif Display'/.test(theme));
   t('and the shared import actually loads it', /family=DM\+Serif\+Display/.test(theme));
   const idx = strip(readFileSync(path.join(root, 'pages/index.js'), 'utf8'));

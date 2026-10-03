@@ -359,6 +359,86 @@ for (const [rel, html] of docs) {
 }
 
 // ---------------------------------------------------------------------------
+// THE HOMEPAGE STRIP NEVER CLAIMS A WINDOW THAT IS SHUT
+// ---------------------------------------------------------------------------
+/*
+  3 Oct 2026. Nathan: "Florida is closed, why do we have this banner?"
+
+  It was a hardcoded `new Date('2026-08-15')` in pages/index.js with exactly
+  two branches -- "arrives in N days" and, for every day after, "arriving now,
+  you have 25 days to file". No closed branch. Florida's window shut on
+  18 Sept, so the most prominent sentence on the site had been false for
+  fifteen days, and the fallback had no expiry: it would have said the same
+  thing in 2027 and 2028.
+
+  Nothing caught it, because nothing was looking. The dates were correct in
+  FILING_WINDOWS the whole time; the strip simply had its own copy -- the same
+  shape as the 24 duplicated palettes and the 39 inline logos.
+
+  The guard that matters is not "does today render the right words". It is
+  "is there a day of the year on which this claims an open window while every
+  window is shut". So walk the year.
+*/
+{
+  const { homeAnnouncement, getFilingWindowStatus } = await import(join(ROOT, 'lib', 'filingWindows.js'));
+  const { sellingStates } = await import(join(ROOT, 'lib', 'stateService.js'));
+  const SELL = sellingStates();
+
+  check('homeAnnouncement refuses to guess which states to name',
+    (() => { try { homeAnnouncement(); return false; } catch { return true; } })());
+
+  check('it names only states we sell',
+    homeAnnouncement(SELL).states.every((c) => SELL.includes(c)));
+
+  // Alabama opens the same April day as Texas and Georgia but is still gated.
+  check('a gated state is never announced',
+    !homeAnnouncement(SELL).states.includes('AL'));
+
+  const a = homeAnnouncement(SELL);
+  check(`kind is one of open|preorder|closed (got ${a.kind})`,
+    ['open', 'preorder', 'closed'].includes(a.kind));
+
+  // THE ONE THAT WOULD HAVE CAUGHT IT. 365 days, and on each one the claim
+  // has to match what the windows actually say.
+  const realNow = Date.now;
+  let mismatch = null;
+  let sawClosed = 0, sawOpen = 0, sawPre = 0;
+  try {
+    for (let i = 0; i < 365 && !mismatch; i++) {
+      const t = new Date(2026, 9, 3); t.setDate(t.getDate() + i);
+      Date.now = () => t.getTime();
+      const orig = global.Date;
+      // getFilingWindowStatus builds `new Date()`, so the clock has to move too.
+      class Fixed extends orig {
+        constructor(...args) { return args.length ? new orig(...args) : new orig(t); }
+        static now() { return t.getTime(); }
+      }
+      global.Date = Fixed;
+      let ann, anyOpen, anyPre;
+      try {
+        ann = homeAnnouncement(SELL);
+        anyOpen = SELL.some((c) => getFilingWindowStatus(c, null).canFile);
+        anyPre = SELL.some((c) => getFilingWindowStatus(c, null).canPreOrder);
+      } finally { global.Date = orig; }
+
+      const iso = t.toISOString().slice(0, 10);
+      if (ann.kind === 'open' && !anyOpen) mismatch = `${iso}: said OPEN with every window shut`;
+      else if (ann.kind === 'preorder' && !anyPre) mismatch = `${iso}: said PREORDER with no pre-order live`;
+      else if (ann.kind === 'closed' && (anyOpen || anyPre)) mismatch = `${iso}: said CLOSED while a window was live`;
+      if (ann.kind === 'closed') sawClosed++;
+      if (ann.kind === 'open') sawOpen++;
+      if (ann.kind === 'preorder') sawPre++;
+    }
+  } finally { Date.now = realNow; }
+
+  check(`the strip matches the windows on all 365 days${mismatch ? ' (' + mismatch + ')' : ''}`, !mismatch);
+  // ...and all three branches are actually reachable, or the walk above is
+  // just confirming that one hardcoded answer stays hardcoded.
+  check(`all three branches occur over a year (open ${sawOpen}, preorder ${sawPre}, closed ${sawClosed})`,
+    sawOpen > 0 && sawPre > 0 && sawClosed > 0);
+}
+
+// ---------------------------------------------------------------------------
 console.log(`\n${MODE.toUpperCase()} mode: ${pass} passed, ${fail} failed`);
 if (fail) {
   console.log('\nFailures:');

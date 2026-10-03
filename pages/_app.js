@@ -121,7 +121,29 @@ export default function App({ Component, pageProps }) {
         `cssVars` is generated from the same object lib/theme.js exports, so
         there is still exactly one place a colour is decided.
       */}
-      <style jsx global>{`:root { ${cssVars} }`}</style>
+      {/*
+        AND THE fi LIGATURE, OFF. Added 3 Oct 2026.
+
+        Nathan: "the word Filing looks odd?" It was odd. Plus Jakarta Sans
+        ships a common-ligature set, and its `fi` merges the two letters into
+        one glyph AND suppresses the tittle -- the dot over the i. At the
+        sizes this site uses, "filing" came out as a smudge that reads closer
+        to "fl ing", and the f's terminal is not shaped to stand in for the
+        missing dot the way a serif's would.
+
+        It is not a rare pair for us: filing, file, filed, fight ("We fight
+        your property tax bill" is the largest text on the site), fee, first,
+        confirm, notified, specific, benefit, identified.
+
+        `no-common-ligatures` rather than `none`: it turns off liga/clig,
+        which is the Latin-typography convention this is, and leaves required
+        ligatures alone for any script that actually needs them. Set on html
+        so it inherits to all 47 pages from the one global block.
+      */}
+      <style jsx global>{`
+        :root { ${cssVars} }
+        html { font-variant-ligatures: no-common-ligatures; }
+      `}</style>
       {/* Google tag (gtag.js) — loads when EITHER a GA4 or a Google Ads ID is set */}
       {TAG_LOADER_ID && (
         <>
