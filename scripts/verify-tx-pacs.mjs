@@ -123,6 +123,19 @@ const TABLE = [
   ['Travis', '011', 'PORCH OPEN 1ST F', false, '$24.33', 'PORCH excludes'],
   ['Travis', 'SO', 'Sketch Only', false, '$0.00', 'outline, no value'],
 
+  // ---- MONTGOMERY. Reference: MA Main Area $127.20.
+  ['Montgomery', 'MA', 'Main Area', true, '$127.20', 'reference'],
+  ['Montgomery', 'MA2.0', 'Main Area 2nd Flr', true, '$124.49', '98%'],
+  ['Montgomery', 'MAM', 'Main Area Masonary', true, '$110.56', '87%'],
+  ['Montgomery', 'MAF', 'Main Area Frame Addition', true, '$88.11', '69%'],
+  ['Montgomery', 'MAMH1', 'Mobile Home Single', true, '$15.27', 'mobile home main'],
+  ['Montgomery', 'MAMH2', 'Mobile Home Double', true, '$22.57', 'mobile home main'],
+  // Matched '\bMH\b' before SKIRT was excluded.
+  ['Montgomery', 'SM4', 'Skirting/mh', false, '$1.33', 'trim, not a room'],
+  ['Montgomery', 'SM5', 'Wood Deck/mh', false, '$1.67', 'DECK excludes'],
+  ['Montgomery', 'BG', 'Attached Brick Garage', false, '$27.30', 'GARAGE excludes'],
+  ['Montgomery', 'OMP', 'Open Masonry Porch', false, '$20.82', 'PORCH excludes'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],

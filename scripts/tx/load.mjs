@@ -99,6 +99,8 @@ function memberLines(zipPath, pattern) {
   return { rl: createInterface({ input: p.stdout, crlfDelay: Infinity }), proc: p };
 }
 
+const acresOrNull = (v) => (v && Math.abs(v) < 1e8 ? v : null);
+
 function csvCell(v) {
   if (v === null || v === undefined) return '';
   if (typeof v === 'boolean') return v ? 'true' : 'false';
@@ -274,7 +276,11 @@ const PRORATED = ['market_value', 'appraised_value', 'land_value', 'improvement_
       year_built: extra.year_built || null,
       quality_class: extra.quality_class || null,
       // Prefer the land file; fall back to legal_acreage where there are no segments.
-      land_size_acres: lot.land_size_acres || p.land_size_acres || null,
+      // tx_parcels.land_size_acres is numeric(12,4), so anything >= 1e8 fails the
+      // whole COPY and rolls the district back. Montgomery 000000323405 carries
+      // its 13,866 sqft lot in the ACRES field (138660000). One district typo
+      // must not cost a county; land_size_sqft is the field anything reads.
+      land_size_acres: acresOrNull(lot.land_size_acres || p.land_size_acres),
       land_size_sqft: lot.land_size_sqft || null,
       source_format: 'PACS',
     };

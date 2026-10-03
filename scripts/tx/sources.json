@@ -557,7 +557,9 @@
         "preliminary_2026_json": "https://drive.google.com/file/d/1VbACdMUGzj4r5PTWPmSqN_wOP8KnrBPa/view"
       },
       "notes": "RESOLVED 20 Sept 2026 IN A BROWSER, because the page is a Prodigy single-page app that serves an empty shell to every non-browser fetch. FREE, no login, certified rolls back to 2019. ** THIS DISTRICT PUBLISHES A PRELIMINARY ROLL ** - the only one found on any district so far, and it is the answer to the open question in TX_Model_Decided (\"Which districts publish a preliminary roll in April, and when?\"). A preliminary roll carries NOTICED values before certification, which is the only current-year data that exists before the 15 May deadline. Whether it appears in April rather than merely existing for 2026 is STILL UNCHECKED - look again after 1 April. FILES ARE ON GOOGLE DRIVE, not the district domain, and drive.google.com is denied at the agent egress gateway like every CAD host, so the download is a human step. Google Drive also interstitials large files, so a plain curl of the uc?export=download URL returns an HTML confirmation page rather than the zip.",
-      "resolved_at": "2026-09-20"
+      "resolved_at": "2026-09-20",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 from Certified Appraisal Roll 2026.zip (397,123,927 bytes, sha256 1fbfc70655bf83a5356322ff95a942091baf42bb6779c54c1fd3a7fea0201083), layout 8.0.0.33. Google Drive IS now reachable from the device VM: GET uc?export=download&id=<ID>, read the uuid from the interstitial form, then GET drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t&uuid=<uuid>. 246,741 residential rows, 221,160 A1. Needs --max-old-space-size=8192 (OOMs at 3.2 GB). Two fixes it forced: SM4 Skirting/mh was counted as living area via MH (SKIRT now excluded), and account 000000323405 carries its 13,866 sqft lot in the acres field, which overflowed numeric(12,4) and rolled back the COPY (acresOrNull in load.mjs)."
     },
     {
       "county": "Hidalgo",

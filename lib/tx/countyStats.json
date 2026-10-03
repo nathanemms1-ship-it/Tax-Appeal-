@@ -107,6 +107,21 @@
       "dispersionMinHoodSize": 10,
       "computedAt": "2026-10-03"
     },
+    "170": {
+      "taxYear": 2026,
+      "stateClass": "A1",
+      "parcels": 217435,
+      "cappedParcels": 29309,
+      "cappedPct": 13.5,
+      "neighborhoods": 2464,
+      "medianMarketValue": 340533,
+      "medianLivingArea": 2227,
+      "medianYearBuilt": 2007,
+      "valueDispersion": 10.2,
+      "dispersionNeighborhoods": 1965,
+      "dispersionMinHoodSize": 10,
+      "computedAt": "2026-10-03"
+    },
     "178": {
       "taxYear": 2026,
       "stateClass": "A1",
