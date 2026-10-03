@@ -1062,6 +1062,140 @@ t('the property address on the form carries the state',
     !/^\s*import\s/m.test(read('lib/tx/rollYear.js')));
 }
 
+/**
+ * ============================================================================
+ * A CAUTION WITH NO MESSAGE IS WORSE THAN NO CAUTION
+ * ============================================================================
+ * Added 3 Oct 2026, from a screenshot. The review screen for 1707 Bunker Hill
+ * Ln -- the one with the payment button -- rendered, in full, under the
+ * heading "One thing to know":
+ *
+ *     few_comparables  ·  confidence: low
+ *
+ * buildProtest does `caution(comps.reason || NO_COMPS, comps.message)`, and
+ * findComps' short-set branch in lib/tx/comps.js never set `message`. So the
+ * <p> rendered empty and the debug <code> line beneath it WAS the warning.
+ *
+ * THE ASSERTION FOR THIS ALREADY EXISTED -- "every caution is named and
+ * explained", message.length > 20, about sixty lines above. It never fired
+ * because it only walks the `refusals` fixtures, and not one of them was a
+ * short comp set. The guard was right and its coverage was not, which is the
+ * quieter cousin of an assertion that cannot fail.
+ *
+ * So: every branch of findComps that can raise a caution gets one here.
+ *
+ * INJECTION: delete `message` from the few_comparables return -> FAILS.
+ */
+{
+  const shortSet = buildProtest({
+    parcel: subject, taxYear: 2026,
+    comps: { ...goodComps, sufficient: false, reason: 'few_comparables',
+             confidence: 'low', compCount: 2, comps: compRows.slice(0, 2),
+             message: 'We found only 2 comparable properties close enough to this house to use, '
+               + 'fewer than we would like. The median they produce is still your county\'s own '
+               + 'data and the protest is still valid, but a short set is easier for the board '
+               + 'to set aside than a long one.' },
+  });
+  t('short comp set still builds a filable packet', shortSet.filable === true);
+  t('short comp set raises the few_comparables caution',
+    (shortSet.cautions || []).some((c) => c.code === 'few_comparables'));
+  t('and that caution is explained in words, not a code',
+    (shortSet.cautions || []).every((c) => typeof c.message === 'string' && c.message.length > 20));
+
+  /*
+    The real source, not the fixture. SCOPED TO THE OBJECT LITERAL, because
+    the first version of this check read 1,800 characters forward from
+    `reason: 'few_comparables'` and found a `message:` belonging to the NEXT
+    return. Deleting the one that matters left it green -- caught by
+    injection, not by reading it.
+  */
+  const { readFileSync } = await import('node:fs');
+  const compsSrc = readFileSync(new URL('../lib/tx/comps.js', import.meta.url), 'utf8');
+  const from = compsSrc.indexOf("reason: 'few_comparables'");
+  const to = compsSrc.indexOf('level: best.stratum.level', from);
+  t('lib/tx/comps.js sets a message on the few_comparables branch itself',
+    from > -1 && to > from && /message:\s*[`'"]/.test(compsSrc.slice(from, to)));
+
+  // And the screen does not print the internal code at a customer.
+  const applySrc = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
+  t('the review screen does not render the raw caution code',
+    !/<code[^>]*>\s*\{c\.code\}/.test(applySrc));
+}
+
+/**
+ * ============================================================================
+ * THE QUOTED SAVING IS MEASURED ON THE VALUE THE BILL IS COMPUTED ON
+ * ============================================================================
+ * Added 3 Oct 2026. Nathan screenshotted the review screen for 1707 Bunker
+ * Hill Ln, which said, four lines apart:
+ *
+ *     Your bill only changes below ............ $459,600
+ *     If 2027 rates match 2026, that's about ... $924 / year
+ *
+ * $924 is (market 469,000 - ask 426,984) x 0.022. But § 23.23 caps the
+ * APPRAISED value at 459,600 and that is what a bill is computed on, so the
+ * first $9,400 of the reduction comes off a number nobody is taxed on. The
+ * real figure is $718. We were overstating by the cap differential -- 29% --
+ * on the screen with the payment button, while printing the correct rule
+ * immediately above it.
+ *
+ * NOTHING CAUGHT IT, and when the fix was first guarded, reverting it still
+ * passed: every fixture in this file had market == appraised, so askGap and
+ * billingGap were the same number. A fixture whose two branches agree cannot
+ * tell them apart -- the same note already written above goodComps, about
+ * indicatedAppraised and indicatedMarket, for the same reason.
+ *
+ * So this fixture is DELIBERATELY CAPPED, and the two bases are asserted to
+ * disagree before either is checked.
+ *
+ * INJECTION: estimatedSaving back to askGap -> FAILS.
+ */
+{
+  const RATE = 0.022;
+  const capped = { ...subject, market_value: 469000, appraised_value: 459600 };
+  const r = buildProtest({ parcel: capped, comps: goodComps, taxYear: 2026 });
+
+  const ask = r.requestedValue;
+  const onMarket = Math.round((469000 - ask) * RATE);
+  const onBilling = Math.round((459600 - ask) * RATE);
+
+  // If these agree the fixture is degenerate and everything below is theatre.
+  t(`the capped fixture distinguishes the two bases (${onMarket} vs ${onBilling})`,
+    ask > 0 && ask < 459600 && onMarket !== onBilling);
+  t(`estimatedSaving is measured on the capped value, not market (got ${r.estimatedSaving}, billing ${onBilling}, market ${onMarket})`,
+    r.estimatedSaving === onBilling);
+  t('reductionSought stays on market value — it is the Section 4 figure',
+    r.reductionSought === 469000 - ask);
+  t('the packet reports the value the bill is computed on',
+    r.billingValueBefore === 459600);
+
+  /*
+    And the "not worth the fee" caution is dropped on the SAME basis. If it is
+    dropped on askGap, a capped house whose real benefit is under $89 gets the
+    warning removed and is sold a filing anyway.
+
+    This one is a SOURCE check, and weaker than the rest of this block for it.
+    Building a fixture that lands between the two thresholds also needs
+    qualify() to raise SAVING_BELOW_FEE first, which depends on the district
+    rate rather than on anything this test controls. Named here rather than
+    faked: it pins the identifier, not the behaviour.
+  */
+  const { readFileSync } = await import('node:fs');
+  const protestSrc = readFileSync(new URL('../lib/tx/protest.js', import.meta.url), 'utf8');
+  t('the below-fee caution is dropped on the billing gap, not the market gap',
+    /if \(billingGap > 0 && Math\.round\(billingGap \* DEFAULT_TAX_RATE\) >= SERVICE_FEE\)/.test(protestSrc));
+
+  // An ask that lands ABOVE the capped value moves the bill by nothing, and
+  // must quote nothing rather than a four-figure number beside a refusal.
+  const absorbed = buildProtest({
+    parcel: { ...subject, market_value: 1103386, appraised_value: 600000 },
+    comps: { ...goodComps, indicatedAppraised: 953964, indicatedMarket: 953964 },
+    taxYear: 2026,
+  });
+  t(`an ask above the capped value quotes no saving (got ${absorbed.estimatedSaving})`,
+    absorbed.estimatedSaving === null);
+}
+
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-protest: ${pass} passed`);

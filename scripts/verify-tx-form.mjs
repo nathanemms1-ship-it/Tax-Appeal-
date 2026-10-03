@@ -397,7 +397,27 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     $1,016 and $2,940 for one house. These check the relationship instead.
   */
   t('the saving formula lives in buildProtest',
-    /estimatedSaving: askGap > 0 \? Math\.round\(askGap \* DEFAULT_TAX_RATE\) : null/.test(protest));
+    /estimatedSaving: billingGap > 0 \? Math\.round\(billingGap \* DEFAULT_TAX_RATE\) : null/.test(protest));
+  /*
+    AND IT IS MEASURED ON THE BILLING VALUE. Updated 3 Oct 2026.
+
+    This assertion pinned `askGap` from 1 Oct, when the only thing being
+    fixed was WHERE the saving is computed. It was right about the location
+    and silent about the basis, so it went on passing while the screen quoted
+    $924 for 1707 Bunker Hill Ln against a real figure of $718 -- askGap is
+    market minus ask, and a bill is computed on the § 23.23 capped appraised
+    value. Nathan found it on the review screen, under a line that already
+    said "Your bill only changes below $459,600".
+
+    billingGap is min(appraised, market) minus ask. The behavioural version of
+    this, on a deliberately capped fixture, is in verify-tx-protest.mjs; this
+    pins the single expression so the two files cannot drift apart.
+  */
+  t('and it is measured on the capped billing value, not on market',
+    /const billingBefore = appraised > 0 \? Math\.min\(appraised, n\(parcel\.market_value\)\) : n\(parcel\.market_value\)/.test(protest)
+    && /const billingGap = askable \? Math\.max\(0, billingBefore - askable\) : 0/.test(protest));
+  t('reductionSought stays on the market gap — it is the Section 4 figure',
+    /reductionSought: askable \? askGap : null/.test(protest));
   t('generate-50132 reads that field rather than deriving its own',
     /estimatedSaving: packet\.estimatedSaving/.test(api)
     && !/DEFAULT_TAX_RATE/.test(api));
@@ -553,8 +573,10 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     ladder and estimates from a district rate; the caution survived next to
     the figure that supersedes it. Third occurrence of this shape in two days.
   */
+  /* billingGap since 3 Oct: dropping this on the market gap removes the
+     warning from a capped house whose real benefit is under $89. */
   t('buildProtest drops saving_below_fee once the packet clears the fee',
-    /Math\.round\(askGap \* DEFAULT_TAX_RATE\) >= SERVICE_FEE/.test(protest)
+    /Math\.round\(billingGap \* DEFAULT_TAX_RATE\) >= SERVICE_FEE/.test(protest)
     && /CAUTION_CODES\.SAVING_BELOW_FEE\) cautions\.splice/.test(protest));
 
   /*

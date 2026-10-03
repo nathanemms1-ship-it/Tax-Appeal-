@@ -5024,10 +5024,22 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
                     {idx + 1}
                   </div>
                   <div>
-                    <p style={{ fontSize: 14, lineHeight: 1.7, color: D.body, margin: "0 0 7px" }}>{c.message}</p>
-                    <code style={{ fontSize: 11.5, color: D.muted, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
-                      {c.code}{txReview.confidence ? `  \u00B7  confidence: ${txReview.confidence}` : ''}
-                    </code>
+                    {/*
+                      THE INTERNAL CODE IS NOT FOR THE CUSTOMER. Removed 3 Oct 2026.
+
+                      This printed `few_comparables  ·  confidence: low` in a
+                      monospace face, under the heading "One thing to know",
+                      on the screen with the payment button. Because the
+                      caution behind it carried no message, the raw code was
+                      the ENTIRE warning the owner was given.
+
+                      Third time this session customer-facing copy has been a
+                      developer string -- after the raw /api/check error codes
+                      and the four Times New Roman headings. The code still
+                      travels in the payload and is still recorded with the
+                      order; it just is not the thing a person reads.
+                    */}
+                    <p style={{ fontSize: 14, lineHeight: 1.7, color: D.body, margin: 0 }}>{c.message}</p>
                   </div>
                 </div>
               ))}
