@@ -405,10 +405,72 @@ const ratio = (a, b) => {
     /token\("navy"\)/.test(gen) && /token\("gold"\)/.test(gen) && !/#[0-9A-Fa-f]{6}"\s*$/m.test(gen));
 }
 
+// ── 2f. Every card on the homepage has a drawn edge ───────────────────────
+/*
+  Nathan, 3 Oct: "it all just blends together a little."
+
+  It did, and the measurement says why. The cards are #FFFFFF on a #F4F7FC
+  page -- a 1.06:1 edge -- held apart by nothing but a box-shadow at 4% and
+  6% opacity. On a bright screen that is invisible, so the whole hero read as
+  one grey field.
+
+  Worse, the page ran TWO conventions at once: .step, .faq-item and the three
+  outcome cards carried a 1.5px line (1.18:1, barely better), while
+  .price-card, .stat-card, .stat-banner and .price-box carried a shadow and
+  no line at all. Nobody chose that -- it accumulated.
+
+  Option B: one hairline, C.cardLine, on all seven, and the shadows go. The
+  point is not that a line is prettier than a shadow; it is that a 6% shadow
+  cannot do a line's job, and the page was asking it to.
+
+  This pins the outcome rather than the taste. A future theme is free to
+  change what cardLine IS. It is not free to leave a card with no edge, or to
+  go back to separating cards by shadow alone.
+*/
+{
+  const idx = strip(readFileSync(path.join(root, 'pages/index.js'), 'utf8'));
+
+  const CARDS = ['price-card', 'stat-card', 'stat-banner', 'price-box', 'step', 'faq-item'];
+  const edgeless = CARDS.filter((c) => {
+    // Anchored to the rule's own opening brace so a longer class name
+    // (.stat-card vs .stat-banner) cannot satisfy a shorter one's check.
+    const m = idx.match(new RegExp(`\\.${c} \\{([\\s\\S]*?)\\n        \\}`));
+    return !m || !/border: 1px solid \$\{C\.cardLine\}/.test(m[1]);
+  });
+  t(`every homepage card has a drawn edge${edgeless.length ? ' (' + edgeless.join(', ') + ')' : ''}`,
+    edgeless.length === 0);
+
+  // The three outcome cards are inline markup, not a class.
+  t('the outcome cards use the same edge, not their own literal',
+    /border: `1px solid \$\{C\.cardLine\}`/.test(idx) && !/1\.5px solid #E8EDF4/.test(idx));
+
+  t('no card is separated by a shadow instead', !/box-shadow/.test(idx));
+
+  // The gold edge on the <5% card is one `border-left` away from being erased
+  // by the shorthand that was just added above it. Order is load-bearing.
+  const banner = idx.match(/\.stat-banner \{([\s\S]*?)\n        \}/);
+  t('the stat-banner shorthand comes before its gold border-left',
+    !!banner
+    && banner[1].indexOf('border: 1px solid') !== -1
+    && banner[1].indexOf('border: 1px solid') < banner[1].indexOf('border-left'));
+
+  // And cardLine has to stay distinguishable from the structural line, or
+  // this whole exercise silently undoes itself.
+  const cardLine = (theme.match(/cardLine:\s*"(#[0-9A-Fa-f]{6})"/) || [])[1];
+  const border = (theme.match(/^\s*border:\s*"(#[0-9A-Fa-f]{6})"/m) || [])[1];
+  t(`the card edge is darker than the structural hairline (${cardLine} vs ${border})`,
+    !!cardLine && !!border && lum(cardLine) < lum(border));
+  t(`the card edge reads against white (${cardLine ? ratio(cardLine, '#FFFFFF').toFixed(2) : '?'}:1, wants 1.3+)`,
+    !!cardLine && ratio(cardLine, '#FFFFFF') >= 1.3);
+  // ...but not so dark that the boxes outrank the price. Option C was 11.27.
+  t('and does not outrank the content inside it',
+    !!cardLine && ratio(cardLine, '#FFFFFF') < 3.0);
+}
+
 // ── 3. The literal tail only shrinks ────────────────────────────────────────
 // A ratchet, not a ban. Lower this number as literals are migrated; the build
 // fails if it ever climbs, so the tail cannot quietly grow back.
-const LITERAL_BUDGET = 643;
+const LITERAL_BUDGET = 642;
 let literals = 0;
 for (const f of files) literals += (strip(readFileSync(f, 'utf8')).match(/#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b/g) || []).length;
 t(`raw hex literals did not increase (${literals} vs budget ${LITERAL_BUDGET})`, literals <= LITERAL_BUDGET);

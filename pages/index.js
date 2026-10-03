@@ -221,9 +221,9 @@ export default function Landing() {
         .price-card {
           flex: 1 1 320px; min-width: 0;
           background: ${C.white};
+          border: 1px solid ${C.cardLine};
           border-radius: 22px;
           padding: 32px;
-          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 16px 40px rgba(33,31,28,0.06);
         }
         .price-label { font-size: 12.5px; color: ${C.mutedGray}; font-weight: 600; margin-bottom: 14px; }
         .price-figure {
@@ -249,6 +249,7 @@ export default function Landing() {
         }
         .stat-card {
           background: ${C.white};
+          border: 1px solid ${C.cardLine};
           border-radius: 16px;
           padding: 28px;
           text-align: left;
@@ -273,7 +274,7 @@ export default function Landing() {
         .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .step {
           background: ${C.white};
-          border: 1.5px solid ${C.border};
+          border: 1px solid ${C.cardLine};
           border-radius: 12px;
           padding: 24px;
         }
@@ -294,6 +295,9 @@ export default function Landing() {
            White card, green figure, shadow instead of a border. */
         .stat-banner {
           background: ${C.white};
+          /* ORDER MATTERS. The shorthand resets every side, so it has to come
+             BEFORE border-left or it quietly erases the gold edge. */
+          border: 1px solid ${C.cardLine};
           border-left: 5px solid ${C.gold};
           border-radius: 16px;
           padding: 28px 32px 28px 30px;
@@ -301,7 +305,6 @@ export default function Landing() {
           align-items: center;
           gap: 30px;
           margin-bottom: 20px;
-          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 14px 34px rgba(33,31,28,0.05);
         }
         .stat-big { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -2.2px; font-size: 54px; color: ${C.navy}; line-height: 1; flex-shrink: 0; }
         .stat-text h3 { font-size: 17.5px; font-weight: 700; color: ${C.darkNavy}; margin-bottom: 7px; }
@@ -312,12 +315,12 @@ export default function Landing() {
            figure, and the divider becomes the pale green tint. */
         .price-box {
           background: ${C.white};
+          border: 1px solid ${C.cardLine};
           border-radius: 16px;
           padding: 28px 32px;
           display: flex;
           align-items: center;
           gap: 32px;
-          box-shadow: 0 2px 4px rgba(33,31,28,0.04), 0 14px 34px rgba(33,31,28,0.05);
         }
         /* Was flex-shrink: 0. The 24 Aug county-fee sentence below made this column's
            max-content width 1174px inside an 820px .price-box; unable to shrink, it
@@ -363,7 +366,7 @@ export default function Landing() {
         .faq { display: flex; flex-direction: column; gap: 10px; }
         .faq-item {
           background: ${C.white};
-          border: 1.5px solid ${C.border};
+          border: 1px solid ${C.cardLine};
           border-radius: 10px;
           overflow: hidden;
           transition: border-color 0.2s;
@@ -674,7 +677,7 @@ export default function Landing() {
               url: 'https://floridarevenue.com/property/Documents/dr529_report.xlsx',
             },
           ].map((c, i) => (
-            <div key={i} style={{ background: C.white, border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
+            <div key={i} style={{ background: C.white, border: `1px solid ${C.cardLine}`, borderRadius: 12, padding: "24px 24px 20px" }}>
               <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-1.4px", fontSize: 40, color: C.navy, lineHeight: 1 }}>{c.stat}</div>
               <div style={{ fontFamily: FONTS.body, fontSize: 13, fontWeight: 700, color: C.darkNavy, marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
               <p style={{ fontFamily: FONTS.body, fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
