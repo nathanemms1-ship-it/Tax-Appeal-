@@ -26,7 +26,7 @@ import { stateSaleStatus } from '../lib/stateService';
  * route; it is now true because both ends read the same map.
  */
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 /* The email, address and submit controls are width:100% with 14-22px of horizontal
  * padding and a 1.5px border. This component ships no stylesheet and inherits no
@@ -96,13 +96,13 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
         maxWidth: 520,
         margin: '0 auto',
         textAlign: 'left',
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: FONTS.body,
       }}
     >
       {!compact && (
         <>
           <div style={{ fontSize: 30, marginBottom: 10, lineHeight: 1 }}>📬</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 23, color: fg, marginBottom: 10, lineHeight: 1.25 }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: 23, color: fg, marginBottom: 10, lineHeight: 1.25 }}>
             {status.heading}
           </h2>
         </>

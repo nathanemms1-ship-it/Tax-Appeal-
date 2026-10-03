@@ -17,14 +17,14 @@ import { OUTCOME_DISCLAIMER } from '../lib/stats';
  * Do not add a card here whose number you cannot open the source document and find.
  */
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 export default function JurisdictionOutcomes({ heading, intro, cards = [], footnote }) {
   const valid = cards.filter((c) => c && c.stat && c.source && c.url);
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: 'center', marginBottom: 12 }}>
+      <h2 style={{ fontFamily: FONTS.display, fontSize: 30, textAlign: 'center', marginBottom: 12 }}>
         {heading}
       </h2>
       <p style={{ fontSize: 15, color: C.bodyGray, textAlign: 'center', marginBottom: 36, lineHeight: 1.65 }}>
@@ -34,7 +34,7 @@ export default function JurisdictionOutcomes({ heading, intro, cards = [], footn
       <div className="testimonials-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
         {valid.map((c, i) => (
           <div key={i} style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 24 }}>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, color: C.navy, lineHeight: 1, marginBottom: 8 }}>
+            <div style={{ fontFamily: FONTS.display, fontSize: 38, color: C.navy, lineHeight: 1, marginBottom: 8 }}>
               {c.stat}
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, lineHeight: 1.45, marginBottom: 12 }}>

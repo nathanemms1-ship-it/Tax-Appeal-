@@ -161,7 +161,12 @@ export default function Landing() {
         }
         .logo { display: flex; align-items: center; gap: 10px; }
         /* .logo-mark removed: components/LogoMark.js owns the mark now. */
-        .logo-name { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -0.4px; font-size: 19px; color: ${C.darkNavy}; }
+        /* THE LOGOTYPE. Not ${FONTS.display} -- see the wordmark note in
+           lib/theme.js. This was Plus Jakarta 800 and the other forty-six
+           pages were DM Serif Display, so the homepage was the only page on
+           the site whose logo read in a different typeface. DM Serif Display
+           ships one weight, 400; asking for 800 gets a synthesised bold. */
+        .logo-name { font-family: ${FONTS.wordmark}; font-weight: 400; letter-spacing: 0; font-size: 20px; line-height: 1.15; color: ${C.darkNavy}; }
         .logo-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: ${C.mutedGray}; margin-top: 1px; }
         .nav-right { display: flex; align-items: center; gap: 12px; }
 
@@ -289,8 +294,9 @@ export default function Landing() {
            White card, green figure, shadow instead of a border. */
         .stat-banner {
           background: ${C.white};
+          border-left: 5px solid ${C.gold};
           border-radius: 16px;
-          padding: 28px 32px;
+          padding: 28px 32px 28px 30px;
           display: flex;
           align-items: center;
           gap: 30px;
@@ -398,9 +404,17 @@ export default function Landing() {
         .footer-cta h2 { font-family: ${FONTS.display}; font-weight: 800; letter-spacing: -1.3px; font-size: 38px; color: ${C.onDarkHeading}; margin-bottom: 12px; }
         .footer-cta p { font-size: 16.5px; color: ${C.onDarkBody}; margin: 0 auto 28px; max-width: 520px; line-height: 1.6; }
         .footer-cta-note { font-size: 13.5px; color: ${C.onDarkBody}; margin-top: 16px; }
+        /* GOLD. This was gold with darkNavy type until 2 Oct, when it went
+           white for the green theme -- correctly, because gold on green is
+           2.13:1 and muddy. The revert to navy on 3 Oct brought the ground
+           back but not the button, so the page lost its loudest accent and
+           kept only the top strip. On navy, gold with darkNavy type is
+           10.66:1 -- higher than the white version's 11.27 is misleading,
+           because what matters here is that the button separates from its
+           band, and gold does that where white competes with the heading. */
         .footer-cta-btn {
-          background: ${C.white};
-          color: ${C.navy};
+          background: ${C.gold};
+          color: ${C.darkNavy};
           border: none;
           border-radius: 12px;
           padding: 17px 34px;
@@ -507,7 +521,7 @@ export default function Landing() {
         <div className="logo">
           <LogoMark size={36} radius={9} />
           <div>
-            <div className="logo-name">TaxAppeal</div>
+            <div className="logo-name">TaxAppeal USA</div>
             <div className="logo-sub">Property Tax Dispute</div>
           </div>
         </div>
@@ -630,8 +644,8 @@ export default function Landing() {
           and given with the customer's permission. See lib/stats.js. */}
       <div style={{ background: C.bg, padding: "56px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 36, padding: "0 32px" }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 10 }}>What the county records actually show</div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.bodyGray, maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
+          <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-0.9px", fontSize: 32, color: C.darkNavy, marginBottom: 10 }}>What the county records actually show</div>
+          <div style={{ fontFamily: FONTS.body, fontSize: 15, color: C.bodyGray, maxWidth: 640, margin: "0 auto", lineHeight: 1.6 }}>
             Every figure below comes from a county&apos;s own published records or a peer-reviewed study of them — each one linked to its source.
           </div>
         </div>
@@ -661,17 +675,17 @@ export default function Landing() {
             },
           ].map((c, i) => (
             <div key={i} style={{ background: C.white, border: "1.5px solid #E8EDF4", borderRadius: 12, padding: "24px 24px 20px" }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: C.navy, lineHeight: 1 }}>{c.stat}</div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: C.darkNavy, marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, color: C.mutedGray, marginTop: 14, lineHeight: 1.5 }}>
+              <div style={{ fontFamily: FONTS.display, fontWeight: 800, letterSpacing: "-1.4px", fontSize: 40, color: C.navy, lineHeight: 1 }}>{c.stat}</div>
+              <div style={{ fontFamily: FONTS.body, fontSize: 13, fontWeight: 700, color: C.darkNavy, marginTop: 8, lineHeight: 1.45 }}>{c.head}</div>
+              <p style={{ fontFamily: FONTS.body, fontSize: 13, color: C.bodyGray, lineHeight: 1.65, marginTop: 12 }}>{c.body}</p>
+              <div style={{ fontFamily: FONTS.body, fontSize: 10.5, color: C.mutedGray, marginTop: 14, lineHeight: 1.5 }}>
                 Source: <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: C.bodyGray }}>{c.src}</a>
               </div>
             </div>
           ))}
         </div>
 
-        <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.mutedGray, lineHeight: 1.65, textAlign: "center" }}>
+        <div style={{ maxWidth: 900, margin: "28px auto 0", padding: "0 32px", fontFamily: FONTS.body, fontSize: 12, color: C.mutedGray, lineHeight: 1.65, textAlign: "center" }}>
           {OUTCOME_DISCLAIMER}
         </div>
       </div>
@@ -806,7 +820,7 @@ export default function Landing() {
           <div className="section-title">Why TaxAppeal beats the alternatives</div>
           <div className="section-sub">Not all property tax services are created equal. Here's how we compare.</div>
           <div style={{ overflowX: 'auto', marginTop: 24 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: FONTS.body }}>
               <thead>
                 <tr style={{ background: C.navy, color: C.white }}>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontWeight: 500 }}></th>

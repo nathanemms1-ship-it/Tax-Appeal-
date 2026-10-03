@@ -18,7 +18,7 @@ import { useState, useEffect } from 'react';
  * dead end with another.
  */
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 const CONTACT_ADDRESS = 'customerservice@taxappealusa.com';
 
@@ -74,12 +74,12 @@ export default function ContactModal({ open, onClose, context }) {
 
   const inputStyle = {
     width: '100%', background: '#F8FAFD', border: '1.5px solid #DDE4EE', borderRadius: 7,
-    padding: '10px 13px', fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+    padding: '10px 13px', fontSize: 14, fontFamily: FONTS.body,
     color: C.darkNavy, outline: 'none', boxSizing: 'border-box',
   };
   const labelStyle = {
     display: 'block', fontSize: 11, letterSpacing: '1px', textTransform: 'uppercase',
-    color: C.bodyGray, fontWeight: 500, marginBottom: 6, fontFamily: "'DM Sans', sans-serif",
+    color: C.bodyGray, fontWeight: 500, marginBottom: 6, fontFamily: FONTS.body,
   };
 
   return (
@@ -88,7 +88,7 @@ export default function ContactModal({ open, onClose, context }) {
       style={{
         position: 'fixed', inset: 0, background: 'rgba(15,31,61,0.55)', zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: FONTS.body,
       }}
     >
       <div
@@ -99,7 +99,7 @@ export default function ContactModal({ open, onClose, context }) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, margin: 0 }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: 22, color: C.darkNavy, margin: 0 }}>
             {state === 'sent' ? 'Message sent' : 'Need help?'}
           </h2>
           <button

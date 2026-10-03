@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
-import { C } from "../../lib/theme";
+import { C, FONTS } from "../../lib/theme";
 
 export default function PartnersConnect() {
   const [status, setStatus] = useState('connecting');
@@ -53,7 +53,7 @@ export default function PartnersConnect() {
         <title>Setting Up Payouts — TaxAppeal USA</title>
         <meta name="robots" content="noindex" />
       </Head>
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif", padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTS.body, padding: 24 }}>
         <div style={{ background: C.white, borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center', border: '0.5px solid #E8EDF4' }}>
 
           {status === 'connecting' && (

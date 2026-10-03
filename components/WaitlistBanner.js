@@ -1,4 +1,4 @@
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 /**
  * Site-wide "not filing yet" banner, rendered from _app.js on every page while
  * sales are paused.
@@ -32,7 +32,7 @@ export default function WaitlistBanner() {
         fontSize: 14,
         lineHeight: 1.5,
         textAlign: 'center',
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: FONTS.body,
       }}
     >
       <strong style={{ color: C.gold }}>We&apos;re not filing yet.</strong>{' '}

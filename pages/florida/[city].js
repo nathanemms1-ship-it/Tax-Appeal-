@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { floridaCities } from '../../lib/floridaCities';
 import { taglineFor } from '../../lib/flTaglines';
 import { breadcrumbSchema } from '../../lib/breadcrumbs';
-import { C } from "../../lib/theme";
+import { C, FONTS } from "../../lib/theme";
 
 
 
@@ -236,7 +236,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
       })()}
 
 
-      <div style={{ fontFamily: "'DM Sans',sans-serif", color: "#1B2A4A", maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
+      <div style={{ fontFamily: FONTS.body, color: "#1B2A4A", maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
         <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0", borderBottom: "1px solid #e5e7eb" }}>
           <Link href="/" style={{ textDecoration: "none" }}><span style={{ fontSize: "22px", fontWeight: "800", color: "#1B2A4A" }}>TaxAppeal <span style={{ color: "#C9A84C" }}>USA</span></span></Link>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "8px", padding: "12px 28px", fontWeight: "700", fontSize: "15px", cursor: "pointer" }}>Start My Appeal — {feeCta}</button></Link>

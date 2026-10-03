@@ -16,6 +16,7 @@
  * RATCHETS the literal count downward so the tail shrinks and never grows.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -186,6 +187,222 @@ const ratio = (a, b) => {
   }
   t(`no light-ground token is used as text on a green band${onDarkOffenders.length ? ' (' + onDarkOffenders.join(', ') + ')' : ''}`,
     onDarkOffenders.length === 0);
+}
+
+// ── 2c. No page asks for a typeface it does not load ───────────────────────
+/*
+  Written 3 Oct 2026. This is the guard for a bug nobody reported, found while
+  chasing one Nathan DID report.
+
+  He said twice that the logo looked wrong. The first time it was the mark,
+  and that became components/LogoMark.js. The second time it was the WORDS --
+  the homepage logotype was Plus Jakarta Sans and the other forty-six pages
+  were DM Serif Display, because the logotype was reading ${FONTS.display} and
+  the display face had changed under it.
+
+  The thing nobody reported: when the shared FONT_IMPORT replaced the
+  per-page Google Fonts URLs on 2 Oct, it dropped the DM families -- but four
+  elements on pages/index.js still named 'DM Serif Display' and six named
+  'DM Sans'. An unloaded family is not an error. The browser silently falls
+  back, so the live homepage served "What the county records actually show"
+  and the 70% / 69.7% / 49% figures in TIMES NEW ROMAN for a day, and the
+  build was green the whole time.
+
+  That is the same failure mode as the colour drift: a reference and its
+  definition in different files, with nothing checking they agree. The palette
+  got a guard; type did not.
+
+  So: for every page, read the families it NAMES and the families its import
+  LOADS, and require the first to be a subset of the second. System stacks
+  (-apple-system, Georgia, serif, ...) are not webfonts and are skipped --
+  they are exactly the fallbacks that make this failure silent.
+*/
+{
+  const SYSTEM = new Set([
+    'serif', 'sans-serif', 'monospace', 'system-ui', 'ui-monospace', 'ui-sans-serif',
+    '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'Helvetica',
+    'Arial', 'Georgia', 'Times New Roman', 'Times', 'Courier New', 'SFMono-Regular',
+    'Menlo', 'Monaco', 'Consolas', 'Roboto', 'Liberation Mono', 'Apple Color Emoji',
+    // components/SignatureStep.js renders the typed name in a script face.
+    // Ships with Windows and macOS, falls back to `cursive`, never loaded.
+    'Brush Script MT',
+  ]);
+  const themeImport = (theme.match(/family=([^&'")]+)/g) || []).map((m) => m.slice(7).split(':')[0].replace(/\+/g, ' '));
+
+  const offenders = [];
+  for (const f of files) {
+    const src = readFileSync(f, 'utf8');
+    const body = strip(src);
+    // What this file loads: its own Google Fonts URL, plus the shared one if
+    // it imports FONT_IMPORT from the theme.
+    const loaded = new Set((body.match(/family=([^&'")]+)/g) || []).map((m) => m.slice(7).split(':')[0].replace(/\+/g, ' ')));
+    if (/FONT_IMPORT/.test(body)) for (const fam of themeImport) loaded.add(fam);
+
+    /*
+      A COMPONENT LOADS NOTHING AND RENDERS EVERYWHERE, so it is held to the
+      strictest page it can appear on, not excused.
+
+      The first version of this check skipped any file with no import of its
+      own -- "a partial that inherits its page's <style>" -- and that excuse
+      hid seven components still naming 'DM Sans'. On the forty-six pages
+      that still load the DM families they were fine; on the rebuilt
+      homepage, which does not, the disclaimer under the stat cards was
+      rendering in Helvetica. Exactly the bug this guard was written for,
+      sitting inside the exemption the guard granted itself.
+
+      Components get the theme's import as their floor instead.
+    */
+    if (loaded.size === 0) for (const fam of themeImport) loaded.add(fam);
+
+    /*
+      What this file names. SCOPED TO FONT DECLARATIONS, and it has to be.
+
+      The first version of this matched any quoted capitalised word followed
+      by a comma -- which is every county name, every JSON-LD @type, every
+      table header in admin.js. It reported 900 offenders including
+      "pages/alabama.js wants Autauga". Fourth time this session a matcher
+      has been written loose enough to match the wrong thing; the pattern is
+      always the same, a regex tested only against what it should catch and
+      never against what it should ignore.
+
+      So: find the font declaration first, then read the stack inside it.
+    */
+    const decls = [
+      ...body.matchAll(/fontFamily:\s*(["'])((?:(?!\1).)*)\1/g),
+      ...body.matchAll(/font-family:\s*([^;}\n]+)/g),
+    ].map((m) => (m.length > 2 ? m[2] : m[1]));
+
+    for (const stack of decls) {
+      // ${FONTS.x} resolves to the theme, which is checked against its own import.
+      if (/\$\{/.test(stack)) continue;
+      for (const q of stack.matchAll(/'([^']+)'|"([^"]+)"/g)) {
+        const fam = (q[1] || q[2]).trim();
+        if (SYSTEM.has(fam) || loaded.has(fam)) continue;
+        offenders.push(`${path.relative(root, f)} wants ${fam}`);
+      }
+    }
+  }
+  const uniq = [...new Set(offenders)];
+  t(`no page names a webfont it never loads${uniq.length ? ' (' + uniq.join('; ') + ')' : ''}`, uniq.length === 0);
+
+  // The logotype is not the display face. It must not follow a theme change.
+  t('the theme gives the logotype its own token', /wordmark:\s*"'DM Serif Display'/.test(theme));
+  t('and the shared import actually loads it', /family=DM\+Serif\+Display/.test(theme));
+  const idx = strip(readFileSync(path.join(root, 'pages/index.js'), 'utf8'));
+  t('the homepage logotype uses it', /\.logo-name \{[^}]*FONTS\.wordmark/.test(idx));
+  t('and reads "TaxAppeal USA", as the other 46 pages do', /className="logo-name">TaxAppeal USA</.test(idx));
+}
+
+// ── 2d. Gold still has somewhere to be ─────────────────────────────────────
+/*
+  Nathan, 3 Oct: "definitly missing some of the gold or yellow accent colors."
+
+  He was right, and the cause was a revert that was not symmetrical. Gold had
+  three jobs on the homepage: the top strip, the <5% figure, and the closing
+  button. Going green took two of them away for good reasons -- gold on green
+  is 2.13:1, and the stat card became white, where gold is 1.54:1. Coming back
+  to navy restored the grounds but not the accents, because a revert undoes
+  what it was told to undo and nobody told it about these.
+
+  A colour that is in the palette but on no page is not a brand colour. Pin
+  the three places it belongs so the next theme experiment has to put them
+  back explicitly rather than by remembering.
+*/
+{
+  const idx = strip(readFileSync(path.join(root, 'pages/index.js'), 'utf8'));
+  t('the closing button is gold, not white',
+    /\.footer-cta-btn \{[^}]*background: \$\{C\.gold\}/.test(idx));
+  t('with darkNavy type on it (10.66:1)',
+    /\.footer-cta-btn \{[\s\S]{0,120}?color: \$\{C\.darkNavy\}/.test(idx));
+  t('the <5% card carries a gold edge', /\.stat-banner \{[\s\S]{0,160}?border-left: 5px solid \$\{C\.gold\}/.test(idx));
+  t('the top strip still has its gold emphasis', /\.ann-bar strong \{ color: \$\{C\.onDarkAccent\}/.test(idx));
+  t('and the mark carries the accent onto all 47 pages',
+    /fill=\{C\.gold\}/.test(readFileSync(path.join(root, 'components/LogoMark.js'), 'utf8')));
+}
+
+// ── 2e. The icon in the browser tab is the same mark, in the same gold ─────
+/*
+  Nathan, 3 Oct, after being told twice that the logo was fixed: "Here is our
+  old logo for reference" -- a screenshot of his own tab bar, showing a solid
+  GOLD house on navy with the door knocked out.
+
+  The brand had a mark the whole time, shipping since 1 Aug in public/. It got
+  redrawn twice as a white stroked outline because nobody opened the file. Two
+  complaints, one cause: the mark looked wrong because it was not the mark,
+  and the gold was missing from the nav because the one element that is gold
+  on every page had been drawn in white.
+
+  The icons were cut before lib/theme.js existed, so their gold was #C9A84C
+  against the palette's #FFC940. scripts/make_icons.py now generates them FROM
+  the palette; this reads the pixels back OUT and checks. A PNG is the one
+  kind of file where a stale brand colour cannot be caught by reading source,
+  which is exactly why this one survived the palette consolidation.
+*/
+{
+  const { C: P } = await import('../lib/theme.js');
+
+  // Minimal 8-bit truecolour-alpha PNG reader: header, inflate, unfilter.
+  const pixels = (file) => {
+    const b = readFileSync(path.join(root, file));
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+    if (b[24] !== 8 || b[25] !== 6) throw new Error(`${file}: expected 8-bit RGBA`);
+    const idat = [];
+    for (let o = 8; o < b.length;) {
+      const len = b.readUInt32BE(o), typ = b.toString('ascii', o + 4, o + 8);
+      if (typ === 'IDAT') idat.push(b.subarray(o + 8, o + 8 + len));
+      if (typ === 'IEND') break;
+      o += 12 + len;
+    }
+    const raw = inflateSync(Buffer.concat(idat));
+    const bpp = 4, stride = w * bpp;
+    const out = Buffer.alloc(h * stride);
+    for (let y = 0; y < h; y++) {
+      const ft = raw[y * (stride + 1)];
+      const line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+      for (let i = 0; i < stride; i++) {
+        const a = i >= bpp ? out[y * stride + i - bpp] : 0;
+        const bb = y > 0 ? out[(y - 1) * stride + i] : 0;
+        const c = y > 0 && i >= bpp ? out[(y - 1) * stride + i - bpp] : 0;
+        let v = line[i];
+        if (ft === 1) v += a;
+        else if (ft === 2) v += bb;
+        else if (ft === 3) v += (a + bb) >> 1;
+        else if (ft === 4) {
+          const pa = Math.abs(bb - c), pb = Math.abs(a - c), pc = Math.abs(a + bb - 2 * c);
+          v += pa <= pb && pa <= pc ? a : pb <= pc ? bb : c;
+        }
+        out[y * stride + i] = v & 0xff;
+      }
+    }
+    const seen = new Map();
+    for (let i = 0; i < out.length; i += 4) {
+      if (out[i + 3] < 128) continue; // the rounded corners
+      const hex = '#' + [out[i], out[i + 1], out[i + 2]]
+        .map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase();
+      seen.set(hex, (seen.get(hex) || 0) + 1);
+    }
+    return seen;
+  };
+
+  for (const f of ['public/apple-touch-icon.png', 'public/favicon-32x32.png', 'public/favicon-16x16.png']) {
+    let seen;
+    try { seen = pixels(f); } catch (e) { t(`${f} is readable (${e.message})`, false); continue; }
+    const found = [...seen.keys()].sort();
+    const want = [P.gold, P.navy].map((c) => c.toUpperCase()).sort();
+    t(`${path.basename(f)} is drawn in exactly C.navy and C.gold (found ${found.join(' ')})`,
+      found.length === 2 && found[0] === want[0] && found[1] === want[1]);
+    // And the house is actually there -- a solid navy square would pass a
+    // colour check that only looked for "no stale hex".
+    const gold = seen.get(P.gold.toUpperCase()) || 0;
+    const total = [...seen.values()].reduce((a, n) => a + n, 0);
+    t(`${path.basename(f)} is roughly a third gold (${Math.round((gold / total) * 100)}%)`,
+      gold / total > 0.25 && gold / total < 0.5);
+  }
+
+  // The generator is the only thing that should be writing those files.
+  const gen = readFileSync(path.join(root, 'scripts/make_icons.py'), 'utf8');
+  t('the icon generator reads its colours from the palette, not its own copy',
+    /token\("navy"\)/.test(gen) && /token\("gold"\)/.test(gen) && !/#[0-9A-Fa-f]{6}"\s*$/m.test(gen));
 }
 
 // ── 3. The literal tail only shrinks ────────────────────────────────────────

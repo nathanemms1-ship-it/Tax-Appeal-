@@ -11,7 +11,7 @@
 // Props: letter, ownerName, propertyAddress, sending (bool), onSigned(fn)
 import { useRef, useState, useEffect } from "react";
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 export default function SignatureStep({
   letter, ownerName, propertyAddress, sending, onSigned,
@@ -103,14 +103,14 @@ export default function SignatureStep({
     });
   };
 
-  const label = { fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: C.navy };
+  const label = { fontFamily: FONTS.body, fontSize: 13, fontWeight: 600, color: C.navy };
   const tab = (active) => ({
     ...label, cursor: "pointer", padding: "8px 16px", borderRadius: 8,
     background: active ? C.navy : C.lightBlue, color: active ? C.white : C.navy, border: "none",
   });
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ maxWidth: 720, margin: "0 auto", fontFamily: FONTS.body }}>
       <h1 style={{ color: C.navy, fontSize: 26, margin: "0 0 6px" }}>Review and sign your protest</h1>
       <p style={{ color: C.bodyGray, fontSize: 15, lineHeight: 1.6, margin: "0 0 20px" }}>
         This is the {isFL ? 'petition' : 'protest'} that will be filed in your name for{" "}
@@ -261,7 +261,7 @@ export default function SignatureStep({
         disabled={!ready || sending}
         style={{
           width: "100%", padding: "18px", borderRadius: 12, border: "none",
-          fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700,
+          fontFamily: FONTS.body, fontSize: 16, fontWeight: 700,
           cursor: ready && !sending ? "pointer" : "not-allowed",
           background: ready && !sending ? C.gold : "#DCE3EE",
           color: ready && !sending ? C.darkNavy : C.mutedGray,

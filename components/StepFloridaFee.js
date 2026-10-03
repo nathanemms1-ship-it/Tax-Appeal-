@@ -2,7 +2,7 @@ import { useState } from 'react';
 // Single source of truth for FL VAB fees — lib/flCountyFees.js
 export { getFlVabFee } from '../lib/flCountyFees';
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 /**
 * StepFloridaFee — Florida VAB fee disclosure + DR-486 e-signature authorization
@@ -118,7 +118,7 @@ style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px
 <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${checked ? C.navy : '#C5D0E0'}`, background: checked ? C.navy : C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>
 {checked ? '✓' : ''}
 </div>
-<span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.6 }}>
+<span style={{ fontSize: 13, fontFamily: FONTS.body, color: C.bodyGray, lineHeight: 1.6 }}>
 {children}
 </span>
 </div>
@@ -128,23 +128,23 @@ return (
 <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 40px' }}>
 <div style={{ maxWidth: 560, margin: '0 auto' }}>
 
-<div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: '5px 12px', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: '5px 12px', fontSize: 12, fontFamily: FONTS.body, marginBottom: 16 }}>
 📋 Florida Filing Requirements — Step 3 of 4
 </div>
 
-<h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>
+<h2 style={{ fontFamily: FONTS.display, fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>
 Your Florida filing details
 </h2>
-<p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>
+<p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: FONTS.body }}>
 Two things to confirm before checkout: the county this property is in, and the filing fee your county charges. You'll read and sign the petition itself right after payment.
 </p>
 
 {/* Order summary */}
 <div style={{ background: C.darkNavy, borderRadius: 12, padding: 24, marginBottom: 20 }}>
-<div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: '#5A7A9F', fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>
+<div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: '#5A7A9F', fontFamily: FONTS.body, marginBottom: 16 }}>
 ORDER SUMMARY — {countyDisplay.toUpperCase()}
 </div>
-<div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, fontFamily: FONTS.body }}>
 <span style={{ color: C.mutedGray }}>TaxAppeal service fee</span>
 <span style={{ color: C.white, fontWeight: 500 }}>$89</span>
 </div>
@@ -163,7 +163,7 @@ style={{ marginBottom: 14, padding: '14px 16px', background: countyConfirmed ? '
 <div style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${countyConfirmed ? '#7ED6A5' : C.gold}`, background: countyConfirmed ? C.green : 'transparent', color: C.white, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 {countyConfirmed ? '\u2713' : ''}
 </div>
-<div style={{ flex: 1, fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.55 }}>
+<div style={{ flex: 1, fontSize: 13, fontFamily: FONTS.body, lineHeight: 1.55 }}>
 <div style={{ color: C.white, fontWeight: 600, marginBottom: 3 }}>
 Confirm this property is in {feeData?.county} County
 </div>
@@ -174,7 +174,7 @@ tax bill.{onChangeCounty ? ' ' : ''}
 {onChangeCounty && (
 <button
 onClick={(e) => { e.stopPropagation(); onChangeCounty(); }}
-style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: 12, textDecoration: 'underline', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}
+style={{ background: 'transparent', border: 'none', color: C.gold, fontSize: 12, textDecoration: 'underline', cursor: 'pointer', padding: 0, fontFamily: FONTS.body }}
 >
 Not {feeData?.county}? Change it
 </button>
@@ -197,7 +197,7 @@ Not {feeData?.county}? Change it
   refused hourly by send-letter, and nobody found out.
 */}
 
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, fontSize: 14, fontFamily: FONTS.body }}>
 <div>
 <div style={{ color: C.mutedGray }}>{countyDisplay} VAB filing fee</div>
 <div style={{ fontSize: 11, color: '#5A7A9F', marginTop: 3 }}>Required by Florida law § 194.013 · paid to {payableTo}</div>
@@ -205,17 +205,17 @@ Not {feeData?.county}? Change it
 <span style={{ color: C.white, fontWeight: 500, flexShrink: 0, marginLeft: 12 }}>{vabFeeDisplay}</span>
 </div>
 <div style={{ borderTop: '1px solid #1E2D45', paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-<span style={{ fontSize: 15, fontWeight: 700, color: C.white, fontFamily: "'DM Sans', sans-serif" }}>Total charged today</span>
-<span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{totalDisplay}</span>
+<span style={{ fontSize: 15, fontWeight: 700, color: C.white, fontFamily: FONTS.body }}>Total charged today</span>
+<span style={{ fontFamily: FONTS.display, fontSize: 28, color: C.gold }}>{totalDisplay}</span>
 </div>
 </div>
 
 {/* DR-486 Authorization block */}
 <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
-<div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>
+<div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: C.navy, fontWeight: 700, fontFamily: FONTS.body, marginBottom: 12 }}>
 📄 What happens after you pay
 </div>
-<p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>
+<p style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.7, fontFamily: FONTS.body, marginBottom: 14 }}>
 Florida Statute § 194.011(3) requires a VAB petition to be signed by the property owner —
 so you sign it yourself, not us. Straight after checkout we show you the complete petition
 with nothing hidden, you read it and sign it, and only then do we pay the county fee and mail
@@ -224,7 +224,7 @@ it. The petition covers the property at{' '}
 </p>
 
 {/* Authorization text */}
-<div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 16, fontSize: 12, color: C.bodyGray, lineHeight: 1.8, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', marginBottom: 16, fontSize: 12, color: C.bodyGray, lineHeight: 1.8, fontFamily: FONTS.body }}>
 <strong style={{ color: C.darkNavy, display: 'block', marginBottom: 8 }}>WHAT TAXAPPEAL USA WILL DO (AND WILL NOT DO)</strong>
 {/* This paragraph used to read "...authorize TaxAppeal USA to act as my document
     preparer for purposes of filing and PROSECUTING a petition before the ... Value
@@ -259,7 +259,7 @@ hearing is scheduled, attending is my decision and my responsibility.
 {/* Disclosure, not a control. The election itself is made once, at signing.
     Kept here because "do I have to show up at a hearing?" is a live objection
     at the moment someone is deciding to pay, and the answer is no. */}
-<div style={{ fontSize: 12.5, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, background: C.lightBlue, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+<div style={{ fontSize: 12.5, color: C.bodyGray, fontFamily: FONTS.body, lineHeight: 1.65, background: C.lightBlue, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
 <strong style={{ color: C.darkNavy }}>You do not have to attend a hearing.</strong> The DR-486 lets you
 ask the Board to decide on your written petition alone, and most owners choose that — it does not
 weaken the petition. You will make that choice yourself on the petition right after checkout, and you
@@ -268,7 +268,7 @@ cannot appear or speak for you.
 </div>
 
 {!canProceed && (
-<div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", textAlign: 'center', marginBottom: 10 }}>
+<div style={{ fontSize: 12, color: C.mutedGray, fontFamily: FONTS.body, textAlign: 'center', marginBottom: 10 }}>
 {!countyConfirmed ? 'Confirm your county to continue' : 'Check both boxes to continue'}
 </div>
 )}
@@ -276,20 +276,20 @@ cannot appear or speak for you.
 <div style={{ display: 'flex', gap: 12 }}>
 <button
 onClick={onBack}
-style={{ background: 'transparent', color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '14px 24px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}
+style={{ background: 'transparent', color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '14px 24px', fontSize: 14, fontFamily: FONTS.body, cursor: 'pointer' }}
 >
 ← Back
 </button>
 <button
 onClick={handleAuthorize}
 disabled={!canProceed}
-style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'none', borderRadius: 8, padding: '14px 24px', fontSize: 14, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", cursor: canProceed ? 'pointer' : 'not-allowed', flex: 1, transition: 'background 0.2s' }}
+style={{ background: canProceed ? C.navy : '#C5D0E0', color: C.white, border: 'none', borderRadius: 8, padding: '14px 24px', fontSize: 14, fontWeight: 500, fontFamily: FONTS.body, cursor: canProceed ? 'pointer' : 'not-allowed', flex: 1, transition: 'background 0.2s' }}
 >
 {canProceed ? 'Continue to My Dispute Letter →' : !countyConfirmed ? '🔒 Confirm your county to continue' : '🔒 Check both boxes to continue'}
 </button>
 </div>
 
-<div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+<div style={{ marginTop: 16, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 12, color: C.mutedGray, fontFamily: FONTS.body, lineHeight: 1.6 }}>
 🔒 You sign Part 3 of your own DR-486 after checkout, which is what Florida Statute § 194.011(3) requires. No power of attorney or separate authorization form is needed or filed.
 </div>
 </div>

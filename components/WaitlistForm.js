@@ -30,7 +30,7 @@ import Head from 'next/head';
  * - It must not collect payment details of any kind.
  */
 
-import { C } from "../lib/theme";
+import { C, FONTS } from "../lib/theme";
 
 // All five advertised states. The funnel only sells TX/GA/FL, but the waitlist
 // should capture Arkansas and Alabama demand rather than turn it away — those
@@ -94,7 +94,7 @@ export default function WaitlistForm() {
   const field = { marginBottom: 18 };
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", color: C.darkNavy }}>
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONTS.body, color: C.darkNavy }}>
       <Head>
         <title>Join the Waitlist | TaxAppeal USA</title>
         <meta name="description" content="TaxAppeal USA is not filing yet. Join the waitlist and we will email you the moment filing opens in your state. Flat $89 service fee plus your county's filing fee when we launch — no percentage of your savings, ever." />
@@ -123,7 +123,7 @@ export default function WaitlistForm() {
       <div className="wl-wrap">
         <a href="/" style={{ color: C.navy, fontSize: 14, textDecoration: 'none', fontWeight: 600 }}>← TaxAppeal USA</a>
 
-        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, lineHeight: 1.2, margin: '22px 0 14px' }}>
+        <h1 style={{ fontFamily: FONTS.display, fontSize: 34, lineHeight: 1.2, margin: '22px 0 14px' }}>
           We&apos;re not filing yet — join the waitlist
         </h1>
 
