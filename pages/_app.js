@@ -140,10 +140,27 @@ export default function App({ Component, pageProps }) {
         ligatures alone for any script that actually needs them. Set on html
         so it inherits to all 47 pages from the one global block.
       */}
-      <style jsx global>{`
-        :root { ${cssVars} }
-        html { font-variant-ligatures: no-common-ligatures; }
-      `}</style>
+      <style jsx global>{`:root { ${cssVars} }`}</style>
+      {/*
+        ITS OWN BLOCK, AND THAT IS NOT A STYLE PREFERENCE.
+
+        This rule first went INSIDE the block above, after the `${cssVars}`
+        interpolation. styled-jsx folded it into the preceding rule as CSS
+        nesting and shipped:
+
+            :root { --c-navy: ...; & html { font-variant-ligatures: ... } }
+
+        `& html` under `:root` asks for an <html> inside the root element.
+        Nothing is. The declaration was in the served HTML -- so a guard that
+        grepped for the string passed, and I told Nathan it was fixed -- while
+        getComputedStyle(document.documentElement).fontVariantLigatures still
+        read "normal" in production. He had to catch it a second time.
+
+        Same lesson as the assertions that could not fail: PRESENT IN THE
+        OUTPUT IS NOT APPLIED. The guard below now checks brace depth, and the
+        rule lives alone where no interpolation can swallow it.
+      */}
+      <style jsx global>{`html { font-variant-ligatures: no-common-ligatures; }`}</style>
       {/* Google tag (gtag.js) — loads when EITHER a GA4 or a Google Ads ID is set */}
       {TAG_LOADER_ID && (
         <>

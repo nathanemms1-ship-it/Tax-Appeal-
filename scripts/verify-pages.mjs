@@ -1887,6 +1887,76 @@ const t2 = (label, ok, detail) => {
   }
 }
 
+// ---------------------------------------------------------------------------
+// A GLOBAL RULE THAT IS PRESENT IS NOT A GLOBAL RULE THAT APPLIES
+// ---------------------------------------------------------------------------
+/*
+  3 Oct 2026. Nathan reported twice that the word "filing" looked wrong. It
+  did: Plus Jakarta's `fi` ligature merges the letters and drops the dot on
+  the i. The fix was one declaration, and the first attempt put it in the same
+  <style jsx global> block as the ${cssVars} interpolation:
+
+      :root { ${cssVars} }
+      html { font-variant-ligatures: no-common-ligatures; }
+
+  styled-jsx folded the second rule into the first as CSS nesting and shipped:
+
+      :root { --c-navy: ...; & html { font-variant-ligatures: ... } }
+
+  `& html` under `:root` asks for an <html> element inside the root element.
+  There is never one. The rule matched nothing.
+
+  And it passed review, because the guard I wrote was
+  /font-variant-ligatures:\s*no-common-ligatures/.test(source) -- the string
+  WAS in the source and WAS in the served HTML. Only
+  getComputedStyle(document.documentElement) in a real browser showed
+  "normal". Nathan had to report the same bug a second time.
+
+  So this checks the thing that actually broke: in the BUILT html, the
+  declaration must sit at brace depth 0 inside its <style> tag. Nested in
+  anything, it is dead.
+*/
+{
+  const file = findHtml('index');
+  if (!file) {
+    console.error('  FAIL  ligature rule: no built index.html');
+    failures++;
+  } else {
+    const html = fs.readFileSync(file, 'utf8');
+    const problems = [];
+    const tags = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    const owner = tags.find((t) => /font-variant-ligatures/.test(t));
+
+    if (!owner) {
+      problems.push('no <style> tag carries font-variant-ligatures at all');
+    } else {
+      const at = owner.search(/(^|[;{}])\s*html\s*\{[^}]*font-variant-ligatures/);
+      if (at === -1) {
+        problems.push('font-variant-ligatures is not on an `html {` rule');
+      } else {
+        let depth = 0;
+        for (let i = 0; i < at; i++) {
+          if (owner[i] === '{') depth++;
+          else if (owner[i] === '}') depth--;
+        }
+        if (depth !== 0) {
+          problems.push(`the html rule is nested ${depth} level(s) deep — styled-jsx folded it into the preceding rule, so it matches nothing`);
+        }
+      }
+      // The nesting marker itself, in case the shape changes again.
+      if (/&\s*html\s*\{/.test(owner)) problems.push('the rule was emitted as `& html {` — CSS nesting under :root, which never matches');
+    }
+
+    if (problems.length) {
+      console.error('  FAIL  ligature rule');
+      for (const p of problems) console.error(`        ${p}`);
+      failures++;
+    } else {
+      console.log('  the no-common-ligatures rule is a top-level `html` rule in the built HTML');
+    }
+  }
+}
+
 if (failures) {
   console.error(`\nPage verification failed (${failures}).\n`);
   process.exit(1);
