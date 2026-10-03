@@ -136,6 +136,19 @@ const TABLE = [
   ['Montgomery', 'BG', 'Attached Brick Garage', false, '$27.30', 'GARAGE excludes'],
   ['Montgomery', 'OMP', 'Open Masonry Porch', false, '$20.82', 'PORCH excludes'],
 
+  // ---- GUADALUPE. Reference: RES1 MAIN FLOOR RESIDENTIAL $104.21.
+  ['Guadalupe', 'RES1', 'MAIN FLOOR RESIDENTIAL', true, '$104.21', 'reference'],
+  ['Guadalupe', 'UPST', '2ND FLOOR RESIDENTIAL', true, '$82.70', '79%'],
+  ['Guadalupe', 'MH', 'MANUFACTURED HOUSE', true, '$37.88', 'manufactured main'],
+  ['Guadalupe', 'BH', 'BOAT HOUSE', false, '$52.44', 'matched HOUSE before BOAT'],
+  ['Guadalupe', 'AGF', 'ATTACHED GARAGE FINISHED', false, '$39.38', 'GARAGE excludes'],
+
+  // ---- GRAYSON. Reference: LA LIVING AREA $103.65.
+  ['Grayson', 'LA', 'LIVING AREA', true, '$103.65', 'reference'],
+  ['Grayson', 'LVM', 'Living Area MH', true, '$39.06', 'mobile home main'],
+  ['Grayson', 'MH', 'MOBILE HOME APPENDAGES', false, '$9.74', 'porches and decks on a MH'],
+  ['Grayson', 'G4', 'ATTACHED GARAGE - FINISHE', false, '$69.94', 'GARAGE excludes'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],

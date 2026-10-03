@@ -62,6 +62,36 @@
       "dispersionMinHoodSize": 10,
       "computedAt": "2026-10-03"
     },
+    "91": {
+      "taxYear": 2026,
+      "stateClass": "A1",
+      "parcels": 42340,
+      "cappedParcels": 7769,
+      "cappedPct": 18.3,
+      "neighborhoods": 340,
+      "medianMarketValue": 257964,
+      "medianLivingArea": 1640,
+      "medianYearBuilt": 1981,
+      "valueDispersion": 15.1,
+      "dispersionNeighborhoods": 280,
+      "dispersionMinHoodSize": 10,
+      "computedAt": "2026-10-03"
+    },
+    "94": {
+      "taxYear": 2026,
+      "stateClass": "A1",
+      "parcels": 58063,
+      "cappedParcels": 4522,
+      "cappedPct": 7.8,
+      "neighborhoods": 510,
+      "medianMarketValue": 288115,
+      "medianLivingArea": 1958,
+      "medianYearBuilt": 2007,
+      "valueDispersion": 11.6,
+      "dispersionNeighborhoods": 387,
+      "dispersionMinHoodSize": 10,
+      "computedAt": "2026-10-03"
+    },
     "101": {
       "taxYear": 2026,
       "stateClass": "A1",

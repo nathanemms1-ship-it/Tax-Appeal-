@@ -315,7 +315,9 @@
         "export_current": "https://maps.graysonappraisal.org/ORR_Export/GCAD_Export.zip",
         "preliminary": "https://maps.graysonappraisal.org/export/Preliminary_Export.zip"
       },
-      "notes": "Stable path — pollable on a schedule. Layout ships inside the zip."
+      "notes": "Stable path — pollable on a schedule. Layout ships inside the zip.",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 from GCAD_Export.zip (89,837,548 bytes, header dated 17 Jul 2026 - the certification-time export, refreshed in place at a stable URL, so re-check the header date before any reload), layout 8.0.0.34. 52,062 residential rows, 46,504 A1. 11.9% have no living area, mostly no improvement-detail rows in the export. MH MOBILE HOME APPENDAGES was counted as living area (APPENDAGE now excluded)."
     },
     {
       "county": "Angelina",
@@ -344,7 +346,9 @@
       "confidence": "verified",
       "files": {
         "certified_2026": "https://guadalupead.org/wp-content/uploads/2026/07/2026-GCO-Certified-Appraisal-Roll-Supp-0.zip"
-      }
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 from 2026-GCO-Certified-Appraisal-Roll-Supp-0.zip (73,167,463 bytes), layout 8.0.0.34, members under a subfolder, no code changes. 67,654 residential rows, 61,140 A1. 9.1% have no living area, almost all because the export carries no improvement-detail rows for them. BH BOAT HOUSE was matching HOUSE (BOAT now excluded)."
     },
     {
       "county": "Johnson",
