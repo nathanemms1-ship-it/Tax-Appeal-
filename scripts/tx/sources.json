@@ -150,7 +150,8 @@
         "simplified_2026": "https://www.cameroncad.org/cad/exports/certified/2026/cameron-2026-GCC-certified-export-20260729.zip",
         "gis_parcels": "https://www.cameroncad.org/cad/exports/GIS/parcels_public.zip"
       },
-      "notes": "Best-structured offering in the state: full export, JSON, a simplified one-row-per-account file, and GIS parcels with appraisal attributes already joined. Terms state the data is 'considered in the public domain and is distributed without warranty of any kind'. Full export unzips to ~6.8 GB."
+      "notes": "Best-structured offering in the state: full export, JSON, a simplified one-row-per-account file, and GIS parcels with appraisal attributes already joined. Terms state the data is 'considered in the public domain and is distributed without warranty of any kind'. Full export unzips to ~6.8 GB. LOADED 3 Oct 2026 from the certified export (200,873,408 bytes, sha256 2ec31d46e01cb54fa80c2993bf804900b06e9799490c7aeeabaf094e101e1b07), layout 8.0.0.33, standard member names, no code changes. 129,391 residential rows. Single-family class is A (not A1), same as Tarrant - pass --class=A to sellable.mjs. situs_zip is filled on only ~38% of homes; situs_city on ~91%. 45.6% capped either way, the highest of any loaded district, but neighbourhood dispersion 17.5 is also the highest, and the measured median reduction (11.1%) is the largest in the state.",
+      "loaded": true
     },
     {
       "county": "Hays",
