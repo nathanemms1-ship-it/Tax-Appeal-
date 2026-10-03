@@ -109,6 +109,20 @@ const TABLE = [
   ['Jefferson', 'OLA', 'OUTDOOR LIVING AREA', false, '$75.98', 'OUTDOOR excludes'],
   ['Jefferson', 'ENP', 'ENCLOSED PORCH/PATIO', false, '$18.73', 'PORCH excludes'],
 
+  // ---- TRAVIS. Reference: 1ST 1st Floor $107.80.
+  ['Travis', '1ST', '1st Floor', true, '$107.80', 'reference'],
+  ['Travis', '2ND', '2nd Floor', true, '$111.05', '103%'],
+  ['Travis', '3RD', '3rd Floor', true, '$163.93', '152%'],
+  ['Travis', '1/2', 'Half Floor', true, '$63.94', '59%, a storey by name'],
+  ['Travis', 'RSBLW', 'Residence Below', true, '$131.57', '122%'],
+  // Both match '\bRESID'. HVAC carries the whole house's conditioned area, so
+  // counting it double-counts every home.
+  ['Travis', '095', 'HVAC RESIDENTIAL', false, '$2.00', 'not a room'],
+  ['Travis', '411', 'SOLAR DEVICES RESIDENTIAL', false, '$1308.57', 'not a room'],
+  ['Travis', '041', 'GARAGE ATT 1ST F', false, '$30.99', 'GARAGE excludes'],
+  ['Travis', '011', 'PORCH OPEN 1ST F', false, '$24.33', 'PORCH excludes'],
+  ['Travis', 'SO', 'Sketch Only', false, '$0.00', 'outline, no value'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],
@@ -174,6 +188,7 @@ for (const needle of [
   '$97.37',   // El Paso main area
   '$86.23',   // Tarrant ResMain
   '$117.91',  // Denton main area
+  '$107.80',  // Travis 1st floor
   '$128.40',  // Denton bonus room
   '$28.10',   // El Paso's detached bonus room, why 'BONUS ROO' needs an exclude
   'BONUS ROO',

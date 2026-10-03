@@ -75,9 +75,27 @@ if (!zip || !cadId) {
   process.exit(2);
 }
 
+/**
+ * Travis ships the SAME 8.0.33 layout under the legacy short member names
+ * (PROP.TXT, IMP_DET.TXT, LAND_DET.TXT, APPR_HDR.TXT) instead of
+ * <date>_<year>_APPRAISAL_*.TXT. Record lengths are identical (9922/622/199) and
+ * the header carries 8.0.0.33 at the same offset, so only the names differ.
+ * Exact names, never globs: Travis also ships PROP_ENT.TXT, which '*PROP*' would
+ * concatenate into the property stream.
+ */
+const LEGACY_MEMBER = {
+  '*APPRAISAL_HEADER.TXT': 'APPR_HDR.TXT',
+  '*_APPRAISAL_INFO.TXT': 'PROP.TXT',
+  '*_APPRAISAL_IMPROVEMENT_DETAIL.TXT': 'IMP_DET.TXT',
+  '*_APPRAISAL_LAND_DETAIL.TXT': 'LAND_DET.TXT',
+};
+
 /** Stream one member of the zip, line by line, without extracting it. */
 function memberLines(zipPath, pattern) {
-  const p = spawn('unzip', ['-p', zipPath, pattern], { stdio: ['ignore', 'pipe', 'ignore'] });
+  // unzip -p takes several patterns and streams whichever exist; an unmatched
+  // one only warns on stderr. A zip never carries both naming schemes.
+  const patterns = LEGACY_MEMBER[pattern] ? [pattern, LEGACY_MEMBER[pattern]] : [pattern];
+  const p = spawn('unzip', ['-p', zipPath, ...patterns], { stdio: ['ignore', 'pipe', 'ignore'] });
   return { rl: createInterface({ input: p.stdout, crlfDelay: Infinity }), proc: p };
 }
 
