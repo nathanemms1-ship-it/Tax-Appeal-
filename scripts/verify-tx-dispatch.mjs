@@ -92,17 +92,41 @@ t('...and refuses rather than mailing when the row is not mailable',
     return isMailable(row) ? 'mail' : 'refuse-unverified';
   };
 
+  /*
+    UPDATED 4 Oct 2026, hours after it was written, and it failed first --
+    which is the point. It named Kaufman, a county that HAD no row. Kaufman
+    was then seeded, so the assertion went red: the right outcome for the
+    wrong-looking reason.
+
+    It now names counties that are genuinely absent from the table, so the
+    no-row path stays tested as the table fills rather than quietly losing
+    its only subject. Picking a real county that happens to be unseeded
+    today would decay the same way.
+  */
   t('a Texas county with no row is refused, not mailed from the body',
-    willMail('TX', 'Kaufman') === 'refuse-no-row');
+    willMail('TX', 'Midland') === 'refuse-no-row'
+    && willMail('TX', 'Potter') === 'refuse-no-row');
   t('so is a Georgia one', willMail('GA', 'Nowhere') === 'refuse-no-row');
   t('a seeded-but-unverified county is still refused',
     willMail('TX', 'Harris') === 'refuse-unverified');
   t('a state that keeps no table still accepts the caller\'s address',
     willMail('AR', 'Benton') === 'caller-address'
     && willMail('AL', 'Jefferson') === 'caller-address');
-  t('no loaded-but-unaddressed district can reach the post', [
+  /*
+    The seven were seeded on 4 Oct, so they moved from 'refuse-no-row' to
+    'refuse-unverified'. Both are refusals; what matters is that NONE of the
+    districts whose roll we hold can be mailed, by either route. Asserting
+    the reason would just re-break this the day someone makes a phone call --
+    asserting the outcome will not.
+  */
+  t('no district whose roll we hold can reach the post today', [
     'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
-  ].every((c) => willMail('TX', c) === 'refuse-no-row'));
+    'Harris', 'Dallas', 'Tarrant', 'Travis', 'Collin', 'Denton', 'El Paso',
+    'Montgomery', 'Hidalgo', 'Cameron', 'Bell', 'Nueces', 'Jefferson',
+  ].every((c) => willMail('TX', c).startsWith('refuse')));
+  t('...and the seven seeded today are refused as unverified, not as missing', [
+    'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
+  ].every((c) => willMail('TX', c) === 'refuse-unverified'));
 
   // --- what actually pins the handler ------------------------------------
   t('send-letter refuses a missing row, and only where the state keeps a table',
