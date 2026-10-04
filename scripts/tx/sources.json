@@ -173,7 +173,8 @@
         "arb_decisions_2025": "https://hayscad.com/wp-content/uploads/2025/09/2025-ARB-PROTEST-DECISION-DATA-ALL.xlsx",
         "arb_decisions_2024": "https://hayscad.com/wp-content/uploads/2024/10/2024-ARB-PROTEST-DECISION-DATA-ALL.xlsx"
       },
-      "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris."
+      "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris.",
+      "checked_note": "4 Oct 2026: hayscad.com answers 403 to every non-browser request (Cloudflare), including the 2026 Orion certified URL above. Same Orion export family as Fort Bend - scripts/tx/load-fbcad.mjs is the template - but the files need a browser download."
     },
     {
       "county": "Harris",
@@ -419,14 +420,16 @@
       "cad_name": "Brazoria County Appraisal District",
       "site": "https://brazoriacad.org",
       "data_page": "https://brazoriacad.org/public-gis-and-property-data-downloads/",
-      "format": "PROTAX",
+      "format": "PACS",
       "access": "free",
       "login": false,
       "confidence": "verified",
       "files": {
         "protax_export": "https://brazoriacad.org/wp-content/uploads/2026/07/Protax_07242026.zip"
       },
-      "notes": "The certified and preliminary rolls sit behind pCloud share links rather than plain HTTP, so they cannot be curl'd directly. Historic data back to 1998."
+      "notes": "The certified and preliminary rolls sit behind pCloud share links rather than plain HTTP, so they cannot be curl'd directly. Historic data back to 1998.",
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (no code changes beyond the OFP exclude). The certified roll is NOT the Protax zip on the page: it is 2026-07-23_2026_BRAZORIA_COUNTY_CERTIFIED.zip (200,129,942 bytes, sha256 bf43b1d6bc8daea2d562d7d4e09c751d38657a7ffd22a8ca6a22c5c47cf7fe30) in the pCloud folder \"(A) CURRENT CERTIFIED ROLL\", share code kZYMUV7ZD6GgiyP3moR0gLKHGc1l5Qd0c9xV. pCloud resolves without a browser: api.pcloud.com/showpublink?code=<code> lists fileids, getpublinkdownload?code=<code>&fileid=<id> returns the host and path. Standard PACS 8.0.0.34. 121,523 residential rows, 112,995 A1. The ProTax_*.txt zip is headerless pipe-delimited with only a 2012 improvements layout - not used."
     },
     {
       "county": "Collin",
@@ -453,7 +456,7 @@
       "cad_name": "Williamson Central Appraisal District",
       "site": "https://www.wcad.org",
       "data_page": "https://www.wcad.org/data-downloads/",
-      "format": "CSV",
+      "format": "WCAD_SOCRATA",
       "access": "free",
       "login": false,
       "confidence": "verified",
@@ -464,7 +467,9 @@
         "https://documents.wcad.org/DataDownloads/DailyUpdatedTables.pdf"
       ],
       "files": {},
-      "notes": "Four published layout PDFs — the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction."
+      "notes": "Four published layout PDFs — the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction.",
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-wcad.mjs. data.wcad.org is a Socrata portal; each table downloads as CSV from /api/views/<id>/rows.csv?accessType=DOWNLOAD. Used: ai3c-c9pf Property - Certified (values, nbhd, living area, situs; Tax Year 2026), cvyp-ab5t Property Characteristics (StateCode, YearBuild), nbn7-h4pp Exemptions. DO NOT USE Asmt - Certified (yeqp-u7bx) or Final Values - Certified (2a8c-uwfx) for 2026 values - they return the 2025 figure. 225,276 residential rows, 207,822 A1; 83,545 properties with no characteristics row (no state class) not loaded. Cap loss is market minus assessed, one figure, booked by exemption. Also on the portal: Property - Preliminary, Final Values - Preliminary, Appeals, Sales - in-season data worth a look."
     },
     {
       "county": "Fort Bend",
@@ -477,9 +482,11 @@
       "login": false,
       "confidence": "verified",
       "files": {
-        "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
+        "certified_2026": "https://www.fbcad.org/wp-content/uploads/2026/08/2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip", "residential_segments_2026": "https://www.fbcad.org/wp-content/uploads/2026/07/WebsiteResidentialSegs.zip", "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
       },
-      "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either."
+      "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either.",
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-fbcad.mjs. NOT STALE: 2026 files are on /certified-and-supplements-reports/, not /data-files/. Used 2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip (wp-content/uploads/2026/08/, 58,776,333 bytes) and WebsiteResidentialSegs.zip (2026/07/). No neighbourhood code in anything published; abs_subdv_cd is the PropertyNumber subdivision-section prefix. Values from the G01 (county) entity row - there is no CAD entity. 289,885 residential rows, 279,917 A1. Supplements 1-3 for 2026 are also on that page.", "stale_note_superseded": true
     },
     {
       "county": "Dallas",

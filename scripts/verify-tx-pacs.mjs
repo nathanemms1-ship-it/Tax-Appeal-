@@ -149,6 +149,14 @@ const TABLE = [
   ['Grayson', 'MH', 'MOBILE HOME APPENDAGES', false, '$9.74', 'porches and decks on a MH'],
   ['Grayson', 'G4', 'ATTACHED GARAGE - FINISHE', false, '$69.94', 'GARAGE excludes'],
 
+  // ---- BRAZORIA. Reference: MA MAIN AREA $77.92.
+  ['Brazoria', 'MA', 'MAIN AREA', true, '$77.92', 'reference'],
+  ['Brazoria', 'MA2.0', 'MAIN AREA 2 STORY', true, '$69.53', '89%'],
+  ['Brazoria', 'MAMH1', 'MOBILE HOME SINGLE WIDE', true, '$11.00', 'mobile home main'],
+  ['Brazoria', 'SM6', 'ATTACHED 1ST FRAME (MH)', true, '$8.22', '75% of MAMH1'],
+  ['Brazoria', 'SM7', 'OFP DWELLING TYPE (MH)', false, '$5.57', 'open frame porch'],
+  ['Brazoria', 'SM4', 'SKIRTING (MH)', false, '$2.09', 'SKIRT excludes'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],
