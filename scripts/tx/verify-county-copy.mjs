@@ -56,7 +56,7 @@ if (from < 0 || to < 0) {
 }
 const build = new Function(
   src.slice(from, to) +
-  '; return { dispersionClause, stockClause, capClause, granularityClause };')();
+  '; return { dispersionClause, stockClause, capClause, granularityClause, sizeClause, priceClause };')();
 
 const counties = Object.entries(stats.counties || {});
 if (!counties.length) {
@@ -64,7 +64,7 @@ if (!counties.length) {
   process.exit(0);
 }
 
-const AXES = ['dispersion', 'stock', 'cap', 'grain'];
+const AXES = ['dispersion', 'stock', 'cap', 'grain', 'size', 'price'];
 const rows = counties.map(([cad, s]) => {
   const n = nameFor[cad] || `CAD ${cad}`;
   const clauses = {
@@ -72,6 +72,8 @@ const rows = counties.map(([cad, s]) => {
     stock: build.stockClause(s.medianYearBuilt, n, s.taxYear),
     cap: build.capClause(s.cappedPct, n),
     grain: build.granularityClause(s.parcels, s.neighborhoods, n),
+    size: build.sizeClause(s.medianLivingArea, n),
+    price: build.priceClause(s.medianMarketValue, s.medianLivingArea, n),
   };
   // Remove the county name and every numeral. What survives is the template.
   const skeleton = (t) => (t || '').split(n).join('«C»').replace(/[\d][\d.,]*/g, '#');

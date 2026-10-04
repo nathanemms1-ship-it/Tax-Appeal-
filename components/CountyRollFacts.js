@@ -133,6 +133,55 @@ function granularityClause(parcels, hoods, name) {
   return `The district divides ${parcels.toLocaleString()} ${name} County homes into just ${hoods.toLocaleString()} neighbourhood codes — around ${per.toFixed(0)} homes each. These are broad groupings, which cuts both ways. There is no shortage of comparables, but a single ${name} County neighbourhood code can span streets that are not much alike, so the properties the district treats as equivalent to yours may not be. Selecting the ones that genuinely match is most of the work.`;
 }
 
+/**
+ * SIZE AND PRICE-PER-FOOT — the fifth and sixth axes, added 4 Oct 2026.
+ *
+ * With 23 counties loaded, the four axes above left 11 counties in 4 groups
+ * whose copy was word-for-word identical once names and numbers were stripped
+ * (Bell = Brazoria = Harris = Rockwall; Collin = Denton = Williamson; Dallas =
+ * Nueces; Grayson = Taylor). Every one of those pairs differs in the size of
+ * the median home or in what the district values it at per square foot — and
+ * per-square-foot value is the unit § 41.43(b)(3) comparisons are made in, so
+ * these are not filler. scripts/tx/verify-county-copy.mjs lifts both.
+ *
+ * Both are arithmetic on the district's own medians. Neither says anything
+ * about a particular house.
+ */
+function sizeClause(area, name) {
+  if (!area) return null;
+  const a = Math.round(area).toLocaleString();
+  if (area < 1600) {
+    return `The median ${name} County home on the roll is ${a} square feet — a compact home. On a smaller house each square foot carries more of the value, so the district's recorded living area is the first figure worth checking: a measurement that is off by a hundred feet shifts the per-foot comparison more here than it would on a larger home.`;
+  }
+  if (area < 1900) {
+    return `The median ${name} County home on the roll is ${a} square feet, a mid-sized home. At that size there is usually a deep pool of genuinely similar comparables in the same neighbourhood to measure against.`;
+  }
+  if (area < 2200) {
+    return `The median ${name} County home on the roll is ${a} square feet, a little larger than mid-sized. At this size two-storey layouts, bonus rooms and additions become common, and how the district counted each of them is part of what a comparison has to get right.`;
+  }
+  if (area < 2400) {
+    return `The median ${name} County home on the roll is ${a} square feet — large. Bigger homes differ more from one another in finish, layout and lot than smaller ones do, so the comparables that genuinely match a given house are a narrower slice of the neighbourhood than the averages suggest.`;
+  }
+  return `The median ${name} County home on the roll is ${a} square feet — a very large typical home. At that size a single per-foot rate stretched across a whole neighbourhood fits individual houses least well, and the spread between similar-looking homes tends to be widest in dollars.`;
+}
+
+function priceClause(market, area, name) {
+  if (!market || !area) return null;
+  const psf = Math.round(market / area);
+  const gap = ((10 / psf) * 100).toFixed(1);
+  const lead = `The median ${name} County value divided by the median home size comes to roughly $${psf} a square foot.`;
+  if (psf < 130) {
+    return `${lead} That is a modest per-foot level, and it makes small inconsistencies count: a home valued $10 a foot above its comparables is already about ${gap}% over them.`;
+  }
+  if (psf < 150) {
+    return `${lead} That is a moderate per-foot level. A home valued $10 a foot above its comparables would sit about ${gap}% over them — a gap that is visible in the district's own numbers without any appraisal of our own.`;
+  }
+  if (psf < 175) {
+    return `${lead} That is an upper-middle per-foot level. At this level the same $10-a-foot difference from comparable homes is about ${gap}% of value, so what decides a case is less the size of any one gap than whether the comparables chosen are genuinely alike.`;
+  }
+  return `${lead} That is a high per-foot level, where much of a home's value can sit in its location and lot. A $10-a-foot difference is only about ${gap}% here, so a strong equal-and-uniform case in ${name} County usually rests on larger gaps between homes that are closely matched.`;
+}
+
 export default function CountyRollFacts({ county }) {
   if (!county || county.code !== 'TX') return null;
 
@@ -153,6 +202,8 @@ export default function CountyRollFacts({ county }) {
   const stock = stockClause(s.medianYearBuilt, county.name, s.taxYear);
   const cap = capClause(s.cappedPct, county.name);
   const grain = granularityClause(s.parcels, s.neighborhoods, county.name);
+  const size = sizeClause(s.medianLivingArea, county.name);
+  const price = priceClause(s.medianMarketValue, s.medianLivingArea, county.name);
 
   return (
     <div style={{ background: C.white, borderTop: `1px solid ${C.rule}`, borderBottom: `1px solid ${C.rule}`, padding: '44px 32px' }}>
@@ -189,6 +240,25 @@ export default function CountyRollFacts({ county }) {
             would not move your bill.
           </p>
         </div>
+
+        {/* ── THE TYPICAL HOME, ON THE DISTRICT'S OWN NUMBERS ───────────────── */}
+        {size || price ? (
+          <>
+            <h3 style={{ fontSize: 19, color: C.navy, margin: '0 0 10px', fontFamily: 'Arial,sans-serif' }}>
+              The typical {county.name} County home on the roll
+            </h3>
+            {size ? (
+              <p style={{ fontSize: 15, color: C.text, fontFamily: 'Arial,sans-serif', lineHeight: 1.65, margin: '0 0 12px' }}>
+                {size}
+              </p>
+            ) : null}
+            {price ? (
+              <p style={{ fontSize: 15, color: C.text, fontFamily: 'Arial,sans-serif', lineHeight: 1.65, margin: '0 0 26px' }}>
+                {price}
+              </p>
+            ) : null}
+          </>
+        ) : null}
 
         {/* ── UNIFORMITY, CAREFULLY WORDED ─────────────────────────────────── */}
         {dispersion ? (
@@ -228,8 +298,8 @@ export default function CountyRollFacts({ county }) {
         ) : null}
 
         <p style={{ fontSize: 13, color: C.muted, fontFamily: 'Arial,sans-serif', lineHeight: 1.6, margin: 0, paddingTop: 16, borderTop: `1px solid ${C.rule}` }}>
-          Source: {county.district} certified {s.taxYear} appraisal roll, obtained under the Texas Public Information
-          Act. Counted {s.computedAt}. We publish these because we hold the data — if we did not hold your
+          Source: {county.district} {s.certifiedRoll === false ? '' : 'certified '}{s.taxYear} appraisal roll, as published
+          by the district. Counted {s.computedAt}. We publish these because we hold the data — if we did not hold your
           county&apos;s roll, we would not file for you, and this section would not be here.
         </p>
 
