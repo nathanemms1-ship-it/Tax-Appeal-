@@ -337,7 +337,9 @@
       "layout": "https://www.angelinacad.org/media-records/Appraisal_Export_Layout_-_8.0.33.zip",
       "files": {
         "certified_2026": "https://www.angelinacad.org/media-records/2026_Certified_Roll_Export.zip"
-      }
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 29,433 residential rows, 24,018 A1. SM8/SM9 MH COVER was counted as living area via MH - COVER now excluded."
     },
     {
       "county": "Guadalupe",
@@ -385,7 +387,9 @@
       "confidence": "verified",
       "files": {
         "certified_2026": "https://victoriacad.org/wp-content/uploads/2026/07/VCAD-2026-CERTIFIED-ROLL-1.zip"
-      }
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 28,120 residential rows, 25,351 A1. The dwelling is described by storey count alone (MA_1 \"1 STORY\") - now an anchored include in lib/tx/pacs.js."
     },
     {
       "county": "Midland",
@@ -399,7 +403,8 @@
       "confidence": "verified",
       "files": {
         "certified_real_2025": "https://midcad.org/wp-content/uploads/2025/08/2025-Certified-Real-Property-Roll.zip"
-      }
+      },
+      "checked_note": "4 Oct 2026: 2026-MIDLAND-CERTIFIED-WEB-3.zip (wp-content/uploads/2026/08, 73 MB) is published - export_webprop/webbld/webent with hscaploss, market and building sqft, but no neighbourhood code and no state class code. Loadable with a bespoke loader and a derived stratum; not yet done."
     },
     {
       "county": "Ector",
@@ -414,7 +419,8 @@
       "files": {
         "certified_real_2026": "https://www.ectorcad.org/downloads/car/2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP"
       },
-      "notes": "Own comma-delimited format, not PACS. Low priority — small market, bespoke parser."
+      "notes": "Own comma-delimited format, not PACS. Low priority — small market, bespoke parser.",
+      "checked_note": "4 Oct 2026: the 2026 certified real roll is a single 156 MB xlsx (2026_Certified_RE_Appraisal_Roll.xlsx, 93,600 rows) with NEIGHBORHOOD, TOTAL_VALUE, IMPROVEMENT_AREA, YEAR_BUILT and per-unit taxable values - but NO cap-loss or capped (assessed) value. Not loaded: the qualify gate needs the capped value, and taxable values are net of exemptions. Records request for the PACS export, or derive the cap from a second year."
     },
     {
       "county": "Brazoria",
@@ -724,11 +730,13 @@
       "cad_name": "Smith County Appraisal District",
       "site": "https://www.smithcad.org",
       "data_page": "https://www.smithcad.org/downloads.html",
-      "format": "unknown",
+      "format": "SMITH_CSV",
       "access": "public_information_request",
       "confidence": "verified",
       "files": {},
-      "notes": "Downloads page is GIS only. Property search requires a login."
+      "notes": "Downloads page is GIS only. Property search requires a login.",
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-smith.mjs. NOT a records request: https://www.smithcad.org/downloads.html publishes data/2026/2026_Real_Property_Certifled_AppraisalRoll_cd.zip (19,161,156 bytes) - two CSVs, one row per account with NEIGHBORHOOD, SUBDIVISION, HEATED AREA and all value stages. USE CODE is local (A00 residence, A60 mobile home). 75,928 residential rows. Situs city/ZIP are not in the extract (only the owner mailing address).", "access_corrected": "free"
     },
     {
       "county": "Comal",

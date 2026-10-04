@@ -167,6 +167,18 @@ const TABLE = [
   ['Cameron', 'GH1', 'GREEN HOUSE 1', false, 'n/a', 'was counted before 4 Oct'],
   ['Guadalupe', 'GRN', 'GREEN HOUSE RESIDENTIAL', false, 'n/a', 'was counted before 4 Oct'],
 
+  // ---- VICTORIA.
+  ['Victoria', 'MA_1', '1 STORY', true, '$80.81', 'the main house'],
+  ['Victoria', 'MA_1.5', '1 1/2 STORY', true, '$78.71', 'storey count'],
+  ['Victoria', 'MA_2', '2 STORY', true, '$90.04', 'storey count'],
+  ['Victoria', 'MASF', '1 STORY FRAME ADDITION', true, '$67.48', 'ADDITION'],
+  ['Kaufman', 'CS', 'COMMERCIAL 2ND STORY', false, '$85.33', 'COMMERCIAL excludes'],
+  ['Wichita', 'LVB20', 'BARNDO LIVING 2 STORY', false, '$27.28', 'BARN excludes'],
+  // ---- ANGELINA.
+  ['Angelina', 'SM9', 'METAL MH COVER', false, '$2.32', 'roof over a mobile home'],
+  ['Angelina', 'SM8', 'WOOD MH COVER', false, '$1.54', 'roof over a mobile home'],
+  ['Angelina', 'RM1', 'MOBILE HOME SINGLE', true, '$21.66', 'mobile home main'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],
@@ -199,6 +211,7 @@ console.log('C. code fallback when a district ships a blank description');
 ok(isLivingArea('MA', '') === true, 'MA with no description is living area');
 ok(isLivingArea('MA2', '') === true, 'MA2 stems to MA');
 ok(isLivingArea('LV15', '') === true, 'LV15 stems to LV');
+ok(isLivingArea('MA1.5', '') === true, 'MA1.5 stems to MA');
 ok(isLivingArea('RESMAIN', '') === true, 'RESMAIN is a code, not a description match');
 ok(isLivingArea('AG', '') === false, 'AG with no description is not living area');
 ok(isLivingArea('ZZQ', '') === false, 'an unknown code with no description is not living area');

@@ -518,7 +518,8 @@ if (elPaso && !isMailable(elPaso)) {
                                 ['load-hidalgo.mjs', '../scripts/tx/load-hidalgo.mjs'],
                                 ['load-wcad.mjs', '../scripts/tx/load-wcad.mjs'],
                                 ['load-fbcad.mjs', '../scripts/tx/load-fbcad.mjs'],
-                                ['load-hays.mjs', '../scripts/tx/load-hays.mjs']]) {
+                                ['load-hays.mjs', '../scripts/tx/load-hays.mjs'],
+                                ['load-smith.mjs', '../scripts/tx/load-smith.mjs']]) {
     const src = readFileSync(new URL(file, import.meta.url), 'utf8');
     const block = /const COLS = \[([\s\S]*?)\];/.exec(src)?.[1] || '';
     const cols = block.split(',').map((x) => x.trim().replace(/^'|'$/g, ''))
