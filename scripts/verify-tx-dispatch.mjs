@@ -45,6 +45,88 @@ t('...and refuses rather than mailing when the row is not mailable',
   /reason: 'address_not_confirmed'/.test(src));
 
 /**
+ * ===========================================================================
+ * A MISSING ROW IS NOT PERMISSION TO MAIL.
+ * ===========================================================================
+ * 4 Oct 2026. The four assertions above all passed while the guard was
+ * inverted, because they only ever asked what happens when a row EXISTS:
+ *
+ *   Harris  — seeded, 'unverified'  -> refused, correctly
+ *   Kaufman — no row at all         -> waved through, envelope addressed
+ *                                      from the request body
+ *
+ * `if (verifiedRow)` could not distinguish "this state keeps no table" (AR,
+ * AL — where the caller's fields are accepted by design) from "this county is
+ * missing from the table this state does keep". So the seven loaded districts
+ * with no address row had LESS protection than the thirteen with unconfirmed
+ * ones, which is the opposite of the point.
+ *
+ * Behavioural, not a source grep — a grep is what missed it the first time.
+ *
+ * INJECTION: drop `&& hasAddressTable(stateCode)` -> AR/AL FAIL.
+ * INJECTION: drop the whole `if (!verifiedRow && ...)` block -> TX/GA FAIL.
+ */
+{
+  const { getAppealAddress, isMailable, hasAddressTable } = await import(
+    new URL('../lib/appealAddresses.js', import.meta.url));
+
+  /*
+    HONEST LABEL: this exercises the COMPOSITION send-letter depends on --
+    getAppealAddress + hasAddressTable + isMailable -- not the handler, which
+    needs Lob keys, auth and Supabase to call.
+
+    Worth saying because the first draft of this block called itself
+    behavioural and was injection-tested twice; both injections tripped only
+    the source assertion below, because `willMail` is a REIMPLEMENTATION and
+    a reimplementation cannot notice that the real file changed. Sixth time
+    this session a check has reported success without being able to report
+    failure, so it is named rather than quietly left.
+
+    The source assertions underneath are what actually pin send-letter, and
+    they are written to pin the ORDER as well as the presence.
+  */
+  const willMail = (state, county) => {
+    const row = getAppealAddress(state, county);
+    if (!row && hasAddressTable(state)) return 'refuse-no-row';
+    if (!row) return 'caller-address';          // AR / AL, by design
+    return isMailable(row) ? 'mail' : 'refuse-unverified';
+  };
+
+  t('a Texas county with no row is refused, not mailed from the body',
+    willMail('TX', 'Kaufman') === 'refuse-no-row');
+  t('so is a Georgia one', willMail('GA', 'Nowhere') === 'refuse-no-row');
+  t('a seeded-but-unverified county is still refused',
+    willMail('TX', 'Harris') === 'refuse-unverified');
+  t('a state that keeps no table still accepts the caller\'s address',
+    willMail('AR', 'Benton') === 'caller-address'
+    && willMail('AL', 'Jefferson') === 'caller-address');
+  t('no loaded-but-unaddressed district can reach the post', [
+    'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
+  ].every((c) => willMail('TX', c) === 'refuse-no-row'));
+
+  // --- what actually pins the handler ------------------------------------
+  t('send-letter refuses a missing row, and only where the state keeps a table',
+    /if \(!verifiedRow && hasAddressTable\(stateCode\)\) \{/.test(src));
+  t('...importing the predicate rather than re-deriving it',
+    /hasAddressTable[^}]*\} from '\.\.\/\.\.\/lib\/appealAddresses'/.test(src));
+
+  /*
+    ORDER IS THE WHOLE PROPERTY. A fail-closed check placed after the envelope
+    is built, or after the Lob call, refuses nothing.
+  */
+  const iNoRow  = src.indexOf('if (!verifiedRow && hasAddressTable(stateCode))');
+  const iMailable = src.indexOf('isMailable(verifiedRow)');
+  const iEnvelope = src.indexOf('let toName = districtName;');
+  const iLob    = src.indexOf('api.lob.com/v1/letters');
+  t('the missing-row refusal comes before the envelope is addressed',
+    iNoRow > -1 && iEnvelope > -1 && iNoRow < iEnvelope);
+  t('...and before the mailable check, which assumes a row exists',
+    iNoRow > -1 && iMailable > -1 && iNoRow < iMailable);
+  t('...and before anything is handed to Lob',
+    iNoRow > -1 && iLob > -1 && iNoRow < iLob);
+}
+
+/**
  * The address MAILED must come from the table, not the body. Checking the row
  * and then using the caller's address would leave the verification decorative —
  * which is a subtler version of the bug this file exists for.
