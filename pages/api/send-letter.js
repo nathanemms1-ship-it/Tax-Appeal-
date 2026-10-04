@@ -53,7 +53,7 @@ try {
  * EPCAD is `unverified` today. Before this, a live Texas order would have been
  * mailed to it anyway.
  */
-import { getAppealAddress, isMailable, formatEnvelope, verifiedAgeDays, MAX_VERIFIED_AGE_DAYS } from '../../lib/appealAddresses';
+import { getAppealAddress, isMailable, formatEnvelope, verifiedAgeDays, MAX_VERIFIED_AGE_DAYS, hasAddressTable } from '../../lib/appealAddresses';
 
 function buildCheckMemo({ parcelId, ownerName, county }) {
   const parcel = String(parcelId || '').trim();
@@ -424,6 +424,41 @@ export default async function handler(req, res) {
      * nothing that works today stops working.
      */
     const verifiedRow = getAppealAddress(stateCode, county);
+
+    /**
+     * ========================================================================
+     * NO ROW IS NOT PERMISSION. FAIL CLOSED.
+     * ========================================================================
+     * Found 4 Oct 2026 while seeding addresses for the seven loaded districts
+     * that had none. The guard below was inverted, and exactly backwards:
+     *
+     *   Harris  — seeded, confidence 'unverified'  -> REFUSED
+     *   Kaufman — no row at all                    -> WAVED THROUGH
+     *
+     * `if (verifiedRow)` cannot tell "this state keeps no table" from "this
+     * county is missing from the table it does keep". The note above describes
+     * the first case and the code implemented both, so the counties we know
+     * LEAST about got the LEAST protection, and the envelope was addressed
+     * from the request body.
+     *
+     * Texas and Georgia both keep tables. Arkansas and Alabama do not, and the
+     * caller's district fields are still accepted there exactly as before --
+     * that is what hasAddressTable() distinguishes, and it is the whole fix.
+     *
+     * Same reason code as the confirmed-but-stale refusal: from the customer's
+     * side it is the identical fact, which is that we do not know where this
+     * protest goes and will not guess.
+     */
+    if (!verifiedRow && hasAddressTable(stateCode)) {
+      console.error(`send-letter: refusing to mail — ${county} County, ${stateCode}: no address row on file`);
+      return res.status(400).json({
+        error: `We do not have a filing address on file for ${county} County, ${stateCode}, so we will not mail this protest. A protest sent to the wrong office is not filed, and there is no cure for a missed deadline.`,
+        reason: 'address_not_confirmed',
+        county,
+        state: stateCode,
+      });
+    }
+
     let toName = districtName;
     let toLine1 = districtAddress;
     let toLine2 = null;
