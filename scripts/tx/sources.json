@@ -649,7 +649,8 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "indexed",
-      "files": {}
+      "files": {},
+      "checked_note": "4 Oct 2026: hunt-cad.org/data-downloads points to an ArcGIS hub; the newest certified appraisal data there is 2024 (SharePoint), and the 2026 parcel layer carries only PROP_ID. Not loaded."
     },
     {
       "county": "Bowie",
@@ -660,7 +661,8 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "indexed",
-      "files": {}
+      "files": {},
+      "checked_note": "4 Oct 2026: bowieappraisal.com/data-downloads (browser only) links a Google Drive folder (1H2J76sE93J6N2Pw9JaWWGS5AUTQ29IiQ) whose CSV (id 1LS7KrEqCRWtnPV-IqRdNRCWsgLoCWgVN, daily) is already on pyear 2027 with 2026 values, and carries market/appraised/net appraised, state code and subdivision but NO living area. Not loaded."
     },
     {
       "county": "Potter",
@@ -903,6 +905,38 @@
       "data_page": "https://kerrcad.org/appraisal-exports/",
       "format": "unknown",
       "checked_note": "4 Oct 2026: appraisal-exports page lists no 2026 file in its static HTML; may need a browser."
+    },
+    {
+      "county": "Atascosa",
+      "cad_id": 7,
+      "site": "https://atascosacad.com",
+      "data_page": "https://atascosacad.com/data-export/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "files": {
+        "certified_2026": "https://atascosacad.com/wp-content/uploads/2026/07/2026-ATASCOSA-CERTIFIED-EXPORT.zip"
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 15,506 residential rows, 9,705 A1."
+    },
+    {
+      "county": "Caldwell",
+      "cad_id": 28,
+      "site": "https://caldwellcad.org",
+      "data_page": "https://caldwellcad.org/publicly-available-data/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "files": {
+        "certified_2026": "https://caldwellcad.org/wp-content/uploads/2026/07/2026-Caldwell-Certified-CAD-Export-Files-updated-July-31.zip",
+        "preliminary_2026_real_mh": "https://caldwellcad.org/wp-content/uploads/2026/04/2026-Preliminary-Export_Real-and-Mobile-Homes-ONLY_April-10-2026.zip"
+      },
+      "publishes_preliminary": true,
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 10,790 residential rows, 8,072 A1. Publishes preliminary exports from 10 April - in-season data."
     }
   ],
   "hearing_outcome_publishers": {

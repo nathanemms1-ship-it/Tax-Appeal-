@@ -18,6 +18,22 @@
       "dispersionMinHoodSize": 10,
       "computedAt": "2026-10-04"
     },
+    "7": {
+      "taxYear": 2026,
+      "certifiedRoll": true,
+      "stateClass": "A1",
+      "parcels": 9130,
+      "cappedParcels": 1720,
+      "cappedPct": 18.8,
+      "neighborhoods": 224,
+      "medianMarketValue": 209670,
+      "medianLivingArea": 1555,
+      "medianYearBuilt": 1986,
+      "valueDispersion": 18,
+      "dispersionNeighborhoods": 126,
+      "dispersionMinHoodSize": 10,
+      "computedAt": "2026-10-04"
+    },
     "14": {
       "taxYear": 2026,
       "certifiedRoll": true,
@@ -47,6 +63,22 @@
       "medianYearBuilt": 2000,
       "valueDispersion": 10.1,
       "dispersionNeighborhoods": 614,
+      "dispersionMinHoodSize": 10,
+      "computedAt": "2026-10-04"
+    },
+    "28": {
+      "taxYear": 2026,
+      "certifiedRoll": true,
+      "stateClass": "A1",
+      "parcels": 7743,
+      "cappedParcels": 1328,
+      "cappedPct": 17.2,
+      "neighborhoods": 138,
+      "medianMarketValue": 248730,
+      "medianLivingArea": 1480,
+      "medianYearBuilt": 1987,
+      "valueDispersion": 21.3,
+      "dispersionNeighborhoods": 99,
       "dispersionMinHoodSize": 10,
       "computedAt": "2026-10-04"
     },
