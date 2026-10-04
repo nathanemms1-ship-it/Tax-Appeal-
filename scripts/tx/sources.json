@@ -174,7 +174,9 @@
         "arb_decisions_2024": "https://hayscad.com/wp-content/uploads/2024/10/2024-ARB-PROTEST-DECISION-DATA-ALL.xlsx"
       },
       "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris.",
-      "checked_note": "4 Oct 2026: hayscad.com answers 403 to every non-browser request (Cloudflare), including the 2026 Orion certified URL above. Same Orion export family as Fort Bend - scripts/tx/load-fbcad.mjs is the template - but the files need a browser download."
+      "checked_note": "4 Oct 2026: hayscad.com answers 403 to every non-browser request (Cloudflare), including the 2026 Orion certified URL above. Same Orion export family as Fort Bend - scripts/tx/load-fbcad.mjs is the template - but the files need a browser download.",
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs from two browser downloads (Cloudflare blocks curl): the 2026 Orion certified export (19,445,548 bytes) for values, and 2026-PROPERTY-DATA-EXPORT-FILES-AS-OF-8-26-2026.zip for NbhdCode, LegalLocationCode and described segments. Hays publishes a CAD entity row. 85,937 residential rows, class A (not A1). Ag-use homesites carry their productivity reduction as AgMktValue - AgUseValue with AgLoss 0 - 1,357 rows; both Orion loaders now read it."
     },
     {
       "county": "Harris",

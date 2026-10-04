@@ -157,6 +157,16 @@ const TABLE = [
   ['Brazoria', 'SM7', 'OFP DWELLING TYPE (MH)', false, '$5.57', 'open frame porch'],
   ['Brazoria', 'SM4', 'SKIRTING (MH)', false, '$2.09', 'SKIRT excludes'],
 
+  // ---- HAYS (descriptions from the 2026 property-data export segment file).
+  ['Hays', 'MA', 'Main Area', true, 'n/a', 'reference'],
+  ['Hays', 'MAUPS9', 'Main Area Upst 90%', true, 'n/a', 'upstairs'],
+  ['Hays', 'GH', 'Guest House 50% Of Base', true, 'n/a', 'living quarters by name'],
+  ['Hays', 'WEHS', 'Well House 10% Of Base', false, 'n/a', 'matched HOUSE'],
+  ['Hays', 'PUMP-HOUSE', 'PUMP HOUSE', false, 'n/a', 'matched HOUSE'],
+  ['Hays', 'GREEN-HOUSE', 'GREEN HOUSE', false, 'n/a', 'matched HOUSE'],
+  ['Cameron', 'GH1', 'GREEN HOUSE 1', false, 'n/a', 'was counted before 4 Oct'],
+  ['Guadalupe', 'GRN', 'GREEN HOUSE RESIDENTIAL', false, 'n/a', 'was counted before 4 Oct'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],
