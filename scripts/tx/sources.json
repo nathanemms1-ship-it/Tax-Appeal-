@@ -490,11 +490,14 @@
       "login": false,
       "confidence": "verified",
       "files": {
-        "certified_2026": "https://www.fbcad.org/wp-content/uploads/2026/08/2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip", "residential_segments_2026": "https://www.fbcad.org/wp-content/uploads/2026/07/WebsiteResidentialSegs.zip", "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
+        "certified_2026": "https://www.fbcad.org/wp-content/uploads/2026/08/2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip",
+        "residential_segments_2026": "https://www.fbcad.org/wp-content/uploads/2026/07/WebsiteResidentialSegs.zip",
+        "certified_2024": "https://www.fbcad.org/wp-content/uploads/2024/07/2024_07_29_2001-Orion-2024-Certified-Export-REDACTED.zip"
       },
       "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either.",
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-fbcad.mjs. NOT STALE: 2026 files are on /certified-and-supplements-reports/, not /data-files/. Used 2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip (wp-content/uploads/2026/08/, 58,776,333 bytes) and WebsiteResidentialSegs.zip (2026/07/). No neighbourhood code in anything published; abs_subdv_cd is the PropertyNumber subdivision-section prefix. Values from the G01 (county) entity row - there is no CAD entity. 289,885 residential rows, 279,917 A1. Supplements 1-3 for 2026 are also on that page.", "stale_note_superseded": true
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-fbcad.mjs. NOT STALE: 2026 files are on /certified-and-supplements-reports/, not /data-files/. Used 2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip (wp-content/uploads/2026/08/, 58,776,333 bytes) and WebsiteResidentialSegs.zip (2026/07/). No neighbourhood code in anything published; abs_subdv_cd is the PropertyNumber subdivision-section prefix. Values from the G01 (county) entity row - there is no CAD entity. 289,885 residential rows, 279,917 A1. Supplements 1-3 for 2026 are also on that page.",
+      "stale_note_superseded": true
     },
     {
       "county": "Dallas",
@@ -549,7 +552,7 @@
       "platform": "prodigy",
       "access": "free",
       "login": false,
-      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER. The data-downloads page is a Prodigy single-page app that serves an empty shell to every non-browser fetch, and denton.prodigycad.com is denied at the agent egress gateway, so neither WebFetch nor curl could see it. A real browser renders it: the year sections are accordions, and 2026 opens to six certified extracts plus an appraisal export layout. FREE, no login. THE FILES ARE ON A DIFFERENT HOST, dentoncad.net, which is also denied at the gateway - so the download is a human step. WALKED THE OPEN APACHE INDEX at /data/_uploaded/files/datafiles/, which lists more than the portal page links. THE FILE IS \"2026 CERTIFIED DATA - REAL.zip\", 781 MB, dated 27 July 2026. ** THE EXPORT DECLARES 8.0.0.33, WHICH IS ALREADY VALIDATED - IT LOADS UNCHANGED. ** Verified 20 Sept from the archive\u2019s own APPRAISAL_HEADER.TXT: TP version 8.1.33.23, export_version 8.0.0.33, appraisal year 2026, district Denton. The LAYOUT DOCUMENT is titled TP Legacy 8.0.32 and dated Feb 2026 - that is the spec sheet\u2019s version, NOT the export\u2019s, and reading the filename as the export version led to a wrong call that this file would be refused. THE HEADER IS THE AUTHORITY, not the layout\u2019s title. Diffed 8.0.32 against pacs_8_0_34.json independently anyway: ZERO fields moved across all eight sections, and all 27 offsets load.mjs reads are identical. Differences are naming only - fdhs_* became df_*, 145b_* became bpp_ex_*, situs_street_sufx became situs_street_suffix, PACS Version became TP Version, and Imprv_det_* gained a capital I. The parser reads by OFFSET, so none of that matters. A WARNING FROM THIS DIFF: comparing the two layouts BY POSITION reports 439 shifted fields in APPRAISAL_INFO, all spurious, because 8.0.34 lists two filler rows 8.0.32 omits and every later pair is then misaligned. Compare by NAME on byte ranges. The Tarrant note warns about the opposite trap; both are real. The directory also holds Legacy8.0.30 and a PublicJSON layout. NO PRELIMINARY ROLL: the 2026 directory carries only certified extracts, so unlike Montgomery this district gives us nothing in season.",
+      "notes": "RESOLVED 20 Sept 2026 IN A BROWSER. The data-downloads page is a Prodigy single-page app that serves an empty shell to every non-browser fetch, and denton.prodigycad.com is denied at the agent egress gateway, so neither WebFetch nor curl could see it. A real browser renders it: the year sections are accordions, and 2026 opens to six certified extracts plus an appraisal export layout. FREE, no login. THE FILES ARE ON A DIFFERENT HOST, dentoncad.net, which is also denied at the gateway - so the download is a human step. WALKED THE OPEN APACHE INDEX at /data/_uploaded/files/datafiles/, which lists more than the portal page links. THE FILE IS \"2026 CERTIFIED DATA - REAL.zip\", 781 MB, dated 27 July 2026. ** THE EXPORT DECLARES 8.0.0.33, WHICH IS ALREADY VALIDATED - IT LOADS UNCHANGED. ** Verified 20 Sept from the archive’s own APPRAISAL_HEADER.TXT: TP version 8.1.33.23, export_version 8.0.0.33, appraisal year 2026, district Denton. The LAYOUT DOCUMENT is titled TP Legacy 8.0.32 and dated Feb 2026 - that is the spec sheet’s version, NOT the export’s, and reading the filename as the export version led to a wrong call that this file would be refused. THE HEADER IS THE AUTHORITY, not the layout’s title. Diffed 8.0.32 against pacs_8_0_34.json independently anyway: ZERO fields moved across all eight sections, and all 27 offsets load.mjs reads are identical. Differences are naming only - fdhs_* became df_*, 145b_* became bpp_ex_*, situs_street_sufx became situs_street_suffix, PACS Version became TP Version, and Imprv_det_* gained a capital I. The parser reads by OFFSET, so none of that matters. A WARNING FROM THIS DIFF: comparing the two layouts BY POSITION reports 439 shifted fields in APPRAISAL_INFO, all spurious, because 8.0.34 lists two filler rows 8.0.32 omits and every later pair is then misaligned. Compare by NAME on byte ranges. The Tarrant note warns about the opposite trap; both are real. The directory also holds Legacy8.0.30 and a PublicJSON layout. NO PRELIMINARY ROLL: the 2026 directory carries only certified extracts, so unlike Montgomery this district gives us nothing in season.",
       "resolved_at": "2026-09-20",
       "files": {
         "certified_2026_residential": "https://dentoncad.net/data/_uploaded/files/datafiles/2026/CertifiedDataReal/2026%20CERTIFIED%20DATA%20-%20REAL.zip",
@@ -736,7 +739,8 @@
       "files": {},
       "notes": "Downloads page is GIS only. Property search requires a login.",
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-smith.mjs. NOT a records request: https://www.smithcad.org/downloads.html publishes data/2026/2026_Real_Property_Certifled_AppraisalRoll_cd.zip (19,161,156 bytes) - two CSVs, one row per account with NEIGHBORHOOD, SUBDIVISION, HEATED AREA and all value stages. USE CODE is local (A00 residence, A60 mobile home). 75,928 residential rows. Situs city/ZIP are not in the extract (only the owner mailing address).", "access_corrected": "free"
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-smith.mjs. NOT a records request: https://www.smithcad.org/downloads.html publishes data/2026/2026_Real_Property_Certifled_AppraisalRoll_cd.zip (19,161,156 bytes) - two CSVs, one row per account with NEIGHBORHOOD, SUBDIVISION, HEATED AREA and all value stages. USE CODE is local (A00 residence, A60 mobile home). 75,928 residential rows. Situs city/ZIP are not in the extract (only the owner mailing address).",
+      "access_corrected": "free"
     },
     {
       "county": "Comal",
@@ -794,6 +798,111 @@
       "confidence": "not_found",
       "files": {},
       "notes": "No own domain — hosted on iswdataclient.azurewebsites.net."
+    },
+    {
+      "county": "Liberty",
+      "cad_id": 146,
+      "cad_name": "Liberty Central Appraisal District",
+      "site": "https://libertycad.com",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "files": {
+        "certified_2026": "https://libertycad.com/wp-content/uploads/2026/07/2026-CERTIFIED-APPRAISAL-ROLL-ALL-ENTITIES.zip"
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 44,127 residential rows, 24,951 A1 and 18,831 A2 (mobile-home lots, most with the home on a separate account). RM1-3 \"... M HOME\" is the mobile home - now an include."
+    },
+    {
+      "county": "Wise",
+      "cad_id": 249,
+      "cad_name": "Wise County Appraisal District",
+      "site": "https://wise-cad.com",
+      "data_page": "https://wise-cad.com/data-downloads/",
+      "format": "PACS",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "files": {
+        "certified_2026": "https://wise-cad.com/wp-content/uploads/2026/08/2026-Certified-Roll.zip",
+        "preliminary_2026": "https://wise-cad.com/wp-content/uploads/2026/04/2026-PRELIMINARY-DATA-DOWNLOAD.zip"
+      },
+      "publishes_preliminary": true,
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 25,406 residential rows, 20,409 A1. Publishes an April preliminary roll."
+    },
+    {
+      "county": "Orange",
+      "cad_id": 181,
+      "cad_name": "Orange County Appraisal District",
+      "site": "https://orangecad.net",
+      "data_page": "https://orangecad.net/data-downloads/",
+      "format": "ORION",
+      "access": "free",
+      "login": false,
+      "confidence": "verified",
+      "files": {
+        "certified_2026": "https://orangecad.net/wp-content/uploads/2026/07/2026-Certified-Appraisal-Roll-Export-Files.zip"
+      },
+      "loaded": true,
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs (now parameterised) - Orion certified export plus property-data export, both inside the one zip. No CAD entity row; every taxing unit agrees on value. 33,371 residential rows, 27,370 A1. Situs ZIP almost never present."
+    },
+    {
+      "county": "Nacogdoches",
+      "cad_id": 174,
+      "site": "https://nacocad.org",
+      "data_page": "https://nacocad.org/open-records-downloads/",
+      "format": "PACS",
+      "access": "free",
+      "files": {
+        "certified_2026": "https://nacocad.org/wp-content/uploads/2026/08/2026-08-05_Certified_Apprsl_Roll.zip"
+      },
+      "checked_note": "4 Oct 2026: the certified PACS zip ships APPRAISAL_INFO but NO improvement or land detail files, so no living area exists. Not loaded."
+    },
+    {
+      "county": "Hood",
+      "cad_id": 111,
+      "site": "https://hoodcad.net",
+      "data_page": "https://hoodcad.net/data-downloads/",
+      "format": "ISW_WEB",
+      "access": "free",
+      "files": {
+        "certified_2026": "https://hoodcad.net/wp-content/uploads/2026/08/2026-CERTIFIED-WEB-FILE-TAXPAYER-COPY.zip"
+      },
+      "checked_note": "4 Oct 2026: same export_webprop/webbld family as Midland - hscaploss and building sqft but no neighbourhood or state class. Not loaded."
+    },
+    {
+      "county": "San Patricio",
+      "cad_id": 205,
+      "site": "https://sanpatcad.org",
+      "data_page": "https://sanpatcad.org/data-downloads/",
+      "format": "unknown",
+      "access": "free",
+      "checked_note": "4 Oct 2026: the \"2026 Certified Apraisal Roll\" zip contains only a totals PDF. ALL-ENTITIES.zip and SanPatricioParcels2026.zip on the same page not yet checked."
+    },
+    {
+      "county": "Walker",
+      "cad_id": 236,
+      "site": "https://walkercad.org",
+      "format": "unknown",
+      "checked_note": "4 Oct 2026: Combined-7-3-26.zip is ~400 MB of per-property PDFs, not a data export."
+    },
+    {
+      "county": "Bastrop",
+      "cad_id": 11,
+      "site": "https://bastropcad.org",
+      "data_page": "https://bastropcad.org/data-downloads/",
+      "format": "unknown",
+      "checked_note": "4 Oct 2026: data-downloads page lists no 2026 file."
+    },
+    {
+      "county": "Kerr",
+      "cad_id": 133,
+      "site": "https://kerrcad.org",
+      "data_page": "https://kerrcad.org/appraisal-exports/",
+      "format": "unknown",
+      "checked_note": "4 Oct 2026: appraisal-exports page lists no 2026 file in its static HTML; may need a browser."
     }
   ],
   "hearing_outcome_publishers": {

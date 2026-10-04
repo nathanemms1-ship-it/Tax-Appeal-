@@ -38,14 +38,22 @@ const arg = (name, fallback = null) => {
   return i > -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : fallback;
 };
 const has = (n) => process.argv.includes(`--${n}`);
+// Defaults are Hays. Any Orion district that ships the same certified export
+// plus a property-data export loads with flags, e.g. Orange (4 Oct 2026):
+//   --dir tx-data/Orange --cad 181 --name Orange --format ORANGE_ORION
+//   --orion "2026 Certified Export Vendor.zip"
+//   --pde-property "Property Data Export - Property.zip"
+//   --pde-segment  "Property Data Export - Segment.zip"
 const dir = arg('dir', 'tx-data/Hays');
-const outPath = arg('out', join(dir, 'hays_parcels.csv'));
+const NAME = arg('name', 'Hays');
+const outPath = arg('out', join(dir, `${NAME.toLowerCase().replace(/\s+/g, '')}_parcels.csv`));
 const taxYear = Number(arg('year', '2026'));
 const residentialOnly = !has('all');
-const CAD_ID = 105;
-const ORION = join(dir, 'hays_orion_2026_certified.zip');
-const PDE_PROPERTY = join(dir, 'hays_pde_2026_property.zip');
-const PDE_SEGMENT = join(dir, 'hays_pde_2026_segment.zip');
+const CAD_ID = Number(arg('cad', '105'));
+const FORMAT = arg('format', 'HAYS_ORION');
+const ORION = join(dir, arg('orion', 'hays_orion_2026_certified.zip'));
+const PDE_PROPERTY = join(dir, arg('pde-property', 'hays_pde_2026_property.zip'));
+const PDE_SEGMENT = join(dir, arg('pde-segment', 'hays_pde_2026_segment.zip'));
 
 const COLS = [
   'cad_id', 'account_number', 'tax_year',
@@ -93,9 +101,19 @@ for await (const e of rows(ORION, '*ExemptionExport.txt')) if ((e.ExemptionCode 
 console.log(`  exemptions        ${homestead.size.toLocaleString()} homesteads`);
 
 const values = new Map();
+// The CAD row where the district publishes one (Hays). Where it does not
+// (Orange), any taxing unit's row: value, cap and ag columns are property-level
+// and agreed across every unit on all 69,890 Orange properties - checked below.
+let disagree = 0;
 for await (const v of rows(ORION, '*EntityExport.txt')) {
-  if (v.EntityCode !== 'CAD') continue;
+  const prior = values.get(v.OwnerQuickRefID);
+  if (prior && !prior.fromCad && v.EntityCode !== 'CAD') {
+    if (prior.market !== num(v.MarketValue) || prior.assessed !== num(v.AssessedValue)) disagree++;
+    continue;
+  }
+  if (prior?.fromCad) continue;
   values.set(v.OwnerQuickRefID, {
+    fromCad: v.EntityCode === 'CAD',
     market: num(v.MarketValue), assessed: num(v.AssessedValue),
     hs: num(v.HSCapAdj) ?? 0, cbl: num(v.CBLCapAdj) ?? 0,
     // Productivity (ag-use) land: Orion leaves AgLoss at 0 on these rows and
@@ -106,7 +124,8 @@ for await (const v of rows(ORION, '*EntityExport.txt')) {
     imp: (num(v.ImpHSValue) ?? 0) + (num(v.ImpNHSValue) ?? 0),
   });
 }
-console.log(`  CAD values        ${values.size.toLocaleString()} properties`);
+console.log(`  values            ${values.size.toLocaleString()} properties${disagree ? `, ${disagree} where taxing units disagree (first kept)` : ''}`);
+if (disagree > values.size * 0.01) { console.error('✗ taxing units disagree on value for more than 1% of properties - pick an entity explicitly.'); process.exit(1); }
 
 const pde = new Map();
 for await (const p of rows(PDE_PROPERTY, '*.txt')) {
@@ -160,14 +179,14 @@ for await (const p of rows(ORION, '*PropertyExport.txt')) {
     situs_zip: (clean(p.SitusZip) || x.zip || '').slice(0, 5) || null,
     has_homestead: homestead.has(id) || v.hs > 0,
     arb_protest_flag: p.ARBProtestFlag === '1' ? true : p.ARBProtestFlag === '0' ? false : null,
-    source_format: 'HAYS_ORION',
+    source_format: FORMAT,
   };
   out.write(COLS.map((k) => csvCell(row[k])).join(',') + '\n');
   written++;
 }
 await new Promise((r) => out.end(r));
 const pct = (n, d) => (d ? (n * 100 / d).toFixed(1) : '0.0');
-console.log(`\nHays (cad_id ${CAD_ID}, ${taxYear} certified) -> ${outPath}`);
+console.log(`\n${NAME} (cad_id ${CAD_ID}, ${taxYear} certified) -> ${outPath}`);
 console.log(`  read      ${read.toLocaleString()}\n  written   ${written.toLocaleString()}`);
 for (const [w, n] of [...excluded].sort((a, b) => b[1] - a[1])) console.log(`  excluded  ${n.toLocaleString().padStart(9)}  ${w}`);
 console.log(`\n  homestead capped  § 23.23   ${capped.toLocaleString().padStart(8)}  ${pct(capped, written)}%`);

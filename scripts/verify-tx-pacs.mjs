@@ -179,6 +179,11 @@ const TABLE = [
   ['Angelina', 'SM8', 'WOOD MH COVER', false, '$1.54', 'roof over a mobile home'],
   ['Angelina', 'RM1', 'MOBILE HOME SINGLE', true, '$21.66', 'mobile home main'],
 
+  // ---- LIBERTY.
+  ['Liberty', 'RM1', 'STANDARD M HOME', true, '$23.63', 'mobile home main'],
+  ['Liberty', 'RM2', 'DOUBLE-WIDE M HOME', true, '$42.35', 'mobile home main'],
+  ['Liberty', 'CP3', 'CANOPY OVER MH', false, '$6.37', 'CANOPY excludes'],
+
   // ---- TAYLOR. Reference: MA MAIN AREA $94.89.
   ['Taylor', 'MA', 'MAIN AREA', true, '$94.89', 'reference'],
   ['Taylor', 'MA2', 'MAIN AREA (2ND FLOOR)', true, '$106.01', '112%'],
