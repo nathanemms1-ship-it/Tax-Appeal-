@@ -65,6 +65,10 @@ const money = (n) => (n === null || n === undefined ? null : `$${Math.round(n).t
 // pass/fail line, because a threshold here would recreate the IAAO benchmark
 // claim we cannot support. See scripts/tx/county-stats.mjs.
 function dispersionClause(d, name) {
+  // No measurable dispersion (Hidalgo publishes no neighbourhood code) must
+  // render NOTHING. `null < 8` is true in JavaScript, so without this guard a
+  // county we could not measure was described as "unusually tight".
+  if (d === null || d === undefined || !Number.isFinite(Number(d))) return null;
   if (d < 8) {
     return `That is unusually tight. ${name} County values similar homes very consistently, and where a district is that uniform an equal-and-uniform argument has little to grip — the median of your comparables will sit close to your own value.`;
   }
@@ -163,7 +167,8 @@ export default function CountyRollFacts({ county }) {
         </h2>
 
         <p style={{ fontSize: 16, color: C.text, fontFamily: 'Arial,sans-serif', lineHeight: 1.65, margin: '0 0 26px' }}>
-          We hold {county.name} County&apos;s certified {s.taxYear} appraisal roll. Every figure below is
+          We hold {county.name} County&apos;s {s.certifiedRoll === false ? '' : 'certified '}{s.taxYear} appraisal roll
+          {s.certifiedRoll === false ? ', as the district publishes it' : ''}. Every figure below is
           counted directly from it — {fmt(s.parcels)} single-family homes, the district&apos;s own numbers.
           Nothing here is estimated or averaged in from another county.
         </p>
