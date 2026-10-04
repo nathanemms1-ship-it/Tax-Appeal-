@@ -1196,6 +1196,92 @@ t('the property address on the form carries the state',
     absorbed.estimatedSaving === null);
 }
 
+/**
+ * ============================================================================
+ * THE VERDICT IS RECONCILED WITH THE PACKET, AND ONLY EVER UPWARDS
+ * ============================================================================
+ * 4 Oct 2026. A sweep of 500 addresses across all 20 loaded districts found
+ * 50 lookups whose verdict contradicted their own packet:
+ *
+ *   24  `cap_absorbs_everything`, eligible: false, while the comps produced
+ *       an ask BELOW the capped value -- median $969/yr refused, top $8,865.
+ *   26  `saving_below_cost` on packets worth a median $457 against an $89 fee.
+ *
+ * qualify() sets the verdict from a district-wide rate before any comparable
+ * exists. The evidence pass then replaced the FIGURE and left `eligible` and
+ * `outcome` on the guess.
+ *
+ * reconcileVerdict() is pure and exported precisely so this can run without a
+ * database. The inline version it replaced lived inside a function that needs
+ * Supabase, which is how it would have stayed unguarded.
+ *
+ * INJECTION: make it promote on `estimatedSaving >= 0` -> FAILS (refusals).
+ * INJECTION: drop the `>= serviceFee` test -> FAILS (under-fee promotion).
+ */
+{
+  const { reconcileVerdict } = await import('../lib/tx/lookup.js');
+  const V = (reason, eligible) => ({ reason, eligible, confidence: 'high' });
+  const go = (reason, saving, capped = true, eligible = false) =>
+    reconcileVerdict(V(reason, eligible), { estimatedSaving: saving, capped, serviceFee: 89 });
+
+  // --- it promotes where the packet disagrees -----------------------------
+  const cap = go('capped_beyond_reach', 3119);
+  t('a cap refusal with a real saving is overturned',
+    cap.verdict.eligible === true && cap.verdict.reason === 'capped_but_reachable'
+    && cap.reconciledFrom === 'capped_beyond_reach');
+  t('an uncapped parcel lands on the uncapped reason',
+    go('capped_beyond_reach', 3119, false).verdict.reason === 'uncapped');
+  const fee = go('saving_below_fee', 407);
+  t('a below-fee verdict is overturned once the packet clears the fee',
+    fee.verdict.eligible === true && fee.verdict.savingWarning === false
+    && fee.reconciledFrom === 'saving_below_fee');
+
+  // --- and nowhere else ---------------------------------------------------
+  t('a refusal with no saving stands',
+    go('capped_beyond_reach', 0).reconciledFrom === null
+    && go('capped_beyond_reach', null).reconciledFrom === null);
+  t('a below-fee verdict UNDER the fee stands',
+    go('saving_below_fee', 88).reconciledFrom === null
+    && go('saving_below_fee', 89).reconciledFrom === 'saving_below_fee');
+  t('verdicts it has no business touching are passed through',
+    ['uncapped', 'capped_but_reachable', 'no_value_on_roll', 'no_taxable_value']
+      .every((r) => go(r, 5000, true, true).reconciledFrom === null));
+
+  /*
+    THE ASYMMETRY IS THE POINT. A refusal already shown to someone is not
+    something a later estimate should take back, so there must be no input
+    at all that turns an eligible verdict into an ineligible one.
+  */
+  let demoted = null;
+  for (const reason of ['uncapped', 'capped_but_reachable', 'saving_below_fee', 'capped_beyond_reach',
+                        'no_value_on_roll', 'no_taxable_value', 'no_evidence']) {
+    for (const saving of [null, 0, 1, 88, 89, 500, 1e6, -5, NaN]) {
+      for (const capped of [true, false]) {
+        for (const wasEligible of [true, false]) {
+          const out = reconcileVerdict(V(reason, wasEligible), { estimatedSaving: saving, capped, serviceFee: 89 });
+          if (wasEligible && out.verdict.eligible === false) demoted = `${reason} / ${saving} / capped=${capped}`;
+        }
+      }
+    }
+  }
+  t(`no input demotes an eligible verdict${demoted ? ' (' + demoted + ')' : ''}`, !demoted);
+
+  t('it is null-safe', reconcileVerdict(null, { estimatedSaving: 1, capped: true, serviceFee: 89 }).verdict === null);
+
+  // The overturn has to be countable, or the rate is invisible.
+  const { readFileSync } = await import('node:fs');
+  const lookupSrc = readFileSync(new URL('../lib/tx/lookup.js', import.meta.url), 'utf8');
+  t('the lookup records what it overturned', /reconciledFrom,/.test(lookupSrc));
+  /*
+    And the confidence shown at step 1 is the EVIDENCE's, not qualify's
+    opinion of its own district-rate arithmetic. The payload used to ship
+    `compCount: 2` beside `confidence: 'high'`.
+  */
+  t('step 1 reports the comparables\' confidence, not the pre-filter\'s',
+    /confidence: packet\.grid\?\.confidence/.test(lookupSrc)
+    && !/confidence: packet\.verdict\?\.confidence/.test(lookupSrc));
+}
+
 console.log(failures.length
   ? `verify-tx-protest: ${failures.length} FAILED, ${pass} passed\n  ✗ ` + failures.join('\n  ✗ ')
   : `verify-tx-protest: ${pass} passed`);

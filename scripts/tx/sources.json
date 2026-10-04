@@ -577,10 +577,13 @@
       "cad_name": "Hidalgo County Appraisal District",
       "site": "https://www.hidalgoad.org",
       "data_page": null,
-      "format": "PACS",
-      "access": "unknown",
+      "format": "HIDALGO_GIS",
+      "access": "free",
       "confidence": "not_found",
-      "files": {}
+      "files": {},
+      "checked_note": "Checked 3 Oct 2026: /data-downloads offers only (1) a monthly GIS shapefile zip on Google Drive (HCADShapefiles.zip, id 1jdNqzlfEVDkSbWp2eva7S1U93rlDhZdo, ~148 MB) whose data.csv has per-account values, caps, main area and year built but NO neighbourhood or subdivision code, and (2) a Dropbox \"2026 TYP Certified Export\" that is minerals only. Loadable only with a bespoke loader deriving subdivision from legalDescription.",
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-hidalgo.mjs from the GIS zip data.csv (hidalgo_gis.zip, 155,074,784 bytes, data.csv dated 4 Aug 2026). CURRENT roll, not a certified snapshot. No neighbourhood code exists in anything Hidalgo publishes: neighborhood_code is NULL and abs_subdv_cd is the subdivision name parsed from legalDescription (8,209 subdivisions; 95% of homes in one of >= 10). countyStats therefore carries no dispersion for Hidalgo and the county page makes no neighbourhood claim. capValue is ONE combined cap loss, assigned to homestead or circuit-breaker by exemption. 237,981 residential rows, 211,907 A1; 6 rows excluded for broken cap arithmetic; 14 rows have unescaped quotes, handled by the splitter. No situs ZIP; situs city on ~60%."
     },
     {
       "county": "McLennan",
@@ -591,7 +594,8 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "not_found",
-      "files": {}
+      "files": {},
+      "checked_note": "Checked 3 Oct 2026: /data-downloads offers a weekly GIS parcels shapefile whose DBF carries only pid/map_name/county/tp_area - no values. Records request needed."
     },
     {
       "county": "Ellis",
@@ -602,18 +606,21 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "indexed",
-      "files": {}
+      "files": {},
+      "checked_note": "Checked 3 Oct 2026: no data-downloads page on elliscad.com. Records request needed."
     },
     {
       "county": "Rockwall",
       "cad_id": 199,
       "cad_name": "Rockwall Central Appraisal District",
       "site": "https://www.rockwallcad.com",
-      "data_page": "https://www.rockwallcad.com/gis-data",
+      "data_page": "https://www.rockwallcad.com/data-exports",
       "format": "PACS",
-      "access": "unknown",
+      "access": "free",
       "confidence": "indexed",
-      "files": {}
+      "files": {},
+      "loaded": true,
+      "loaded_note": "LOADED 3 Oct 2026. The real page is /data-exports (Prodigy SPA - browser only), which lists certified, adjusted and PRELIMINARY rolls back several years, all on Google Drive. 2026 certified: RCAD CERT 2026 APP ROLL 07_13_2026.zip, Drive id 1Ekz8ijj32TIMF_g7JsAOq-Yy8A5jXey6, 1,365,390,494 bytes, sha256 a8b5d788353358fdc4f7815722a1f02e69861016d7e0ba4026a8ac2cb65d77f4, layout 8.0.0.33. Preliminary 2026 rolls as of 16 March (1v8ROCSty1do5sgoKWWCzJ4h0UnzVwNow) and 26 May (1juamoCBY39eg861J86SaUoaJJrShrAlV) - the second district found publishing in-season data, and the earliest (March). 44,233 residential rows, 40,528 A1. situs_zip only ~26% filled."
     },
     {
       "county": "Hunt",
@@ -647,7 +654,8 @@
       "access": "unknown",
       "confidence": "not_found",
       "files": {},
-      "notes": "One district serving two counties — Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this."
+      "notes": "One district serving two counties — Potter and Randall. The cad_id/appraising_cad split in schema.sql exists for exactly this.",
+      "checked_note": "Checked 3 Oct 2026 in a browser: prad.org (Potter Randall Appraisal District, one office for both counties) has no data-export page - Reports, Forms and an Open Records Request form only. Records request needed."
     },
     {
       "county": "Randall",
@@ -658,7 +666,8 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "not_found",
-      "files": {}
+      "files": {},
+      "checked_note": "Same office as Potter (prad.org): no public data export as of 3 Oct 2026. Records request needed."
     },
     {
       "county": "Webb",
@@ -669,7 +678,8 @@
       "format": "PACS",
       "access": "unknown",
       "confidence": "not_found",
-      "files": {}
+      "files": {},
+      "checked_note": "Checked 3 Oct 2026: www.webbcad.org (bare webbcad.org does not resolve) has no data-downloads page. Records request needed."
     },
     {
       "county": "Bexar",

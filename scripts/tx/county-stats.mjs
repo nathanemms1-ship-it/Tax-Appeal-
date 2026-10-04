@@ -285,6 +285,8 @@ select
   (select count(*) from hood_dispersion)::int                                          as dispersion_hoods
 `;
 
+const NOT_CERTIFIED_FORMATS = new Set(['HIDALGO_GIS']);
+
 const round = (v, dp = 1) => (v === null || v === undefined ? null : Number(Number(v).toFixed(dp)));
 
 try {
@@ -322,8 +324,17 @@ try {
         + ` — not counted in the ${CLASS_PREFIX} median`);
     }
 
+    // Which snapshot this district's rows came from. Only a loader that reads a
+    // non-certified export is listed; the page says "certified" for the rest.
+    // Hidalgo publishes no certified appraisal export at all - its rows are the
+    // district's monthly GIS table (scripts/tx/load-hidalgo.mjs).
+    const { rows: [fmt] } = await client.query(
+      'select array_agg(distinct source_format) f from tx_parcels where cad_id = $1 and tax_year = $2', [cad_id, YEAR]);
+    const certifiedRoll = !(fmt?.f || []).some((f) => NOT_CERTIFIED_FORMATS.has(f));
+
     const stats = {
       taxYear: YEAR,
+      certifiedRoll,
       stateClass: CLASS_PREFIX,
       parcels: r.parcels,
       cappedParcels: r.capped,
