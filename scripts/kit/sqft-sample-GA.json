@@ -1,0 +1,1086 @@
+{
+ "built": "2026-10-10",
+ "note": "Random residential parcels from GA county public data services (100% values). Used by scripts/kit/sqft-check.mjs.",
+ "homes": [
+  {
+   "county": "Forsyth",
+   "parcelId": "174   540",
+   "address": "1975 WALKING HORSE TRL",
+   "countySqft": 1140.0,
+   "countyValue": 537930.0,
+   "lat": 34.163513,
+   "lon": -84.134481
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "151   006",
+   "address": "2130 HONEYSUCKLE DR",
+   "countySqft": 1490.0,
+   "countyValue": 442770.0,
+   "lat": 34.236961,
+   "lon": -84.142091
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "128   187",
+   "address": "3860 ESTATES PATH",
+   "countySqft": 1465.0,
+   "countyValue": 586050.0,
+   "lat": 34.198852,
+   "lon": -84.15732
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "191   265",
+   "address": "3260 BLACKBURN DR",
+   "countySqft": 1930.0,
+   "countyValue": 543430.0,
+   "lat": 34.2643,
+   "lon": -84.112071
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "013   335",
+   "address": "7050 TYBRIDGE ST",
+   "countySqft": 2520.0,
+   "countyValue": 756760.0,
+   "lat": 34.194539,
+   "lon": -84.254251
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "145   293",
+   "address": "6055 HEMMERT LN",
+   "countySqft": 1230.0,
+   "countyValue": 556760.0,
+   "lat": 34.302309,
+   "lon": -84.145959
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "079   481",
+   "address": "4720 LOWELL CT",
+   "countySqft": 1470.0,
+   "countyValue": 922080.0,
+   "lat": 34.207156,
+   "lon": -84.203981
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "083   345",
+   "address": "6355 CARLEEN CT",
+   "countySqft": 1794.0,
+   "countyValue": 730180.0,
+   "lat": 34.168858,
+   "lon": -84.196094
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "101   187",
+   "address": "2340 SADDLE BROOK TRCE",
+   "countySqft": 2225.0,
+   "countyValue": 916950.0,
+   "lat": 34.21756,
+   "lon": -84.186381
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "042   578",
+   "address": "1810 LYNWOOD PL",
+   "countySqft": 2402.0,
+   "countyValue": 842850.0,
+   "lat": 34.121395,
+   "lon": -84.238979
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "057   082",
+   "address": "5240 HARRIS SPRINGS DR",
+   "countySqft": 2202.0,
+   "countyValue": 1254590.0,
+   "lat": 34.202691,
+   "lon": -84.22224
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "212   424",
+   "address": "6725 JUMPING TROUT DR",
+   "countySqft": 1465.0,
+   "countyValue": 615680.0,
+   "lat": 34.316473,
+   "lon": -84.098423
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "096   330",
+   "address": "3250 ANDOVER ST",
+   "countySqft": 1802.0,
+   "countyValue": 796180.0,
+   "lat": 34.27027,
+   "lon": -84.184512
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "162   498",
+   "address": "8065 GEORGETOWN CIR",
+   "countySqft": 2016.0,
+   "countyValue": 1031160.0,
+   "lat": 34.063492,
+   "lon": -84.152128
+  },
+  {
+   "county": "Forsyth",
+   "parcelId": "041   439",
+   "address": "710 WYNGATE POINT DR",
+   "countySqft": 1537.0,
+   "countyValue": 687450.0,
+   "lat": 34.137322,
+   "lon": -84.227546
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12151C A017",
+   "address": "5606 REX RIDGE LOOP",
+   "countySqft": 2126.0,
+   "countyValue": 219500.0,
+   "lat": 33.591155,
+   "lon": -84.288023
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12201B A014",
+   "address": "3420 ASHFORD LOOP",
+   "countySqft": 3165.0,
+   "countyValue": 307400.0,
+   "lat": 33.62036,
+   "lon": -84.276283
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "13135A A005",
+   "address": "6400 W FAYETTEVILLE RD",
+   "countySqft": 1487.0,
+   "countyValue": 208600.0,
+   "lat": 33.5807,
+   "lon": -84.448215
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "06159B E026",
+   "address": "2307 SAWGRASS DR",
+   "countySqft": 3044.0,
+   "countyValue": 376400.0,
+   "lat": 33.440629,
+   "lon": -84.336291
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12020C B002",
+   "address": "1901 LULLWATER CIR",
+   "countySqft": 1460.0,
+   "countyValue": 253700.0,
+   "lat": 33.527366,
+   "lon": -84.321886
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12241B A007",
+   "address": "1436 CONLEY RD",
+   "countySqft": 2103.0,
+   "countyValue": 223300.0,
+   "lat": 33.645102,
+   "lon": -84.342384
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12150A A011",
+   "address": "2718 SILVER QUEEN RD",
+   "countySqft": 1473.0,
+   "countyValue": 247900.0,
+   "lat": 33.595253,
+   "lon": -84.300545
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12152D A066",
+   "address": "3549 CLEARVIEW DR",
+   "countySqft": 1483.0,
+   "countyValue": 261400.0,
+   "lat": 33.593954,
+   "lon": -84.274484
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "06028B B008",
+   "address": "2696 ASHLEY CIR",
+   "countySqft": 2030.0,
+   "countyValue": 297800.0,
+   "lat": 33.507516,
+   "lon": -84.305275
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "05245D C002",
+   "address": "8964 GATEWOOD CIR",
+   "countySqft": 1690.0,
+   "countyValue": 177316.0,
+   "lat": 33.510663,
+   "lon": -84.3916
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "05210B A018",
+   "address": "9441 AUTUMN TER",
+   "countySqft": 2454.0,
+   "countyValue": 257000.0,
+   "lat": 33.49841,
+   "lon": -84.366041
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "05241A C009",
+   "address": "196 CLOUD ST",
+   "countySqft": 2093.0,
+   "countyValue": 230000.0,
+   "lat": 33.515099,
+   "lon": -84.357049
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12136C A033",
+   "address": "6178 AMBERLY RD",
+   "countySqft": 1852.0,
+   "countyValue": 235322.0,
+   "lat": 33.585645,
+   "lon": -84.268832
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "12176A F009",
+   "address": "1209 KENYON RD",
+   "countySqft": 1640.0,
+   "countyValue": 191300.0,
+   "lat": 33.606573,
+   "lon": -84.350444
+  },
+  {
+   "county": "Clayton",
+   "parcelId": "13083B C016",
+   "address": "5484 MORIAH LN",
+   "countySqft": 1506.0,
+   "countyValue": 171500.0,
+   "lat": 33.604935,
+   "lon": -84.37078
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0574153000",
+   "address": "1615 Cornell Dr",
+   "countySqft": 765.0,
+   "countyValue": 28526.0,
+   "lat": 33.456317,
+   "lon": -82.010651
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0453395000",
+   "address": "1924 Turknett Spring Ln",
+   "countySqft": 925.0,
+   "countyValue": 99940.0,
+   "lat": 33.465124,
+   "lon": -82.00768
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0441238000",
+   "address": "1528 Schley St",
+   "countySqft": 1563.0,
+   "countyValue": 253240.0,
+   "lat": 33.469782,
+   "lon": -82.024746
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0552033000",
+   "address": "3207 Clarence Dr",
+   "countySqft": 4770.0,
+   "countyValue": 73710.0,
+   "lat": 33.461402,
+   "lon": -82.055618
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0830261000",
+   "address": "3530 Primrose Dr",
+   "countySqft": 1476.0,
+   "countyValue": 120960.0,
+   "lat": 33.438359,
+   "lon": -82.084476
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0442274000",
+   "address": "1050 Hickman Rd",
+   "countySqft": 1888.0,
+   "countyValue": 293100.0,
+   "lat": 33.471697,
+   "lon": -82.010929
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0373241000",
+   "address": "936 Broad St Unit 305",
+   "countySqft": 823.0,
+   "countyValue": 191840.0,
+   "lat": 33.475836,
+   "lon": -81.968718
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "1280128000",
+   "address": "3304 Wombles Ct",
+   "countySqft": 1356.0,
+   "countyValue": 190350.0,
+   "lat": 33.38833,
+   "lon": -82.111952
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0390119000",
+   "address": "3210 Bel Ridge Rd",
+   "countySqft": 1843.0,
+   "countyValue": 245100.0,
+   "lat": 33.46573,
+   "lon": -82.123507
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0451336000",
+   "address": "1115 Russell St",
+   "countySqft": 1824.0,
+   "countyValue": 231370.0,
+   "lat": 33.470115,
+   "lon": -82.008754
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0070110000",
+   "address": "826 Mitchell St",
+   "countySqft": 1456.0,
+   "countyValue": 226580.0,
+   "lat": 33.526141,
+   "lon": -82.044939
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "0240031000",
+   "address": "3 Highgate Cir",
+   "countySqft": 5865.0,
+   "countyValue": 1921800.0,
+   "lat": 33.492561,
+   "lon": -82.062328
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "1070638000",
+   "address": "3014 Griffis Ct",
+   "countySqft": 2000.0,
+   "countyValue": 126710.0,
+   "lat": 33.415398,
+   "lon": -82.082232
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "1080301000",
+   "address": "2521 Kensington Dr E",
+   "countySqft": 1245.0,
+   "countyValue": 129840.0,
+   "lat": 33.417836,
+   "lon": -82.066774
+  },
+  {
+   "county": "Richmond",
+   "parcelId": "1070166000",
+   "address": "2939 Meadowbrook Dr",
+   "countySqft": 1377.0,
+   "countyValue": 128760.0,
+   "lat": 33.410209,
+   "lon": -82.072421
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0117B 166",
+   "address": "309 W GORDON ST",
+   "countySqft": 1856.0,
+   "countyValue": 52076.0,
+   "lat": 30.837648,
+   "lon": -83.286674
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0146A 290",
+   "address": "3713 MULLIGAN RD",
+   "countySqft": 1212.0,
+   "countyValue": 145590.0,
+   "lat": 30.915101,
+   "lon": -83.252981
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0120D 201",
+   "address": "403 NEW HUDSON ST",
+   "countySqft": 1035.0,
+   "countyValue": 12345.0,
+   "lat": 30.821333,
+   "lon": -83.268402
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0117D 397",
+   "address": "809 PLEASANT LN",
+   "countySqft": 896.0,
+   "countyValue": 65413.0,
+   "lat": 30.836429,
+   "lon": -83.287012
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0026 091",
+   "address": "7677 KAYLA DR",
+   "countySqft": 1738.0,
+   "countyValue": 301542.0,
+   "lat": 30.986648,
+   "lon": -83.392338
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0112D 258",
+   "address": "2505 MELROSE DR",
+   "countySqft": 2257.0,
+   "countyValue": 276407.0,
+   "lat": 30.867741,
+   "lon": -83.269162
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0196 195",
+   "address": "5135 DIAMOND DR",
+   "countySqft": 2107.0,
+   "countyValue": 340493.0,
+   "lat": 30.695167,
+   "lon": -83.211538
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0102 006L",
+   "address": "6073 PROVIDENCE POINT PT",
+   "countySqft": 2885.0,
+   "countyValue": 468648.0,
+   "lat": 30.996764,
+   "lon": -83.299401
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0109D 042",
+   "address": "3122 WINGFIELD WAY",
+   "countySqft": 1325.0,
+   "countyValue": 157093.0,
+   "lat": 30.877272,
+   "lon": -83.287103
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0117D 254",
+   "address": "609 WEST ST",
+   "countySqft": 1480.0,
+   "countyValue": 31775.0,
+   "lat": 30.834282,
+   "lon": -83.290347
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0026 021",
+   "address": "206 WASHINGTON ST",
+   "countySqft": 1075.0,
+   "countyValue": 61026.0,
+   "lat": 30.987286,
+   "lon": -83.380388
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0197B 022",
+   "address": "5868 DE OSTA DR",
+   "countySqft": 1968.0,
+   "countyValue": 318012.0,
+   "lat": 30.698976,
+   "lon": -83.201155
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0179 003W",
+   "address": "6143 BRAYDEN WAY",
+   "countySqft": 2246.0,
+   "countyValue": 457960.0,
+   "lat": 30.987604,
+   "lon": -83.205151
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0155C 090",
+   "address": "911 JAMESTOWN DR",
+   "countySqft": 1558.0,
+   "countyValue": 85364.0,
+   "lat": 30.844729,
+   "lon": -83.265272
+  },
+  {
+   "county": "Lowndes",
+   "parcelId": "0148 093",
+   "address": "4027 MT ZION CHURCH RD",
+   "countySqft": 1584.0,
+   "countyValue": 182594.0,
+   "lat": 30.890608,
+   "lon": -83.244081
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "G18 182",
+   "address": "230 TAYLOR CIR",
+   "countySqft": 1659.0,
+   "countyValue": 266456.0,
+   "lat": 33.438209,
+   "lon": -82.186517
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "082 414",
+   "address": "408 JADE DR",
+   "countySqft": 4117.0,
+   "countyValue": 575828.0,
+   "lat": 33.565774,
+   "lon": -82.070184
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "065 054",
+   "address": "103 POND VIEW RD",
+   "countySqft": 3850.0,
+   "countyValue": 798640.0,
+   "lat": 33.58341,
+   "lon": -82.190219
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "060 932",
+   "address": "751 WHITNEY PASS",
+   "countySqft": 2335.0,
+   "countyValue": 353426.0,
+   "lat": 33.545149,
+   "lon": -82.197581
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "031 110",
+   "address": "890 N HICKS ST",
+   "countySqft": 240.0,
+   "countyValue": 191857.0,
+   "lat": 33.420426,
+   "lon": -82.329601
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "074 170",
+   "address": "548 S OLD BELAIR RD",
+   "countySqft": 1364.0,
+   "countyValue": 218533.0,
+   "lat": 33.483468,
+   "lon": -82.145089
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "077C278",
+   "address": "117 COMMERCIAL BLVD",
+   "countySqft": 2000.0,
+   "countyValue": 408991.0,
+   "lat": 33.514651,
+   "lon": -82.092874
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "059 274",
+   "address": "214 TORREY PINE TRL",
+   "countySqft": 2615.0,
+   "countyValue": 418139.0,
+   "lat": 33.550989,
+   "lon": -82.205591
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "042 125",
+   "address": "6041 NEIL BROWN RD",
+   "countySqft": 2620.0,
+   "countyValue": 361736.0,
+   "lat": 33.433453,
+   "lon": -82.277315
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "068A052",
+   "address": "4754 BROOKWOOD DR",
+   "countySqft": 1192.0,
+   "countyValue": 188172.0,
+   "lat": 33.501731,
+   "lon": -82.164954
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "065 358",
+   "address": "812 ELLIS LN",
+   "countySqft": 2581.0,
+   "countyValue": 463725.0,
+   "lat": 33.580984,
+   "lon": -82.188562
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "062 1503",
+   "address": "817 LANDING DR",
+   "countySqft": 1728.0,
+   "countyValue": 234647.0,
+   "lat": 33.451537,
+   "lon": -82.224882
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "065A321",
+   "address": "1100 WALTONS PASS",
+   "countySqft": 2507.0,
+   "countyValue": 343834.0,
+   "lat": 33.581202,
+   "lon": -82.160874
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "061 1180",
+   "address": "735 KEYES DR",
+   "countySqft": 1542.0,
+   "countyValue": 249991.0,
+   "lat": 33.498223,
+   "lon": -82.224979
+  },
+  {
+   "county": "Columbia",
+   "parcelId": "081B1189",
+   "address": "512 SEMINOLE PL",
+   "countySqft": 5678.0,
+   "countyValue": 975218.0,
+   "lat": 33.547533,
+   "lon": -82.084745
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0055A-0009-002",
+   "address": "37 TOMAHAWK DR",
+   "countySqft": 1125.0,
+   "countyValue": 174200.0,
+   "lat": 34.116065,
+   "lon": -84.852829
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "A014-0003-041",
+   "address": "113 MORGAN DR",
+   "countySqft": 1374.0,
+   "countyValue": 272684.0,
+   "lat": 34.347224,
+   "lon": -84.901792
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0051-0539-002",
+   "address": "1325 MISSION RD",
+   "countySqft": 3892.0,
+   "countyValue": 899473.0,
+   "lat": 34.162261,
+   "lon": -84.900425
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0078L-0001-153",
+   "address": "814 DUNDEE WAY",
+   "countySqft": 1944.0,
+   "countyValue": 318842.0,
+   "lat": 34.202079,
+   "lon": -84.775858
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "C015-0005-005",
+   "address": "8 POPLAR ST",
+   "countySqft": 4396.0,
+   "countyValue": 370313.0,
+   "lat": 34.160547,
+   "lon": -84.811577
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0069-0192-013",
+   "address": "949 PEEPLES VALLEY RD",
+   "countySqft": 2087.0,
+   "countyValue": 422994.0,
+   "lat": 34.262995,
+   "lon": -84.808064
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0070P-0001-020",
+   "address": "307 PHEASANT POINT",
+   "countySqft": 1526.0,
+   "countyValue": 264234.0,
+   "lat": 34.225276,
+   "lon": -84.804335
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0059-0059-006",
+   "address": "151 GADDIS RD",
+   "countySqft": 3444.0,
+   "countyValue": 529435.0,
+   "lat": 34.249443,
+   "lon": -84.865853
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0030-0984-001",
+   "address": "31 OLD HARDIN BRIDGE RD",
+   "countySqft": 3840.0,
+   "countyValue": 2120264.0,
+   "lat": 34.113158,
+   "lon": -84.950597
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0067-0149-013",
+   "address": "13 RUNNING DEER TR",
+   "countySqft": 5889.0,
+   "countyValue": 833772.0,
+   "lat": 34.310066,
+   "lon": -84.818831
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0060-0134-003",
+   "address": "593 CASS WHITE RD",
+   "countySqft": 3129.0,
+   "countyValue": 816949.0,
+   "lat": 34.267225,
+   "lon": -84.833575
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "C026-0017-001",
+   "address": "35 AKRON ST",
+   "countySqft": 833.0,
+   "countyValue": 166716.0,
+   "lat": 34.178713,
+   "lon": -84.823371
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0059R-0002-030",
+   "address": "67 HAMILTON BV",
+   "countySqft": 2242.0,
+   "countyValue": 338737.0,
+   "lat": 34.224,
+   "lon": -84.864633
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0021C-0001-086",
+   "address": "12 CEDAR CROSSING",
+   "countySqft": 1448.0,
+   "countyValue": 280333.0,
+   "lat": 34.389312,
+   "lon": -84.948947
+  },
+  {
+   "county": "Bartow",
+   "parcelId": "0015-0236-005",
+   "address": "241 OLD ROME RD",
+   "countySqft": 1709.0,
+   "countyValue": 1654474.0,
+   "lat": 34.236819,
+   "lon": -84.991764
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "27-228-16-000",
+   "address": "3875 TATE RD",
+   "countySqft": 3115.0,
+   "countyValue": 456523.0,
+   "lat": 34.766256,
+   "lon": -85.103776
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "27-092-11-000",
+   "address": "1287 MOUNT VERNON RD",
+   "countySqft": 3214.0,
+   "countyValue": 242115.0,
+   "lat": 34.813269,
+   "lon": -85.053367
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-217-11-013",
+   "address": "325 N GRIMES ST",
+   "countySqft": 888.0,
+   "countyValue": 153539.0,
+   "lat": 34.775748,
+   "lon": -84.951649
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-102-06-042",
+   "address": "1436 CLASSIC CHASE DR",
+   "countySqft": 1102.0,
+   "countyValue": 184042.0,
+   "lat": 34.814459,
+   "lon": -84.944291
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-125-04-065",
+   "address": "1772 BRIGHTON WAY",
+   "countySqft": 1854.0,
+   "countyValue": 318139.0,
+   "lat": 34.805844,
+   "lon": -84.959202
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-089-28-081",
+   "address": "280 CAMDEN WAY",
+   "countySqft": 1659.0,
+   "countyValue": 351502.0,
+   "lat": 34.82014,
+   "lon": -84.938383
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-102-10-020",
+   "address": "2029 STRIPLIN TR",
+   "countySqft": 1276.0,
+   "countyValue": 199898.0,
+   "lat": 34.813474,
+   "lon": -84.941929
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "10-210-04-000",
+   "address": "350 POTEET WAY",
+   "countySqft": 864.0,
+   "countyValue": 730076.0,
+   "lat": 34.902564,
+   "lon": -84.830547
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-180-01-051",
+   "address": "913 AVENUE F",
+   "countySqft": 720.0,
+   "countyValue": 137407.0,
+   "lat": 34.784338,
+   "lon": -84.955732
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "11-044-03-000",
+   "address": "5067 OLD TUNNEL HILL RD",
+   "countySqft": 3266.0,
+   "countyValue": 401080.0,
+   "lat": 34.966289,
+   "lon": -84.991008
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-217-02-019",
+   "address": "1104 HAIR ST",
+   "countySqft": 1024.0,
+   "countyValue": 166432.0,
+   "lat": 34.773599,
+   "lon": -84.951205
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-243-01-103",
+   "address": "348 STANLEY ST",
+   "countySqft": 1340.0,
+   "countyValue": 165923.0,
+   "lat": 34.76484,
+   "lon": -84.918955
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "12-241-12-004",
+   "address": "519 LESTER AV",
+   "countySqft": 1380.0,
+   "countyValue": 186798.0,
+   "lat": 34.76207,
+   "lon": -84.94022
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "11-232-07-036",
+   "address": "3430 NE CROW RD",
+   "countySqft": 2260.0,
+   "countyValue": 424923.0,
+   "lat": 34.902223,
+   "lon": -84.910124
+  },
+  {
+   "county": "Whitfield",
+   "parcelId": "11-192-14-045",
+   "address": "326 GOLF VIEW DR",
+   "countySqft": 4022.0,
+   "countyValue": 540098.0,
+   "lat": 34.915082,
+   "lon": -84.950239
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "G01  2239 017",
+   "address": "510 BOHANNON RD",
+   "countySqft": 1008.0,
+   "countyValue": 123550.0,
+   "lat": 33.242988,
+   "lon": -84.849417
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "149  1181 001",
+   "address": "120 WYATT RD",
+   "countySqft": 3751.0,
+   "countyValue": 494536.0,
+   "lat": 33.308092,
+   "lon": -84.607927
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "N44       042",
+   "address": "305 HOLBROOK RD",
+   "countySqft": 2046.0,
+   "countyValue": 265672.0,
+   "lat": 33.367778,
+   "lon": -84.817837
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "063B      006",
+   "address": "371 BELK RD",
+   "countySqft": 940.0,
+   "countyValue": 139692.0,
+   "lat": 33.37192,
+   "lon": -84.839442
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "N29  0004 015",
+   "address": "10 WOODBINE DR",
+   "countySqft": 3550.0,
+   "countyValue": 563160.0,
+   "lat": 33.366252,
+   "lon": -84.801786
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "150  1163 046",
+   "address": "1308 ELDERS MILL ROAD",
+   "countySqft": 2336.0,
+   "countyValue": 449006.0,
+   "lat": 33.285562,
+   "lon": -84.620323
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "036  4036 018",
+   "address": "398 MT CARMEL RD",
+   "countySqft": 3192.0,
+   "countyValue": 478924.0,
+   "lat": 33.397222,
+   "lon": -84.89645
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "147  1154 015",
+   "address": "106 CIRCLE H DR",
+   "countySqft": 2313.0,
+   "countyValue": 428320.0,
+   "lat": 33.360249,
+   "lon": -84.62245
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "W06       084",
+   "address": "1225 TEAKWOOD DR",
+   "countySqft": 1577.0,
+   "countyValue": 302495.0,
+   "lat": 33.384202,
+   "lon": -84.728282
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "083  5183 075",
+   "address": "45 RETREAT DR",
+   "countySqft": 3393.0,
+   "countyValue": 732085.0,
+   "lat": 33.456833,
+   "lon": -84.77868
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "091  2186 031",
+   "address": "91 DINGLER RD",
+   "countySqft": 2948.0,
+   "countyValue": 537964.0,
+   "lat": 33.272543,
+   "lon": -84.777037
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "123  1051 035",
+   "address": "59 AIRMONT DRIVE",
+   "countySqft": 2516.0,
+   "countyValue": 462736.0,
+   "lat": 33.355877,
+   "lon": -84.690061
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "071  5152 007",
+   "address": "47 TURTLE TRACKS",
+   "countySqft": 2603.0,
+   "countyValue": 430999.0,
+   "lat": 33.446317,
+   "lon": -84.783812
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "156  1229 063",
+   "address": "115 CUSHING ST",
+   "countySqft": 3746.0,
+   "countyValue": 643425.0,
+   "lat": 33.296812,
+   "lon": -84.582168
+  },
+  {
+   "county": "Coweta",
+   "parcelId": "N60       016",
+   "address": "66 SPRAYBERRY ROAD",
+   "countySqft": 1025.0,
+   "countyValue": 176802.0,
+   "lat": 33.392416,
+   "lon": -84.790929
+  }
+ ]
+}
