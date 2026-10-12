@@ -1,0 +1,20 @@
+{
+  "_note": "SAMPLE order for test-mode proofs only. Invented owner and sales; the county row is read from lib/appealAddresses.js.",
+  "state": "GA",
+  "taxYear": 2027,
+  "noticeDate": "2027-05-14",
+  "homestead": true,
+  "owner": { "name": "Sample Homeowner", "street": "3130 Sabine St, Ste B", "city": "Forest Hill", "state": "TX", "zip": "76119", "phone": "555-010-0100", "email": "sample@example.com" },
+  "property": { "address": "100 Sample Way, Marietta, GA 30064", "county": "Cobb", "parcelId": "16-0123-0-045-0" },
+  "noticeValue": 452000,
+  "requestedValue": 401000,
+  "evidence": {
+    "subjectSqft": 2050, "subjectYearBuilt": 1998, "radiusMi": 1, "days": 365, "ppsf": 195.61, "indicatedValue": 401000,
+    "comps": [
+      { "address": "112 Example Ct, Marietta, GA 30064", "saleDate": "2026-11-03", "price": 389000, "sqft": 1980, "ppsf": 196.46, "yearBuilt": 1996, "distanceMi": 0.31 },
+      { "address": "48 Test Ln, Marietta, GA 30064", "saleDate": "2026-08-19", "price": 412500, "sqft": 2140, "ppsf": 192.76, "yearBuilt": 2001, "distanceMi": 0.52 },
+      { "address": "2207 Specimen Dr, Marietta, GA 30064", "saleDate": "2026-06-02", "price": 401000, "sqft": 2050, "ppsf": 195.61, "yearBuilt": 1999, "distanceMi": 0.64 },
+      { "address": "9 Placeholder Pl, Marietta, GA 30064", "saleDate": "2026-04-27", "price": 378000, "sqft": 1890, "ppsf": 200.0, "yearBuilt": 1994, "distanceMi": 0.88 }
+    ]
+  }
+}

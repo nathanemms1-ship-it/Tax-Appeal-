@@ -80,6 +80,21 @@ let outage = false;
 try { await findKitComps(SUBJECT, { fetchSales: async () => { throw new Error('RentCast returned 503'); }, now: NOW }); } catch { outage = true; }
 t('a vendor outage throws (it must never read as "no case")', outage);
 
+// ── 6b. VALUATION DATE (Georgia values as of 1 January) ─────────────────────
+const ASOF = new Date('2026-01-01T00:00:00Z');   // 283 days before NOW
+calls = [];
+out = await findKitComps(SUBJECT, { fetchSales: fetcher({ near: [
+  sale({ saleDate: new Date('2025-03-01') }), sale({ saleDate: new Date('2025-06-01') }), sale({ saleDate: new Date('2025-09-01') }),
+  sale({ saleDate: new Date('2026-05-01'), price: 999000 }),          // after the valuation date
+], wide: [] }), now: NOW, asOf: ASOF });
+// INJECTION: pass `now` instead of `asOf` to selectComps -> FAILS (the 2025 sales fall outside 365 days of NOW).
+t('asOf: sales in the 12 months before 1 Jan count, even when over a year before today', out.ok && out.comps.length === 3);
+t('asOf: a sale AFTER the valuation date is never a comp', out.ok && out.comps.every((c) => c.saleDate < ASOF));
+// INJECTION: drop the widening in fetchDaysFor -> FAILS (RentCast would be asked for only 365 days back from today).
+t('asOf: the fetch reaches back far enough (365 + 283 days)', calls[0] && calls[0].days === 365 + 283 && saleDateRangeParam(calls[0].days) === '648');
+let badAsOf = false; try { await findKitComps(SUBJECT, { fetchSales: fetcher({ near, wide: [] }), now: NOW, asOf: new Date('2027-01-01') }); } catch { badAsOf = true; }
+t('asOf in the future is refused', badAsOf);
+
 // ── 7. VALUE ────────────────────────────────────────────────────────────────
 const comps5 = [180, 190, 200, 210, 900].map((p) => ({ price: p * 2000, sqft: 2000 }));
 const iv = indicatedValue(SUBJECT, comps5);
