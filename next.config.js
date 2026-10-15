@@ -71,6 +71,11 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/api/generate-50132': ['./forms/tx/**'],
+      // The Texas mailed kit (lib/kit/txKit.js) fills Form 50-132 wherever a
+      // kit is dispatched: on payment, on the queued-order retry, by hand.
+      '/api/webhooks/stripe': ['./forms/tx/**'],
+      '/api/cron/process-queued-orders': ['./forms/tx/**'],
+      '/api/process-order-now': ['./forms/tx/**'],
     },
   },
 
