@@ -4855,37 +4855,22 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
         setLoading(false);
         return;
       } else if (stateCode === 'GA') {
-        const gaRes = await fetch("/api/generate-pt311a", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ownerFirstName: account.firstName,
-            ownerLastName: account.lastName,
-            ownerEmail: account.email,
-            ownerStreet: ownerMail.street,
-            ownerCity: ownerMail.city,
-            ownerState: ownerMail.state,
-            ownerZip: ownerMail.zip,
-            propertyAddress: addr,
-            county,
-            assessedValue,
-            requestedValue: targetReduction,
-            valuationBasis: valuation.basisSummary,
-            valuationGrounds: valuation.grounds,
-            taxYear,
-            issues,
-            propertyDetails: propDetails,
-            notes: property.notes,
-            districtName: appraisalDistrict?.districtName || '',
-            zip: property.zip,
-            gaSignatureDate: new Date().toISOString().split('T')[0],
-          }),
-        });
-        claudeJson = await gaRes.json();
-        if (claudeJson.error) throw new Error(claudeJson.error);
-        setLetter(claudeJson.evidenceText || '');
-        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
-        pd.isGA = true;
+        /**
+         * GEORGIA NO LONGER GENERATES A DOCUMENT HERE. 14 Oct 2026.
+         *
+         * This called /api/generate-pt311a, which rendered our own HTML page titled
+         * "Form PT-311A" with AI-written evidence: the same look-alike-form design
+         * that got Florida petitions rejected by the Hillsborough and Miami-Dade
+         * clerks in September. That route is deleted.
+         *
+         * Georgia is sold as a Kit (lib/kit/gaKit.js): the official DOR or county
+         * form, filled and flattened, mailed to the customer to sign. The apply
+         * steps that collect what the kit needs (notice value and date, parcel,
+         * homestead, county-form answers) are not built yet, so a Georgia order
+         * must stop here rather than fall through to the generic letter below.
+         * Georgia's filing window keeps this unreachable until 31 Jan 2027.
+         */
+        throw new Error("Georgia appeals open January 31, 2027 with our new ready-to-sign appeal kit. Join the waitlist and we will email you when your county opens.");
       } else {
         const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr, county, assessedValue, zip: property.zip, state: property.state, letterInputs: { ownerName: `${account.firstName} ${account.lastName}`, ownerEmail: account.email, taxYear, propertyDetails: propDetails, marketValue, annualTax, targetReduction, reductionPctDisplay, issues, notes: property.notes, districtBlock, deadlineNote: stateInfo.deadlineNote, statute: stateInfo.statute } }) });
         claudeJson = await claudeRes.json();

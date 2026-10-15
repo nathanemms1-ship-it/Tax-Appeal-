@@ -138,6 +138,29 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         ctaLabel: `Sign my ${docWord} now`,
       };
 
+    /**
+     * KIT ORDERS (Georgia from 2027; Kit model decided 10 Oct 2026). We mail the
+     * CUSTOMER a ready-to-sign kit and email the PDF; we never file. These two
+     * receipts must not say "filed", "certified" or "we mail it to the county".
+     */
+    case 'kit_queued':
+      return {
+        subject: '✅ Payment received — your appeal kit is being printed — TaxAppeal USA',
+        banner: '#1B2A4A',
+        heading: 'Your Appeal Kit Is Being Printed',
+        subheading: 'We mail it to you and email you the PDF',
+        intro: 'Thank you — your payment is in. We are printing your completed appeal kit and mailing it to you by first-class mail, and we will email you the same kit as a PDF the moment it is sent. You sign the form, add postage and mail it to the county in the envelope we include. We prepare the documents; we do not file your appeal or represent you.',
+      };
+
+    case 'awaiting_notice':
+      return {
+        subject: '✅ Payment received — we build your kit when your notice arrives — TaxAppeal USA',
+        banner: '#1B2A4A',
+        heading: 'You Are Reserved',
+        subheading: 'We build your kit when your assessment notice arrives',
+        intro: 'Thank you — your payment is in. When your assessment notice arrives, tell us the value on it and we check your case again. If an appeal still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
+      };
+
     default:
       return {
         subject: '✅ We received your property tax order — TaxAppeal USA',
@@ -195,7 +218,17 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
 
   // 'signature_reminder' is the same point in the journey as 'awaiting_signature' —
   // unsigned — so it gets the same four steps. Added with the cron on 25 Aug.
-  const steps = (orderStatus === 'awaiting_signature' || orderStatus === 'signature_reminder')
+  const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice';
+  const steps = isKit
+    ? [
+        orderStatus === 'awaiting_notice'
+          ? 'Your notice arrives: you tell us the value on it and we re-check your case'
+          : 'Your kit arrives by mail in a few days, and the PDF is emailed today',
+        'You sign the appeal form in ink, add postage and mail it to the county in the envelope we include',
+        'The county reviews your appeal and writes to you; forward us anything it sends',
+        'If the county does not lower your value, next year\'s kit is free',
+      ]
+    : (orderStatus === 'awaiting_signature' || orderStatus === 'signature_reminder')
     ? [
         `You sign your ${docWord} online — nothing to print`,
         `We mail it by ${mailClass} to the ${authority}`,

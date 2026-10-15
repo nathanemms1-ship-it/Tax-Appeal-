@@ -67,6 +67,7 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const ours = join(OUT_DIR, `ga-kit-${stamp}.pdf`);
 writeFileSync(ours, kit.pdf);
 console.log(`\nBuilt the Georgia kit: ${kit.layout.pages} pages, ${kit.layout.sheets} sheets.`);
+console.log(`  appeal form:   ${kit.form.label} (${kit.form.revision})`);
 console.log(`  county window: ${kit.envelope.join(' / ')}`);
 console.log(`  deadline:      ${kit.deadline ? kit.deadline.toISOString().slice(0, 10) : 'from the notice date'}`);
 console.log(`  saved:         ${ours}`);

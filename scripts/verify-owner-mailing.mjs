@@ -119,10 +119,13 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
   t('no call site still copies the property into the owner address fields',
     leftovers.length === 0, leftovers);
 
+  // Two since 14 Oct 2026: the third was the Georgia /api/generate-pt311a call,
+  // deleted with that route (Georgia is now a mailed kit; lib/kit/dispatchKit.js
+  // addresses it from the order row's owner_* columns).
   const wired = [...apply.matchAll(/ownerStreet:\s*ownerMail\.street/g)].length;
-  t('all three ownerStreet call sites read the resolved mailing address',
-    wired === 3,
-    `${wired} of 3 — the order row, the signed petition and the preview petition`);
+  t('both ownerStreet call sites read the resolved mailing address',
+    wired === 2,
+    `${wired} of 2 — the order row and the preview petition`);
 
   /**
    * ==========================================================================

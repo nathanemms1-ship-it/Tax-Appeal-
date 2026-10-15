@@ -10,7 +10,7 @@ import { inflateSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 register('./resolve-extensionless.mjs', import.meta.url);
 
-const { PDFDocument, PDFName, PDFArray } = await import('pdf-lib');
+const { PDFDocument, PDFName, PDFArray, decodePDFRawStream } = await import('pdf-lib');
 const kitMod = await import('../lib/kit/gaKit.js');
 const { buildGaKit, validateGaOrder, pt311aFieldValues, gaDeadline, postageStep, KIT_LAYOUT, LOB_KIT_OPTIONS, WINDOW, KitError } = kitMod;
 const { PT311A_BASE64, PT311A_SHA256 } = await import('../lib/kit/forms/pt311a.js');
@@ -23,12 +23,18 @@ const NOW = new Date('2027-05-20T00:00:00Z');
 
 const SAMPLE = JSON.parse(readFileSync(new URL('./kit/sample-order-GA.json', import.meta.url)));
 // A row that passes isMailable, so the non-proof path can be exercised offline.
+// Gwinnett: a 'state form' county, so the default order exercises the DOR PT-311A.
 const MAILABLE_ROW = {
-  addressee: 'Cobb County Board of Tax Assessors', attnLine: null, line1: 'PO BOX 649', line2: null,
-  city: 'Marietta', stateAbbr: 'GA', zip: '30061-0649', confidence: 'confirmed', verifiedOn: '2027-02-01',
+  addressee: "Gwinnett County Assessors' Office", attnLine: 'ATT: Appeals', line1: '75 LANGLEY DR', line2: null,
+  city: 'Lawrenceville', stateAbbr: 'GA', zip: '30046-6935', confidence: 'confirmed', verifiedOn: '2027-02-01',
   cassValidated: true, postageRestriction: POSTAGE_RESTRICTIONS.NO_METERED,
 };
-const order = (patch = {}) => ({ ...structuredClone(SAMPLE), countyAddress: MAILABLE_ROW, ...patch });
+const GWINNETT_ENVELOPE = ["Gwinnett County Assessors' Office", 'ATT: Appeals', '75 LANGLEY DR', 'Lawrenceville, GA 30046-6935'];
+const order = (patch = {}) => {
+  const base = structuredClone(SAMPLE);
+  base.property.county = 'Gwinnett';
+  return { ...base, countyAddress: MAILABLE_ROW, ...patch };
+};
 const code = async (fn) => { try { await fn(); return 'ok'; } catch (e) { return e instanceof KitError ? e.code : `other: ${e.message}`; } };
 
 /**
@@ -40,9 +46,8 @@ const code = async (fn) => { try { await fn(); return 'ok'; } catch (e) { return
 function decode(doc, ref) {
   const s = doc.context.lookup(ref);
   if (!s || !s.contents) return '';
-  const filter = s.dict.get(PDFName.of('Filter'));
-  const body = filter && String(filter) === '/FlateDecode' ? inflateSync(Buffer.from(s.contents)) : Buffer.from(s.contents);
-  return body.toString('latin1');
+  if (String(s.dict.get(PDFName.of('Subtype'))) === '/Image') return '';
+  try { return Buffer.from(decodePDFRawStream(s).decode()).toString('latin1'); } catch { return ''; }
 }
 const unhex = (str) => str.replace(/<([0-9A-Fa-f]+)>/g, (_, h) => Buffer.from(h, 'hex').toString('latin1'));
 async function readPage(pdfBytes, pageNo) {
@@ -54,8 +59,22 @@ async function readPage(pdfBytes, pageNo) {
   const runs = [];
   const re = /1 0 0 1 ([\d.-]+) ([\d.-]+) Tm\s*<([0-9A-Fa-f]*)> Tj/g;
   for (let m; (m = re.exec(content));) runs.push({ x: +m[1], y: +m[2], text: Buffer.from(m[3], 'hex').toString('latin1') });
-  const xo = node.Resources()?.lookup(PDFName.of('XObject'));
-  const xtext = xo ? [...xo.entries()].map(([, r]) => decode(doc, r)).join('\n') : '';
+  // Walk form XObjects recursively: a flattened field is an XObject, and a form
+  // scaled onto the page (Cobb) is an XObject holding XObjects.
+  const seen = new Set();
+  const walk = (res, depth) => {
+    const xo = res?.lookup?.(PDFName.of('XObject'));
+    if (!xo || depth > 4) return '';
+    let out = '';
+    for (const [, r] of xo.entries()) {
+      const key = String(r); if (seen.has(key)) continue; seen.add(key);
+      out += decode(doc, r) + '\n';
+      const sub = doc.context.lookup(r)?.dict?.lookup(PDFName.of('Resources'));
+      out += walk(sub, depth + 1);
+    }
+    return out;
+  };
+  const xtext = walk(node.Resources(), 0);
   return { text: unhex(content) + '\n' + unhex(xtext).replace(/\(([^)]*)\)/g, '$1'), runs };
 }
 const pageText = async (pdf, n) => (await readPage(pdf, n)).text;
@@ -67,8 +86,8 @@ t('the embedded PT-311A is the DOR file byte for byte (sha256)', createHash('sha
 const formDoc = await PDFDocument.load(formBytes);
 const fieldNames = new Set(formDoc.getForm().getFields().map((f) => f.getName()));
 const v = pt311aFieldValues(validateGaOrder(order(), { now: NOW }));
-t('every field we fill exists on the DOR form', [...Object.keys(v.text), ...v.checks, v.radio[0]].every((n) => fieldNames.has(n)));
-t('the BOE choice is the top radio button (Choice1)', v.radio[1] === 'Choice1' && formDoc.getForm().getRadioGroup('Group11').getOptions().includes('Choice1'));
+t('every field we fill exists on the DOR form', [...Object.keys(v.text), ...v.checks, ...v.radios.map((r) => r[0])].every((n) => fieldNames.has(n)));
+t('the BOE choice is the top radio button (Choice1)', JSON.stringify(v.radios) === JSON.stringify([['Group11', 'Choice1']]) && formDoc.getForm().getRadioGroup('Group11').getOptions().includes('Choice1'));
 t('grounds: Value; type: Real; class: Residential', ['Real', 'Value', 'Residential'].every((n) => v.checks.includes(n)));
 t("the owner's value assertion is the requested value", v.text['Owners value assertion'][0] === '$401,000');
 // The owner signs and dates in ink. A pre-filled date is a date they did not write.
@@ -116,8 +135,8 @@ t("the window box matches Lob's perforated template (4.25 x 1.125 in, 0.875 in f
 const p1 = await pageText(real.pdf, 1), p2 = await pageText(real.pdf, 2), p5 = await pageText(real.pdf, 5), p7 = await pageText(real.pdf, 7);
 // INJECTION: print the customer's address in the window instead of the county's -> FAILS.
 const inWindow = (await readPage(real.pdf, 7)).runs.filter((r) => r.x >= WINDOW.x && r.x <= WINDOW.x + WINDOW.w && r.y >= WINDOW.y && r.y <= WINDOW.y + WINDOW.h).map((r) => r.text);
-t('the tear-off WINDOW carries exactly the county appeal address', JSON.stringify(inWindow) === JSON.stringify(['Cobb County Board of Tax Assessors', 'PO BOX 649', 'Marietta, GA 30061-0649']));
-t('nothing else prints in the window area', inWindow.length === 3);
+t('the tear-off WINDOW carries exactly the county appeal address', JSON.stringify(inWindow) === JSON.stringify(GWINNETT_ENVELOPE));
+t('nothing else prints in the window area', inWindow.length === GWINNETT_ENVELOPE.length);
 t('the cover states the 45-day postmark deadline (14 May + 45 = 28 June 2027)', p1.includes('June 28, 2027') && gaDeadline('2027-05-14').toISOString().startsWith('2027-06-28'));
 t('the cover says we do not file or represent', /do not file your appeal, represent you or appear for you/.test(p1));
 t('the savings estimate appears on the customer cover, marked as an estimate', p1.includes('$554') && /estimate/.test(p1));
@@ -139,6 +158,71 @@ t('Forsyth-style "requires meter": go to the counter, a stamp is not accepted', 
 t('Cobb-style "no metered": stamp or counter, no office postage machine', /stamp/.test(postageStep(POSTAGE_RESTRICTIONS.NO_METERED)) && /postage machine/.test(postageStep(POSTAGE_RESTRICTIONS.NO_METERED)));
 t('winAnsi keeps accents and maps curly quotes and dashes', winAnsi('José’s “home” — ok') === 'José\'s "home" - ok');
 t('a name with an emoji or CJK still builds a kit', await code(() => buildGaKit(order({ owner: { ...SAMPLE.owner, name: 'Ana 李 Smith 🏠' } }), { now: NOW })) === 'ok');
+
+
+// ── 7. WHICH FORM EACH COUNTY GETS (12 Oct county sweep) ─────────────────────
+const { GA_FORMS, GA_COUNTY_FORMS, formForCounty } = await import('../lib/kit/forms/gaForms.js');
+const { TARGET_COUNTIES } = await import('../lib/appealAddresses.js');
+const normC = (c) => c.toUpperCase().replace(/\s+COUNTY$/, '');
+t('every top-25 county has a form decision, and only those', JSON.stringify(TARGET_COUNTIES.GA.map(normC).sort()) === JSON.stringify(Object.keys(GA_COUNTY_FORMS).sort()));
+t('every county marked "county" has its own embedded form', Object.entries(GA_COUNTY_FORMS).filter(([, s]) => s === 'county').every(([c]) => GA_FORMS[c] && GA_FORMS[c].id === c));
+// INJECTION: change one byte of a county form -> FAILS.
+for (const f of Object.values(GA_FORMS)) {
+  t(`${f.id}: the embedded file is the published file byte for byte`, createHash('sha256').update(Buffer.from(f.base64, 'base64')).digest('hex') === f.sha256);
+}
+// Fields that belong to the owner's own hand or to an agent. We never fill them.
+const NEVER = {
+  STATE: ['Date', "Agent's Address1", "Agent's Address2", "Agent's Address3", 'Agents Phone', "Agent's Email Address"],
+  DEKALB: ['signature', 'signature_date', 'agent_address', 'agent_phone', 'agent_email'],
+  CHATHAM: ['Form1[0].Page1[0].TextField7[0]', 'Form1[0].Page1[0].TextField8[0]', 'Form1[0].Page1[0].TextField9[0]'],
+  FULTON: ['Agents Address 1', 'Agents Address 2', 'Agents Address 3', "Agent's Phone", "Agent's Email"],
+  COBB: ['Date Signature', 'Signature2', 'Agents Address 1', 'Agents Address 2', 'Agents Address 3', 'Agents phone', 'Agents Phone  DateRow1'],
+};
+const full = validateGaOrder(order({ ownedOnJan1: true, fultonBilling100: false }), { now: NOW });
+for (const f of Object.values(GA_FORMS)) {
+  const d = await PDFDocument.load(Buffer.from(f.base64, 'base64'));
+  const fm = d.getForm();
+  const names = new Set(fm.getFields().map((x) => x.getName()));
+  const fv = f.fields({ ...full, owner: { ...full.owner, street2: 'Unit 2', phone: '555-010-0100', email: 'a@example.com' } });
+  t(`${f.id}: every field we fill exists on that form`, [...Object.keys(fv.text), ...fv.checks, ...fv.radios.map((r) => r[0])].every((n) => names.has(n)));
+  t(`${f.id}: every radio value we pick is one the form offers`, fv.radios.every(([n, val]) => fm.getRadioGroup(n).getOptions().includes(val)));
+  t(`${f.id}: no signature, date or agent field is ever filled`, NEVER[f.id] && NEVER[f.id].every((n) => names.has(n)) && !NEVER[f.id].some((n) => n in fv.text));
+  t(`${f.id}: the owner's value assertion is the requested value`, Object.values(fv.text).some(([val]) => val === '$401,000' || val === '401,000'));
+}
+// INJECTION: map DEKALB to 'state' -> FAILS.
+const dk = await buildGaKit(order({ property: { ...SAMPLE.property, county: 'DeKalb' } }), { now: NOW });
+t('DeKalb gets its own "Modernized" PT-311-A', dk.form.id === 'DEKALB' && (await pageText(dk.pdf, 3)).includes('$401,000'));
+t('Gwinnett gets the DOR PT-311A', real.form.id === 'STATE');
+// INJECTION: drop the needs check -> FAILS (Chatham would print an owner-status box we guessed).
+t('Chatham refuses a kit until the customer says whether they owned the home on 1 January', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Chatham' } }), { now: NOW })) === 'need_ownedOnJan1');
+const ch = await buildGaKit(order({ property: { ...SAMPLE.property, county: 'Chatham' }, ownedOnJan1: true }), { now: NOW });
+t('Chatham gets its own form, and the checklist says to print the name too', ch.form.id === 'CHATHAM' && /PRINT your name/.test(await pageText(ch.pdf, 2)));
+t('Chatham: owner on 1 Jan ticks box 1, a new owner ticks box 2', GA_FORMS.CHATHAM.fields({ ...full, ownedOnJan1: true }).radios.at(-1)[1] === '1' && GA_FORMS.CHATHAM.fields({ ...full, ownedOnJan1: false }).radios.at(-1)[1] === '2');
+// FULTON: the county form carries a billing election the DOR form does not.
+// INJECTION: drop 'fultonBilling100' from FULTON.needs -> FAILS (we would tick 85% for the customer).
+const fultonOrder = (p = {}) => order({ property: { ...SAMPLE.property, county: 'Fulton' }, ...p });
+t('Fulton refuses a kit until the customer picks 85% or 100% billing', await code(() => buildGaKit(fultonOrder(), { now: NOW })) === 'need_fultonBilling100');
+const fu = await buildGaKit(fultonOrder({ fultonBilling100: false }), { now: NOW });
+t('Fulton gets its own form, with the digest year written in its box', fu.form.id === 'FULTON' && (await readPage(fu.pdf, 3)).runs.some((r) => r.text === '2027' && r.y > 600));
+t('Fulton: 85% ticks Check Box6, 100% ticks Check Box7, never both', GA_FORMS.FULTON.fields({ ...full, fultonBilling100: false }).checks.join() === 'Check Box6' && GA_FORMS.FULTON.fields({ ...full, fultonBilling100: true }).checks.join() === 'Check Box7');
+t('Fulton: virtual-hearing consent is ticked only when the customer answered', GA_FORMS.FULTON.fields(full).checks.length === 1 && GA_FORMS.FULTON.fields({ ...full, virtualHearing: true }).checks.includes('Check Box4'));
+// COBB: the county form has digest year 2026 PRE-PRINTED.
+// INJECTION: drop the printedYear check -> FAILS (a 2027 appeal on a form that says 2026).
+const cobbOrder = (p = {}) => order({ property: { ...SAMPLE.property, county: 'Cobb' }, ...p });
+t('Cobb: its 2026 form is refused for a 2027 appeal', await code(() => buildGaKit(cobbOrder(), { now: NOW })) === 'county_form_wrong_year');
+const cobb26 = await buildGaKit(cobbOrder({ taxYear: 2026, noticeDate: '2026-06-05', evidence: { ...SAMPLE.evidence, comps: SAMPLE.evidence.comps.map((c) => ({ ...c, saleDate: c.saleDate.replace('2026', '2025') })) } }), { now: new Date('2026-07-01T00:00:00Z') });
+const cobbBack = await PDFDocument.load(cobb26.pdf);
+const cobbP3 = await pageText(cobb26.pdf, 3);
+t('Cobb: for 2026 its own form is used', cobb26.form.id === 'COBB' && cobbP3.includes('401,000'));
+// INJECTION: copy Cobb's 658 x 852 pt page as-is -> FAILS (Lob prints Letter only).
+t("Cobb's oversized form is scaled onto a Letter page", Math.round(cobbBack.getPage(2).getWidth()) === 612 && Math.round(cobbBack.getPage(2).getHeight()) === 792);
+// INJECTION: drop removeFields -> FAILS (the kit would print the form's own buttons).
+t('Cobb: the "Clear Form" and "Print Form" buttons do not print', !/Clear \S*[\s\S]{0,60}Form|Print \S*[\s\S]{0,60}Form/.test(cobbP3));
+t('Clayton (phone call pending) is not sellable', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Clayton' } }), { now: NOW })) === 'county_form_unconfirmed');
+t('a county outside the table is not sellable', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Baldwin' } }), { now: NOW })) === 'county_form_unconfirmed');
+t('a proof for a not-yet-sellable county still renders, on the state form, watermarked', (await buildGaKit(order({ property: { ...SAMPLE.property, county: 'Clayton' } }), { now: NOW, proof: true })).form.id === 'STATE');
+// INJECTION: remove the maxLength check -> FAILS (pdf-lib would throw a raw error, not a KitError).
+t('a value too long for a county field refuses the kit cleanly', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'DeKalb' }, evidence: { ...SAMPLE.evidence, indicatedValue: 1e15 } }), { now: NOW })) === 'field_too_long');
 
 console.log(`verify-ga-kit: ${pass} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

@@ -17,6 +17,7 @@ import { stampHeartbeat } from '../../../lib/heartbeat';
 // A dispatch failure here is a paid order that is not filed. It has to reach a human
 // on the day it happens, not on the day someone reads a Vercel log.
 import { alertOps } from '../../../lib/alertOps';
+import { dispatchQueuedKits } from '../../../lib/kit/dispatchKit';
 
 // Constructed lazily, INSIDE the handler, after the CRON_SECRET check.
 //
@@ -74,6 +75,16 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Not configured.' });
   }
   const { supabase, resend } = clients();
+
+  // KITS FIRST (Kit model): retry any kit left `kit_queued`. Mailed to the
+  // CUSTOMER, never a county, so no filing window applies; the kit builder
+  // re-checks every rule. A failure here must not stop the queue below.
+  try {
+    const kits = await dispatchQueuedKits({ supabase, resend, alertOps });
+    if (kits.length) console.log(`[process-queued-orders] kits: ${JSON.stringify(kits)}`);
+  } catch (e) {
+    console.error('[process-queued-orders] kit pass failed:', e?.message);
+  }
 
   console.log(`[process-queued-orders] Running for ${new Date().toISOString()}`);
 
