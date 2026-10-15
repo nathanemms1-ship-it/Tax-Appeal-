@@ -83,7 +83,7 @@ const spendOk = async () => ({ ok: true });
 const run = (r, opts = {}) => dispatchKit(r, { supabase: opts.supabase || fakeSupabase(), resend: opts.resend ?? fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: opts.lob || fakeLob(), addressLookup: opts.addressLookup || addressLookup, checkSpend: opts.checkSpend || spendOk });
 
 // ── 1. THE LOB CALL ─────────────────────────────────────────────────────────
-t('Georgia is a kit state; Texas and Florida are not (yet)', isKitState('GA') && isKitState('ga') && !isKitState('TX') && !isKitState('FL'));
+t('Georgia and Texas are kit states; Florida is not (yet)', isKitState('GA') && isKitState('ga') && isKitState('TX') && !isKitState('FL'));
 t('a recipient without a street is refused', (await code(() => lobRecipient({ name: 'A', city: 'X', state: 'GA', zip: '30044' }))) === 'recipient_incomplete');
 t('a bad ZIP or state is refused', (await code(() => lobRecipient({ name: 'A', street: '1 St', city: 'X', state: 'Georgia', zip: '30044' }))) === 'recipient_incomplete'
   && (await code(() => lobRecipient({ name: 'A', street: '1 St', city: 'X', state: 'GA', zip: '3004' }))) === 'recipient_incomplete');
@@ -125,8 +125,28 @@ for (const ps of ['refunded', 'partially_refunded', 'disputed', 'unpaid']) {
 }
 lob = fakeLob(); db = fakeSupabase(); r = await run(row({ kit_order: null }), { lob, supabase: db });
 t('a pre-sale order with no notice data waits as awaiting_notice', lob.calls.length === 0 && r.status === 'awaiting_notice' && db.updates.some((u) => u.dispute_status === 'awaiting_notice'));
-lob = fakeLob(); r = await run(row({ state_code: 'TX' }), { lob });
-t('a Texas order is not sent down the kit path (no TX kit builder yet)', lob.calls.length === 0 && r.reason === 'not_a_kit_state');
+lob = fakeLob(); r = await run(row({ state_code: 'FL' }), { lob });
+t('a Florida order is not sent down the kit path (no FL kit builder yet)', lob.calls.length === 0 && r.reason === 'not_a_kit_state');
+
+// Texas (15 Oct 2026): the same pipe, the Texas builder.
+{
+  const { txKitOrder } = await import('./kit/tx-fixture.mjs');
+  const { getAppealAddress } = await import('../lib/appealAddresses.js');
+  const elPaso = { ...getAppealAddress('TX', 'El Paso'), confidence: 'confirmed', verifiedOn: '2027-03-01', cassValidated: true };
+  const txRow = row({ state_code: 'TX', county: 'El Paso', owner_street: '8023 Marbella Creek Ave', owner_city: 'El Paso', owner_state: 'TX', owner_zip: '79907', kit_order: txKitOrder() });
+  lob = fakeLob(); db = fakeSupabase(); rs = fakeResend();
+  r = await run(txRow, { lob, supabase: db, resend: rs, addressLookup: () => elPaso });
+  const f = lob.calls[0]?.form;
+  t('a paid Texas kit order is mailed once, to the customer, with its own layout',
+    r.status === KIT_STATUS.MAILED && lob.calls.length === 1 && f.get('to[address_city]') === 'El Paso' && f.get('perforated_page') === '7' && f.get('extra_service') === null);
+  const tem = rs.sent[0];
+  // INJECTION: hardcode "page 3" in kitEmailText -> FAILS (Texas signs on page 4).
+  t('the Texas email sends them to Section 8 on the page the layout says, and says protest', /Section 8 of Form 50-132 \(page 4\)/.test(tem?.text) && /do not file your protest/.test(tem?.text) && /30 days after your notice/.test(tem?.text) && /^Protest-kit-2027-/.test(tem?.attachments?.[0]?.filename || ''));
+  t('the Georgia email still names page 3', /appeal form \(page 3\)/.test(em.text));
+  lob = fakeLob(); alerts.length = 0;
+  r = await dispatchKit(txRow, { supabase: fakeSupabase(), resend: fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: lob, checkSpend: spendOk });
+  t('Texas, real address table (unconfirmed): no mail, needs_review, ops paged', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'address_not_mailable' && alerts.length === 1);
+}
 
 // The real address table: every GA row is unverified today.
 lob = fakeLob(); db = fakeSupabase(); alerts.length = 0;

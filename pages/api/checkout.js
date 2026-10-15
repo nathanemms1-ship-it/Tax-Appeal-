@@ -10,6 +10,7 @@ import { getSupabaseAdmin } from './supabase';
 import { normalizePerkCode, applyPerkToLineItems, RPC, PERK_AMOUNT_CENTS } from '../../lib/partnerPerk';
 import { Redis } from '@upstash/redis';
 import { gaSellability } from '../../lib/kit/gaQuote';
+import { txSellability } from '../../lib/kit/txQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 
 let kitRedis = null;
@@ -151,35 +152,43 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
 
 /**
  * ==========================================================================
- * GEORGIA IS SOLD AS A KIT, AND ONLY WHEN THE KIT CAN BE BUILT. 15 Oct 2026.
+ * GEORGIA AND TEXAS ARE SOLD AS KITS, AND ONLY WHEN THE KIT CAN BE BUILT.
  * ==========================================================================
+ * Georgia 15 Oct 2026; Texas the same day (Nathan: "Yes, follow GA").
  * The kit is mailed to the customer by lib/kit/dispatchKit.js the moment the
  * webhook writes the order. Every rule the kit builder enforces at that moment
  * (confirmed county address, settled county form, county questions answered,
- * value never blank, sales before 1 January) is run HERE first, on the stored
- * order, so a card is never charged for a kit that would be refused at mailing.
+ * value never blank, a bill that drops by at least the price) is run HERE
+ * first, on the stored order, so a card is never charged for a kit that would
+ * be refused at mailing.
  */
-const isKitGA = (stateCode || '').trim().toUpperCase() === 'GA';
+const KIT_SELLABILITY = { GA: gaSellability, TX: txSellability };
+const kitState = (stateCode || '').trim().toUpperCase();
+const isKitGA = kitState === 'GA';
+const isKitTX = kitState === 'TX';
+const isKit = isKitGA || isKitTX;
 let kitOrder = null;
-if (isKitGA) {
-  if (!kitKey || !/^kit:GA:[0-9a-f-]{36}$/.test(String(kitKey)) || !kitRedis) {
-    return res.status(409).json({ error: 'Please run the appeal check for your home first.', code: 'KIT_CHECK_REQUIRED' });
+if (isKit) {
+  if (!kitKey || !new RegExp(`^kit:${kitState}:[0-9a-f-]{36}$`).test(String(kitKey)) || !kitRedis) {
+    return res.status(409).json({ error: isKitTX ? 'Please run the protest check for your home first.' : 'Please run the appeal check for your home first.', code: 'KIT_CHECK_REQUIRED' });
   }
   try {
     const raw = await kitRedis.get(kitKey);
     kitOrder = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
   } catch (e) { kitOrder = null; }
-  if (!kitOrder) {
-    return res.status(409).json({ error: 'Your appeal check has expired. Please run it again.', code: 'KIT_CHECK_EXPIRED' });
+  if (!kitOrder || kitOrder.state !== kitState) {
+    return res.status(409).json({ error: 'Your check has expired. Please run it again.', code: 'KIT_CHECK_EXPIRED' });
   }
-  const sell = gaSellability(kitOrder);
+  const sell = KIT_SELLABILITY[kitState](kitOrder);
   if (!sell.ok) {
-    console.warn('[checkout] refusing GA kit:', sell.reason);
+    console.warn(`[checkout] refusing ${kitState} kit:`, sell.reason);
     return res.status(409).json({
       error: sell.needs
         ? 'Please answer the remaining question about your county\'s appeal form first.'
-        : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
-      code: sell.needs ? 'KIT_NEEDS_ANSWER' : 'KIT_COUNTY_NOT_OPEN',
+        : sell.noCase
+          ? 'Our check found a protest would not lower your tax bill by more than our fee, so we will not sell you one.'
+          : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
+      code: sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
     });
   }
 }
@@ -221,7 +230,19 @@ const countyPhrase = countyLabel ? `${countyLabel} County` : 'your county';
   It is also the only sentence some customers read carefully, because it is the
   one on the page where they type a card number.
 */
-const lineItems = isKitGA ? [
+const lineItems = isKitTX ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Texas protest kit, mailed to you',
+description: `Your completed, ready-to-sign protest for ${kitOrder.property.address}: the Comptroller's Form 50-132 filled in, the comparable-properties evidence from the district's own roll, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} appraisal district — mailed to you, with the PDF emailed today. You sign and mail it; we do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitGA ? [
 {
 price_data: {
 currency: 'usd',
@@ -376,7 +397,7 @@ ownerCity: ownerCity || '',
 ownerState: ownerState || '',
 ownerZip: ownerZip || '',
 letterKey: letterKey || '',
-kitKey: isKitGA ? kitKey : '',
+kitKey: isKit ? kitKey : '',
 stateCode: stateCode || '',
 vabFee: vabFee ? String(vabFee) : '0',
 vabPayableTo: vabPayableTo || '',

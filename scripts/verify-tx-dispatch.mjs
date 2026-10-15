@@ -385,8 +385,10 @@ if (elPaso && !isMailable(elPaso)) {
     to proceed, AND it offers a way out that re-runs the search in another
     county. A redesign may reword either; it may not remove either.
   */
-  t('and offers to continue with the protest',
-    /applyTxPacket\(txReview\)/.test(screen));
+  // Kit model, 15 Oct 2026: the way forward is the kit answer, not a button
+  // that always proceeds. INJECTION: drop <TxKitCheckout> from the screen -> FAILS.
+  t('and hands the buying decision to the kit checkout',
+    /<TxKitCheckout/.test(screen) && /review=\{txReview\}/.test(screen));
   t('and offers a way to reject the match rather than only accept it',
     /not my property/i.test(screen) && /setTxPickCounty\(true\)/.test(screen));
 
@@ -404,8 +406,18 @@ if (elPaso && !isMailable(elPaso)) {
   const route50132 = readFileSync(new URL('../pages/api/generate-50132.js', import.meta.url), 'utf8');
   t('and the route returns those fields for it to show',
     /situsAddress:/.test(route50132) && /livingArea:/.test(route50132) && /cadId,/.test(route50132));
-  t('and says plainly that the decision is the owner’s',
-    /decision to file is yours/.test(screen));
+  /*
+    REVERSED 15 Oct 2026 (Nathan: Texas follows Georgia). This asserted "the
+    decision to file is yours". Under the kit we check whether the protest
+    lowers the bill before the owner pays, and if it won't we sell nothing.
+    INJECTION: render the buy button on a no_case answer -> FAILS.
+  */
+  const kitUi = readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8');
+  t('a no-case answer offers no purchase, and a county not open offers none either',
+    /if \(!isCase\) \{[\s\S]*?return \([\s\S]*?\);\s*\}/.test(kitUi)
+    && kitUi.indexOf('if (!isCase)') < kitUi.indexOf('Get my protest kit')
+    && kitUi.indexOf('if (!review?.sellable) {') < kitUi.indexOf('Get my protest kit')
+    && !/no_case[\s\S]{0,400}Get my protest kit/.test(kitUi.slice(kitUi.indexOf('if (!isCase)'), kitUi.indexOf('if (!review?.sellable) {'))));
 
   /**
    * ONE FUNCTION BUILDS THE ORDER ON BOTH PATHS.
@@ -420,16 +432,17 @@ if (elPaso && !isMailable(elPaso)) {
    * them is the stronger version of that fix: the field assignment cannot drift
    * from itself.
    */
-  t('every packet reaches checkout through applyTxPacket and nothing else',
-    /applyTxPacket\(txReview\)/.test(apply)
-    && !/applyTxPacket\(txJson, pd\)/.test(apply));
+  // Kit model: one way to checkout for Texas, carrying only the server's kitKey.
+  t('every Texas order reaches checkout through the kit, with the kitKey and nothing else',
+    /stateCode: 'TX', kitKey: review\.kitKey/.test(kitUi)
+    && !/applyTxPacket\(/.test(applySrc));
 
   // Every field the response sends must be read somewhere in apply.js.
   const sent = [...new Set([...route.slice(route.indexOf('success: true, filable: true'))
     .matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]))]
     .filter((f) => !['success', 'filable', 'isTX', 'confidence'].includes(f));
   const unread = sent.filter((f) => !apply.includes(`txReview.${f}`) && !apply.includes(`j.${f}`)
-    && !apply.includes(`txJson.${f}`));
+    && !apply.includes(`txJson.${f}`) && !kitUi.includes(`review.${f}`) && !kitUi.includes(`review?.${f}`));
   t(`every field the packet response sends is read${unread.length ? ` — unread: ${unread.join(', ')}` : ''}`,
     unread.length === 0);
 }
@@ -456,8 +469,9 @@ if (elPaso && !isMailable(elPaso)) {
   const admin = readFileSync(new URL('../pages/admin.js', import.meta.url), 'utf8');
   const getOrders = readFileSync(new URL('../pages/api/get-orders.js', import.meta.url), 'utf8');
 
-  t('applyTxPacket records the cautions on the order',
-    /txCautions:\s*\(j\.cautions/.test(apply));
+  const kitUi2 = readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8');
+  t('the Texas kit checkout records the cautions on the order',
+    /txCautions:\s*\(review\.cautions/.test(kitUi2));
   t('and the checkout body carries them', /txCautions:\s*pd\.txCautions/.test(apply));
   t('checkout accepts the field rather than dropping it silently',
     /^txCautions,$/m.test(checkout) && /txCautions:\s*Array\.isArray/.test(checkout));
@@ -472,7 +486,7 @@ if (elPaso && !isMailable(elPaso)) {
   // Codes only. A caution MESSAGE is prose we may reword; a code is stable and
   // is what a dispute would actually turn on.
   t('what is stored is codes, not the sentences shown',
-    /\.map\(\(c\) => c\.code\)/.test(apply));
+    /\.map\(\(c\) => c\.code\)/.test(kitUi2));
 
   const migration = new URL('../scripts/migrations/2026-09-07-tx-cautions.sql', import.meta.url);
   let sql = '';

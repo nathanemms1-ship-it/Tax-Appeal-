@@ -35,6 +35,12 @@ import { findComps } from '../../lib/tx/comps';
 import { isCovered, LOADED_CADS, coveredCadFromName } from '../../lib/tx/coverage';
 import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
 import { resolveCounty } from './resolve-county';
+import crypto from 'crypto';
+import { txKitDecision, txSellability, TX_QUOTE } from '../../lib/kit/txQuote';
+
+/** Same lifetime as Georgia's kitKey (pages/api/ga-kit-quote.js). */
+export const TX_KIT_KEY_TTL_SECONDS = 7 * 24 * 3600;
+const str = (v, max = 120) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 let redis = null;
 try {
@@ -309,12 +315,50 @@ export default async function handler(req, res) {
      * The Texas dispatch path is the next piece.
      */
 
+    /**
+     * ======================================================================
+     * THE KIT: SOLD ONLY WHEN THE BILL DROPS. Nathan, 15 Oct 2026.
+     * ======================================================================
+     * Texas follows Georgia (lib/kit/txQuote.js). The packet is still built
+     * and still shown — the owner confirms the roll record either way — but a
+     * kitKey is issued only for a case that lowers the bill by at least the
+     * price, in a district whose protest address is confirmed. Checkout takes
+     * ONLY the kitKey and re-runs txSellability on the stored order, so the
+     * browser never supplies a value that gets printed.
+     */
+    const decision = txKitDecision(packet);
+    const own = b.owner || {};
+    const oa = b.ownerAddress || {};
+    const kitOrder = {
+      state: 'TX', taxYear, packet,
+      property: { address: packet.form50132?.propertyAddress || null, county: LOADED_CADS[cadId] || null, parcelId: accountNumber },
+      owner: {
+        name: [str(own.firstName, 60), str(own.lastName, 60)].filter(Boolean).join(' '),
+        email: str(own.email, 120).toLowerCase(),
+        street: str(oa.street), street2: str(oa.street2), city: str(oa.city, 60), state: str(oa.state, 2).toUpperCase(), zip: str(oa.zip, 10),
+      },
+      savings: { yearlySaving: packet.estimatedSaving ?? null },
+    };
+    const sell = decision.decision === TX_QUOTE.CASE ? txSellability(kitOrder) : { ok: false, reason: decision.reason, noCase: true };
+    let kitKey = null;
+    if (sell.ok && redis) {
+      kitKey = `kit:TX:${crypto.randomUUID()}`;
+      await redis.set(kitKey, JSON.stringify(kitOrder), { ex: TX_KIT_KEY_TTL_SECONDS });
+    }
+
     const v = packet.verdict || {};
     return res.status(200).json({
       success: true, filable: true, isTX: true,
+      // The kit verdict (txQuote.js): 'case' or 'no_case', why, and whether it
+      // can be sold today. kitKey only when it can.
+      kitDecision: decision.decision,
+      kitReason: decision.reason,
+      sellable: Boolean(kitKey),
+      notSellableReason: kitKey ? null : (sell.ok ? 'kit_store_unavailable' : sell.reason),
+      kitKey,
       requestedValue: packet.requestedValue,
-      reductionSought: packet.reductionSought,
-      hasGrid: packet.hasGrid,
+      // reductionSought and hasGrid went with applyTxPacket (15 Oct): nothing
+      // reads them now, and this response sends only what is read.
       // Everything that used to end the sale. Empty array on a clean packet.
       cautions: packet.cautions || [],
       confidence: packet.hasGrid ? packet.grid.confidence : null,

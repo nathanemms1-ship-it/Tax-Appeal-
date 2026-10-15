@@ -344,6 +344,7 @@ t('a malformed date degrades to no date rather than "Invalid Date"',
     'scripts/sql/waitlist_blocked_reason.sql',
     'scripts/sql/waitlist_blocked_reason_fl_not_eligible.sql',
     'scripts/sql/waitlist_blocked_reason_ga_county_not_open.sql',
+    'scripts/sql/waitlist_blocked_reason_tx_county_not_open.sql',
   ];
   let permitted = null; let fromFile = null;
   for (const f of sqlFiles) {

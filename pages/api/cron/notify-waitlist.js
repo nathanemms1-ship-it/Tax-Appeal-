@@ -327,7 +327,7 @@ export default async function handler(req, res) {
        * generic window reminder (which would send them to buy in a county we
        * still refuse at checkout).
        */
-      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible' || blocked_reason === 'ga_county_not_open') {
+      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible' || blocked_reason === 'ga_county_not_open' || blocked_reason === 'tx_county_not_open') {
         totalSkipped++;
         console.log(`[notify-waitlist] skipping ${email} — ${blocked_reason} is not on the reminder track`);
         continue;

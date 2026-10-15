@@ -13,7 +13,6 @@ import { readFileSync } from 'node:fs';
 register('./resolve-extensionless.mjs', import.meta.url);
 
 const { PDFDocument, PDFName, PDFArray, decodePDFRawStream } = await import('pdf-lib');
-const { buildProtest } = await import('../lib/tx/protest.js');
 const { buildTxKit, validateTxOrder } = await import('../lib/kit/txKit.js');
 const { KitError, LOB_KIT_BASE, MAX_KIT_PAGES } = await import('../lib/kit/assembleKit.js');
 const { getAppealAddress } = await import('../lib/appealAddresses.js');
@@ -23,11 +22,8 @@ const t = (name, cond) => (cond ? pass++ : failures.push(name));
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const NOW = new Date('2027-04-20T00:00:00Z');
 
-// The verify-tx-protest El Paso fixture: a clean, over-appraised, filable parcel.
-const subject = { cad_id: 71, tax_year: 2027, account_number: 'E0000001', market_value: 300000, appraised_value: 300000, homestead_cap_loss: 0, nhs_cap_loss: 0, living_area: 2000, year_built: 1998, land_value: 40000, situs_street: '8023 MARBELLA CREEK AVE', situs_city: 'EL PASO', situs_zip: '79907', neighborhood_code: 'H1234', has_homestead: true };
-const compRows = [1, 2, 3, 4, 5, 6].map((i) => ({ account_number: `C000000${i}`, living_area: 1950 + i * 10, appraised_value: 240000 + i * 1000, market_value: 240000 + i * 1000, homestead_cap_loss: 0, nhs_cap_loss: 0, year_built: 1997, land_value: 39000 }));
-const comps = { sufficient: true, level: 'neighborhood', levelStrength: 'strong', basis: 'clean', comps: compRows, compCount: 6, confidence: 'high', medianAppraisedPerSqft: 123.2, medianMarketPerSqft: 123.2, subjectAppraisedPerSqft: 150, subjectMarketPerSqft: 150, indicatedAppraised: 246400, indicatedMarket: 258000, cappedCompCount: 0, cappedCompShare: 0, adjustments: 'size within 10%, age within 15 years', disclosure: 'Comparables drawn from the district neighborhood code.' };
-const PACKET = buildProtest({ parcel: subject, comps, taxYear: 2027, owner: { firstName: 'Jane', lastName: 'Doe' } });
+const { txPacket } = await import('./kit/tx-fixture.mjs');
+const PACKET = txPacket();
 const ROW = getAppealAddress('TX', 'El Paso');
 const MAILABLE = { ...ROW, confidence: 'confirmed', verifiedOn: '2027-03-01' };
 const order = (patch = {}) => ({
@@ -114,6 +110,43 @@ t('an unverified district address is never printed on a real kit', await code(()
 const cfg = read('next.config.js');
 t('every route that dispatches kits bundles the blank Form 50-132', ['/api/webhooks/stripe', '/api/cron/process-queued-orders', '/api/process-order-now'].every((r) => cfg.includes(`'${r}': ['./forms/tx/**']`)));
 t('the Texas kit does not import the Georgia kit (keeps 2 MB of GA forms out of it)', !/from '\.\/gaKit'/.test(read('lib/kit/txKit.js')));
+
+// ── 8. SOLD ONLY WHEN THE BILL DROPS (lib/kit/txQuote.js) ──────────────────
+// Nathan, 15 Oct 2026: Texas follows Georgia. Any caution is a no-sale.
+{
+  const { txKitDecision, txSellability, TX_QUOTE } = await import('../lib/kit/txQuote.js');
+  const { txKitOrder } = await import('./kit/tx-fixture.mjs');
+  const { SERVICE_PRICE_DOLLARS } = await import('../lib/pricing.js');
+  t('the clean El Paso packet is a case (bill drops by more than the price)', txKitDecision(PACKET).decision === TX_QUOTE.CASE && PACKET.estimatedSaving >= SERVICE_PRICE_DOLLARS);
+  // INJECTION: ignore cautions in txKitDecision -> FAILS (the 7 Sept "owner decides" rule would sell these).
+  for (const code of ['saving_below_fee', 'capped_beyond_reach', 'not_over_appraised', 'insufficient_comparables', 'cap_artifact_only', 'nothing_to_ask_for', 'no_value_on_roll']) {
+    const d = txKitDecision({ ...PACKET, cautions: [{ code, message: 'x' }] });
+    t(`a ${code} caution is a no-sale`, d.decision === TX_QUOTE.NO_CASE && d.reason === code);
+  }
+  // INJECTION: compare against 0 instead of SERVICE_PRICE_DOLLARS -> FAILS.
+  t('a clean packet saving less than the price is a no-sale', txKitDecision({ ...PACKET, estimatedSaving: SERVICE_PRICE_DOLLARS - 1 }).reason === 'bill_wont_drop_enough');
+  t('no value to ask for is a no-sale', txKitDecision({ ...PACKET, form50132: { ...PACKET.form50132, opinionOfValue: null } }).reason === 'nothing_to_ask_for');
+  t('no packet is a no-sale', txKitDecision(null).reason === 'no_packet');
+  const s1 = txSellability(txKitOrder(), { now: NOW });
+  // INJECTION: skip the address check in txSellability -> FAILS.
+  t('a real case in a district whose address is unconfirmed is not sellable', s1.ok === false && s1.reason === 'address_not_confirmed' && !s1.noCase);
+  const s2 = txSellability(txKitOrder({ packet: { ...PACKET, cautions: [{ code: 'saving_below_fee' }] } }), { now: NOW });
+  t('txSellability says no-case before it looks at the county', s2.ok === false && s2.noCase === true && s2.reason === 'saving_below_fee');
+
+  const route = read('pages/api/generate-50132.js');
+  t('the route issues a kitKey only for a sellable case', /if \(sell\.ok && redis\) \{\s*kitKey = `kit:TX:\$\{crypto\.randomUUID\(\)\}`/.test(route));
+  t('the route never sends the kit order or the packet back to the browser', !/kitOrder,|kitOrder:|packet,\n|\bpacket:/.test(route.slice(route.indexOf('success: true, filable: true'))));
+  t('the preview path returns before any kitKey is issued', route.indexOf('b.preview === true') < route.indexOf('const decision = txKitDecision(packet)'));
+  const checkout = read('pages/api/checkout.js');
+  // INJECTION: drop TX from KIT_SELLABILITY -> FAILS.
+  t('checkout runs txSellability on the STORED Texas order before Stripe', /TX: txSellability/.test(checkout) && checkout.indexOf('KIT_SELLABILITY[kitState](kitOrder)') < checkout.indexOf('stripe.checkout.sessions.create'));
+  t('a stored order for another state is refused (no GA kitKey sold as TX)', /kitOrder\.state !== kitState/.test(checkout) && /\^kit:\$\{kitState\}:/.test(checkout));
+  t('the Texas line item is the kit at the price constant, and never says we file', /Texas protest kit, mailed to you/.test(checkout) && /we do not file your protest or represent you/.test(checkout) && (checkout.match(/unit_amount: SERVICE_PRICE_CENTS/g) || []).length >= 2);
+  const ui = read('components/TxKitCheckout.js');
+  t('no checkout without the documents-only acknowledgment', /disabled=\{!agreed \|\| busy\}/.test(ui) && /does not file it, represent me or appear for me/.test(ui));
+  t("a case in a district that isn't open joins the waitlist", /blockedReason: 'tx_county_not_open'/.test(ui) && /'tx_county_not_open'/.test(read('lib/waitlistReasons.js')));
+  t('every no-sale reason has customer copy', ['saving_below_fee', 'capped_beyond_reach', 'not_over_appraised', 'insufficient_comparables', 'cap_artifact_only', 'nothing_to_ask_for', 'no_value_on_roll', 'bill_wont_drop_enough'].every((c) => new RegExp(`\\b${c}:`).test(ui)));
+}
 
 console.log(`verify-tx-kit: ${pass} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

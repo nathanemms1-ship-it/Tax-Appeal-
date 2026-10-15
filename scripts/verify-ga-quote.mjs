@@ -84,10 +84,10 @@ t('the route keeps only known fields, and only real booleans and dates', cleaned
 // ── 6. CHECKOUT ─────────────────────────────────────────────────────────────
 const checkout = read('pages/api/checkout.js');
 // INJECTION: remove the GA gate -> FAILS.
-t('checkout refuses Georgia without a stored kit', /if \(isKitGA\) \{[\s\S]{0,300}KIT_CHECK_REQUIRED/.test(checkout));
-t('checkout re-validates the STORED kit order before Stripe', /const sell = gaSellability\(kitOrder\)/.test(checkout) && checkout.indexOf('gaSellability(kitOrder)') < checkout.indexOf('stripe.checkout.sessions.create'));
+t('checkout refuses Georgia without a stored kit', /const isKit = isKitGA \|\| isKitTX/.test(checkout) && /if \(isKit\) \{[\s\S]{0,400}KIT_CHECK_REQUIRED/.test(checkout));
+t('checkout re-validates the STORED kit order before Stripe', /KIT_SELLABILITY = \{ GA: gaSellability, TX: txSellability \}/.test(checkout) && /const sell = KIT_SELLABILITY\[kitState\]\(kitOrder\)/.test(checkout) && checkout.indexOf('KIT_SELLABILITY[kitState](kitOrder)') < checkout.indexOf('stripe.checkout.sessions.create'));
 t('the Georgia line item is the kit at the $89 constant, and never says we file', /name: 'TaxAppeal USA — Georgia appeal kit, mailed to you'/.test(checkout) && /unit_amount: SERVICE_PRICE_CENTS/.test(checkout) && /we do not file your appeal or represent you/.test(checkout));
-t('the kitKey rides in the Stripe metadata to the webhook', /kitKey: isKitGA \? kitKey : ''/.test(checkout));
+t('the kitKey rides in the Stripe metadata to the webhook', /kitKey: isKit \? kitKey : ''/.test(checkout));
 
 // ── 7. THE FUNNEL ───────────────────────────────────────────────────────────
 const step = read('components/GaKitStep.js');

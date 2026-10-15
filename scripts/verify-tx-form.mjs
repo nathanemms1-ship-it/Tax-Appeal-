@@ -658,17 +658,19 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     /const TX_SERVICE_FEE = 89;/.test(applyCode)
     && !/estimatedSaving >= 89/.test(applyCode));
 
-  // No Texas verdict may dead-end. Each discouraging screen states the facts
-  // and still offers the owner the route they are entitled to.
+  // REVERSED 15 Oct 2026 (Kit model; Nathan: "Yes, follow GA"). These
+  // asserted that every discouraging screen still offered to file. Under the
+  // kit we sell nothing that will not lower the bill, so none may. The route
+  // that can still change the answer, the condition questions, stays offered.
   for (const [label, needle] of [
     ['no case found', 'I understand there may be no case'],
     ['saving below the fee', 'I understand it may save less than it costs'],
-    // Reworded by the 18 Sept design, which is more explicit than the old copy:
-    // it names the finding ("won't") rather than hedging it ("may not").
     ['capped beyond reach', 'I understand it won&rsquo;t change my bill and I want to file anyway'],
   ]) {
-    t(`the "${label}" screen still offers to file`, apply.includes(needle));
+    t(`the "${label}" screen no longer offers to file anyway`, !apply.includes(needle));
   }
+  t('the no-case and below-fee screens offer the condition questions instead',
+    (apply.match(/Answer the condition questions/g) || []).length >= 2);
   t('and neither new screen promises to withhold the service',
     !/you will not be charged/.test(apply));
 
@@ -685,7 +687,7 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   t('the ceiling is stated where the figure is shown, not shipped as a dead flag',
     /A ceiling, not a promise/.test(apply) && !/estimateIsUpperBound/.test(api));
   t('the screen takes the packet figure, not the generic one',
-    /savings: j\.estimatedSaving/.test(apply));
+    /savings: review\.estimatedSaving/.test(readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8')));
 
   // A real packet must never fall back to "20% of value at an assumed rate".
   t('a Texas packet with no figure shows a dash, never an invented number',

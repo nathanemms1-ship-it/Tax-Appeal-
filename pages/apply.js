@@ -3,6 +3,7 @@ import WaitlistForm from '../components/WaitlistForm';
 import ApplyHead from '../components/ApplyHead';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
 import GaKitStep from '../components/GaKitStep';
+import TxKitCheckout from '../components/TxKitCheckout';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
@@ -2168,9 +2169,8 @@ function StepTexasCheck({ property, onEligible, onBack }) {
             <button style={{ ...dPrimary, marginBottom: 10 }} onClick={onBack}>
               Email me if this changes &mdash; free
             </button>
-            <button style={dGhost} onClick={onEligible}>
-              I understand it won&rsquo;t change my bill and I want to file anyway &mdash; ${TX_SERVICE_FEE}
-            </button>
+            {/* No "file anyway" (Kit model, 15 Oct 2026): we do not sell a
+                protest that will not lower the bill. */}
             <div style={{ ...dNote, textAlign: 'center' }}>We would rather tell you this than take the ${TX_SERVICE_FEE}.</div>
           </div>
 
@@ -2244,7 +2244,6 @@ function StepTexasCheck({ property, onEligible, onBack }) {
               questions, and they are free to answer.
             </p>
             <button style={{ ...dPrimary, marginBottom: 10 }} onClick={onEligible}>Answer the condition questions</button>
-            <button style={dGhost} onClick={onEligible}>File anyway &mdash; I understand there may be no case</button>
             <div style={{ ...dNote, textAlign: 'center' }}>You will see the finished document before anything is charged.</div>
           </div>
 
@@ -2324,13 +2323,15 @@ function StepTexasCheck({ property, onEligible, onBack }) {
           </p>
 
           <div style={dPanel}>
-            <div style={dLabel}>It is still your call</div>
+            <div style={dLabel}>One thing can still change this</div>
             <p style={{ fontSize: 14.5, color: D.body, lineHeight: 1.7, margin: "0 0 14px" }}>
-              If you want it filed, we will prepare it &mdash; and you will see the finished document before
-              anything is charged.
+              If something is wrong with the property that the district has never seen &mdash; foundation
+              movement, a failing roof, flooding &mdash; that can support a bigger reduction. Answer the condition
+              questions and we will check again. If it still won&rsquo;t lower your bill by more than
+              the ${TX_SERVICE_FEE}, we won&rsquo;t sell you one.
             </p>
             <button style={dGhost} onClick={onEligible}>
-              File anyway &mdash; I understand it may save less than it costs
+              Answer the condition questions
             </button>
           </div>
 
@@ -4213,6 +4214,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
             mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
               .filter(Boolean).join(', '),
           },
+          ownerAddress: { street: ownerMail.street || '', street2: ownerMail.street2 || '', city: ownerMail.city || '', state: ownerMail.state || '', zip: ownerMail.zip || '' },
           issues: issues || [],
           costOverrides: costOverrides || {},
         }),
@@ -4236,123 +4238,55 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
     }
   };
 
-  const applyTxPacket = (j, pd = null) => {
-    const fields = {
-      // letterContent and protestPreview lived here until 20 Sept 2026. Both were
-      // written and never read — the same set-and-never-read shape as the
-      // retryTxWithCounty errMsg. The route no longer renders a document at all;
-      // the filing is built from these facts when it is printed.
-      requestedValue: j.requestedValue ?? null,
-      reductionSought: j.reductionSought ?? null,
-      compCount: j.compCount ?? 0,
-      hasGrid: j.hasGrid ?? null,
-      txCautions: (j.cautions || []).map((c) => c.code),
-
-      /**
-       * ==================================================================
-       * THE ROLL'S FACTS HAVE TO WIN, OR THE PREVIEW DESCRIBES A DIFFERENT
-       * PROPERTY THAN THE ONE BEING FILED ON.
-       * ==================================================================
-       * Found 1 Oct 2026 walking the Denton funnel. This function copied five
-       * fields, and NONE of them were the figures the screen actually prints.
-       *
-       * Every Texas preview therefore showed /api/lookup's numbers — a model
-       * estimate — under a heading that reads "FILING DETAILS, PLEASE CHECK
-       * THESE ARE CORRECT". On 108 Brookdale Dr it read:
-       *
-       *   Parcel / folio number    Not listed in county records   (roll: 000000004148)
-       *   Current assessed value   $710,089                       (roll: $732,970)
-       *   Value we are requesting  $582,273                       (packet: $599,337)
-       *
-       * `compCount` was the single correct number on the page, because it was
-       * the only displayed field this list happened to carry.
-       *
-       * The petition itself was always right — generate-50132 re-reads the roll
-       * server-side and takes no value from the browser. So this was never a
-       * wrong filing; it was a preview of a filing that did not exist, shown to
-       * the owner for confirmation. That is arguably worse: s 41.44 asks the
-       * owner to identify their property, and this screen told them the county
-       * had no record of it while holding the account number.
-       */
-      parcelId: j.accountNumber || null,
-      assessedValue: j.appraisedValue ?? null,
-      targetReduction: j.requestedValue ?? null,
-      county: j.county || null,
-      taxYear: j.taxYear ?? null,
-      rawAddress: j.situsAddress || null,
-      livingArea: j.livingArea ?? null,
-      yearBuilt: j.yearBuilt ?? null,
-      /**
-       * A MARKER, SO THE SUMMARY STOPS GUESSING. The two headline figures fall
-       * back to `assessedValue * 0.20` for the overvaluation and that again
-       * times 0.018 for the saving — a 20% reduction at an assumed rate,
-       * invented for a screen the owner reads before paying. With a real packet
-       * both are known: the overvaluation IS reductionSought. The saving is not
-       * known here, because generate-50132 returns no rate and 2027 rates are
-       * not adopted until the autumn, so it shows as unavailable rather than as
-       * a number we made up. Inflated savings claims are the subject of the
-       * Texas Tax Protest suit against Ownwell.
-       */
-      isTxPacket: true,
-      // The packet's own figure now — see the note in pages/api/generate-50132.js.
-      // Null only if the route could not compute one, in which case the summary
-      // says so rather than falling back to 20%-of-value at an assumed rate.
-      savings: j.estimatedSaving ?? null,
-    };
-
-    /**
-     * FETCH THE FILLED FORM, PAGE ONE, WATERMARKED.
-     *
-     * Texas has no prose letter — see the 20 Sept decision — so the panel that
-     * promised one now shows the Comptroller's own Form 50-132 with this owner's
-     * details on it. Same lib/tx/fill50132.js that produces the filing, rendered
-     * unsigned.
-     *
-     * Deliberately NOT part of the packet response: the blank form is 684 KB and
-     * base64 on every packet would be roughly 930 KB on a step that does not
-     * always show it. Fetched here as a blob, once, after the owner has
-     * confirmed the property is theirs.
-     *
-     * Failure is silent on purpose. The preview is reassurance; the case summary
-     * and the filing details above it carry the screen on their own, and an
-     * error block where a picture should be is worse than no picture.
-     */
+  /**
+   * applyTxPacket WENT WITH THE KIT. 15 Oct 2026.
+   *
+   * It copied the packet onto propData for the old Texas path: review ->
+   * DisputeLetter -> checkout -> sign on /success -> send-letter to the CAD.
+   * Texas is now sold as a mailed kit, like Georgia: the review screen hands
+   * the buying decision to components/TxKitCheckout.js, which checks out with
+   * the server's kitKey and nothing else, so no packet field travels through
+   * the browser into the order any more.
+   *
+   * FETCH THE FILLED FORM, PAGE ONE, WATERMARKED — kept. Same
+   * lib/tx/fill50132.js that produces the kit, rendered unsigned, fetched as a
+   * blob only for a packet we would sell (the blank form is 684 KB). Failure is
+   * silent on purpose: the preview is reassurance, and an error block where a
+   * picture should be is worse than no picture.
+   */
+  useEffect(() => {
+    if (!txReview || !txReview.sellable) return;
+    let gone = false;
     (async () => {
       try {
+        const om = resolveOwnerMailing(account, property);
         const r = await fetch('/api/generate-50132', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             preview: true,
             street: addr, city: property.city || '', zip: property.zip || '',
-            // Same county as the filing. A preview resolved differently from
-            // the document it previews is the defect found on 1 Oct, again.
+            // Same county as the kit. A preview resolved differently from the
+            // document it previews is the defect found on 1 Oct, again.
             county: property.county || undefined,
-            taxYear: j.taxYear || undefined,
+            taxYear: txReview.taxYear || undefined,
             owner: {
-              name: `${account.firstName || ''} ${account.lastName || ''}`.trim(),
+              firstName: account.firstName, lastName: account.lastName,
               email: account.email, phone: account.mobile || '',
               mobile: account.mobile || '', ownerType: account.ownerType || '',
-              mailing: resolveOwnerMailing(account, property) ? [
-                resolveOwnerMailing(account, property).street,
-                resolveOwnerMailing(account, property).city,
-                resolveOwnerMailing(account, property).state,
-                resolveOwnerMailing(account, property).zip,
-              ].filter(Boolean).join(', ') : '',
+              mailing: om ? [om.street, om.city, om.state, om.zip].filter(Boolean).join(', ') : '',
             },
             issues: issues || [], costOverrides: costOverrides || {},
           }),
         });
-        if (!r.ok) return;
+        if (!r.ok || gone) return;
         const blob = await r.blob();
-        if (blob.type !== 'application/pdf') return;
+        if (blob.type !== 'application/pdf' || gone) return;
         setTxPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
       } catch (e) { /* silent — see above */ }
     })();
-    if (pd) Object.assign(pd, fields);
-    else setPropData((prev) => ({ ...(prev || {}), ...fields }));
-    setTxReview(null);
-  };
+    return () => { gone = true; };
+  }, [txReview]);
   // Non-null when the owner's manual entry matches their capped assessed value
   // rather than just value. Blocks the step until they pick which they meant.
   const [valueConflict, setValueConflict] = useState(null);
@@ -4811,6 +4745,8 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
               mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
                 .filter(Boolean).join(', '),
             },
+            // Structured, for the kit order: the kit is mailed here (Kit model).
+            ownerAddress: { street: ownerMail.street || '', street2: ownerMail.street2 || '', city: ownerMail.city || '', state: ownerMail.state || '', zip: ownerMail.zip || '' },
             issues: issues || [],
             costOverrides: costOverrides || {},
           }),
@@ -5020,10 +4956,14 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
     return (
       <div style={dWrap}>
         <div style={{ ...dInner, maxWidth: 660 }}>
+          {/* KIT MODEL, 15 Oct 2026: the headline is the kit answer
+              (lib/kit/txQuote.js), not "sign it". Any caution is a no-sale. */}
           <h2 style={dH2}>
-            {nCautions === 0
-              ? 'Review your protest, then sign it'
-              : `Your protest is ready \u2014 ${nCautions === 1 ? 'one thing' : `${nCautions} things`} to know first`}
+            {txReview.kitDecision !== 'case'
+              ? 'Is this your property? Here is what we found'
+              : txReview.sellable
+                ? 'Your protest is ready: check it is your property'
+                : 'Your protest has a case: check it is your property'}
           </h2>
           <div style={dSub}>
             {[txReview.county ? `${txReview.county} Central Appraisal District` : null,
@@ -5164,16 +5104,28 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
             </div>
           )}
 
+          {/* The buying decision: no case -> we say why and sell nothing; a
+              case in a district not open -> waitlist; otherwise the $89 kit
+              with the documents-only acknowledgment. Checkout gets the kitKey. */}
+          <TxKitCheckout
+            review={txReview}
+            property={property}
+            account={account}
+            ownerMail={resolveOwnerMailing(account, property)}
+            attribution={attributionPayload()}
+            previewUrl={txPreviewUrl}
+            refCode={(() => {
+              if (typeof window === 'undefined') return '';
+              try {
+                const code = localStorage.getItem('taxappeal_ref');
+                const at = Number(localStorage.getItem('taxappeal_ref_at') || 0);
+                if (!code || !at || (Date.now() - at) > 90 * 24 * 60 * 60 * 1000) return '';
+                return code.trim().toUpperCase();
+              } catch (e) { return ''; }
+            })()}
+          />
+
           <div style={dPanel}>
-            <button style={{ ...dPrimary, marginBottom: 10 }} onClick={() => applyTxPacket(txReview)}>
-              {nCautions === 0 ? `Sign and continue to payment \u2014 $${TX_SERVICE_FEE}` : `I\u2019ve read these \u2014 sign and continue to payment \u2014 $${TX_SERVICE_FEE}`}
-            </button>
-            <div style={{ ...dNote, textAlign: 'center', marginTop: 0, marginBottom: 14 }}>
-              {nCautions === 0
-                ? 'Nothing on this packet gave us pause.'
-                : 'We\u2019ll record what you were shown here alongside your order.'}
-              {' '}The decision to file is yours.
-            </div>
             {!txPickCounty && (
               <button style={{ ...dGhost, marginBottom: 10 }} onClick={() => setTxPickCounty(true)}>
                 That&rsquo;s not my property

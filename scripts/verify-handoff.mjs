@@ -163,25 +163,25 @@ const apply = readFileSync('pages/apply.js', 'utf8');
  * reads directly. If a field is added to that grid, add it here too.
  */
 {
-  const fn = apply.match(/const applyTxPacket = \(j, pd = null\) => \{[\s\S]*?\n  \};/);
-  t('TX: applyTxPacket is present to check', !!fn);
-  const src = fn ? fn[0] : '';
+  /*
+    KIT MODEL, 15 Oct 2026: applyTxPacket is gone. Texas checks out through
+    components/TxKitCheckout.js, and every figure on the order comes from the
+    server's packet response (review.X), never from the /api/lookup estimate.
+    The kit itself is printed from the server-held kitKey.
+  */
+  const kitUi = readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8');
+  t('TX: applyTxPacket is gone (Texas buys through the kit)', !/const applyTxPacket/.test(apply));
   for (const [field, from] of [
-    ['parcelId', 'j.accountNumber'],
-    ['assessedValue', 'j.appraisedValue'],
-    ['targetReduction', 'j.requestedValue'],
-    ['county', 'j.county'],
-    ['taxYear', 'j.taxYear'],
-    ['rawAddress', 'j.situsAddress'],
+    ['parcelId', 'review.accountNumber'],
+    ['assessedValue', 'review.appraisedValue'],
+    ['targetReduction', 'review.requestedValue'],
+    ['address', 'review.situsAddress'],
+    ['savings', 'review.estimatedSaving'],
   ]) {
-    t(`TX: the preview takes ${field} from the packet (${from}), not the estimate`,
-      new RegExp(`${field}: ${from.replace('.', '\\.')}`).test(src));
+    t(`TX: checkout takes ${field} from the packet (${from}), not the estimate`,
+      new RegExp(`${field}: ${from.replace('.', '\\.')}`).test(kitUi));
   }
-  // The headline figures must not fall back to "20% of value at an assumed
-  // rate" once a real packet exists. Inflated savings claims are the subject of
-  // the Texas Tax Protest suit against Ownwell, and this screen is pre-payment.
-  t('TX: a real packet marks itself so the summary stops guessing',
-    /isTxPacket: true/.test(src));
+  t('TX: what is printed comes from the kitKey', /kitKey: review\.kitKey/.test(kitUi));
   t('TX: the overvaluation uses the packet\'s own reduction',
     /pd\.isTxPacket[\s\S]{0,120}pd\.reductionSought/.test(apply));
   // The literal moved from "Not yet known" to an em dash on 1 Oct when the
