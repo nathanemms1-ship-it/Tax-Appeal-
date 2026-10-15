@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import WaitlistForm from '../components/WaitlistForm';
 import ApplyHead from '../components/ApplyHead';
 import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
+import GaKitStep from '../components/GaKitStep';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
 import { normalizePerkCode } from '../lib/partnerPerk';
@@ -4145,6 +4146,9 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // and is filable; this holds it while the owner reads what is weak about it
   // and decides. Never an error — see the branch in run() and the screen below.
   const [txReview, setTxReview] = useState(null);
+  // Georgia is sold as a Kit (15 Oct 2026): its own step, components/GaKitStep.js,
+  // runs the appeal check and checkout. Nothing below run()'s GA guard runs for it.
+  const [gaKit, setGaKit] = useState(false);
   // Open when the owner says the matched property is not theirs.
   const [txPickCounty, setTxPickCounty] = useState(false);
   // Blob URL for the watermarked page one of the filled Form 50-132.
@@ -4406,6 +4410,9 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
 
   const run = async () => {
     setLoading(true); setErrMsg(""); setErrTransient(false); setLetter(""); setPropData(null);
+    // GEORGIA: the kit step owns everything from here (lookup, comps, the bill
+    // check, the county questions, checkout). No /api/lookup, no document here.
+    if (String(property?.state || '').trim().toUpperCase() === 'GA') { setGaKit(true); setLoading(false); return; }
     const ownerMail = resolveOwnerMailing(account, property);
     try {
       const res = await fetch("/api/lookup", {
@@ -4864,11 +4871,10 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
          * clerks in September. That route is deleted.
          *
          * Georgia is sold as a Kit (lib/kit/gaKit.js): the official DOR or county
-         * form, filled and flattened, mailed to the customer to sign. The apply
-         * steps that collect what the kit needs (notice value and date, parcel,
-         * homestead, county-form answers) are not built yet, so a Georgia order
-         * must stop here rather than fall through to the generic letter below.
-         * Georgia's filing window keeps this unreachable until 31 Jan 2027.
+         * form, filled and flattened, mailed to the customer to sign. run() hands
+         * Georgia to components/GaKitStep.js at its first line, so this branch is
+         * unreachable; it stays as a guard so a Georgia order can never fall
+         * through to the generic letter below.
          */
         throw new Error("Georgia appeals open January 31, 2027 with our new ready-to-sign appeal kit. Join the waitlist and we will email you when your county opens.");
       } else {
@@ -4957,6 +4963,26 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
    * owner what to do. § 41.44(d) is why we can always offer to file: a notice is
    * sufficient on owner, property and dissatisfaction alone.
    */
+  if (gaKit) {
+    return (
+      <GaKitStep
+        property={property}
+        account={account}
+        ownerMail={resolveOwnerMailing(account, property)}
+        attribution={attributionPayload()}
+        refCode={(() => {
+          if (typeof window === 'undefined') return '';
+          try {
+            const code = localStorage.getItem('taxappeal_ref');
+            const at = Number(localStorage.getItem('taxappeal_ref_at') || 0);
+            if (!code || !at || (Date.now() - at) > 90 * 24 * 60 * 60 * 1000) return '';
+            return code.trim().toUpperCase();
+          } catch (e) { return ''; }
+        })()}
+      />
+    );
+  }
+
   if (txReview) {
     /*
       ==========================================================================

@@ -320,7 +320,14 @@ export default async function handler(req, res) {
        * Neither is dead. Both need a trigger nobody has written yet, and silence
        * keeps the promise that was actually made until someone does.
        */
-      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible') {
+      /**
+       * ga_county_not_open (15 Oct 2026): a real Georgia case in a county not yet
+       * open for kits. Owed "your county is open", which nothing computes yet —
+       * so, like the two Florida reasons, it waits rather than receiving the
+       * generic window reminder (which would send them to buy in a county we
+       * still refuse at checkout).
+       */
+      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible' || blocked_reason === 'ga_county_not_open') {
         totalSkipped++;
         console.log(`[notify-waitlist] skipping ${email} — ${blocked_reason} is not on the reminder track`);
         continue;

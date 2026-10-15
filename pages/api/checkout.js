@@ -8,6 +8,16 @@ import { blockIfSalesPaused } from '../../lib/salesGate';
 import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { getSupabaseAdmin } from './supabase';
 import { normalizePerkCode, applyPerkToLineItems, RPC, PERK_AMOUNT_CENTS } from '../../lib/partnerPerk';
+import { Redis } from '@upstash/redis';
+import { gaSellability } from '../../lib/kit/gaQuote';
+import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
+
+let kitRedis = null;
+try {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (url && token) kitRedis = new Redis({ url, token });
+} catch (e) { console.log('Redis init failed:', e.message); }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -26,6 +36,9 @@ const {
 email, firstName, lastName, password,
 address, county, parcelId, assessedValue, targetReduction, savings,
 letter, letterKey,
+// Georgia kit orders: the key of the server-held kit order written by
+// /api/ga-kit-quote. Nothing printed on the kit comes from this request body.
+kitKey,
 // Which cautions the Texas review screen showed before this customer chose to
 // go ahead. See the tx_cautions block below.
 txCautions,
@@ -136,6 +149,41 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
   }
 }
 
+/**
+ * ==========================================================================
+ * GEORGIA IS SOLD AS A KIT, AND ONLY WHEN THE KIT CAN BE BUILT. 15 Oct 2026.
+ * ==========================================================================
+ * The kit is mailed to the customer by lib/kit/dispatchKit.js the moment the
+ * webhook writes the order. Every rule the kit builder enforces at that moment
+ * (confirmed county address, settled county form, county questions answered,
+ * value never blank, sales before 1 January) is run HERE first, on the stored
+ * order, so a card is never charged for a kit that would be refused at mailing.
+ */
+const isKitGA = (stateCode || '').trim().toUpperCase() === 'GA';
+let kitOrder = null;
+if (isKitGA) {
+  if (!kitKey || !/^kit:GA:[0-9a-f-]{36}$/.test(String(kitKey)) || !kitRedis) {
+    return res.status(409).json({ error: 'Please run the appeal check for your home first.', code: 'KIT_CHECK_REQUIRED' });
+  }
+  try {
+    const raw = await kitRedis.get(kitKey);
+    kitOrder = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+  } catch (e) { kitOrder = null; }
+  if (!kitOrder) {
+    return res.status(409).json({ error: 'Your appeal check has expired. Please run it again.', code: 'KIT_CHECK_EXPIRED' });
+  }
+  const sell = gaSellability(kitOrder);
+  if (!sell.ok) {
+    console.warn('[checkout] refusing GA kit:', sell.reason);
+    return res.status(409).json({
+      error: sell.needs
+        ? 'Please answer the remaining question about your county\'s appeal form first.'
+        : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
+      code: sell.needs ? 'KIT_NEEDS_ANSWER' : 'KIT_COUNTY_NOT_OPEN',
+    });
+  }
+}
+
 try {
 let passwordHash = '';
 if (password) {
@@ -173,7 +221,19 @@ const countyPhrase = countyLabel ? `${countyLabel} County` : 'your county';
   It is also the only sentence some customers read carefully, because it is the
   one on the page where they type a card number.
 */
-const lineItems = [
+const lineItems = isKitGA ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Georgia appeal kit, mailed to you',
+description: `Your completed, ready-to-sign appeal for ${kitOrder.property.address}: the ${countyPhrase} appeal form filled in, evidence of recorded sales, and a return envelope addressed to the county — mailed to you, with the PDF emailed today. You sign and mail it; we do not file your appeal or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : [
 {
 price_data: {
 currency: 'usd',
@@ -316,6 +376,7 @@ ownerCity: ownerCity || '',
 ownerState: ownerState || '',
 ownerZip: ownerZip || '',
 letterKey: letterKey || '',
+kitKey: isKitGA ? kitKey : '',
 stateCode: stateCode || '',
 vabFee: vabFee ? String(vabFee) : '0',
 vabPayableTo: vabPayableTo || '',
