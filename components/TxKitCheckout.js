@@ -139,12 +139,21 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
 
   return (
     <div style={panel}>
-      <p style={head}>Your protest kit, mailed to you &mdash; ${SERVICE_PRICE_DOLLARS}</p>
-      <p style={body}>
-        We mail you the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes from the district&rsquo;s own roll,
-        and a return envelope addressed to the appraisal district. We email you the same kit as a PDF today. You sign it,
-        add postage and mail it.
-      </p>
+      {review?.delivery === 'pdf' ? (<>
+        <p style={head}>Your protest kit, as a PDF &mdash; ${SERVICE_PRICE_DOLLARS}</p>
+        <p style={body}>
+          Your deadline is close, so there isn&rsquo;t time to mail you a printed kit. We email you the Comptroller&rsquo;s Form 50-132
+          filled in and the comparison of similar homes as a PDF as soon as you pay. You print it, sign it and mail it to the
+          appraisal district yourself.
+        </p>
+      </>) : (<>
+        <p style={head}>Your protest kit, mailed to you &mdash; ${SERVICE_PRICE_DOLLARS}</p>
+        <p style={body}>
+          We mail you the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes from the district&rsquo;s own roll,
+          and a return envelope addressed to the appraisal district. We email you the same kit as a PDF today. You sign it,
+          add postage and mail it.
+        </p>
+      </>)}
       {previewUrl && (
         <p style={body}><a href={previewUrl} target="_blank" rel="noopener noreferrer">See page one of your filled Form 50-132 (preview)</a></p>
       )}
@@ -153,7 +162,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
         <span>I understand TaxAppeal USA prepares my protest and mails it to me. I sign and mail it myself; TaxAppeal USA does not file it, represent me or appear for me.</span>
       </label>
       <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
-        {busy ? 'Opening checkout…' : `Get my protest kit — $${SERVICE_PRICE_DOLLARS}`}
+        {busy ? 'Opening checkout…' : review?.delivery === 'pdf' ? `Get my protest kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my protest kit — $${SERVICE_PRICE_DOLLARS}`}
       </button>
       {err && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
       <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>

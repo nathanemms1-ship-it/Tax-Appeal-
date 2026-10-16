@@ -80,7 +80,7 @@ const row = (patch = {}) => ({
 });
 const addressLookup = () => GWINNETT_ROW;
 const spendOk = async () => ({ ok: true });
-const run = (r, opts = {}) => dispatchKit(r, { supabase: opts.supabase || fakeSupabase(), resend: opts.resend ?? fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: opts.lob || fakeLob(), addressLookup: opts.addressLookup || addressLookup, checkSpend: opts.checkSpend || spendOk });
+const run = (r, opts = {}) => dispatchKit(r, { supabase: opts.supabase || fakeSupabase(), resend: opts.resend ?? fakeResend(), alertOps, now: opts.now || NOW, lobApiKey: 'test_x', lobFetch: opts.lob || fakeLob(), addressLookup: opts.addressLookup || addressLookup, checkSpend: opts.checkSpend || spendOk });
 
 // ── 1. THE LOB CALL ─────────────────────────────────────────────────────────
 t('Georgia and Texas are kit states; Florida is not (yet)', isKitState('GA') && isKitState('ga') && isKitState('TX') && !isKitState('FL'));
@@ -135,7 +135,8 @@ t('a Florida order is not sent down the kit path (no FL kit builder yet)', lob.c
   const elPaso = { ...getAppealAddress('TX', 'El Paso'), confidence: 'confirmed', verifiedOn: '2027-03-01', cassValidated: true };
   const txRow = row({ state_code: 'TX', county: 'El Paso', owner_street: '8023 Marbella Creek Ave', owner_city: 'El Paso', owner_state: 'TX', owner_zip: '79907', kit_order: txKitOrder() });
   lob = fakeLob(); db = fakeSupabase(); rs = fakeResend();
-  r = await run(txRow, { lob, supabase: db, resend: rs, addressLookup: () => elPaso });
+  // 20 April: before the Texas floor (17 May 2027) by more than the mail cutoff.
+  r = await run(txRow, { lob, supabase: db, resend: rs, addressLookup: () => elPaso, now: new Date('2027-04-20T00:00:00Z') });
   const f = lob.calls[0]?.form;
   t('a paid Texas kit order is mailed once, to the customer, with its own layout',
     r.status === KIT_STATUS.MAILED && lob.calls.length === 1 && f.get('to[address_city]') === 'El Paso' && f.get('perforated_page') === '7' && f.get('extra_service') === null);
@@ -205,6 +206,44 @@ const kitReceipt = tpl.confirmationEmailTemplate({ firstName: 'Pat', lastName: '
 const presaleReceipt = tpl.confirmationEmailTemplate({ firstName: 'Pat', lastName: 'Owner', address: 'x', county: 'Gwinnett', stateCode: 'GA', orderStatus: 'awaiting_notice' });
 t('the kit receipt never claims filing or certified mail', !/has been filed|certified mail|we mail it to the|is on its way to the/i.test(kitReceipt) && /we do not file your appeal/i.test(kitReceipt));
 t('the pre-sale receipt promises the refund if the case no longer holds', /refund you in full before anything is mailed/.test(presaleReceipt) && !/has been filed/i.test(presaleReceipt));
+
+// ── THE LAST DAYS: PDF ONLY (16 Oct 2026) ───────────────────────────────────
+// Nathan, 14 Oct: "only a pdf option in the last few days". lib/kit/delivery.js
+// decides; dispatch obeys it at send time. NOW is 2027-05-20.
+{
+  const { deliveryMode, MAIL_CUTOFF_DAYS, LAST_SALE_DAYS } = await import('../lib/kit/delivery.js');
+  const inDays = (n) => new Date(Date.UTC(2027, 4, 20 + n));
+  t(`${MAIL_CUTOFF_DAYS}+ days out: mailed`, deliveryMode(inDays(30), NOW) === 'mail' && deliveryMode(inDays(10), NOW) === 'mail');
+  // INJECTION: change MAIL_CUTOFF_DAYS to 0 -> FAILS (a kit mailed 3 days out lands after the deadline).
+  t(`${LAST_SALE_DAYS}-9 days out: PDF only`, deliveryMode(inDays(9), NOW) === 'pdf' && deliveryMode(inDays(2), NOW) === 'pdf');
+  t('closer than that, or past it: not sold', deliveryMode(inDays(1), NOW) === 'closed' && deliveryMode(inDays(0), NOW) === 'closed' && deliveryMode(inDays(-3), NOW) === 'closed');
+  t('no deadline yet (a pre-sale): mailed', deliveryMode(null, NOW) === 'mail');
+
+  const late = (noticeDate) => row({ kit_order: { ...kitOrder, noticeDate } });
+  // Georgia: deadline = notice + 45 days. 2027-04-10 + 45 = 25 May (5 days out).
+  lob = fakeLob(); db = fakeSupabase(); rs = fakeResend(); alerts.length = 0;
+  r = await run(late('2027-04-10'), { lob, supabase: db, resend: rs });
+  // INJECTION: skip the delivery check in dispatchKit -> FAILS (Lob would print a kit that arrives too late).
+  t('5 days out: no Lob letter, the PDF is emailed, status kit_emailed', lob.calls.length === 0 && r.status === 'kit_emailed' && rs.sent.length === 1 && db.updates.some((u) => u.dispute_status === 'kit_emailed'));
+  const pe = rs.sent[0];
+  t('the PDF email says nothing is coming in the post, and where to mail it', /Nothing will come in the post/.test(pe?.text) && /75 LANGLEY DR/.test(pe?.text) && /postmarked no later than May 25, 2027/.test(pe?.text) && pe?.attachments?.[0]?.filename.endsWith('.pdf'));
+  lob = fakeLob(); db = fakeSupabase(); alerts.length = 0;
+  r = await run(late('2027-04-06'), { lob, supabase: db, resend: fakeResend() });
+  t('1 day out at send time: nothing sent, a person decides', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'deadline_too_close' && alerts.length === 1);
+  lob = fakeLob(); db = fakeSupabase(); alerts.length = 0;
+  r = await run(late('2027-04-10'), { lob, supabase: db, resend: fakeResend({ fail: true }) });
+  t('a PDF email that fails stays queued for the hourly retry, and never falls back to mail', lob.calls.length === 0 && r.status === 'kit_queued' && alerts.length === 1 && !db.updates.some((u) => u.dispute_status === 'kit_emailed'));
+
+  const gq = read('lib/kit/gaQuote.js'); const tq = read('lib/kit/txQuote.js');
+  t('both sell gates refuse inside the last days and report the delivery mode', /if \(delivery === DELIVERY\.CLOSED\) return \{ ok: false, reason: 'deadline_too_close' \}/.test(gq) && /if \(delivery === DELIVERY\.CLOSED\) return \{ ok: false, reason: 'deadline_too_close' \}/.test(tq) && /return \{ ok: true, delivery \}/.test(gq) && /return \{ ok: true, delivery \}/.test(tq));
+  const co = read('pages/api/checkout.js');
+  t('checkout takes the delivery mode from the STORED order and sells the PDF kit by name', /kitDelivery = sell\.delivery === 'pdf' \? 'pdf' : 'mail'/.test(co) && /Georgia appeal kit, PDF by email/.test(co) && /Texas protest kit, PDF by email/.test(co) && /kitDelivery: isKit \? kitDelivery : ''/.test(co) && /KIT_TOO_LATE/.test(co));
+  t('the PDF kit receipt never promises a printed kit', /m\.kitDelivery === 'pdf' \? 'kit_pdf'/.test(read('lib/fulfillOrder.js')));
+  const { confirmationEmailTemplate } = await import('../pages/api/email-templates.js');
+  const pr = confirmationEmailTemplate({ firstName: 'Pat', lastName: 'O', address: '1 A St', county: 'Gwinnett', stateCode: 'GA', orderStatus: 'kit_pdf' });
+  t('...it says the kit comes by email and goes in any envelope', /emailing you the completed kit as a PDF/.test(pr) && /any envelope/.test(pr) && !/envelope we include/.test(pr));
+  t('the funnel and the page after payment say PDF in the last days', /quote\.delivery === 'pdf'/.test(read('components/GaKitStep.js')) && /review\?\.delivery === 'pdf'/.test(read('components/TxKitCheckout.js')) && /kitPdfOnly: isKit && meta\.kitDelivery === 'pdf'/.test(read('pages/api/verify-payment.js')) && /is coming by email/.test(read('pages/success.js')));
+}
 
 // ── "YOUR COUNTY IS OPEN" (15 Oct 2026) ────────────────────────────────────
 // One email per ga/tx_county_not_open waitlister, only when checkout would now

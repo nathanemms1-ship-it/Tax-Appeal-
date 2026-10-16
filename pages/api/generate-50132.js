@@ -382,6 +382,8 @@ export default async function handler(req, res) {
       kitReason: decision.reason,
       sellable: Boolean(kitKey),
       notSellableReason: kitKey ? null : (sell.ok ? 'kit_store_unavailable' : sell.reason),
+      // 'mail' or 'pdf' (lib/kit/delivery.js): in the last days only the PDF.
+      delivery: sell.ok ? (sell.delivery || 'mail') : null,
       kitKey,
       // A reservation screened on last year's roll (rollYear), for taxYear.
       presale,

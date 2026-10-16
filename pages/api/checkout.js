@@ -172,6 +172,8 @@ const isKitGA = kitState === 'GA';
 const isKitTX = kitState === 'TX';
 const isKit = isKitGA || isKitTX;
 let kitOrder = null;
+// 'mail' or 'pdf' (lib/kit/delivery.js), from the STORED order, never the browser.
+let kitDelivery = 'mail';
 if (isKit) {
   if (!kitKey || !new RegExp(`^kit:${kitState}:[0-9a-f-]{36}$`).test(String(kitKey)) || !kitRedis) {
     return res.status(409).json({ error: isKitTX ? 'Please run the protest check for your home first.' : 'Please run the appeal check for your home first.', code: 'KIT_CHECK_REQUIRED' });
@@ -187,14 +189,17 @@ if (isKit) {
   if (!sell.ok) {
     console.warn(`[checkout] refusing ${kitState} kit:`, sell.reason);
     return res.status(409).json({
-      error: sell.needs
+      error: sell.reason === 'deadline_too_close'
+        ? 'Your deadline is too close for us to get your kit to you in time, so we will not take your money for it.'
+        : sell.needs
         ? 'Please answer the remaining question about your county\'s appeal form first.'
         : sell.noCase
           ? 'Our check found a protest would not lower your tax bill by more than our fee, so we will not sell you one.'
           : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
-      code: sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
+      code: sell.reason === 'deadline_too_close' ? 'KIT_TOO_LATE' : sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
     });
   }
+  kitDelivery = sell.delivery === 'pdf' ? 'pdf' : 'mail';
 }
 
 try {
@@ -246,6 +251,18 @@ unit_amount: SERVICE_PRICE_CENTS,
 },
 quantity: 1,
 },
+] : isKitTX && kitDelivery === 'pdf' ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Texas protest kit, PDF by email',
+description: `Your deadline is close, so your completed, ready-to-sign protest for ${kitOrder.property.address} (Form 50-132 filled in and the evidence) is emailed to you as a PDF as soon as you pay. You print it, sign it and mail it to the appraisal district yourself. We do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
 ] : isKitTX ? [
 {
 price_data: {
@@ -265,6 +282,18 @@ currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Georgia appeal kit, reserved',
 description: `Reserved for ${kitOrder.property.address}. When your ${kitOrder.taxYear} assessment notice arrives, you enter its value and we check your case again. If an appeal still lowers your bill, we mail you the completed, ready-to-sign kit with a return envelope addressed to the county and email the PDF. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your appeal or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitGA && kitDelivery === 'pdf' ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Georgia appeal kit, PDF by email',
+description: `Your deadline is close, so your completed, ready-to-sign appeal for ${kitOrder.property.address} (the ${countyPhrase} appeal form filled in and the evidence) is emailed to you as a PDF as soon as you pay. You print it, sign it and mail it to the county yourself. We do not file your appeal or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -427,6 +456,7 @@ ownerZip: ownerZip || '',
 letterKey: letterKey || '',
 kitKey: isKit ? kitKey : '',
 kitPresale: isKit && kitOrder?.presale === true ? 'true' : '',
+kitDelivery: isKit ? kitDelivery : '',
 stateCode: stateCode || '',
 vabFee: vabFee ? String(vabFee) : '0',
 vabPayableTo: vabPayableTo || '',

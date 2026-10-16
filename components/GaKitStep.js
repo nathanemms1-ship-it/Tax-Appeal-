@@ -276,14 +276,18 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
             </button>
           </>) : quote.sellable && quote.kitKey ? (<>
             <div style={{ ...box, background: K.bg }}>
-              <b>What you get for ${SERVICE_PRICE_DOLLARS}:</b> your completed appeal on {county} County's own form, with the evidence page and a return envelope already addressed to the county, mailed to you — plus the same kit as a PDF emailed today. You sign it, add postage and mail it.
+              {quote.delivery === 'pdf' ? (<>
+                <b>Your deadline is close, so this is the PDF kit (${SERVICE_PRICE_DOLLARS}):</b> your completed appeal on {county} County's own form with the evidence page, emailed to you as soon as you pay. There isn't time to mail you a printed kit, so you print it, sign it and mail it to the county yourself.
+              </>) : (<>
+                <b>What you get for ${SERVICE_PRICE_DOLLARS}:</b> your completed appeal on {county} County's own form, with the evidence page and a return envelope already addressed to the county, mailed to you — plus the same kit as a PDF emailed today. You sign it, add postage and mail it.
+              </>)}
             </div>
             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 3 }} />
               <span>I understand TaxAppeal USA prepares my appeal documents only. I sign and mail my own appeal; TaxAppeal USA does not file it, represent me or appear for me, and no outcome is guaranteed. If the county does not lower my value, next year's kit is free.</span>
             </label>
             <button style={agreed && !busy ? btn : btnOff} disabled={!agreed || busy} onClick={checkout}>
-              {busy ? 'Opening secure checkout…' : `Get my appeal kit — $${SERVICE_PRICE_DOLLARS}`}
+              {busy ? 'Opening secure checkout…' : quote.delivery === 'pdf' ? `Get my appeal kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my appeal kit — $${SERVICE_PRICE_DOLLARS}`}
             </button>
           </>) : (
             <div style={{ ...box, borderColor: K.warn }}>

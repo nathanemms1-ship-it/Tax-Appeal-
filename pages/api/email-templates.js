@@ -152,6 +152,15 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         intro: 'Thank you — your payment is in. We are printing your completed appeal kit and mailing it to you by first-class mail, and we will email you the same kit as a PDF the moment it is sent. You sign the form, add postage and mail it to the county in the envelope we include. We prepare the documents; we do not file your appeal or represent you.',
       };
 
+    case 'kit_pdf':
+      return {
+        subject: '✅ Payment received — your kit is on its way to your inbox — TaxAppeal USA',
+        banner: '#1B2A4A',
+        heading: 'Your Kit Is Coming By Email',
+        subheading: 'Print it, sign it and mail it before your deadline',
+        intro: 'Thank you — your payment is in. Your deadline is close, so instead of mailing a printed kit we are emailing you the completed kit as a PDF in the next few minutes. Print it, sign it in ink, and mail it in any envelope to the address shown in the kit, before the postmark deadline printed on it. We prepare the documents; we do not file it or represent you.',
+      };
+
     case 'awaiting_notice':
       return {
         subject: '✅ Payment received — we build your kit when your notice arrives — TaxAppeal USA',
@@ -238,15 +247,19 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
 
   // 'signature_reminder' is the same point in the journey as 'awaiting_signature' —
   // unsigned — so it gets the same four steps. Added with the cron on 25 Aug.
-  const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice';
+  const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice' || orderStatus === 'kit_pdf';
   const steps = isKit
     ? [
         orderStatus === 'awaiting_notice' && stateCode === 'TX'
           ? 'Your district publishes this year\'s values and we re-check your protest automatically'
           : orderStatus === 'awaiting_notice'
           ? 'Your notice arrives: you tell us the value on it and we re-check your case'
+          : orderStatus === 'kit_pdf'
+          ? 'Your kit arrives by email in a few minutes as a PDF: print it on plain paper'
           : 'Your kit arrives by mail in a few days, and the PDF is emailed today',
-        'You sign the appeal form in ink, add postage and mail it to the county in the envelope we include',
+        orderStatus === 'kit_pdf'
+          ? 'You sign the form in ink and mail it in any envelope to the address shown in the kit, before the postmark deadline'
+          : 'You sign the appeal form in ink, add postage and mail it to the county in the envelope we include',
         'The county reviews your appeal and writes to you; forward us anything it sends',
         'If the county does not lower your value, next year\'s kit is free',
       ]

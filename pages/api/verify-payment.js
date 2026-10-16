@@ -107,6 +107,8 @@ export default async function handler(req, res) {
       isKit,
       // A Georgia pre-sale: reserved now, built when the notice arrives.
       kitPresale: isKit && meta.kitPresale === 'true',
+      // Last days before the deadline: emailed as a PDF, nothing mailed.
+      kitPdfOnly: isKit && meta.kitDelivery === 'pdf',
     });
   } catch (err) {
     console.error('Verify payment error:', err);

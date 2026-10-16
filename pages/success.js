@@ -495,7 +495,13 @@ function KitSuccess({ session, sessionId }) {
   const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 20 };
   const label = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.mutedGray, marginBottom: 14, fontWeight: 500 };
   const presale = session?.kitPresale === true;
-  const steps = presale && isTX ? [
+  const pdfOnly = session?.kitPdfOnly === true;
+  const steps = pdfOnly ? [
+    { title: 'Payment confirmed', desc: 'Your payment has been processed.', done: true },
+    { title: `Your ${word} kit arrives by email`, desc: 'In the next few minutes, as a PDF. Your deadline is close, so nothing is mailed to you.' },
+    { title: 'Print it, sign it, mail it', desc: `Print it on plain paper, sign the form in ink and mail it in any envelope to ${where}, at the address shown in the kit. A post office counter postmark is safest.` },
+    { title: `${isTX ? 'The district' : 'The county'} writes to you`, desc: 'Forward us anything it sends and we will help you understand it.' },
+  ] : presale && isTX ? [
     { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
     { title: 'Your district publishes this year\'s values', desc: 'Usually in April. You don\'t need to do anything.' },
     { title: 'We check your protest again', desc: 'If it still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.' },
@@ -515,9 +521,11 @@ function KitSuccess({ session, sessionId }) {
     <>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ width: 72, height: 72, background: C.lightBlue, border: `2px solid ${C.green}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 20px' }}>✓</div>
-        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{presale ? `Your ${word} kit is reserved` : `Your ${word} kit is on its way`}</h1>
+        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{pdfOnly ? `Your ${word} kit is coming by email` : presale ? `Your ${word} kit is reserved` : `Your ${word} kit is on its way`}</h1>
         <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-          {presale && isTX
+          {pdfOnly
+            ? `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it and mail it to ${where} before the postmark deadline printed on it.`
+            : presale && isTX
             ? `Thank you${first}. When your appraisal district publishes this year's values, we check your protest again automatically: we mail your kit, or refund you in full.`
             : presale
             ? `Thank you${first}. When your assessment notice arrives, enter its value from the link in your receipt email. We check your case again then: we mail your kit, or refund you in full.`
