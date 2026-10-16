@@ -495,7 +495,12 @@ function KitSuccess({ session, sessionId }) {
   const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 20 };
   const label = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.mutedGray, marginBottom: 14, fontWeight: 500 };
   const presale = session?.kitPresale === true;
-  const steps = presale ? [
+  const steps = presale && isTX ? [
+    { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
+    { title: 'Your district publishes this year\'s values', desc: 'Usually in April. You don\'t need to do anything.' },
+    { title: 'We check your protest again', desc: 'If it still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.' },
+    { title: 'You sign it and mail it', desc: `Sign the form in ink, add a stamp and mail it to ${where} in the return envelope we include.` },
+  ] : presale ? [
     { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
     { title: 'Your notice arrives', desc: 'Counties mail notices between April and June. Enter its value and date from the link in your receipt email; we remind you too.' },
     { title: 'We check your case again', desc: `If an ${word} still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.` },
@@ -512,7 +517,9 @@ function KitSuccess({ session, sessionId }) {
         <div style={{ width: 72, height: 72, background: C.lightBlue, border: `2px solid ${C.green}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 20px' }}>✓</div>
         <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{presale ? `Your ${word} kit is reserved` : `Your ${word} kit is on its way`}</h1>
         <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-          {presale
+          {presale && isTX
+            ? `Thank you${first}. When your appraisal district publishes this year's values, we check your protest again automatically: we mail your kit, or refund you in full.`
+            : presale
             ? `Thank you${first}. When your assessment notice arrives, enter its value from the link in your receipt email. We check your case again then: we mail your kit, or refund you in full.`
             : `Thank you${first}. We are printing your completed, ready-to-sign ${word} and mailing it to you. You sign it and mail it to ${where}.`}
         </p>

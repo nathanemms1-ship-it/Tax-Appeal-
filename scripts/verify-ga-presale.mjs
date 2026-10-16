@@ -164,8 +164,8 @@ t('no secret configured: no link at all, rather than an unsigned one', noticeTok
 const api = read('pages/api/kit/notice.js');
 // INJECTION: read the order before checking the token -> FAILS.
 t('the notice route checks the link before it reads anything', api.indexOf('checkNoticeToken(orderId, b.t)') > 0 && api.indexOf('checkNoticeToken(orderId, b.t)') < api.indexOf(".from('orders')"));
-t('the notice route refunds idempotently, per order', /idempotencyKey: `presale-refund-\$\{o\.id\}`/.test(api));
-t('the notice route claims the row with a conditional update', /\.eq\('dispute_status', from\)/.test(api));
+t('the notice route refunds idempotently, per order (shared lib/kit/presaleDeps.js)', /presaleDeps\(row, \{ supabase, alertOps \}\)/.test(api) && /idempotencyKey: `presale-refund-\$\{o\.id\}`/.test(read('lib/kit/presaleDeps.js')));
+t('the notice route claims the row with a conditional update', /\.eq\('dispute_status', from\)/.test(read('lib/kit/presaleDeps.js')));
 
 // ── 5. WIRING ───────────────────────────────────────────────────────────────
 const checkout = read('pages/api/checkout.js');
@@ -174,7 +174,7 @@ t('the reservation line item promises the refund and never says we file', /Georg
 const fulfil = read('lib/fulfillOrder.js');
 // INJECTION: queue a pre-sale as kit_queued -> FAILS (dispatch would try to build a kit with no value).
 t('a paid reservation waits as awaiting_notice and is not dispatched', /kitOrder && kitOrder\.presale !== true \? KIT_STATUS\.QUEUED : KIT_STATUS\.AWAITING_NOTICE/.test(fulfil) && /if \(isKit && kitOrder && kitOrder\.presale !== true\) \{/.test(fulfil));
-t('its receipt carries the notice link, and only its receipt does', /noticeUrl: disputeStatus === KIT_STATUS\.AWAITING_NOTICE \? noticeUrl\(order\.id\) : null/.test(fulfil));
+t('its receipt carries the notice link, and only its receipt does', /noticeUrl: disputeStatus === KIT_STATUS\.AWAITING_NOTICE && stateCode === 'GA' \? noticeUrl\(order\.id\) : null/.test(fulfil));
 const fakeDb = { from() { const q2 = { update() { return q2; }, eq() { return Promise.resolve({ error: null }); } }; return q2; } };
 r = await dispatchKit({ id: 'ord_p1', state_code: 'GA', payment_status: 'paid', dispute_status: 'awaiting_notice', kit_order: q.kitOrder, owner_street: '1 Main St', owner_city: 'Lawrenceville', owner_state: 'GA', owner_zip: '30044', customer_name: 'Pat Owner' }, { supabase: fakeDb, lobFetch: async () => { throw new Error('Lob must not be called'); } });
 t('dispatch never builds a kit from a reservation', r.status === KIT_STATUS.AWAITING_NOTICE);

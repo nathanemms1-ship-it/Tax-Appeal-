@@ -176,6 +176,9 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
 /** Subject line for a confirmation receipt, so send-email.js need not duplicate the logic. */
 export function confirmationSubject({ stateCode, orderStatus }) {
   const isFL = String(stateCode || '').toUpperCase() === 'FL';
+  if (orderStatus === 'awaiting_notice' && String(stateCode || '').toUpperCase() === 'TX') {
+    return '✅ Payment received — your protest kit is reserved — TaxAppeal USA';
+  }
   return claimFor(orderStatus, {
     docWord: isFL ? 'petition' : 'letter',
     authority: '',
@@ -207,7 +210,21 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
   const authority = isFL ? `${co} County Value Adjustment Board` : `${co} Appraisal District`;
   const docWord  = isFL ? 'petition' : 'letter';
 
-  const claim = claimFor(orderStatus, { docWord, authority, mailClass, scheduledFileDate });
+  const claimBase = claimFor(orderStatus, { docWord, authority, mailClass, scheduledFileDate });
+  /*
+   * A TEXAS reservation (16 Oct 2026) is finished by our roll load, not by the
+   * customer: there is no notice to enter, so no button, and the wording says so.
+   */
+  const claim = orderStatus === 'awaiting_notice' && stateCode === 'TX'
+    ? {
+      ...claimBase,
+      subject: '✅ Payment received — your protest kit is reserved — TaxAppeal USA',
+      heading: 'You Are Reserved',
+      subheading: 'We check again when your district publishes this year\'s values',
+      intro: 'Thank you — your payment is in. When your appraisal district publishes this year\'s values (usually in April), we check your protest again on them, automatically; you do not need to do anything. If a protest still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
+      ctaLabel: null,
+    }
+    : claimBase;
 
   /**
    * "What happens next" has to follow the same truth as the banner. It previously
@@ -224,7 +241,9 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
   const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice';
   const steps = isKit
     ? [
-        orderStatus === 'awaiting_notice'
+        orderStatus === 'awaiting_notice' && stateCode === 'TX'
+          ? 'Your district publishes this year\'s values and we re-check your protest automatically'
+          : orderStatus === 'awaiting_notice'
           ? 'Your notice arrives: you tell us the value on it and we re-check your case'
           : 'Your kit arrives by mail in a few days, and the PDF is emailed today',
         'You sign the appeal form in ink, add postage and mail it to the county in the envelope we include',

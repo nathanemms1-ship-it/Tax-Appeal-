@@ -1,6 +1,7 @@
 /**
- * GET /api/cron/notice-reminder — daily. Pre-sale customers whose notice has
- * not been entered yet (16 Oct 2026).
+ * GET /api/cron/notice-reminder — daily, both pre-sale states (16 Oct 2026).
+ * Georgia: customers whose notice has not been entered yet (below). Texas: the
+ * roll pass further down.
  *
  * From the day their county's season opens (lib/filingWindows.js), once a week:
  * "Has your notice arrived? Enter it here" with their private link
@@ -15,6 +16,10 @@ import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { alertOps } from '../../../lib/alertOps';
 import { KIT_STATUS, KIT_ROW_COLUMNS } from '../../../lib/kit/dispatchKit';
 import { noticeUrl } from '../../../lib/kit/noticeLink';
+import { processTxPresale } from '../../../lib/kit/txPresale';
+import { presaleDeps } from '../../../lib/kit/presaleDeps';
+import { findComps } from '../../../lib/tx/comps';
+import { buildProtest } from '../../../lib/tx/protest';
 
 export const REMIND_EVERY_DAYS = 7;
 export const LATE_ALERT_DAYS = 10;
@@ -60,6 +65,67 @@ export function reminderPlan(row, ws, now = new Date()) {
   return { remind, alert };
 }
 
+/*
+ * TEXAS RESERVATIONS (16 Oct 2026). No notice to enter: the trigger is THIS
+ * year's roll for the district being loaded into tx_parcels. Then each
+ * reservation is rebuilt on it (lib/kit/txPresale.js): kit mailed, or refunded.
+ * If a district's roll is still missing from 20 April with reservations
+ * waiting, ops are paged once per order: the 15 May deadline does not move.
+ */
+export const TX_ROLL_LATE = { month: 4, day: 20 };
+
+/** What to do with one Texas reservation today. Pure, for scripts/verify-tx-presale.mjs. */
+export function txRollPlan(row, rollLoaded, now = new Date()) {
+  const k = row?.kit_order || {};
+  if (row?.state_code !== 'TX' || k.presale !== true || row.payment_status !== 'paid' || row.dispute_status !== KIT_STATUS.AWAITING_NOTICE) return 'skip';
+  if (rollLoaded) return 'process';
+  const late = new Date(Date.UTC(Number(k.taxYear), TX_ROLL_LATE.month - 1, TX_ROLL_LATE.day));
+  return now >= late && !k.rollLateAlertAt ? 'late_alert' : 'wait';
+}
+
+async function txRollPass(supabase, now) {
+  const { data: rows, error } = await supabase.from('orders').select(`${KIT_ROW_COLUMNS}, stripe_session_id`)
+    .eq('dispute_status', KIT_STATUS.AWAITING_NOTICE).eq('payment_status', 'paid').eq('state_code', 'TX').limit(500);
+  if (error) return { error: error.message };
+  const loaded = new Map();
+  const rollLoaded = async (cad, year) => {
+    const key = `${cad}:${year}`;
+    if (!loaded.has(key)) {
+      const { data } = await supabase.from('tx_parcels').select('account_number').eq('cad_id', cad).eq('tax_year', year).limit(1);
+      loaded.set(key, Array.isArray(data) && data.length > 0);
+    }
+    return loaded.get(key);
+  };
+  let processed = 0; let lateAlerts = 0;
+  for (const row of rows || []) {
+    const k = row.kit_order || {};
+    const plan = txRollPlan(row, k.presale ? await rollLoaded(k.cadId, k.taxYear) : false, now);
+    if (plan === 'process') {
+      try {
+        await processTxPresale(row, {
+          loadParcel: async (cad, account, year) => {
+            const { data, error: e } = await supabase.from('tx_parcels').select('*').eq('cad_id', cad).eq('account_number', account).eq('tax_year', year).limit(1);
+            if (e) throw new Error(e.message);
+            return data?.[0] || null;
+          },
+          findComps: (parcel, year) => findComps(parcel, { rollYear: year, db: supabase }),
+          buildProtest,
+          ...presaleDeps(row, { supabase, alertOps }),
+          now,
+        });
+        processed++;
+      } catch (e) {
+        await alertOps('TX pre-sale pass threw', `order=${row.id}\n${e?.message}`, { force: true });
+      }
+    } else if (plan === 'late_alert') {
+      await alertOps('TX pre-sale: district roll not loaded yet', `order=${row.id} cad=${k.cadId} ${k.property?.county || ''} year=${k.taxYear}\nLoad this district's ${k.taxYear} roll, or refund.`, { force: true });
+      await supabase.from('orders').update({ kit_order: { ...k, rollLateAlertAt: now.toISOString() } }).eq('id', row.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
+      lateAlerts++;
+    }
+  }
+  return { checked: (rows || []).length, processed, lateAlerts };
+}
+
 export default async function handler(req, res) {
   if (requireCronSecret(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Not configured.' });
@@ -97,5 +163,6 @@ export default async function handler(req, res) {
     // can never write a pre-sale order back over a finished one.
     await supabase.from('orders').update({ kit_order: k }).eq('id', row.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
   }
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted });
+  const tx = await txRollPass(supabase, now);
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx });
 }

@@ -11,6 +11,7 @@ import { normalizePerkCode, applyPerkToLineItems, RPC, PERK_AMOUNT_CENTS } from 
 import { Redis } from '@upstash/redis';
 import { gaSellability, gaPresaleSellability } from '../../lib/kit/gaQuote';
 import { txSellability } from '../../lib/kit/txQuote';
+import { txPresaleSellability } from '../../lib/kit/txPresale';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 
 let kitRedis = null;
@@ -165,7 +166,7 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
 // A Georgia pre-sale (16 Oct 2026) is checked by its own gate: no notice value
 // exists yet, so the full gate would refuse it. It is finished, or refunded,
 // when the notice arrives (lib/kit/presale.js).
-const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: txSellability };
+const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: (o) => (o?.presale === true ? txPresaleSellability(o) : txSellability(o)) };
 const kitState = (stateCode || '').trim().toUpperCase();
 const isKitGA = kitState === 'GA';
 const isKitTX = kitState === 'TX';
@@ -233,7 +234,19 @@ const countyPhrase = countyLabel ? `${countyLabel} County` : 'your county';
   It is also the only sentence some customers read carefully, because it is the
   one on the page where they type a card number.
 */
-const lineItems = isKitTX ? [
+const lineItems = isKitTX && kitOrder.presale === true ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Texas protest kit, reserved',
+description: `Reserved for ${kitOrder.property.address}. When the appraisal district publishes ${kitOrder.taxYear} values, we check your protest again. If it still lowers your bill, we mail you Form 50-132 filled in, the evidence and a return envelope addressed to the district, and email the PDF. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitTX ? [
 {
 price_data: {
 currency: 'usd',

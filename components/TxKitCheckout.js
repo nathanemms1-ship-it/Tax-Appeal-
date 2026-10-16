@@ -112,6 +112,31 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
     );
   }
 
+  // PRE-SALE (16 Oct 2026): screened on last year's roll; built on this year's
+  // when the district publishes it (lib/kit/txPresale.js), or refunded in full.
+  if (review?.presale) {
+    return (
+      <div style={panel}>
+        <p style={head}>Reserve your protest kit &mdash; ${SERVICE_PRICE_DOLLARS}</p>
+        <p style={body}>
+          On last year&rsquo;s values your home already looks over-appraised. Your district publishes {review.taxYear} values in the spring.
+          When it does, we check your protest again on the new values, automatically. If it still lowers your bill, we mail you
+          the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes and a return envelope addressed to the
+          appraisal district, and email the PDF the same day. If it no longer does, we refund you in full before anything is mailed.
+          You don&rsquo;t need to do anything until then.
+        </p>
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.6, color: K.ink, cursor: 'pointer' }}>
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
+          <span>I understand TaxAppeal USA prepares my protest and mails it to me. I sign and mail it myself; TaxAppeal USA does not file it, represent me or appear for me. If this year&rsquo;s values no longer show a case, I am refunded in full.</span>
+        </label>
+        <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
+          {busy ? 'Opening checkout\u2026' : `Reserve my protest kit \u2014 $${SERVICE_PRICE_DOLLARS}`}
+        </button>
+        {err && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
+      </div>
+    );
+  }
+
   return (
     <div style={panel}>
       <p style={head}>Your protest kit, mailed to you &mdash; ${SERVICE_PRICE_DOLLARS}</p>

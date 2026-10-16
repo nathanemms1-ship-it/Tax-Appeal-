@@ -37,6 +37,7 @@ import { findParcel, TX_LOOKUP, ROLL_YEAR } from '../../lib/tx/parcels';
 import { resolveCounty } from './resolve-county';
 import crypto from 'crypto';
 import { txKitDecision, txSellability, TX_QUOTE } from '../../lib/kit/txQuote';
+import { txPresaleOrder, txPresaleSellability } from '../../lib/kit/txPresale';
 
 /** Same lifetime as Georgia's kitKey (pages/api/ga-kit-quote.js). */
 export const TX_KIT_KEY_TTL_SECONDS = 7 * 24 * 3600;
@@ -61,6 +62,23 @@ export default async function handler(req, res) {
   let cadId = Number(b.cadId);
   let accountNumber = typeof b.accountNumber === 'string' ? b.accountNumber.trim() : '';
   const taxYear = Number(b.taxYear) || ROLL_YEAR;
+
+  /**
+   * PRE-SALE (16 Oct 2026). From 31 January the season's roll does not exist
+   * yet: districts publish this year's values around April, and until a
+   * district's new roll is loaded the latest we hold is last year's
+   * (lib/tx/rollYear.js). Then the protest is SCREENED on last year's roll and
+   * offered only as a reservation (lib/kit/txPresale.js), finished or refunded
+   * when the new roll loads. rollYearFor() decides per district.
+   */
+  let rollYear = taxYear;
+  const rollYearFor = async (cad) => {
+    if (!(taxYear > ROLL_YEAR)) return taxYear;
+    const dbr = getSupabaseAdmin();
+    if (!dbr) return taxYear;
+    const { data } = await dbr.from('tx_parcels').select('account_number').eq('cad_id', cad).eq('tax_year', taxYear).limit(1);
+    return Array.isArray(data) && data.length ? taxYear : ROLL_YEAR;
+  };
 
   /**
    * ========================================================================
@@ -137,7 +155,8 @@ export default async function handler(req, res) {
       if (!cadId || !isCovered(cadId)) {
         return res.status(400).json({ error: 'not_covered', county: place.county });
       }
-      const found = await findParcel({ street, cadId, zip: b.zip || null, taxYear });
+      rollYear = await rollYearFor(cadId);
+      const found = await findParcel({ street, cadId, zip: b.zip || null, taxYear: rollYear });
       if (found.status !== TX_LOOKUP.MATCHED) {
         // The same named failures /check reports. A document cannot be built on
         // an address the roll did not resolve, and guessing which parcel was
@@ -161,15 +180,17 @@ export default async function handler(req, res) {
     const db = getSupabaseAdmin();
     if (!db) return res.status(503).json({ error: 'lookup_failed', reason: 'no_database' });
 
+    if (rollYear === taxYear) rollYear = await rollYearFor(cadId);
+    const presale = rollYear !== taxYear;
     const { data, error } = await db.from('tx_parcels').select('*')
-      .eq('cad_id', cadId).eq('account_number', accountNumber).eq('tax_year', taxYear).limit(1);
+      .eq('cad_id', cadId).eq('account_number', accountNumber).eq('tax_year', rollYear).limit(1);
     if (error) return res.status(503).json({ error: 'lookup_failed', reason: 'query_error' });
     if (!data || !data.length) return res.status(404).json({ error: 'no_parcel' });
 
     // The untouched roll row. buildProtest, qualify and findComps all read the
     // roll's own column names -- see the seam note in lib/tx/parcels.js.
     const parcel = data[0];
-    const comps = await findComps(parcel, { rollYear: taxYear, db });
+    const comps = await findComps(parcel, { rollYear, db });
     /**
      * ISSUES AND COST OVERRIDES WERE BEING DISCARDED HERE.
      *
@@ -186,7 +207,7 @@ export default async function handler(req, res) {
       ? b.costOverrides : {};
 
     const packet = buildProtest({
-      parcel, comps, taxYear, issues, costOverrides, owner: b.owner || {},
+      parcel, comps, taxYear: rollYear, issues, costOverrides, owner: b.owner || {},
     });
 
     /**
@@ -339,11 +360,17 @@ export default async function handler(req, res) {
       },
       savings: { yearlySaving: packet.estimatedSaving ?? null },
     };
-    const sell = decision.decision === TX_QUOTE.CASE ? txSellability(kitOrder) : { ok: false, reason: decision.reason, noCase: true };
+    // A pre-sale stores the reservation, never a buildable order: the kit is
+    // rebuilt on this year's roll when it loads.
+    const stored = presale
+      ? txPresaleOrder({ packet, taxYear, screenYear: rollYear, cadId, accountNumber, county: LOADED_CADS[cadId] || null, owner: kitOrder.owner, protestOwner: b.owner || {}, issues, costOverrides })
+      : kitOrder;
+    const sell = decision.decision !== TX_QUOTE.CASE ? { ok: false, reason: decision.reason, noCase: true }
+      : presale ? txPresaleSellability(stored) : txSellability(kitOrder);
     let kitKey = null;
     if (sell.ok && redis) {
       kitKey = `kit:TX:${crypto.randomUUID()}`;
-      await redis.set(kitKey, JSON.stringify(kitOrder), { ex: TX_KIT_KEY_TTL_SECONDS });
+      await redis.set(kitKey, JSON.stringify(stored), { ex: TX_KIT_KEY_TTL_SECONDS });
     }
 
     const v = packet.verdict || {};
@@ -356,6 +383,9 @@ export default async function handler(req, res) {
       sellable: Boolean(kitKey),
       notSellableReason: kitKey ? null : (sell.ok ? 'kit_store_unavailable' : sell.reason),
       kitKey,
+      // A reservation screened on last year's roll (rollYear), for taxYear.
+      presale,
+      rollYear,
       requestedValue: packet.requestedValue,
       // reductionSought and hasGrid went with applyTxPacket (15 Oct): nothing
       // reads them now, and this response sends only what is read.

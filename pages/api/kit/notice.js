@@ -9,14 +9,13 @@
  * (lib/kit/noticeLink.js): an HMAC of the order id, nothing else. It can only
  * ever enter a notice for that one order.
  */
-import Stripe from 'stripe';
-import { Resend } from 'resend';
 import { enforceRateLimit } from '../../../lib/rateLimit';
 import { getSupabaseAdmin } from '../supabase';
 import { alertOps } from '../../../lib/alertOps';
 import { checkNoticeToken } from '../../../lib/kit/noticeLink';
 import { processGaNotice } from '../../../lib/kit/presale';
-import { dispatchKit, KIT_ROW_COLUMNS } from '../../../lib/kit/dispatchKit';
+import { KIT_ROW_COLUMNS } from '../../../lib/kit/dispatchKit';
+import { presaleDeps } from '../../../lib/kit/presaleDeps';
 import { formForCounty, FormError } from '../../../lib/kit/forms/gaForms';
 import { quoteDeps } from '../ga-kit-quote';
 
@@ -62,31 +61,10 @@ export default async function handler(req, res) {
   };
   if (!notice.noticeDate) return res.status(400).json({ error: 'Please enter the date printed on your notice.' });
 
-  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-  const update = (patch) => supabase.from('orders').update(patch).eq('id', row.id);
-
   try {
     const r = await processGaNotice(row, notice, {
       quoteDeps: quoteDeps({ ...k.quoteInput, taxYear: k.taxYear }),
-      claim: async (from, to) => {
-        const { data } = await supabase.from('orders').update({ dispute_status: to }).eq('id', row.id).eq('dispute_status', from).select('id');
-        return Array.isArray(data) && data.length === 1;
-      },
-      update,
-      refund: async (o) => {
-        if (!stripe) throw new Error('Stripe is not configured');
-        const session = await stripe.checkout.sessions.retrieve(o.stripe_session_id);
-        const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
-        if (!pi) throw new Error('No payment intent on the session');
-        return stripe.refunds.create({ payment_intent: pi, metadata: { order_id: o.id, reason: 'presale_no_case' } }, { idempotencyKey: `presale-refund-${o.id}` });
-      },
-      dispatch: (o) => dispatchKit(o, { supabase, resend, alertOps }),
-      sendEmail: async ({ to, subject, text }) => {
-        if (!resend || !to) return;
-        await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [to], subject, text });
-      },
-      alertOps,
+      ...presaleDeps(row, { supabase, alertOps }),
     });
     return res.status(200).json({ ...view, ...r });
   } catch (e) {

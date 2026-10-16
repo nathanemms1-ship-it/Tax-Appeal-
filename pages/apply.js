@@ -4255,7 +4255,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
    * picture should be is worse than no picture.
    */
   useEffect(() => {
-    if (!txReview || !txReview.sellable) return;
+    // No preview for a reservation: its form is built on this year's roll later.
+    if (!txReview || !txReview.sellable || txReview.presale) return;
     let gone = false;
     (async () => {
       try {
@@ -4984,7 +4985,7 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
                 txReview.yearBuilt ? `built ${txReview.yearBuilt}` : null].filter(Boolean).join('  \u00B7  ')}
             </div>
 
-            <DRow label={`Your appraised value (${txReview.taxYear || ''})`.trim()} value={fmtUsd(txReview.appraisedValue)} />
+            <DRow label={`Your appraised value (${txReview.rollYear || txReview.taxYear || ''})`.trim()} value={fmtUsd(txReview.appraisedValue)} />
             {rMed && <DRow label={`Median for ${txReview.compCount || 'similar'} similar homes nearby`} value={fmtSqft(rMed)} />}
             {rAbove !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', borderBottom: `1px solid ${D.line}` }}>

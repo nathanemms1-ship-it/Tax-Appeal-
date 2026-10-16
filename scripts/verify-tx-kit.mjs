@@ -139,7 +139,7 @@ t('the Texas kit does not import the Georgia kit (keeps 2 MB of GA forms out of 
   t('the preview path returns before any kitKey is issued', route.indexOf('b.preview === true') < route.indexOf('const decision = txKitDecision(packet)'));
   const checkout = read('pages/api/checkout.js');
   // INJECTION: drop TX from KIT_SELLABILITY -> FAILS.
-  t('checkout runs txSellability on the STORED Texas order before Stripe', /TX: txSellability/.test(checkout) && checkout.indexOf('KIT_SELLABILITY[kitState](kitOrder)') < checkout.indexOf('stripe.checkout.sessions.create'));
+  t('checkout runs txSellability on the STORED Texas order before Stripe', /TX: \(o\) => \(o\?\.presale === true \? txPresaleSellability\(o\) : txSellability\(o\)\)/.test(checkout) && checkout.indexOf('KIT_SELLABILITY[kitState](kitOrder)') < checkout.indexOf('stripe.checkout.sessions.create'));
   t('a stored order for another state is refused (no GA kitKey sold as TX)', /kitOrder\.state !== kitState/.test(checkout) && /\^kit:\$\{kitState\}:/.test(checkout));
   t('the Texas line item is the kit at the price constant, and never says we file', /Texas protest kit, mailed to you/.test(checkout) && /we do not file your protest or represent you/.test(checkout) && (checkout.match(/unit_amount: SERVICE_PRICE_CENTS/g) || []).length >= 2);
   const ui = read('components/TxKitCheckout.js');
