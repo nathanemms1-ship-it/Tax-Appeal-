@@ -55,6 +55,10 @@ export default async function handler(req, res) {
     const isPreOrder = meta.isPreOrder === 'true';
     const scheduledFileDate = meta.scheduledFileDate || null;
     const totalPaid = session.amount_total || (8900 + vabFee);
+    // KIT ORDERS (GA, TX; 15 Oct 2026) carry a kitKey in the metadata. The page
+    // needs only to know it is one: nothing is signed online and nothing goes to
+    // a county. The key itself points at the stored order and is not returned.
+    const isKit = typeof meta.kitKey === 'string' && /^kit:[A-Z]{2}:/.test(meta.kitKey);
 
     return res.status(200).json({
       paid: true,
@@ -100,6 +104,7 @@ export default async function handler(req, res) {
       flAuthDate,
       isPreOrder,
       scheduledFileDate,
+      isKit,
     });
   } catch (err) {
     console.error('Verify payment error:', err);

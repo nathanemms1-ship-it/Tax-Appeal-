@@ -4,6 +4,7 @@ import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { isStateServable, STATE_NAMES, servingFrom } from '../../../lib/stateService';
 import { isFlCountySupported } from '../../../lib/flVabAddresses';
 import { getFlVabFee } from '../../../lib/flCountyFees';
+import { kitCountyOpen } from '../../../lib/kit/countyOpen';
 
 /**
  * The two gates that decide whether we can file in a Florida county, in one place.
@@ -219,6 +220,37 @@ function buildCountyMissedEmail({ name, county, propertyAddress }) {
   };
 }
 
+/**
+ * "YOUR COUNTY IS OPEN" — Georgia and Texas kits, 15 Oct 2026.
+ *
+ * Sent once, to someone whose home had a real case but whose county could not
+ * be sold yet. It does not promise the old answer still holds: values and
+ * sales move, so the link sends them back through the check, which runs again
+ * before they pay.
+ */
+function buildKitCountyOpenEmail({ name, state, county, propertyAddress }) {
+  const firstName = name ? name.split(' ')[0] : 'there';
+  const isTX = state === 'TX';
+  const word = isTX ? 'protest' : 'appeal';
+  const co = String(county || '').replace(/\s+County\s*$/i, '').trim();
+  return {
+    subject: `${co} County is open: your ${word} kit is ready to order`,
+    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F4F7FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:560px;margin:40px auto;padding:0 16px 40px;">
+  <div style="text-align:center;padding:24px 0 18px;"><span style="font-size:20px;font-weight:700;color:#0F1F3D;"><span style="color:#22c55e;">Tax</span>Appeal USA</span></div>
+  <div style="background:#fff;border-radius:16px;padding:32px 34px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">${h(co)} County is open</h1>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)}. When you checked your home earlier, our check found a real case, but we could not take orders for ${h(co)} County yet because we had not confirmed where it takes ${word}s. We have now, so we can send you a kit addressed correctly.</p>
+    ${propertyAddress ? `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin:0 0 18px;"><div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Your property</div><div style="font-size:14px;color:#1e293b;">${h(propertyAddress)}</div></div>` : ''}
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 22px;">We will run the check again before you pay. If a ${word} still won't lower your tax bill by more than our fee, we'll tell you and won't sell you one.</p>
+    <div style="text-align:center;margin:0 0 8px;"><a href="https://www.taxappealusa.com/apply" style="display:inline-block;background:#C9A84C;color:#0F1F3D;font-weight:700;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:8px;">Check my home again &rarr;</a></div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;line-height:1.6;">TaxAppeal USA · 3130 Sabine St, Ste B, Forest Hill, TX 76119<br/>You asked us to tell you when ${h(co)} County opened. This is that email. TaxAppeal USA prepares ${word} documents; we do not file your ${word} or represent you.</p>
+</div></body></html>`,
+  };
+}
+
 // Season cap per person. Opening reminder, midpoint, and a final warning.
 const MAX_NOTIFICATIONS_PER_SEASON = 3;
 
@@ -327,7 +359,40 @@ export default async function handler(req, res) {
        * generic window reminder (which would send them to buy in a county we
        * still refuse at checkout).
        */
-      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible' || blocked_reason === 'ga_county_not_open' || blocked_reason === 'tx_county_not_open') {
+      /**
+       * ga_county_not_open / tx_county_not_open: ONE email, when the county opens
+       * for kits (lib/kit/countyOpen.js, the same checks checkout runs) and the
+       * season still lets them buy. Then the reason is cleared, so the row joins
+       * the ordinary reminder track. Until then, silence.
+       */
+      if (blocked_reason === 'ga_county_not_open' || blocked_reason === 'tx_county_not_open') {
+        const canBuy = !!(windowStatus?.canFile || windowStatus?.canPreOrder);
+        const open = kitCountyOpen(stateUpper, county, { now: new Date() }).open;
+        if (open && canBuy) {
+          const mail = buildKitCountyOpenEmail({ name, state: stateUpper, county, propertyAddress: property_address });
+          try {
+            await resend.emails.send({
+              from: 'TaxAppeal USA <reminders@taxappealusa.com>',
+              to: email, subject: mail.subject, html: mail.html,
+            });
+            await supabase.from('waitlist').update({
+              blocked_reason: null,
+              last_notified_at: new Date().toISOString(),
+              notified_count: (entry.notified_count || 0) + 1,
+            }).eq('id', id);
+            totalSent++;
+            console.log(`[notify-waitlist] ${county} County open for kits — told ${email}`);
+          } catch (emailErr) {
+            // Leave blocked_reason set so tomorrow's run tries again.
+            console.error(`[notify-waitlist] county-open email failed for ${email}:`, emailErr.message);
+          }
+        } else {
+          totalSkipped++;
+        }
+        continue;
+      }
+
+      if (blocked_reason === 'fl_no_parcel_record' || blocked_reason === 'fl_not_eligible') {
         totalSkipped++;
         console.log(`[notify-waitlist] skipping ${email} — ${blocked_reason} is not on the reminder track`);
         continue;

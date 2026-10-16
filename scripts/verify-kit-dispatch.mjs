@@ -206,6 +206,42 @@ const presaleReceipt = tpl.confirmationEmailTemplate({ firstName: 'Pat', lastNam
 t('the kit receipt never claims filing or certified mail', !/has been filed|certified mail|we mail it to the|is on its way to the/i.test(kitReceipt) && /we do not file your appeal/i.test(kitReceipt));
 t('the pre-sale receipt promises the refund if the case no longer holds', /refund you in full before anything is mailed/.test(presaleReceipt) && !/has been filed/i.test(presaleReceipt));
 
+// ── "YOUR COUNTY IS OPEN" (15 Oct 2026) ────────────────────────────────────
+// One email per ga/tx_county_not_open waitlister, only when checkout would now
+// sell in that county. INJECTION: drop the formForCounty call in countyOpen.js
+// -> FAILS (Clayton would be "open" while checkout refuses it).
+{
+  const { kitCountyOpen } = await import('../lib/kit/countyOpen.js');
+  const { getAppealAddress } = await import('../lib/appealAddresses.js');
+  const ok = (st) => () => ({ ...(st === 'GA' ? GWINNETT_ROW : { ...getAppealAddress('TX', 'El Paso'), confidence: 'confirmed', verifiedOn: '2027-03-01', cassValidated: true }) });
+  t('Georgia, state-form county, confirmed address: open', kitCountyOpen('GA', 'Gwinnett', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).open === true);
+  t('Georgia, county form unconfirmed (Clayton): not open even with an address', kitCountyOpen('GA', 'Clayton', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_unconfirmed');
+  t('Georgia, Cobb in 2027 (its form says 2026): not open', kitCountyOpen('GA', 'Cobb', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_wrong_year');
+  t('Texas, confirmed district address: open', kitCountyOpen('TX', 'El Paso', { now: NOW, addressLookup: ok('TX') }).open === true);
+  t('the real address tables today: nothing is open', kitCountyOpen('GA', 'Gwinnett', { now: NOW, taxYear: 2027 }).open === false && kitCountyOpen('TX', 'El Paso', { now: NOW }).open === false);
+  t('Florida is not a kit state here', kitCountyOpen('FL', 'Broward').open === false);
+  const cron = read('pages/api/cron/notify-waitlist.js');
+  const branch = cron.slice(cron.indexOf("if (blocked_reason === 'ga_county_not_open' || blocked_reason === 'tx_county_not_open') {"));
+  t('the cron emails a kit waitlister only when the county is open AND the season lets them buy', /kitCountyOpen\(stateUpper, county/.test(branch) && /if \(open && canBuy\)/.test(branch) && /canFile \|\| windowStatus\?\.canPreOrder/.test(branch));
+  t('the reason is cleared only after the email is sent (so it is sent once, and retried on failure)', branch.indexOf('resend.emails.send(') < branch.indexOf('blocked_reason: null') && branch.indexOf('blocked_reason: null') < branch.indexOf('continue;'));
+  t('the email sends them back through the check rather than promising the old answer', /We will run the check again before you pay/.test(cron));
+  t('the sellability gates make the same county calls', /formForCounty\(county, \{ taxYear: kitOrder\.taxYear \}\)/.test(read('lib/kit/gaQuote.js')) && /getAppealAddress\('GA', county\)/.test(read('lib/kit/gaQuote.js')) && /getAppealAddress\('TX', kitOrder\?\.property\?\.county\)/.test(read('lib/kit/txQuote.js')));
+}
+
+// ── THE PAGE AFTER PAYMENT (15 Oct 2026) ───────────────────────────────────
+// A paid kit customer used to land on "Your protest is filed!" and a timeline
+// promising certified mail to the district. INJECTION: drop the isKit branch in
+// pages/success.js -> FAILS.
+{
+  const vp = read('pages/api/verify-payment.js');
+  const succ = read('pages/success.js');
+  t('verify-payment says whether the order is a kit, without returning the kitKey', /const isKit = typeof meta\.kitKey === 'string'/.test(vp) && /^\s*isKit,$/m.test(vp) && !/kitKey:/.test(vp));
+  t('a kit order renders the kit confirmation before any signature step', /session\?\.isKit \? \(/.test(succ) && succ.indexOf('session?.isKit ? (') < succ.indexOf(') : needsSignature ? ('));
+  t('a kit order sets no mail status (no "manual dispatch" banner)', /if \(data\.isKit\) return;/.test(succ) && succ.indexOf('if (data.isKit) return;') < succ.indexOf("if (!canMail) { setMailStatus('manual')"));
+  const kitSucc = succ.slice(succ.indexOf('function KitSuccess('), succ.indexOf('function SetPasswordCard('));
+  t('the kit confirmation never says filed or certified, and says we do not file', kitSucc.length > 500 && !/certified|is filed|we file|we mail it to the/i.test(kitSucc) && /We do not file your \{word\}, represent you or appear for you/.test(kitSucc));
+}
+
 console.log(`verify-kit-dispatch: ${pass} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);
 process.exit(failures.length ? 1 : 0);

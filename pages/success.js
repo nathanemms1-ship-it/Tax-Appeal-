@@ -152,6 +152,10 @@ export default function Success() {
           }
         }
 
+        // A kit is mailed to the customer by the webhook; there is nothing to
+        // sign here and no dispatch status to show.
+        if (data.isKit) return;
+
         const canMail = data.districtName && data.districtAddress && data.letter && data.ownerStreet;
         if (!canMail) { setMailStatus('manual'); return; }
 
@@ -297,6 +301,9 @@ export default function Success() {
             <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 16 }}>{error}</p>
             <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy, fontSize: 14 }}>Contact us at customerservice@taxappealusa.com</a>
           </div>
+        ) : session?.isKit ? (
+          // GA and TX kits (15 Oct 2026): mailed to the customer, signed in ink.
+          <KitSuccess session={session} sessionId={session_id} />
         ) : needsSignature ? (
           // TX/GA/AR/AL: review + sign. Nothing mails until this completes.
           <SignatureStep
@@ -470,6 +477,92 @@ export default function Success() {
  * This page has already shipped a control that appeared to do nothing while the
  * server had succeeded. Nothing here reports success unless the response said so.
  */
+/**
+ * THE KIT CONFIRMATION. Georgia and Texas, 15 Oct 2026.
+ *
+ * Until this existed a paid kit customer fell through to the bottom of this
+ * page: "Your protest is filed!", "Letter queued for manual dispatch", and a
+ * timeline promising USPS certified mail to the appraisal district. Every line
+ * of that is false for a kit. We mail the kit to the CUSTOMER; they sign it,
+ * add postage and mail it themselves. scripts/verify-kit-dispatch.mjs holds
+ * this branch to that.
+ */
+function KitSuccess({ session, sessionId }) {
+  const isTX = session?.stateCode === 'TX';
+  const word = isTX ? 'protest' : 'appeal';
+  const where = isTX ? 'your appraisal district' : `the ${String(session?.county || '').replace(/\s+County\s*$/i, '').trim() || 'county'} County Board of Assessors`;
+  const first = session?.customerName ? `, ${session.customerName.split(' ')[0]}` : '';
+  const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 20 };
+  const label = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.mutedGray, marginBottom: 14, fontWeight: 500 };
+  const steps = [
+    { title: 'Payment confirmed', desc: 'Your payment has been processed.', done: true },
+    { title: `Your ${word} kit is printed and mailed to you`, desc: `By first-class mail, usually within a few business days. We email you the same kit as a PDF the moment it is sent, so you can start right away.` },
+    { title: 'You sign it and mail it', desc: `Sign the form in ink, put it in the return envelope we include, add a stamp and mail it to ${where}. The checklist inside shows the exact pages and the postmark deadline.` },
+    { title: `${isTX ? 'The district' : 'The county'} writes to you`, desc: isTX ? 'Usually with an informal conference or a hearing date. Forward us anything it sends and we will help you understand it.' : 'With its decision or a hearing date. Forward us anything it sends and we will help you understand it.' },
+  ];
+  return (
+    <>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ width: 72, height: 72, background: C.lightBlue, border: `2px solid ${C.green}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 20px' }}>✓</div>
+        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your {word} kit is on its way</h1>
+        <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
+          Thank you{first}. We are printing your completed, ready-to-sign {word} and mailing it to you. You sign it and mail it to {where}.
+        </p>
+      </div>
+
+      <div style={card}>
+        <div style={label}>Order Summary</div>
+        {[
+          ['Property', session?.address],
+          ['County', session?.county],
+          session?.targetReduction ? ['Value your ' + word + ' asks for', `$${Number(session.targetReduction).toLocaleString()}`] : null,
+          session?.savings ? ['Estimated yearly saving if granted', `$${Number(session.savings).toLocaleString()}`] : null,
+        ].filter(Boolean).map(([k, v]) => v ? (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, gap: 16 }}>
+            <span style={{ color: C.bodyGray, flexShrink: 0 }}>{k}</span>
+            <span style={{ color: C.darkNavy, fontWeight: 500, textAlign: 'right' }}>{v}</span>
+          </div>
+        ) : null)}
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 15 }}>
+          <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
+          <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((session && session.amountPaid) || 8900) / 100).toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div style={card}>
+        <div style={label}>What Happens Next</div>
+        {steps.map((st, i) => (
+          <div key={i} style={{ display: 'flex', gap: 14, marginBottom: i < steps.length - 1 ? 16 : 0, paddingBottom: i < steps.length - 1 ? 16 : 0, borderBottom: i < steps.length - 1 ? `1px solid ${C.border}` : 'none', opacity: st.done || i === 1 ? 1 : 0.6 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: st.done ? C.navy : C.bg, border: `1.5px solid ${st.done ? C.navy : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, color: st.done ? C.white : C.darkNavy }}>
+              {st.done ? '✓' : i + 1}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: C.darkNavy, marginBottom: 3 }}>{st.title}</div>
+              <div style={{ fontSize: 12.5, color: C.bodyGray, lineHeight: 1.5 }}>{st.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.lightBlue, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>Important</div>
+        <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
+          TaxAppeal USA prepares your {word} documents. We do not file your {word}, represent you or appear for you: you sign it and mail it, and the deadline is yours to meet. If {isTX ? 'the district' : 'the county'} does not lower your value, next year&rsquo;s kit is free.
+          A confirmation has been sent to <strong>{session?.email}</strong>.
+        </div>
+      </div>
+
+      <SetPasswordCard sessionId={sessionId} email={session?.email} isPreOrder={false} />
+
+      <div style={{ textAlign: 'center', fontSize: 13, color: C.mutedGray, lineHeight: 1.8 }}>
+        Questions? Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>
+        <br />
+        <a href="/" style={{ color: C.navy }}>← Back to TaxAppeal</a>
+      </div>
+    </>
+  );
+}
+
 function SetPasswordCard({ sessionId, email, isPreOrder }) {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
