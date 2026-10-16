@@ -40,7 +40,9 @@ const input = ({ property = {}, ...o } = {}) => ({
 // ── 1. THE PRE-SALE SCREEN: A 2026 CASE BEFORE WE TAKE MONEY ────────────────
 calls = 0;
 t('homestead is asked before any RentCast call', (await presaleGaKit(input({ homestead: undefined }), deps())).reason === 'need_homestead_answer' && calls === 0);
-t("last year's value is required", (await presaleGaKit(input({ priorValue: '' }), deps())).reason === 'need_prior_value');
+// Nathan, 16 Oct: "if we cant list the value then no sale".
+const noVal = await presaleGaKit(input({ priorValue: '' }), deps());
+t("no value typed and none found: no reservation, and they're pointed to the county's search", noVal.decision === QUOTE.NEED_INFO && noVal.reason === 'need_prior_value' && /GwinnettCountyGA/.test(noVal.countySearchUrl) && !noVal.kitOrder);
 const q = await presaleGaKit(input(), deps());
 // INJECTION: drop the caseCheck in presaleGaKit -> FAILS (a fairly valued home would be pre-sold, then refunded).
 t('2026 value above what sales support: a pre-sale case', q.decision === QUOTE.CASE && q.presale === true && q.savings.yearlySaving >= 89);
@@ -52,6 +54,41 @@ t('a Fulton homestead (capped county and schools): the bill check refuses the pr
 t('too few recorded sales: no pre-sale', (await presaleGaKit(input(), { ...deps(), fetchSales: async () => SALES.slice(0, 2) })).reason === 'too_few_comps');
 t('the pre-sale order carries no notice value (nothing can be built from it)', q.kitOrder && q.kitOrder.presale === true && q.kitOrder.noticeValue === undefined && q.kitOrder.requestedValue === undefined);
 t('it carries what the notice step needs to re-run', q.kitOrder.quoteInput.property.county === 'Gwinnett' && q.kitOrder.quoteInput.homestead === false && q.kitOrder.prior.value === 480000);
+
+// ── 1b. WE LOOK IT UP OURSELVES WHERE WE CAN (lib/ga/priorValue.js) ───────
+{
+  const { lookupPriorValue, countySearchUrl, houseNumber, GA_VALUE_SOURCES, GA_SEARCH_FALLBACK } = await import('../lib/ga/priorValue.js');
+  let looked = 0;
+  const found = (value) => async () => { looked++; return { ok: true, value, parcelId: 'R7001 001', county: 'Gwinnett', source: 'county_gis' }; };
+  const viaCounty = await presaleGaKit(input({ priorValue: '' }), { ...deps(), lookupPriorValue: found(480000) });
+  // INJECTION: never call lookupPriorValue -> FAILS.
+  t("the county's record is used when we can read it", viaCounty.decision === QUOTE.CASE && viaCounty.priorValue === 480000 && viaCounty.priorValueSource === 'county' && looked === 1);
+  t("...and its parcel id rides on the reservation", viaCounty.kitOrder.property.parcelId === 'R7001 001' && viaCounty.kitOrder.prior.source === 'county');
+  t("a county's 100% figure is never questioned as a 40% typing slip", (await presaleGaKit(input({ priorValue: '' }), { ...deps(), lookupPriorValue: found(160000) })).reason === 'not_over_assessed');
+  looked = 0;
+  t('a value the customer typed is used as typed (no lookup)', (await presaleGaKit(input({ priorValue: 480000 }), { ...deps(), lookupPriorValue: found(1) })).priorValueSource === 'customer' && looked === 0);
+  t('a failed lookup means no reservation', (await presaleGaKit(input({ priorValue: '' }), { ...deps(), lookupPriorValue: async () => ({ ok: false, reason: 'address_mismatch' }) })).reason === 'need_prior_value');
+
+  // The lookup itself, against a fake county service.
+  const svc = (features, { ok = true, raw = null } = {}) => async () => ({ ok, json: async () => (raw ?? { features: features.map((a) => ({ attributes: a })) }) });
+  const at0 = { lat: 33.9, lon: -84.5, county: 'Cobb', street: '1520 Oak Ridge Dr' };
+  t('one parcel, matching house number: its 100% value', (await lookupPriorValue(at0, { fetchImpl: svc([{ PIN: 'P1', FMV_TOTAL: 391560, ST_NUMBER: 1520 }]) })).value === 391560);
+  // INJECTION: drop the house-number check -> FAILS (a neighbour's value would screen this home).
+  t("a parcel whose house number isn't theirs is not used", (await lookupPriorValue(at0, { fetchImpl: svc([{ PIN: 'P1', FMV_TOTAL: 391560, ST_NUMBER: 1522 }]) })).reason === 'address_mismatch');
+  t('two different parcels at the point (a stacked condo): not used', (await lookupPriorValue(at0, { fetchImpl: svc([{ PIN: 'P1', FMV_TOTAL: 1, ST_NUMBER: 1520 }, { PIN: 'P2', FMV_TOTAL: 2, ST_NUMBER: 1520 }]) })).reason === 'ambiguous');
+  t('the same parcel twice (Fayette does this) counts once', (await lookupPriorValue({ ...at0, county: 'Fayette', street: '423 Mask Rd' }, { fetchImpl: svc([{ parcelid: 'F1', cnttxblval: 1459895, siteaddress: '423 MASK RD' }, { parcelid: 'F1', cnttxblval: 1459895, siteaddress: '423 MASK RD' }]) })).value === 1459895);
+  t("Fayette's 100% value is cnttxblval, not the 40% cntassdval", GA_VALUE_SOURCES.Fayette.value === 'cnttxblval' && GA_VALUE_SOURCES.Forsyth.value === 'CNTASSDVAL');
+  t("Clayton's text values are read as numbers", (await lookupPriorValue({ ...at0, county: 'Clayton', street: '7 Elm St' }, { fetchImpl: svc([{ PARCELID: 'C1', APPRVAL: '139400', STREETNO: '7' }]) })).value === 139400);
+  t('no parcel, a county server error or a dead server: nothing, never a guess', (await lookupPriorValue(at0, { fetchImpl: svc([]) })).reason === 'no_parcel'
+    && (await lookupPriorValue(at0, { fetchImpl: svc([], { raw: { error: { code: 500 } } }) })).reason === 'unreachable'
+    && (await lookupPriorValue(at0, { fetchImpl: async () => { throw new Error('ECONNRESET'); } })).reason === 'unreachable');
+  t('a county we have no service for is not looked up', (await lookupPriorValue({ ...at0, county: 'Fulton' }, { fetchImpl: async () => { throw new Error('must not call'); } })).reason === 'no_source');
+  t('house numbers compare as numbers ("0123" is 123)', houseNumber('0123 Main') === '123' && houseNumber(1520) === '1520' && houseNumber('Lot 4') === null);
+  t('every county we serve has its own property search link; others get the state list', ['Fulton', 'Gwinnett', 'Cobb', 'DeKalb', 'Cherokee', 'Henry', 'Clayton', 'Chatham'].every((c) => countySearchUrl(c) !== GA_SEARCH_FALLBACK) && countySearchUrl('Echols') === GA_SEARCH_FALLBACK);
+  t('the quote route passes the lookup to the pre-sale check', /presaleGaKit\(input, \{ \.\.\.quoteDeps\(input\), lookupPriorValue \}\)/.test(read('pages/api/ga-kit-quote.js')));
+  const stepSrc = read('components/GaKitStep.js');
+  t('the funnel only asks for the value when we could not find it, with the county link', /\{askPrior && \(/.test(stepSrc) && /setAskPrior\(true\)/.test(stepSrc) && /quote\.countySearchUrl/.test(stepSrc));
+}
 
 // ── 2. THE PRE-SALE GATE ────────────────────────────────────────────────────
 // INJECTION: skip the address check in gaPresaleSellability -> FAILS.
@@ -163,7 +200,7 @@ t("the cron's write cannot overwrite a finished order", /\.update\(\{ kit_order:
 
 // ── 7. THE FUNNEL AND THE PAGE AFTER PAYMENT ────────────────────────────────
 const step = read('components/GaKitStep.js');
-t('the funnel asks whether the notice has arrived, and pre-sells on last year\'s value', /Has your \{taxYear\} Notice of Assessment arrived\?/.test(step) && /presale: true, priorValue/.test(step));
+t('the funnel asks whether the notice has arrived, and pre-sells on last year\'s value', /Has your \{taxYear\} Notice of Assessment arrived\?/.test(step) && /presale: true, \.\.\.\(askPrior \? \{ priorValue \} : \{\}\)/.test(step));
 t('no reservation without the acknowledgment, which states the refund', /Reserve my appeal kit/.test(step) && /If my notice no longer shows a case, I am refunded in full/.test(step));
 t('the 40% question offers a one-tap confirmation', /prior_value_looks_assessed/.test(step) && /is the 100% value/.test(step));
 t('the order records the value asked for, as everywhere else', /targetReduction: quote\.requestedValue/.test(step));

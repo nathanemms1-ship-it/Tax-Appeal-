@@ -19,6 +19,7 @@ import { checkSpend } from '../../lib/spendGuard';
 import { lookupProperty, RentcastError } from '../../lib/providers/rentcast';
 import { rentcastSales } from '../../lib/kit/comps';
 import { quoteGaKit, presaleGaKit, QUOTE } from '../../lib/kit/gaQuote';
+import { lookupPriorValue } from '../../lib/ga/priorValue';
 
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
 
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
   try {
     // Pre-sale: before the notice, on last year's value (lib/kit/gaQuote.js presaleGaKit).
     const quote = input.presale
-      ? await presaleGaKit(input, quoteDeps(input))
+      ? await presaleGaKit(input, { ...quoteDeps(input), lookupPriorValue })
       : await quoteGaKit(input, quoteDeps(input));
 
     let kitKey = null;

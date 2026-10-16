@@ -63,9 +63,12 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
   const [priorValue, setPriorValue] = useState('');
   const [priorValueConfirmed, setPriorValueConfirmed] = useState(false);
   const presale = arrived === false;
+  // We look last year's value up ourselves where the county publishes it
+  // (lib/ga/priorValue.js); the box only appears when we could not.
+  const [askPrior, setAskPrior] = useState(false);
 
   const ready = presale
-    ? Number(String(priorValue).replace(/[^0-9]/g, '')) > 0 && typeof homestead === 'boolean'
+    ? typeof homestead === 'boolean' && (!askPrior || Number(String(priorValue).replace(/[^0-9]/g, '')) > 0)
     : arrived === true && Number(String(noticeValue).replace(/[^0-9]/g, '')) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(noticeDate)
     && typeof homestead === 'boolean'
     && (!isChatham || typeof ownedOnJan1 === 'boolean')
@@ -81,7 +84,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           owner: { name: `${account.firstName} ${account.lastName}`.trim(), street: ownerMail.street, city: ownerMail.city, state: ownerMail.state, zip: ownerMail.zip, phone: account.mobile || '', email: account.email },
           taxYear, homestead, parcelId,
           ...(presale
-            ? { presale: true, priorValue, priorValueConfirmed: confirmed === true }
+            ? { presale: true, ...(askPrior ? { priorValue } : {}), priorValueConfirmed: confirmed === true }
             : {
               noticeValue, noticeDate,
               ...(isChatham ? { ownedOnJan1 } : {}),
@@ -92,6 +95,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'The check failed. Please try again.');
       setQuote(j);
+      if (j.presale && j.reason === 'need_prior_value') setAskPrior(true);
       // A real case in a county we cannot sell yet: save them for the "your
       // county is open" email rather than losing them.
       if (j.decision === 'case' && !j.sellable && account.email) {
@@ -147,9 +151,11 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           Reserve now and we&rsquo;ll check your case twice: today on last year&rsquo;s value, and again the day your notice arrives.
           If an appeal still lowers your bill then, we mail you the kit. If it doesn&rsquo;t, we refund you in full before anything is mailed.
         </p>
-        <label style={label} htmlFor="ga-pv">Last year&rsquo;s ({taxYear - 1}) fair market value</label>
-        <input id="ga-pv" style={input} inputMode="numeric" placeholder="e.g. 430,000" value={priorValue} onChange={(e) => { setPriorValue(e.target.value); setPriorValueConfirmed(false); }} />
-        <div style={help}>From last year&rsquo;s notice or your tax bill. Use the <b>100% fair market value</b>, not the 40% assessed value.</div>
+        {askPrior && (<>
+          <label style={label} htmlFor="ga-pv">Last year&rsquo;s ({taxYear - 1}) fair market value</label>
+          <input id="ga-pv" style={input} inputMode="numeric" placeholder="e.g. 430,000" value={priorValue} onChange={(e) => { setPriorValue(e.target.value); setPriorValueConfirmed(false); }} />
+          <div style={help}>From last year&rsquo;s notice or your tax bill, or {county ? `${county} County's` : "your county's"} property search{quote?.countySearchUrl ? <> (<a href={quote.countySearchUrl} target="_blank" rel="noopener noreferrer">look it up here</a>)</> : ''}. Use the <b>100% fair market value</b>, not the 40% assessed value.</div>
+        </>)}
 
         <label style={label} htmlFor="ga-pid0">Parcel ID (optional)</label>
         <input id="ga-pid0" style={input} placeholder="As printed on your tax bill" value={parcelId} onChange={(e) => setParcelId(e.target.value)} />
@@ -218,7 +224,14 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
         </div>
       )}
 
-      {quote && quote.decision === 'need_info' && quote.reason !== 'prior_value_looks_assessed' && (
+      {quote && quote.decision === 'need_info' && quote.reason === 'need_prior_value' && (
+        <div style={{ ...box, borderColor: K.warn }}>
+          <p style={{ marginTop: 0 }}>We couldn&rsquo;t read last year&rsquo;s value for this home from {county ? `${county} County's` : "the county's"} online records, and we only take a reservation once we can check it.</p>
+          <p style={{ marginBottom: 0 }}>It&rsquo;s printed on last year&rsquo;s assessment notice and on your tax bill, or you can find it on the {quote.countySearchUrl ? <a href={quote.countySearchUrl} target="_blank" rel="noopener noreferrer">county&rsquo;s property search</a> : "county's property search"}. Enter it above and check again. If you can&rsquo;t find it, come back when your {taxYear} notice arrives.</p>
+        </div>
+      )}
+
+      {quote && quote.decision === 'need_info' && quote.reason !== 'prior_value_looks_assessed' && quote.reason !== 'need_prior_value' && (
         <div style={{ ...box, borderColor: K.warn }}>Please answer the question{quote.reason === 'need_homestead_answer' ? ' about your homestead exemption' : ' about your county\'s form'} above, then check again.</div>
       )}
 
@@ -228,7 +241,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           {quote.presale && <p style={help}>On last year&rsquo;s value. Your {taxYear} notice decides it: we check again the day it arrives.</p>}
           <table style={{ width: '100%', fontSize: 15, borderCollapse: 'collapse' }}>
             <tbody>
-              <tr><td>{quote.presale ? `Last year's value (${taxYear - 1})` : 'Value on your notice'}</td><td style={{ textAlign: 'right' }}>{money(quote.presale ? quote.priorValue : quote.noticeValue)}</td></tr>
+              <tr><td>{quote.presale ? (quote.priorValueSource === 'county' ? `Value on ${county} County's records` : `Last year's value (${taxYear - 1})`) : 'Value on your notice'}</td><td style={{ textAlign: 'right' }}>{money(quote.presale ? quote.priorValue : quote.noticeValue)}</td></tr>
               <tr><td>What recent sales of similar homes indicate</td><td style={{ textAlign: 'right' }}>{money(quote.indicatedValue)}</td></tr>
               <tr><td><b>Your appeal asks for</b></td><td style={{ textAlign: 'right' }}><b>{money(quote.requestedValue)}</b></td></tr>
               <tr><td><b>Estimated yearly tax saving</b></td><td style={{ textAlign: 'right', color: K.good }}><b>about {money(quote.savings?.yearlySaving)}</b></td></tr>
