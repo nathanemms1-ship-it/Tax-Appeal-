@@ -158,7 +158,8 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         banner: '#1B2A4A',
         heading: 'You Are Reserved',
         subheading: 'We build your kit when your assessment notice arrives',
-        intro: 'Thank you — your payment is in. When your assessment notice arrives, tell us the value on it and we check your case again. If an appeal still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
+        intro: 'Thank you — your payment is in. When your assessment notice arrives, tell us the value on it and we check your case again. If an appeal still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed. Keep this email: the button below is your private link for entering your notice.',
+        ctaLabel: 'Enter my notice when it arrives',
       };
 
     default:
@@ -183,8 +184,10 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   }).subject;
 }
 
-export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode, orderStatus, vabFee, scheduledFileDate, signingUrl = null }) {
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode, orderStatus, vabFee, scheduledFileDate, signingUrl = null, noticeUrl = null }) {
   const fullName = `${firstName} ${lastName}`;
+  // The one button a receipt may carry: the signing link, or (pre-sale) the notice link.
+  const ctaUrl = orderStatus === 'awaiting_notice' ? noticeUrl : signingUrl;
   const year = new Date().getFullYear();
 
   /**
@@ -297,7 +300,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                 ${h(claim.intro)}
               </p>
 
-              ${claim.ctaLabel && signingUrl ? `
+              ${claim.ctaLabel && ctaUrl ? `
               <!--
                 THE BUTTON THAT WAS NOT THERE. 25 Aug 2026.
                 Both signature emails told the customer to sign and gave them
@@ -310,12 +313,12 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
                 <tr>
                   <td align="center">
-                    <a href="${h(signingUrl)}" style="display:inline-block;background:#1B2A4A;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:6px;">
+                    <a href="${h(ctaUrl)}" style="display:inline-block;background:#1B2A4A;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:6px;">
                       ${h(claim.ctaLabel)}
                     </a>
                     <div style="margin-top:10px;font-size:12px;color:#8596AF;">
                       Or paste this into your browser:<br/>
-                      <span style="color:#5A6B82;word-break:break-all;">${h(signingUrl)}</span>
+                      <span style="color:#5A6B82;word-break:break-all;">${h(ctaUrl)}</span>
                     </div>
                   </td>
                 </tr>

@@ -56,13 +56,22 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [agreed, setAgreed] = useState(false);
+  // PRE-SALE (16 Oct 2026). Before the notice arrives, the check runs on LAST
+  // year's value (lib/kit/gaQuote.js presaleGaKit) and the kit is built when the
+  // notice comes in, or refunded in full.
+  const [arrived, setArrived] = useState(undefined);
+  const [priorValue, setPriorValue] = useState('');
+  const [priorValueConfirmed, setPriorValueConfirmed] = useState(false);
+  const presale = arrived === false;
 
-  const ready = Number(String(noticeValue).replace(/[^0-9]/g, '')) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(noticeDate)
+  const ready = presale
+    ? Number(String(priorValue).replace(/[^0-9]/g, '')) > 0 && typeof homestead === 'boolean'
+    : arrived === true && Number(String(noticeValue).replace(/[^0-9]/g, '')) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(noticeDate)
     && typeof homestead === 'boolean'
     && (!isChatham || typeof ownedOnJan1 === 'boolean')
     && (!isFulton || typeof fultonBilling100 === 'boolean');
 
-  const runCheck = async () => {
+  const runCheck = async (confirmed = priorValueConfirmed) => {
     setBusy(true); setErr(''); setQuote(null);
     try {
       const r = await fetch('/api/ga-kit-quote', {
@@ -70,9 +79,14 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
         body: JSON.stringify({
           property: { street: property.street, city: property.city, state: 'GA', zip: property.zip, county },
           owner: { name: `${account.firstName} ${account.lastName}`.trim(), street: ownerMail.street, city: ownerMail.city, state: ownerMail.state, zip: ownerMail.zip, phone: account.mobile || '', email: account.email },
-          taxYear, noticeValue, noticeDate, homestead, parcelId,
-          ...(isChatham ? { ownedOnJan1 } : {}),
-          ...(isFulton ? { fultonBilling100, ...(typeof virtualHearing === 'boolean' ? { virtualHearing } : {}) } : {}),
+          taxYear, homestead, parcelId,
+          ...(presale
+            ? { presale: true, priorValue, priorValueConfirmed: confirmed === true }
+            : {
+              noticeValue, noticeDate,
+              ...(isChatham ? { ownedOnJan1 } : {}),
+              ...(isFulton ? { fultonBilling100, ...(typeof virtualHearing === 'boolean' ? { virtualHearing } : {}) } : {}),
+            }),
         }),
       });
       const j = await r.json();
@@ -101,7 +115,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           email: account.email, firstName: account.firstName, lastName: account.lastName,
           address: `${property.street}, ${property.city}, GA ${property.zip}`, county,
           parcelId: parcelId || quote.subject?.parcelId || '',
-          assessedValue: quote.noticeValue, targetReduction: quote.caseCheck?.reduction || null,
+          assessedValue: quote.presale ? quote.priorValue : quote.noticeValue, targetReduction: quote.requestedValue || null, // the value asked for, as target_reduction means everywhere else
           savings: quote.savings?.yearlySaving || null,
           ownerStreet: ownerMail.street, ownerCity: ownerMail.city, ownerState: ownerMail.state, ownerZip: ownerMail.zip,
           stateCode: 'GA', kitKey: quote.kitKey, refCode, perkCode,
@@ -121,6 +135,35 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
         If an appeal won't lower your bill, we'll tell you and we won't sell you one.
       </p>
 
+      <div style={box}>
+        <label style={{ ...label, marginTop: 0 }}>Has your {taxYear} Notice of Assessment arrived?</label>
+        <YesNo value={arrived} onChange={(v) => { setArrived(v); setQuote(null); setAgreed(false); }} yes="Yes, I have it" no="Not yet" />
+        <div style={help}>Georgia counties mail notices between April and June.</div>
+      </div>
+
+      {presale && (
+      <div style={box}>
+        <p style={{ marginTop: 0 }}>
+          Reserve now and we&rsquo;ll check your case twice: today on last year&rsquo;s value, and again the day your notice arrives.
+          If an appeal still lowers your bill then, we mail you the kit. If it doesn&rsquo;t, we refund you in full before anything is mailed.
+        </p>
+        <label style={label} htmlFor="ga-pv">Last year&rsquo;s ({taxYear - 1}) fair market value</label>
+        <input id="ga-pv" style={input} inputMode="numeric" placeholder="e.g. 430,000" value={priorValue} onChange={(e) => { setPriorValue(e.target.value); setPriorValueConfirmed(false); }} />
+        <div style={help}>From last year&rsquo;s notice or your tax bill. Use the <b>100% fair market value</b>, not the 40% assessed value.</div>
+
+        <label style={label} htmlFor="ga-pid0">Parcel ID (optional)</label>
+        <input id="ga-pid0" style={input} placeholder="As printed on your tax bill" value={parcelId} onChange={(e) => setParcelId(e.target.value)} />
+
+        <label style={label}>Do you have a homestead exemption on this home?</label>
+        <YesNo value={homestead} onChange={setHomestead} />
+
+        <button style={ready && !busy ? btn : btnOff} disabled={!ready || busy} onClick={() => runCheck()}>
+          {busy && !quote ? 'Checking your home…' : 'Check my home'}
+        </button>
+      </div>
+      )}
+
+      {arrived === true && (
       <div style={box}>
         <label style={label} htmlFor="ga-nv">Value on your {taxYear} assessment notice</label>
         <input id="ga-nv" style={input} inputMode="numeric" placeholder="e.g. 452,000" value={noticeValue} onChange={(e) => setNoticeValue(e.target.value)} />
@@ -150,10 +193,11 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           <div style={help}>If you don't answer, Fulton schedules an in-person hearing if one is needed.</div>
         </>)}
 
-        <button style={ready && !busy ? btn : btnOff} disabled={!ready || busy} onClick={runCheck}>
+        <button style={ready && !busy ? btn : btnOff} disabled={!ready || busy} onClick={() => runCheck()}>
           {busy && !quote ? 'Checking your home…' : 'Check my appeal'}
         </button>
       </div>
+      )}
 
       {err && <div style={{ ...box, borderColor: K.bad, color: K.bad }}>{err}</div>}
 
@@ -161,21 +205,30 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
         <div style={{ ...box, background: K.bg }}>
           <h3 style={{ marginTop: 0 }}>We don't recommend an appeal this year</h3>
           <p>{NO_CASE_COPY[quote.reason] || "Based on what we found, an appeal isn't likely to lower your tax bill, so we won't sell you a kit."}</p>
-          {quote.indicatedValue ? <p style={help}>Recent sales indicate about {money(quote.indicatedValue)}; your notice says {money(quote.noticeValue)}.</p> : null}
+          {quote.indicatedValue ? <p style={help}>Recent sales indicate about {money(quote.indicatedValue)}; {quote.presale ? `last year's value was ${money(quote.priorValue)}` : `your notice says ${money(quote.noticeValue)}`}.</p> : null}
+          {quote.presale && <p style={help}>We don&rsquo;t take a reservation on that. If your {taxYear} notice comes in higher, check again then: it may show a case.</p>}
           <p style={help}>No charge. You're always free to appeal on your own.</p>
         </div>
       )}
 
-      {quote && quote.decision === 'need_info' && (
+      {quote && quote.decision === 'need_info' && quote.reason === 'prior_value_looks_assessed' && (
+        <div style={{ ...box, borderColor: K.warn }}>
+          <p style={{ marginTop: 0 }}>{money(quote.priorValue)} looks like the <b>40% assessed value</b>. Georgia notices and tax bills print both. Please check you entered the <b>100% fair market value</b>.</p>
+          <button style={btn} onClick={() => { setPriorValueConfirmed(true); runCheck(true); }}>Yes, {money(quote.priorValue)} is the 100% value</button>
+        </div>
+      )}
+
+      {quote && quote.decision === 'need_info' && quote.reason !== 'prior_value_looks_assessed' && (
         <div style={{ ...box, borderColor: K.warn }}>Please answer the question{quote.reason === 'need_homestead_answer' ? ' about your homestead exemption' : ' about your county\'s form'} above, then check again.</div>
       )}
 
       {quote && quote.decision === 'case' && (
         <div style={box}>
-          <h3 style={{ marginTop: 0, color: K.good }}>An appeal is worth it</h3>
+          <h3 style={{ marginTop: 0, color: K.good }}>{quote.presale ? 'Your home already looks over-valued' : 'An appeal is worth it'}</h3>
+          {quote.presale && <p style={help}>On last year&rsquo;s value. Your {taxYear} notice decides it: we check again the day it arrives.</p>}
           <table style={{ width: '100%', fontSize: 15, borderCollapse: 'collapse' }}>
             <tbody>
-              <tr><td>Value on your notice</td><td style={{ textAlign: 'right' }}>{money(quote.noticeValue)}</td></tr>
+              <tr><td>{quote.presale ? `Last year's value (${taxYear - 1})` : 'Value on your notice'}</td><td style={{ textAlign: 'right' }}>{money(quote.presale ? quote.priorValue : quote.noticeValue)}</td></tr>
               <tr><td>What recent sales of similar homes indicate</td><td style={{ textAlign: 'right' }}>{money(quote.indicatedValue)}</td></tr>
               <tr><td><b>Your appeal asks for</b></td><td style={{ textAlign: 'right' }}><b>{money(quote.requestedValue)}</b></td></tr>
               <tr><td><b>Estimated yearly tax saving</b></td><td style={{ textAlign: 'right', color: K.good }}><b>about {money(quote.savings?.yearlySaving)}</b></td></tr>
@@ -195,7 +248,20 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
             </details>
           )}
 
-          {quote.sellable && quote.kitKey ? (<>
+          {quote.sellable && quote.kitKey && quote.presale ? (<>
+            <div style={{ ...box, background: K.bg }}>
+              <b>Reserve your kit for ${SERVICE_PRICE_DOLLARS}.</b> When your notice arrives, enter its value from the link in your receipt and we check again.
+              If an appeal still lowers your bill, we mail you your completed appeal on {county} County&rsquo;s own form, with the evidence page and a return envelope addressed to the county, and email the PDF.
+              If it no longer does, we refund you in full before anything is mailed.
+            </div>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>I understand TaxAppeal USA prepares my appeal documents only. I sign and mail my own appeal; TaxAppeal USA does not file it, represent me or appear for me, and no outcome is guaranteed. If my notice no longer shows a case, I am refunded in full. If the county does not lower my value, next year's kit is free.</span>
+            </label>
+            <button style={agreed && !busy ? btn : btnOff} disabled={!agreed || busy} onClick={checkout}>
+              {busy ? 'Opening secure checkout…' : `Reserve my appeal kit — $${SERVICE_PRICE_DOLLARS}`}
+            </button>
+          </>) : quote.sellable && quote.kitKey ? (<>
             <div style={{ ...box, background: K.bg }}>
               <b>What you get for ${SERVICE_PRICE_DOLLARS}:</b> your completed appeal on {county} County's own form, with the evidence page and a return envelope already addressed to the county, mailed to you — plus the same kit as a PDF emailed today. You sign it, add postage and mail it.
             </div>

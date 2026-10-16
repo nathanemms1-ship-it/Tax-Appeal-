@@ -494,7 +494,13 @@ function KitSuccess({ session, sessionId }) {
   const first = session?.customerName ? `, ${session.customerName.split(' ')[0]}` : '';
   const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 20 };
   const label = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.mutedGray, marginBottom: 14, fontWeight: 500 };
-  const steps = [
+  const presale = session?.kitPresale === true;
+  const steps = presale ? [
+    { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
+    { title: 'Your notice arrives', desc: 'Counties mail notices between April and June. Enter its value and date from the link in your receipt email; we remind you too.' },
+    { title: 'We check your case again', desc: `If an ${word} still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.` },
+    { title: 'You sign it and mail it', desc: `Sign the form in ink, add a stamp and mail it to ${where} in the return envelope we include.` },
+  ] : [
     { title: 'Payment confirmed', desc: 'Your payment has been processed.', done: true },
     { title: `Your ${word} kit is printed and mailed to you`, desc: `By first-class mail, usually within a few business days. We email you the same kit as a PDF the moment it is sent, so you can start right away.` },
     { title: 'You sign it and mail it', desc: `Sign the form in ink, put it in the return envelope we include, add a stamp and mail it to ${where}. The checklist inside shows the exact pages and the postmark deadline.` },
@@ -504,9 +510,11 @@ function KitSuccess({ session, sessionId }) {
     <>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ width: 72, height: 72, background: C.lightBlue, border: `2px solid ${C.green}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 20px' }}>✓</div>
-        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>Your {word} kit is on its way</h1>
+        <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{presale ? `Your ${word} kit is reserved` : `Your ${word} kit is on its way`}</h1>
         <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-          Thank you{first}. We are printing your completed, ready-to-sign {word} and mailing it to you. You sign it and mail it to {where}.
+          {presale
+            ? `Thank you${first}. When your assessment notice arrives, enter its value from the link in your receipt email. We check your case again then: we mail your kit, or refund you in full.`
+            : `Thank you${first}. We are printing your completed, ready-to-sign ${word} and mailing it to you. You sign it and mail it to ${where}.`}
         </p>
       </div>
 
@@ -515,7 +523,7 @@ function KitSuccess({ session, sessionId }) {
         {[
           ['Property', session?.address],
           ['County', session?.county],
-          session?.targetReduction ? ['Value your ' + word + ' asks for', `$${Number(session.targetReduction).toLocaleString()}`] : null,
+          session?.targetReduction && !presale ? ['Value your ' + word + ' asks for', `$${Number(session.targetReduction).toLocaleString()}`] : null,
           session?.savings ? ['Estimated yearly saving if granted', `$${Number(session.savings).toLocaleString()}`] : null,
         ].filter(Boolean).map(([k, v]) => v ? (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, gap: 16 }}>

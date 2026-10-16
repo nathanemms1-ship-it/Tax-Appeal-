@@ -9,7 +9,7 @@ import { getFilingWindowStatus } from '../../lib/filingWindows';
 import { getSupabaseAdmin } from './supabase';
 import { normalizePerkCode, applyPerkToLineItems, RPC, PERK_AMOUNT_CENTS } from '../../lib/partnerPerk';
 import { Redis } from '@upstash/redis';
-import { gaSellability } from '../../lib/kit/gaQuote';
+import { gaSellability, gaPresaleSellability } from '../../lib/kit/gaQuote';
 import { txSellability } from '../../lib/kit/txQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 
@@ -162,7 +162,10 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
  * first, on the stored order, so a card is never charged for a kit that would
  * be refused at mailing.
  */
-const KIT_SELLABILITY = { GA: gaSellability, TX: txSellability };
+// A Georgia pre-sale (16 Oct 2026) is checked by its own gate: no notice value
+// exists yet, so the full gate would refuse it. It is finished, or refunded,
+// when the notice arrives (lib/kit/presale.js).
+const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: txSellability };
 const kitState = (stateCode || '').trim().toUpperCase();
 const isKitGA = kitState === 'GA';
 const isKitTX = kitState === 'TX';
@@ -237,6 +240,18 @@ currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Texas protest kit, mailed to you',
 description: `Your completed, ready-to-sign protest for ${kitOrder.property.address}: the Comptroller's Form 50-132 filled in, the comparable-properties evidence from the district's own roll, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} appraisal district — mailed to you, with the PDF emailed today. You sign and mail it; we do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitGA && kitOrder.presale === true ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Georgia appeal kit, reserved',
+description: `Reserved for ${kitOrder.property.address}. When your ${kitOrder.taxYear} assessment notice arrives, you enter its value and we check your case again. If an appeal still lowers your bill, we mail you the completed, ready-to-sign kit with a return envelope addressed to the county and email the PDF. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your appeal or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -398,6 +413,7 @@ ownerState: ownerState || '',
 ownerZip: ownerZip || '',
 letterKey: letterKey || '',
 kitKey: isKit ? kitKey : '',
+kitPresale: isKit && kitOrder?.presale === true ? 'true' : '',
 stateCode: stateCode || '',
 vabFee: vabFee ? String(vabFee) : '0',
 vabPayableTo: vabPayableTo || '',

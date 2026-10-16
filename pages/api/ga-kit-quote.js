@@ -18,7 +18,7 @@ import { enforceRateLimit } from '../../lib/rateLimit';
 import { checkSpend } from '../../lib/spendGuard';
 import { lookupProperty, RentcastError } from '../../lib/providers/rentcast';
 import { rentcastSales } from '../../lib/kit/comps';
-import { quoteGaKit, QUOTE } from '../../lib/kit/gaQuote';
+import { quoteGaKit, presaleGaKit, QUOTE } from '../../lib/kit/gaQuote';
 
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
 
@@ -54,6 +54,10 @@ export function cleanQuoteInput(b = {}) {
     ownedOnJan1: bool(b.ownedOnJan1),
     fultonBilling100: bool(b.fultonBilling100),
     virtualHearing: bool(b.virtualHearing),
+    // Pre-sale (16 Oct 2026): before the notice, LAST year's 100% value.
+    presale: b.presale === true,
+    priorValue: b.priorValue,
+    priorValueConfirmed: bool(b.priorValueConfirmed),
   };
 }
 
@@ -73,6 +77,34 @@ async function spendOrThrow(n) {
   if (!s.ok) { const e = new Error('capacity'); e.capacity = true; throw e; }
 }
 
+/**
+ * RentCast for one address, cached and spend-capped. Exported so the pre-sale
+ * notice step (pages/api/kit/notice.js) re-runs the check through exactly the
+ * same cache and ceiling.
+ */
+export function quoteDeps(input) {
+  const p = input.property;
+  const addrKey = crypto.createHash('sha256').update(`${p.street}|${p.city}|${p.zip}`.toLowerCase()).digest('hex').slice(0, 24);
+  return {
+    lookupSubject: (prop) => cached(`kitq:subject:${addrKey}`, async () => {
+      await spendOrThrow(1);
+      try {
+        const r = await lookupProperty({ street: prop.street, city: prop.city, state: 'GA', zip: prop.zip });
+        return { lat: r.latitude, lon: r.longitude, sqft: r.sqft, yearBuilt: r.yearBuilt ? Number(r.yearBuilt) : null, parcelId: r.parcelId, propertyType: r.propertyType, address: r.formattedAddress };
+      } catch (e) {
+        if (e instanceof RentcastError && e.code === 'not_found') return null;
+        throw e;
+      }
+    }),
+    // Dates do not survive JSON: cached sales come back with string dates, and
+    // the comps engine compares Dates. Revived on every read, cached or not.
+    fetchSales: (q) => cached(`kitq:sales:${addrKey}:${input.taxYear}:${q.radiusMi}:${q.days}`, async () => {
+      await spendOrThrow(1);
+      return rentcastSales(q);
+    }).then(reviveSales),
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (await enforceRateLimit(req, res, 'ga-kit-quote', 6, 60)) return;
@@ -81,27 +113,11 @@ export default async function handler(req, res) {
   const input = cleanQuoteInput(req.body || {});
   const p = input.property;
   if (!p.street || !p.city || !p.zip) return res.status(400).json({ error: 'Property address is required.' });
-  const addrKey = crypto.createHash('sha256').update(`${p.street}|${p.city}|${p.zip}`.toLowerCase()).digest('hex').slice(0, 24);
-
   try {
-    const quote = await quoteGaKit(input, {
-      lookupSubject: (prop) => cached(`kitq:subject:${addrKey}`, async () => {
-        await spendOrThrow(1);
-        try {
-          const r = await lookupProperty({ street: prop.street, city: prop.city, state: 'GA', zip: prop.zip });
-          return { lat: r.latitude, lon: r.longitude, sqft: r.sqft, yearBuilt: r.yearBuilt ? Number(r.yearBuilt) : null, parcelId: r.parcelId, propertyType: r.propertyType, address: r.formattedAddress };
-        } catch (e) {
-          if (e instanceof RentcastError && e.code === 'not_found') return null;
-          throw e;
-        }
-      }),
-      // Dates do not survive JSON: cached sales come back with string dates, and
-      // the comps engine compares Dates. Revived on every read, cached or not.
-      fetchSales: (q) => cached(`kitq:sales:${addrKey}:${input.taxYear}:${q.radiusMi}:${q.days}`, async () => {
-        await spendOrThrow(1);
-        return rentcastSales(q);
-      }).then(reviveSales),
-    });
+    // Pre-sale: before the notice, on last year's value (lib/kit/gaQuote.js presaleGaKit).
+    const quote = input.presale
+      ? await presaleGaKit(input, quoteDeps(input))
+      : await quoteGaKit(input, quoteDeps(input));
 
     let kitKey = null;
     if (quote.decision === QUOTE.CASE && quote.sellable && redis) {
@@ -110,7 +126,7 @@ export default async function handler(req, res) {
     }
     // Never send the kit order itself back: what is printed comes from the server copy.
     const { kitOrder, ...publicQuote } = quote;
-    return res.status(200).json({ ...publicQuote, requestedValue: kitOrder?.requestedValue || null, kitKey });
+    return res.status(200).json({ ...publicQuote, requestedValue: kitOrder?.requestedValue || quote.caseCheck?.requestedValue || null, kitKey });
   } catch (e) {
     if (e.capacity) return res.status(503).json({ error: 'We are briefly at capacity checking homes. Please try again in a few minutes.', code: 'CAPACITY' });
     console.error('[ga-kit-quote] failed:', e?.message);

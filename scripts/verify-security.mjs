@@ -277,6 +277,14 @@ for (const [file, src] of sources) {
     continue;
   }
 
+  // Plain-text mail (16 Oct 2026: the pre-sale notice route and reminder cron)
+  // has no markup to inject into. Exempt only when the file sends no html at all.
+  const textOnly = !/\bhtml\s*[:,]/.test(src) && /\btext\s*[:,}]/.test(src);
+  if (textOnly) {
+    notes.push(`${relative('.', file)}: sends plain-text mail only — nothing to escape.`);
+    continue;
+  }
+
   if (!src.includes('escapeHtml') && !src.includes('escape') && !src.includes('esc(') && !src.includes('h(')) {
     fail(file, 'sends an HTML email but never escapes an interpolated value. See escapeHtml in lib/webhookAuth.js.');
   }

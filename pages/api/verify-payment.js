@@ -105,6 +105,8 @@ export default async function handler(req, res) {
       isPreOrder,
       scheduledFileDate,
       isKit,
+      // A Georgia pre-sale: reserved now, built when the notice arrives.
+      kitPresale: isKit && meta.kitPresale === 'true',
     });
   } catch (err) {
     console.error('Verify payment error:', err);

@@ -48,6 +48,8 @@ export default async function handler(req, res) {
     // caller knows the session id, and a parameter silently dropped in this file is
     // exactly how stateCode and orderStatus were both lost before it.
     signingUrl,
+    // Pre-sale receipts only: the private "enter your notice" link.
+    noticeUrl,
     vabFee,
     scheduledFileDate,
     type = 'confirmation',
@@ -93,7 +95,7 @@ export default async function handler(req, res) {
         lobId,
         sessionId,
         letter, amountPaid,
-        orderStatus, vabFee, scheduledFileDate, signingUrl });
+        orderStatus, vabFee, scheduledFileDate, signingUrl, noticeUrl });
     }
 
     const emailPayload = {
