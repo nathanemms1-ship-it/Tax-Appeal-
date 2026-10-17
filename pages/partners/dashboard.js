@@ -45,10 +45,10 @@ function flSeasonPrompt(now = new Date()) {
   const w = getFilingWindowStatus('FL');
   if (!w) return `Florida's filing season opens ${FL_OPEN_LABEL}.`;
   if (w.canFile) {
-    return `Florida's filing window is OPEN. Clients must have their petition received by the county deadline — later is not late, it is unfiled, so anyone still deciding should be moving now.`;
+    return `Florida's filing window is OPEN. Florida counts a petition when the county RECEIVES it, so clients need to mail their kit the day it arrives or hand-deliver it — later is not late, it is unfiled, so anyone still deciding should be moving now.`;
   }
   if (w.canPreOrder) {
-    return `Florida's filing window opens ${FL_OPEN_LABEL}. Now is a good time to reach out — homeowners are getting their TRIM notices, and we can take their order today and file it the day the window opens.`;
+    return `Florida's filing window opens ${FL_OPEN_LABEL}. Now is a good time to reach out — homeowners are getting their TRIM notices. We can check their property and take their order today, and we mail them a ready-to-sign kit so they can file it the day the window opens.`;
   }
   const opens = w.openDate ? new Date(w.openDate) : null;
   const sameSeason = opens && (opens.getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
@@ -152,7 +152,7 @@ const NOT_COUNTED_LABELS = {
   too_recent: 'too recent to pay out yet — held until the refund window closes, then paid in the next run',
   unknown_referral_code: 'used a referral code we could not match',
   partner_inactive: 'placed while your partner account was inactive',
-  self_referral: 'placed from your own email address — the program pays for clients you refer, not your own filings',
+  self_referral: 'placed from your own email address — the program pays for clients you refer, not your own orders',
   already_settled: 'already paid out in an earlier run',
   no_payout_account: 'waiting on your bank connection',
   payment_unknown: 'started but never completed payment',
@@ -441,7 +441,7 @@ export default function PartnerDashboard() {
                   <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 10, lineHeight: 1.6 }}>
                     {data.partner.perkRedeemedAt
                       ? <>This coupon was used on {formatMonth(data.partner.perkRedeemedAt)}. Each partner gets one.</>
-                      : <>$20 off one filing — $69 instead of $89. Use it on your own property, or give it to a client or a friend. It works for anyone, once, and it doesn&rsquo;t expire. Note that an order using this coupon doesn&rsquo;t also earn the $20 referral commission — it&rsquo;s one or the other, never both.</>}
+                      : <>$20 off one kit — $69 instead of $89. Use it on your own property, or give it to a client or a friend. It works for anyone, once, and it doesn&rsquo;t expire. Note that an order using this coupon doesn&rsquo;t also earn the $20 referral commission — it&rsquo;s one or the other, never both.</>}
                   </p>
                 </div>
               )}
@@ -462,7 +462,7 @@ export default function PartnerDashboard() {
                 </p>
                 <p style={{ fontSize: 12, color: C.mutedGray, marginTop: 8, lineHeight: 1.6 }}>
                   Timing beats volume: the week county assessment notices land is when people go looking. Every homeowner who clicks your link and completes a paid
-                  filing earns you $20.</p>
+                  order earns you $20.</p>
               </div>
 
               {/* Stripe status */}
@@ -563,7 +563,7 @@ export default function PartnerDashboard() {
                           and lib/flCountyFees.js. This card appears during the Florida
                           season, so the flat-fee wording was wrong precisely when it
                           was shown most. */}
-                      &ldquo;Your property tax notice just arrived — here&apos;s how to appeal it. $89 plus your county&apos;s filing fee, no percentage of your savings: {data.partner.referralLink}&rdquo;
+                      &ldquo;Your property tax notice just arrived — here&apos;s how to appeal it. They check first whether an appeal will lower your bill, then mail you a ready-to-sign kit. $89, no percentage of your savings (in Florida the county&apos;s own filing fee is paid by you, to the county): {data.partner.referralLink}&rdquo;
                     </div>
                   </>
                 ) : (
@@ -572,7 +572,7 @@ export default function PartnerDashboard() {
                       You&apos;ve referred <strong style={{ color: C.white }}>{data.thisMonth.referrals} homeowner{data.thisMonth.referrals !== 1 ? 's' : ''}</strong> this month, worth ${data.thisMonth.earnings}. It goes out in the settlement run on the 1st{data.stripe.status === 'active' ? '' : ' — once your bank account is connected'}.
                     </p>
                     <p style={{ fontSize: 12, color: '#5A7A9F', lineHeight: 1.6 }}>
-                      Remember: when a client you referred files again next season you earn another $20 — automatically, whether they use your link or come back on their own.
+                      Remember: when a client you referred orders again next season you earn another $20 — automatically, whether they use your link or come back on their own.
                     </p>
                   </>
                 )}
@@ -587,11 +587,11 @@ export default function PartnerDashboard() {
                       label: '📧 Email template',
                       // Templates a partner sends to THEIR clients under their own name.
                       // A price we overstate here is a price they get held to.
-                      text: `Subject: Your property tax assessment\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They prepare a formal appeal with comparable sales data, you sign it, and they mail it for you. $89 plus your county's filing fee if there is one — no percentage of your savings.\n\nTakes about 4 minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
+                      text: `Subject: Your property tax assessment\n\nHey,\n\nYour property tax assessment notice is arriving soon — if you haven't looked at it, you might be overpaying. I use TaxAppeal USA for my clients. They check first whether an appeal will actually lower your tax bill, and if it won't, they tell you and don't sell you one. If it will, they mail you a ready-to-sign kit: the official form filled in, comparable sales and a return envelope addressed to the county. You sign it and mail it. It's $89, plus in Florida the county's own filing fee, which you pay to the county. No percentage of your savings.\n\nThe check takes a few minutes. Here's my link:\n${data.partner.referralLink}\n\nLet me know if you have questions.`,
                     },
                     {
                       label: '💬 Text message',
-                      text: `Your property tax notice just arrived — worth appealing if you haven't. TaxAppeal USA prepares and mails it: $89 plus the county filing fee, no % taken. Here's my link: ${data.partner.referralLink}`,
+                      text: `Your property tax notice just arrived — worth appealing if you haven't. TaxAppeal USA checks first, then mails you a ready-to-sign appeal kit you sign and mail. $89 (Florida adds the county's own fee, paid to the county), no % taken. Here's my link: ${data.partner.referralLink}`,
                     },
                   ].map(({ label, text }) => (
                     <button

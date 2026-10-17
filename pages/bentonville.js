@@ -36,18 +36,18 @@ const DEADLINE_RULE = SVC.deadlineRule;
 
 const faqs = [
   ["What is the deadline to appeal Bentonville property taxes?", SVC.selling
-    ? "The Benton County Board of Equalization deadline is the third Monday in August — August 17, 2026. Your appeal letter must be postmarked by this date. TaxAppeal files via USPS certified mail to document your postmark."
+    ? "The Benton County Board of Equalization deadline is the third Monday in August — August 17, 2026. Your signed appeal must be postmarked by this date, so mail your kit with a few days in hand."
     : `Arkansas Code §26-27-317 sets the Benton County Board of Equalization deadline at ${DEADLINE_RULE} each year, and your appeal letter has to be postmarked by it — the postmark date is what counts. The 2026 window has closed; the next one opens in August ${SVC.servingFrom}.`],
   ["How does Arkansas assess property taxes?", "Arkansas assesses residential property at 20% of fair market value. So if your home is worth $380,000, your assessed value is $76,000. When you appeal, you are arguing about the full market value — a 10% reduction in market value means 10% less in assessed value and a proportional reduction in your tax bill."],
   ["How much can Bentonville homeowners save?", SVC.selling
     ? "Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. TaxAppeal charges a flat $89 — you keep 100% of your savings."
     : `Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. When we open for the ${SVC.servingFrom} season our fee will be a flat $89 with no percentage of your savings, but nothing is being sold on this page today.`],
   ["What is the Benton County Board of Equalization?", "The Benton County Board of Equalization hears property tax appeals every August. It is made up of three members appointed by the county judge. You or your representative present evidence that your assessed value is too high, and the Board issues a decision."],
-  ["Does postmark count in Arkansas?", "Yes. Arkansas requires your appeal to be postmarked by the third Monday in August — not physically received. TaxAppeal USA files via USPS certified mail, which provides a documented postmark date and delivery confirmation."],
+  ["Does postmark count in Arkansas?", "Yes. Arkansas requires your appeal to be postmarked by the third Monday in August — not physically received. Mail your signed kit a few days early and keep a copy for your records."],
   ["Can I appeal my Bentonville property taxes every year?", "Yes. Arkansas homeowners can file a new Board of Equalization appeal every August. Rising markets often create new over-assessments each cycle, so annual appeals are common and worthwhile."],
   ["Do I need to attend a hearing?", SVC.selling
-    ? "You or your representative may attend. TaxAppeal files your written protest letter with supporting comparable sales evidence, which many counties accept without requiring a personal appearance. We handle the entire filing process for $89."
-    : `You or your representative may attend. A written protest letter with supporting comparable sales evidence is accepted in many counties without requiring a personal appearance. TaxAppeal will handle the entire filing process for a flat $89 from the ${SVC.servingFrom} season, when we open for Arkansas.`],
+    ? "If the board holds a hearing, you attend it yourself. We do not file your appeal, represent you, or attend hearings. The board writes to you directly, and many counties will decide on the written evidence in your kit without a personal appearance. Forward us anything the board sends and we'll help you understand it."
+    : `You or your representative may attend. A written protest letter with supporting comparable sales evidence is accepted in many counties without requiring a personal appearance. From the ${SVC.servingFrom} season, when we open for Arkansas, we will mail you a ready-to-sign kit for a flat $89 that you sign and mail yourself. We do not file appeals, represent anyone or attend hearings.`],
 ];
 
 export default function Bentonville() {
@@ -57,7 +57,7 @@ export default function Bentonville() {
     <>
       <Head>
         <title>{SVC.selling ? "Bentonville Property Tax Appeal Service | File for $89 | TaxAppeal USA" : `Bentonville Property Tax Appeals | Opening for the ${SVC.servingFrom} season | TaxAppeal USA`}</title>
-        <meta name="description" content={SVC.selling ? "Appeal your Bentonville property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with the Board of Equalization via certified mail before the August 17 deadline." : `How a Bentonville property tax appeal works: ${DEADLINE_RULE} deadline under Ark. Code §26-27-317, the Benton County Board of Equalization and the 20% assessment ratio. TaxAppeal USA is not filing Arkansas appeals this season — we open for the ${SVC.servingFrom} season and will email you the day it does.`} />
+        <meta name="description" content={SVC.selling ? "Appeal your Bentonville property taxes for $89 flat. We check whether an appeal will lower your Benton County bill first, then mail you a ready-to-sign kit." : `How a Bentonville property tax appeal works: ${DEADLINE_RULE} deadline under Ark. Code §26-27-317, the Benton County Board of Equalization and the 20% assessment ratio. TaxAppeal USA is not selling Arkansas appeal kits this season — we open for the ${SVC.servingFrom} season and will email you the day it does.`} />
         <link rel="canonical" href="https://www.taxappealusa.com/bentonville" key="canonical" />
         <meta property="og:title" content={SVC.selling ? "Bentonville Property Tax Appeal — $89 Flat Fee | TaxAppeal USA" : `Bentonville Property Tax Appeals — opening ${SVC.servingFrom} | TaxAppeal USA`} key="og:title" />
         <meta property="og:description" content={SVC.selling ? "Appeal your Bentonville property taxes for $89 flat. Benton County Board of Equalization deadline: August 17, 2026." : `Benton County appeals are due ${DEADLINE_RULE} each year. The 2026 window has closed. TaxAppeal USA opens for Arkansas in ${SVC.servingFrom} — leave your email and we will tell you the day filing opens.`} key="og:description" />
@@ -67,8 +67,8 @@ export default function Bentonville() {
         {/* The Offer is what Google reads as a live, buyable price. It only goes
             out while we will actually take the order — see the note at the top. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SVC.selling
-          ? {"@context":"https://schema.org","@type":"Service","name":"Bentonville Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Bentonville"},"offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}}
-          : {"@context":"https://schema.org","@type":"Service","name":"Bentonville Property Tax Appeal Filing","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Bentonville"}})}} />
+          ? {"@context":"https://schema.org","@type":"Service","name":"Bentonville Property Tax Appeal Kit","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Bentonville"},"offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}}
+          : {"@context":"https://schema.org","@type":"Service","name":"Bentonville Property Tax Appeal Kit","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Bentonville"}})}} />
       </Head>
       {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
       <style dangerouslySetInnerHTML={{ __html: `@import url('${FONT}');*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:16px 36px;font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}.btn:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:26px!important;}}` }} />
@@ -87,11 +87,11 @@ export default function Bentonville() {
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Bentonville, Arkansas</div>
           <h1 className="ht" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>{SVC.selling ? "Bentonville Property Tax Appeal — $89 Flat Fee" : "How to appeal your Bentonville property taxes"}</h1>
-          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>{SVC.selling ? "Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals. TaxAppeal files your certified protest letter for a flat $89." : `Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals, which Ark. Code §26-27-317 makes due ${DEADLINE_RULE}. We are not filing Arkansas appeals ourselves this season — we open for ${SVC.servingFrom}.`}</p>
+          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>{SVC.selling ? "Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals. We check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. If it will, we mail you a ready-to-sign appeal kit for $89 flat." : `Northwest Arkansas is the fastest-growing real estate market in the state. Benton County assessments have surged with home values — creating strong grounds for Board of Equalization appeals, which Ark. Code §26-27-317 makes due ${DEADLINE_RULE}. We are not selling Arkansas appeal kits this season — we open for ${SVC.servingFrom}.`}</p>
           <div className="hs" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
             {(SVC.selling
               ? [["Aug 17","2026 Deadline"],["0%","Of your savings taken"],["$89","Flat fee"],["Benton County","Service area"]]
-              : [["3rd Mon","Of August — deadline"],["0%","Of your savings taken"],[String(SVC.servingFrom),"Season we open"],["Benton County","Where we will file"]]
+              : [["3rd Mon","Of August — deadline"],["0%","Of your savings taken"],[String(SVC.servingFrom),"Season we open"],["Benton County","Service area"]]
             ).map(([n,l]) => (
               <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:16,textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
@@ -100,9 +100,9 @@ export default function Bentonville() {
             ))}
           </div>
           {SVC.selling
-            ? <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}}>File My Bentonville Appeal — $89</button>
+            ? <button className="btn" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}}>Start My Bentonville Appeal — $89</button>
             : <SeasonNotice stateCode="AR" variant="dark" />}
-          {SVC.selling && <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>}
+          {SVC.selling && <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. We check first: if an appeal won't lower your bill, we tell you and don't sell you one.</div>}
         </div>
       </section>
 
@@ -111,7 +111,7 @@ export default function Bentonville() {
           <div style={{fontSize:28}}>📅</div>
           <div>
             <div style={{fontWeight:700,fontSize:16,color:C.darkNavy}}>{SVC.selling ? "2026 Deadline: August 17 — Benton County Board of Equalization" : "The 2026 Benton County appeal window has closed"}</div>
-            <div style={{fontSize:14,color:C.bodyGray,marginTop:4}}>{SVC.selling ? "Per Arkansas Code §26-27-317, your appeal must be postmarked by the third Monday in August. TaxAppeal files via USPS certified mail. Orders close August 10 to ensure timely delivery." : `Per Arkansas Code §26-27-317, an appeal to the Benton County Board of Equalization must be postmarked by ${DEADLINE_RULE} — that date has passed for 2026, and the next window opens in August ${SVC.servingFrom}. Postmark counts in Arkansas, so file with a few days in hand.`}</div>
+            <div style={{fontSize:14,color:C.bodyGray,marginTop:4}}>{SVC.selling ? "Per Arkansas Code §26-27-317, your appeal must be postmarked by the third Monday in August. Mail your signed kit with a few days in hand. Close to the deadline we email the kit as a PDF to print, sign and mail." : `Per Arkansas Code §26-27-317, an appeal to the Benton County Board of Equalization must be postmarked by ${DEADLINE_RULE} — that date has passed for 2026, and the next window opens in August ${SVC.servingFrom}. Postmark counts in Arkansas, so file with a few days in hand.`}</div>
           </div>
         </div>
       </section>
@@ -121,7 +121,7 @@ export default function Bentonville() {
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Why Bentonville Homeowners Should Appeal</h2>
           <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36,lineHeight:1.7}}>Bentonville and the Rogers corridor have seen explosive growth driven by Walmart HQ, Walmart Global Tech, and the broader NW Arkansas tech boom. Rapid appreciation often means assessments overshoot market corrections — making appeals especially strong in Benton County.</p>
           <div style={{display:"grid",gap:24}}>
-            {[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Benton County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill. A $30,000 market value reduction saves you real money every year."],["📅",SVC.selling ? "The August 17 Deadline Is Firm" : "The Third Monday In August Is Firm",SVC.selling ? "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you must wait a full year. TaxAppeal files early via USPS certified mail to protect your postmark date." : "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you must wait a full year — and the 2026 date has already passed."],["⚖️","No Percentage Fees — Ever",SVC.selling ? "Most Arkansas property tax consultants charge 25-40% of your first-year savings. On a $1,000 reduction that's $250-400 gone before it reaches you. TaxAppeal charges $89 flat." : `Most Arkansas property tax consultants charge 25-40% of your first-year savings. On a $1,000 reduction that's $250-400 gone before it reaches you. When we open for the ${SVC.servingFrom} season our fee will be a flat $89.`]].map(([icon,title,desc]) => (
+            {[["📊","Arkansas Assesses at 20% of Market Value","If your home's market value is overstated by Benton County, your assessed value (20% of market) is inflated by the same percentage — and so is your tax bill. A $30,000 market value reduction saves you real money every year."],["📅",SVC.selling ? "The August 17 Deadline Is Firm" : "The Third Monday In August Is Firm",SVC.selling ? "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you must wait a full year. Mail your signed kit early." : "Arkansas has one fixed statewide deadline: the third Monday in August. Miss it and you must wait a full year — and the 2026 date has already passed."],["⚖️","No Percentage Fees — Ever",SVC.selling ? "Most Arkansas property tax consultants charge 25-40% of your first-year savings. On a $1,000 reduction that's $250-400 gone before it reaches you. TaxAppeal charges $89 flat." : `Most Arkansas property tax consultants charge 25-40% of your first-year savings. On a $1,000 reduction that's $250-400 gone before it reaches you. When we open for the ${SVC.servingFrom} season our fee will be a flat $89.`]].map(([icon,title,desc]) => (
               <div key={title} style={{display:"flex",gap:16}}>
                 <div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
                 <div><h3 style={{fontSize:17,fontWeight:500,marginBottom:6}}>{title}</h3><p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</p></div>
@@ -134,9 +134,9 @@ export default function Bentonville() {
       <section style={{padding:"56px 40px",background:C.lightBlue}}>
         <div style={{maxWidth:800,margin:"0 auto"}}>
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:10}}>How TaxAppeal Works in Bentonville</h2>
-          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Four minutes of your time. You sign it, we do the rest.</p>
+          <p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Four minutes to order, then about five minutes to sign it and mail it.</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(max(180px,(100% - 40px)/3),1fr))",gap:20}}>
-            {[["1","Enter your address","We pull your Benton County property data — assessed value, square footage, year built, and comparable sales."],["2","We build your case","Our system generates a professional appeal letter citing Arkansas Code §26-27-317 and §26-26-1901 with comparable sales from your area."],["3","We file via certified mail",`Your appeal is mailed to the Benton County Board of Equalization secretary via USPS certified mail before ${SVC.selling ? "August 17" : DEADLINE_RULE}.`]].map(([n,t,d]) => (
+            {[["1","We check first","We pull your Benton County property data and comparable sales, and check whether an appeal will actually lower your tax bill. If it won't, we tell you and don't sell you one."],["2","We mail you the kit","Your county's equalization board appeal form filled in, comparable sales citing Arkansas Code §26-27-317 and §26-26-1901, a checklist and a return envelope addressed to the Benton County Board of Equalization. The PDF is emailed the same day."],["3","You sign it and mail it",`Sign in ink, add a stamp, and mail it so it is postmarked by ${SVC.selling ? "August 17" : DEADLINE_RULE}. The board writes to you directly.`]].map(([n,t,d]) => (
               <div key={n} style={{background:C.white,borderRadius:12,padding:24,border:"1.5px solid "+C.border}}>
                 <div style={{width:34,height:34,background:C.navy,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:500,color:C.white,marginBottom:14}}>{n}</div>
                 <h3 style={{fontSize:15,fontWeight:500,marginBottom:8}}>{t}</h3>
@@ -176,7 +176,7 @@ export default function Bentonville() {
 
       <div style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>{SVC.selling ? "File Before August 17, 2026" : `We open for Arkansas in ${SVC.servingFrom}`}</h2>
-        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>{SVC.selling ? "Don't miss the Benton County Board of Equalization deadline. You sign it, we file it — $89 flat." : `The Benton County Board of Equalization deadline is ${DEADLINE_RULE} and it goes by quietly. Leave your email and we will tell you the day filing opens, with time to spare.`}</p>
+        <p style={{fontSize:15,color:C.mutedGray,marginBottom:28}}>{SVC.selling ? "Don't miss the Benton County Board of Equalization deadline. We mail you the kit; you sign it and mail it — $89 flat." : `The Benton County Board of Equalization deadline is ${DEADLINE_RULE} and it goes by quietly. Leave your email and we will tell you the day filing opens, with time to spare.`}</p>
         {SVC.selling
           ? <button style={{background:C.gold,color:C.darkNavy,border:"none",borderRadius:8,padding:"18px 44px",fontSize:17,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Start My Bentonville Appeal — $89</button>
           : <SeasonNotice stateCode="AR" id="notify-foot" variant="dark" compact />}

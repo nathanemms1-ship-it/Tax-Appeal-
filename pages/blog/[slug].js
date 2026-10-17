@@ -71,7 +71,7 @@ export async function getStaticProps({ params }) {
   const fallback = {
     bullet: c.servingStates.join(' · '),
     stat: String(c.servingStates.length),
-    statLabel: 'states we file in',
+    statLabel: 'states we serve',
   };
 
   return { props: { post, coverage: byState[post.stateSlug] || fallback } };
@@ -244,13 +244,13 @@ export default function BlogPost({ post, coverage }) {
               {/* CTA Box */}
               <div className="side-cta" style={{ background: C.navy, borderRadius: 14, padding: 24, marginBottom: 20, color: C.white }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, marginBottom: 10, lineHeight: 1.3 }}>
-                  File your protest for $89 flat
+                  Your appeal kit for $89 flat
                 </div>
                 <p style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.6, marginBottom: 18 }}>
-                  We draft your letter, file via certified mail, and you keep 100% of your savings. Takes 4 minutes.
+                  We check whether an appeal will lower your bill before you pay. If it will, we mail you the official form filled in, your evidence and a return envelope. You sign it and mail it.
                 </p>
                 <div style={{ marginBottom: 16 }}>
-                  {["No contingency fees", "Certified mail with tracking", "Flat $89 — you keep your savings", coverage.bullet].map(f => (
+                  {["No contingency fees", "Return envelope addressed to the county", "Flat $89 — you keep your savings", coverage.bullet].map(f => (
                     <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: C.gold, marginBottom: 6 }}>
                       <span>✓</span> {f}
                     </div>
@@ -293,7 +293,7 @@ export default function BlogPost({ post, coverage }) {
                 </div>
                 {[
                   ["$89", "flat fee, any outcome"],
-                  ["$1,840", "average savings"],
+                  ["Free", "check before you pay"],
                   ["$89", "flat fee, no % cut"],
                   // Counted at build time, not typed. The ternary that used to sit
                   // here claimed 67 Florida counties (the funnel accepts 56) and
@@ -319,7 +319,7 @@ export default function BlogPost({ post, coverage }) {
           Ready to protest your property taxes?
         </h2>
         <p style={{ fontSize: 15, color: C.mutedGray, marginBottom: 24 }}>
-          $89 flat fee. You sign it, we file it. You keep 100% of your savings.
+          We check first. If an appeal will lower your bill, we mail you a ready-to-sign kit for $89 flat. You sign it and mail it, and you keep 100% of your savings.
         </p>
         <button
           className="btn-primary"

@@ -11,16 +11,16 @@ import LogoMark from '../components/LogoMark';
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const faqs = [
-  ["What is the deadline to appeal property taxes in Georgia?", "You have 45 days from the date on your annual Notice of Assessment to file an appeal. Assessment notices are typically mailed between April and June. Missing this deadline means waiting until next year."],
-  ["How much can I save by appealing my Georgia property taxes?", "The average Georgia homeowner who appeals saves $800 to $2,200 per year. With TaxAppeal at $89 flat, you keep 100% of those savings — unlike contingency firms that take 25–40%."],
+  ["What is the deadline to appeal property taxes in Georgia?", "You have 45 days from the date on your annual Notice of Assessment to appeal — your appeal must be postmarked by then. Assessment notices are typically mailed between April and June. Missing this deadline means waiting until next year."],
+  ["How much can I save by appealing my Georgia property taxes?", "It depends on the gap between your assessment and recent sales of similar homes, and on your homestead exemption — a local freeze can mean a lower value doesn't lower your bill. That is why we check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. We never promise a specific saving. With TaxAppeal at $89 flat, you keep 100% of any saving."],
   ["What is the success rate for property tax appeals in Georgia?", "There is no published Georgia success rate. The Georgia Department of Revenue publishes how many appeals are filed in each county and where they are heard, but its file contains no record of how many resulted in a reduction — so any Georgia \"approval rate\" advertised by a tax service is not coming from the state. What the record does show is that appealing is common: Fulton County homeowners filed 36,152 appeals in 2024, about one parcel in ten. TaxAppeal cannot guarantee a reduction."],
   ["How does Georgia assess property value?", "Georgia assesses property at 40% of fair market value. If the county overestimates your fair market value, your taxable value and your bill are both inflated — and you have the right to challenge it."],
   ["What is the Board of Equalization in Georgia?", "The Board of Equalization (BOE) is a county body that hears property tax appeals in Georgia. If your informal appeal to the county assessor is unsuccessful, your case goes before the BOE where you can present comparable sales evidence."],
   ["Can I appeal my Georgia property taxes every year?", "Yes. Georgia homeowners can file a new appeal every single year. Your assessment notice resets each spring, giving you a fresh 45-day window to challenge the value — even if you appealed last year."],
-  ["Does TaxAppeal serve all Georgia counties?", "Yes. We serve all 159 Georgia counties including Fulton, Gwinnett, Cobb, DeKalb, Cherokee, Forsyth, Chatham, Richmond, and every other county in the state."],
-  ["Can my assessment go up if I appeal in Georgia?", "In rare cases, yes. However TaxAppeal reviews all market data before filing to ensure your appeal is well-supported with comparable sales evidence, minimizing any upside risk."],
-  ["What evidence does TaxAppeal use for Georgia appeals?", "We analyze comparable sales, current market conditions, property defects, and county record discrepancies. Every letter cites O.C.G.A. § 48-5-311."],
-  ["How does TaxAppeal compare to other Georgia firms?", "Most Georgia firms charge 25–40% of your savings. On a $1,500 reduction that is $375–$600 in fees every year. TaxAppeal charges $89 flat — one time."],
+  ["Does TaxAppeal serve all Georgia counties?", "Yes. We prepare appeal kits for all 159 Georgia counties including Fulton, Gwinnett, Cobb, DeKalb, Cherokee, Forsyth, Chatham, Richmond, and every other county in the state."],
+  ["Can my assessment go up if I appeal in Georgia?", "In rare cases, yes. TaxAppeal reviews recent sales of similar homes before preparing your kit, and if the evidence doesn't support a lower value we tell you and don't sell you one."],
+  ["What is in a TaxAppeal Georgia appeal kit?", "The appeal form your county accepts (PT-311A or the county's own) filled in for your home, recent sales of similar homes as evidence, a one-page checklist, and a return envelope addressed to your county board of assessors. The same kit is emailed as a PDF the same day. You sign it in ink, add a stamp and mail it. We do not file your appeal or represent you."],
+  ["How does TaxAppeal compare to other Georgia firms?", "Many Georgia firms charge 25–40% of your savings and handle the appeal for you. On a $1,500 reduction that is $375–$600 in fees every year. TaxAppeal charges $89 flat for a kit you sign and mail yourself — and we check whether an appeal would lower your bill before you pay."],
   ["What is a Notice of Assessment in Georgia?", "Your Notice of Assessment is the annual letter from your county tax assessor stating their estimate of your property's fair market value. It arrives between April and June, and the date on the notice starts your 45-day appeal clock."],
   ["Which appraisal districts handle Georgia property tax appeals?", "Georgia uses county tax assessors rather than centralized appraisal districts. Each of the 159 counties has its own Board of Tax Assessors. Major ones include the Fulton County Board of Assessors, Gwinnett County Tax Assessor, Cobb County Board of Tax Assessors, and DeKalb County Tax Commissioner."],
 ];
@@ -59,11 +59,11 @@ export default function Georgia() {
   return (
     <>
       <Head>
-        <title>Georgia Property Tax Appeal Service | File for $89 | TaxAppeal</title>
-        <meta name="description" content="Appeal your Georgia property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. All 159 Georgia counties." />
+        <title>Georgia Property Tax Appeal Service | $89 Kit | TaxAppeal</title>
+        <meta name="description" content="Appeal your Georgia property taxes for $89 flat. We check first, then mail you a ready-to-sign appeal kit. You sign it and mail it. All 159 Georgia counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/georgia" key="canonical" />
         <meta property="og:title" content="Georgia Property Tax Appeal — $89 Flat Fee | TaxAppeal" key="og:title" />
-        <meta property="og:description" content="Stop overpaying on Georgia property taxes. We file your appeal via certified mail for $89 flat. No contingency fees. Keep 100% of your savings. All 159 counties." key="og:description" />
+        <meta property="og:description" content="We check whether an appeal will lower your Georgia tax bill before you pay. If it will, we mail you a ready-to-sign appeal kit for $89 flat. All 159 counties." key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com/georgia" key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -78,10 +78,10 @@ export default function Georgia() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Georgia Property Tax Appeal Filing",
+          "name": "Georgia Property Tax Appeal Kit",
           "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
           "areaServed": { "@type": "State", "name": "Georgia" },
-          "description": "Property tax appeal letter preparation and USPS certified mail filing for Georgia homeowners. Covers all 159 counties.",
+          "description": "A check of whether an appeal will lower the tax bill, then a ready-to-sign appeal kit mailed to the Georgia homeowner, who signs it and mails it. Covers all 159 counties.",
           "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" }
         })}} />
       </Head>
@@ -124,10 +124,10 @@ export default function Georgia() {
             Appeal Your Georgia Property Taxes for $89 Flat
           </h1>
           <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            Stop overpaying. We draft a formal appeal letter backed by comparable sales data and legal citations under O.C.G.A. § 48-5-311. You sign it, we file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
+            We check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one. If it will, we mail you a ready-to-sign kit: the appeal form filled in, recent sales of similar homes, and a return envelope addressed to your county board of assessors. You sign it and mail it — a flat $89. Keep 100% of your savings.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
-            {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["Certified", "Mail with tracking"], ["159", "GA counties"]].map(([n, l]) => (
+            {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["You", "Sign it and mail it"], ["159", "GA counties"]].map(([n, l]) => (
               <div key={l} style={{ background: C.darkNavy, borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
@@ -135,9 +135,9 @@ export default function Georgia() {
             ))}
           </div>
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-            File My Georgia Appeal — $89 →
+            Check My Georgia Appeal — $89 →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Before notices go out you can reserve your kit: we check again when your values are published, and refund you in full if the case is gone.</div>
         </div>
       </section>
 
@@ -179,21 +179,21 @@ export default function Georgia() {
       <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>TaxAppeal vs. Georgia Property Tax Appeal Companies</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Most Georgia firms charge 25–40% of your savings. Here is how TaxAppeal compares.</p>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>Many Georgia firms charge 25–40% of your savings. Here is how TaxAppeal compares.</p>
           <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 12 }}>Typical Georgia Firm</div>
               <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.red, marginBottom: 8 }}>25–40% of savings</div>
               <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16 }}>On a $2,000 annual reduction, you would pay $500–$800 in fees every single year.</p>
-              {["Contingency fee every year", "May cherry-pick easy cases", "You lose a large portion of savings", "Some charge upfront plus contingency"].map(item => (
+              {["A share of your savings, every year", "Some charge upfront plus contingency"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.red }}>✗ {item}</div>
               ))}
             </div>
             <div style={{ background: C.navy, borderRadius: 12, padding: 24, color: C.white }}>
               <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: C.gold, marginBottom: 12 }}>TaxAppeal</div>
               <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold, marginBottom: 8 }}>$89 flat. Period.</div>
-              <p style={{ fontSize: 14, color: C.mutedGray, lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 once and keep $1,921. Every year after that, the savings are 100% yours.</p>
-              {["One-time $89 fee", "Every property gets a full appeal", "Keep 100% of your savings", "Certified mail with return receipt"].map(item => (
+              <p style={{ fontSize: 14, color: C.mutedGray, lineHeight: 1.7, marginBottom: 16 }}>Same $2,000 reduction. You pay $89 once and keep $1,911. Every year after that, the savings are 100% yours.</p>
+              {["One-time $89 fee", "We check the bill impact before you pay", "Form, evidence and addressed return envelope mailed to you", "You sign it and mail it"].map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: C.gold }}>✓ {item}</div>
               ))}
             </div>
@@ -205,7 +205,7 @@ export default function Georgia() {
       <section style={{ padding: "56px 40px", background: C.bg }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>All 159 Georgia Counties Served</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Atlanta to Savannah, Augusta to Columbus — every Georgia homeowner can file.</p>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Atlanta to Savannah, Augusta to Columbus — every Georgia homeowner can appeal.</p>
           <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
             {counties.map(c => (
               <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
@@ -225,7 +225,7 @@ export default function Georgia() {
           more than one place. */}
       <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 980, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Georgia cities we file in</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Georgia cities we cover</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.6 }}>Your board of assessors, appeal deadline and local market data are all set by your county — find your city below.</p>
           {Object.entries(
             georgiaSuburbs.reduce((acc, c) => {
@@ -310,7 +310,7 @@ export default function Georgia() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to appeal your Georgia property taxes?</h2>
-        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28 }}>Georgia gives you 45 days from your assessment notice to appeal. $89 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28 }}>Georgia gives you 45 days from your assessment notice to appeal. We check first; the kit is $89 flat — no percentage cuts. You sign it and mail it.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
           Start My Georgia Appeal — $89 →
         </button>

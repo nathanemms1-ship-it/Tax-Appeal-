@@ -8,11 +8,12 @@ import LogoMark from '../components/LogoMark';
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const faqs = [
-["How do I appeal my Miami property taxes?","File a VAB petition with the Miami-Dade Value Adjustment Board within 25 days of your TRIM notice. Florida requires RECEIPT by the deadline. TaxAppeal mails your petition at least 7 days early to ensure timely receipt."],
-["What is the county filing fee?","Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. Miami-Dade's rate is $15, paid to the Miami-Dade Value Adjustment Board. TaxAppeal pays this fee on your behalf — it's included in your $104 total. You don't need to make a separate payment."],
+["How do I appeal my Miami property taxes?","You file a petition (Form DR-486) with the Miami-Dade Value Adjustment Board within 25 days of your TRIM notice. We check first whether a petition will actually lower your bill. If it will, we mail you the petition filled in, your evidence, a checklist and an envelope addressed to the VAB. You sign it and mail it, or hand-deliver it."],
+["Do you file the petition for me?","No. We prepare it and mail it to you; you sign it and mail it. It takes about five minutes. We do not file your petition, represent you, or attend the hearing, and the Value Adjustment Board writes to you directly. Forward us anything it sends and we'll help you understand it."],
+["What is the county filing fee?","Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. Miami-Dade's rate is $15, paid to the Miami-Dade Value Adjustment Board. You pay it to the county, with a cheque you put in the envelope we send you. It is not part of our $89 fee."],
 ["What is the Miami-Dade Property Appraiser?","The Miami-Dade County Property Appraiser determines the assessed value of all properties in Miami-Dade County. If your property is over-assessed, you can file a petition with the Value Adjustment Board to challenge it."],
-["How much can Miami homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. At $104 all-in, a successful appeal pays for itself within the first two weeks of savings."],
-["What is the Miami property tax appeal deadline?","25 days after your TRIM notice is mailed, typically mid-September. Florida requires your petition to be RECEIVED by this date — postmark is not enough. TaxAppeal files 7+ days early."],
+["How much can Miami homeowners save?","Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. If a petition won't lower your bill, we tell you and don't sell you one."],
+["What is the Miami property tax appeal deadline?","25 days after your TRIM notice is mailed, typically mid-September. Florida requires your petition to be RECEIVED by this date — postmark is not enough — so mail it the day your kit arrives or hand-deliver it. Close to the deadline we email the kit as a PDF to print, sign and deliver."],
 ["What is the Save Our Homes cap in Miami?","The Save Our Homes cap limits assessment increases on homestead properties to 3% per year. However if you recently purchased your home or your assessed value exceeds market value, you can still benefit from filing a VAB petition."]
 ];
 
@@ -71,21 +72,21 @@ const go = () => router.push('/apply');
 return (
 <>
 <Head>
-<title>Miami Property Tax Appeal Service | $104 All-In | TaxAppeal USA</title>
-<meta name="description" content="Appeal your Miami property taxes for $104 all-in ($89 service + $15 Miami-Dade VAB fee).Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the county fee. No percentage cuts." />
+<title>Miami Property Tax Appeal Service | $89 Flat | TaxAppeal USA</title>
+<meta name="description" content="Miami property tax appeal for $89 flat. We check whether a VAB petition will lower your Miami-Dade bill first, then mail you a ready-to-sign kit." />
 <link rel="canonical" href="https://www.taxappealusa.com/miami" key="canonical" />
-<meta property="og:title" content="Miami Property Tax Appeal — $104 All-In | TaxAppeal USA" key="og:title" />
-<meta property="og:description" content="Appeal your Miami property taxes for $104 all-in.Your saving is the size of the reduction multiplied by your local tax rate, so it depends entirely on your own property — and where an assessment cap absorbs the reduction, it can be nothing at all. Our free check tells you which applies to you before you pay. We file your VAB petition and pay the mandatory county fee on your behalf." key="og:description" />
+<meta property="og:title" content="Miami Property Tax Appeal — $89 Flat | TaxAppeal USA" key="og:title" />
+<meta property="og:description" content="We check whether a VAB petition will lower your Miami tax bill before you pay. If it will, we mail you a ready-to-sign kit for $89. You sign it and mail it." key="og:description" />
 <meta property="og:url" content="https://www.taxappealusa.com/miami" key="og:url" />
 <meta property="og:type" content="website" key="og:type" />
 <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Miami-Dade County',href:'/counties/miami-dade-county-fl'},{name:'Miami'}],'https://www.taxappealusa.com/miami'))}} />
 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
 "@context":"https://schema.org","@type":"Service",
-"name":"Miami Property Tax Appeal Filing",
+"name":"Miami Property Tax Appeal Kit",
 "provider":{"@type":"Organization","name":"TaxAppeal USA"},
 "areaServed":{"@type":"City","name":"Miami"},
-"description":"Property tax VAB petition preparation, county filing fee payment, and tracked mail filing for Miami homeowners.",
-"offers":{"@type":"Offer","price":"104.00","priceCurrency":"USD"}
+"description":"A check of whether a VAB petition will lower your bill, then a ready-to-sign Form DR-486 kit with evidence and a return envelope addressed to the Miami-Dade Value Adjustment Board, mailed to Miami homeowners.",
+"offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
 })}} />
 </Head>
 {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
@@ -108,14 +109,14 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
     const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
     return (
       <div style={barStyle}>
-        🔒 Reserve your Miami-Dade County spot now — TRIM notices start arriving in {days} days. Lock in the $89 rate today; we file the moment your county's window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+        🔒 Reserve your Miami-Dade County kit now — TRIM notices start arriving in {days} days. We check again when values are published and refund you in full if the case is gone. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
       </div>
     );
   }
   if (today >= windowOpen && today <= windowClose) {
     return (
       <div style={barStyle}>
-        🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+        🚨 Florida's filing window is open — get your petition kit in time to meet your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
       </div>
     );
   }
@@ -137,29 +138,29 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{background:C.navy,padding:"64px 40px",color:C.white}}>
 <div style={{maxWidth:900,margin:"0 auto"}}>
 <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>Miami, Florida — Property Tax Appeal Service</div>
-<h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Miami Property Tax Appeal — $104 All-In</h1>
-<p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:16}}>Miami home values have surged to record highs, and many Miami-Dade homeowners are significantly over-assessed. TaxAppeal files your formal VAB petition and pays the mandatory county fee — all for $104 total.</p>
+<h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>Miami Property Tax Appeal — $89 Flat</h1>
+<p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:16}}>Miami home values have surged to record highs, and many Miami-Dade homeowners are significantly over-assessed. We check whether a petition will actually lower your tax bill, after caps and exemptions, before you pay. If it won&rsquo;t, we&rsquo;ll tell you, and we won&rsquo;t sell you one. If it will, we mail you a ready-to-sign VAB petition kit for $89.</p>
 {/* Pricing breakdown */}
 <div style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"12px 16px",marginBottom:20,display:"inline-flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
-<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$89</span> service fee</span>
-<span style={{color:"#5A7A9F"}}>+</span>
-<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$15</span> Miami-Dade VAB fee <span style={{fontSize:11,color:"#5A7A9F"}}>(required by FL law)</span></span>
-<span style={{color:"#5A7A9F"}}>=</span>
-<span style={{fontSize:14,color:C.white,fontWeight:700}}>$104 total — you sign it, we file and pay the county fee</span>
+<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$89</span> for your kit</span>
+<span style={{color:"#5A7A9F"}}>·</span>
+<span style={{fontSize:13,color:C.mutedGray}}><span style={{color:C.gold,fontWeight:700}}>$15</span> Miami-Dade VAB fee <span style={{fontSize:11,color:"#5A7A9F"}}>(you pay the county, by cheque in the envelope)</span></span>
+<span style={{color:"#5A7A9F"}}>·</span>
+<span style={{fontSize:14,color:C.white,fontWeight:700}}>You sign it and mail it to the VAB</span>
 </div>
 <div style={{background:C.red,display:"inline-block",borderRadius:6,padding:"8px 14px",fontSize:13,color:C.white,fontWeight:500,marginBottom:24,marginLeft:0}}>
-⚠️ Florida requires RECEIPT by deadline — not just postmark. We file 7+ days early.
+⚠️ Florida counts your petition when it is RECEIVED, not postmarked. Mail it the day your kit arrives, or hand-deliver it.
 </div>
 <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-{[["$89","Service fee"],["$104","All-in total"],["0%","Of your savings taken"],["Miami-Dade","Service area"]].map(([n,l]) => (
+{[["$89","Kit fee"],["$15","County fee, paid by you"],["0%","Of your savings taken"],["Miami-Dade","Service area"]].map(([n,l]) => (
 <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:"16px",textAlign:"center"}}>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
 </div>
 ))}
 </div>
-<button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My Miami Appeal — $104 All-In →</button>
-<div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. $89 service + $15 Miami-Dade VAB fee. We pay the county on your behalf.</div>
+<button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Miami Appeal — $89 →</button>
+<div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. We check first: if a petition won&rsquo;t lower your bill, we tell you and don&rsquo;t sell you one.</div>
 </div>
 </section>
 
@@ -171,7 +172,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 {[
 ["📊","Miami-Dade Uses Mass Appraisal — Your Home May Be Over-Valued","Florida's TRIM notice arrives every August showing your assessed value. You have only 25 days to file a petition with the Value Adjustment Board — and Florida requires RECEIPT by the deadline, not just postmark."],
 ["📈","Market Conditions Support Your Case","Miami-Dade's booming real estate market means many properties are assessed at values that exceed their actual fair market value under Florida Statute §193.011."],
-["💳","We Handle the County Fee For You","Miami-Dade charges a $15 VAB filing fee (HB 7031 allows counties up to $50; Miami-Dade's own adopted rate is $15). We pay it on your behalf with your petition — you don't need to make a separate trip to the county or write a separate check."],
+["💳","The County Fee Goes Straight to the County","Miami-Dade charges a $15 VAB filing fee (HB 7031 allows counties up to $50; Miami-Dade's own adopted rate is $15). You pay it to the county with a cheque you put in the envelope we send you. It is not part of our $89 fee."],
 ].map(([icon,title,desc]) => (
 <div key={title} style={{display:"flex",gap:16}}>
 <div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
@@ -188,12 +189,12 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{padding:"56px 40px",background:C.lightBlue}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>Where Your Miami-Dade Petition Goes</h2>
-<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>TaxAppeal prepares your petition, you sign it, and we mail it with the county filing fee paid to the Miami-Dade Value Adjustment Board, mailed 7+ days before your deadline to ensure timely receipt.</p>
+<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>We prepare your petition and mail it to you with an envelope addressed to the Miami-Dade Value Adjustment Board. You sign it, add the county&rsquo;s fee cheque and a stamp, and mail it the day it arrives, or hand-deliver it.</p>
 <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Appraisal Authority</div>
 <div style={{fontSize:16,fontWeight:600,color:C.darkNavy,marginBottom:16}}>Miami-Dade County VAB</div>
-{[["📍",`${vab.vabName}`],["✉️",`${vab.attn}`],["🏛️",`${vab.street}, ${vab.city}, ${vab.state} ${vab.zip}`],["📅",`Deadline: ${trimDeadline} — by physical receipt, not postmark`],["💵","County VAB fee: $15 (we pay it with your petition — $104 all-in)"],["⚖️","Florida Statute §194.011"]].map(([icon,text]) => (
+{[["📍",`${vab.vabName}`],["✉️",`${vab.attn}`],["🏛️",`${vab.street}, ${vab.city}, ${vab.state} ${vab.zip}`],["📅",`Deadline: ${trimDeadline} — by physical receipt, not postmark`],["💵","County VAB fee: $15, paid by you to the county with your petition (not part of our $89)"],["⚖️","Florida Statute §194.011"]].map(([icon,text]) => (
 <div key={text} style={{display:"flex",gap:10,marginBottom:10,fontSize:13,color:C.bodyGray}}>
 <span style={{flexShrink:0}}>{icon}</span><span>{text}</span>
 </div>
@@ -202,7 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div style={{background:C.navy,borderRadius:12,padding:24,color:C.white}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>What TaxAppeal Does</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>What We Do For You</div>
-{["Analyze comparable sales in Miami","Draft formal VAB petition citing Florida Statute §194.011","Pay the $15 Miami-Dade filing fee on your behalf","File via mail 7+ days early","You receive copy and tracking number","Keep 100% of your savings"].map(item => (
+{["Check first: will a petition lower your bill after caps and exemptions?","Analyze comparable values in Miami","Fill in Form DR-486 citing Florida Statute §194.011","Mail you the kit: petition, evidence, checklist and an envelope addressed to the VAB","Email the same kit as a PDF the same day","Keep 100% of your savings"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10,fontSize:13}}>
 <span style={{flexShrink:0,marginTop:1,color:C.gold}}>✓</span><span style={{color:"#cbd5e1"}}>{item}</span>
 </div>
@@ -215,21 +216,21 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{padding:"56px 40px",background:C.white}}>
 <div style={{maxWidth:800,margin:"0 auto"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:30,textAlign:"center",marginBottom:12}}>TaxAppeal vs. Other Miami Tax Appeal Companies</h2>
-<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Most Miami property tax firms charge 25–40% of your savings every year. Here's how TaxAppeal's $104 all-in compares.</p>
+<p style={{fontSize:15,color:C.bodyGray,textAlign:"center",marginBottom:36}}>Most Miami property tax firms charge 25–40% of your savings every year. Here's how TaxAppeal's flat $89 compares.</p>
 <div className="compare-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:24}}>
 <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.mutedGray,marginBottom:12}}>Typical Miami Firm</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.red,marginBottom:8}}>25–40% of savings</div>
 <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,marginBottom:16}}>On a $2,800 reduction, that's $700–$1,120 in fees — every single year.</p>
-{["Contingency fee every year","May cherry-pick easy cases","You lose a large portion of savings"].map(item => (
+{["Contingency fee, often charged every year","The fee grows with your saving","A share of your saving goes to the firm"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.red}}>✗ {item}</div>
 ))}
 </div>
 <div style={{background:C.navy,borderRadius:12,padding:24}}>
 <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
-<div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$104 all-in. Period.</div>
-<p style={{fontSize:14,color:C.mutedGray,lineHeight:1.7,marginBottom:16}}>Same $2,800 reduction. Pay $104 once (including the county fee) and keep $2,696. Every year after is 100% yours.</p>
-{["$89 service + $15 Miami-Dade VAB fee, total","County VAB fee paid on your behalf","Keep 100% of your savings","Mailed 7+ days early"].map(item => (
+<div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
+<p style={{fontSize:14,color:C.mutedGray,lineHeight:1.7,marginBottom:16}}>Same $2,800 saving: you keep $2,696 after our $89 and the county&rsquo;s $15 filing fee. Every year after is 100% yours.</p>
+{["We check your bill before you pay","Official form, evidence and a pre-addressed envelope, mailed to you","Keep 100% of your savings","You sign it and mail it: about five minutes"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
 ))}
 </div>
@@ -254,8 +255,8 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <section style={{background:C.navy,padding:"64px 40px",textAlign:"center"}}>
 <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:34,color:C.white,marginBottom:12}}>Ready to appeal your Miami property taxes?</h2>
 <p style={{fontSize:16,color:C.mutedGray,marginBottom:8}}>Join Miami homeowners saving money every year.</p>
-<p style={{fontSize:14,color:"#5A7A9F",marginBottom:28}}>$89 service fee + $15 Miami-Dade VAB fee = $104 all-in. We handle the county payment for you.</p>
-<button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Miami Appeal — $104 All-In →</button>
+<p style={{fontSize:14,color:"#5A7A9F",marginBottom:28}}>$89 for your kit. The $15 Miami-Dade VAB fee is paid by you, to the county, with a cheque in the envelope.</p>
+<button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My Miami Appeal — $89 →</button>
 </section>
 
 <footer style={{background:C.darkNavy,padding:"24px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>

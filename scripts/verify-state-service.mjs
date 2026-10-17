@@ -89,7 +89,7 @@ function read(rel) {
  * quietly counting one extra offer per page — which is the direction an
  * assertion should break in.
  */
-const SITE_WIDE_SERVICE = '"name":"Property Tax Dispute Filing"';
+const SITE_WIDE_SERVICE = '"name":"Property Tax Appeal Kit"';
 
 function pageLevelOfferCount(html) {
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => m[1]);

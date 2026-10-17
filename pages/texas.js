@@ -20,17 +20,17 @@ const TX_DEADLINE_SENTENCE = deadlineSentence(TX_TAX_YEAR);
 
 const faqs = [
   ["What is the deadline to protest property taxes in Texas?", `${TX_DEADLINE_SENTENCE} If you miss this window, you cannot protest until the following year.`],
-  ["How much can I save by protesting my Texas property taxes?", "The average Texas homeowner who protests saves $800–$2,500 per year. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike firms that take 25–50% of what you save."],
+  ["How much can I save by protesting my Texas property taxes?", "It depends on the gap between your appraised value and similar homes, and on the 10% homestead cap — a lower market value doesn't always lower your bill. That is why we check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. We never promise a specific saving. With TaxAppeal's flat $89 kit you keep 100% of any saving — many firms take 25–50% of what you save."],
   ["What is the success rate for property tax protests in Texas?", "Texas does not publish a statewide protest success rate — the Comptroller's ARB survey explicitly does not collect hearing results, so any statewide figure you see advertised is not coming from the state. The best available evidence is county-level: economists analysing Dallas Central Appraisal District records found that 69.7% of homeowner-filed protests won a reduction in 2020, with average first-year savings of $485 (American Economic Journal: Economic Policy, 2025). Outcomes vary by county and by property, and TaxAppeal cannot guarantee a reduction."],
-  ["How does TaxAppeal compare to other Texas property tax protest companies?", "Most Texas protest firms charge 25–50% of your savings as a contingency fee. On a $2,000 reduction, that's $500–$1,000 in fees. TaxAppeal charges a flat $89 — you keep every dollar you save."],
-  ["Do I need to attend a hearing if I file a property tax protest?", "Not necessarily. Many protests are resolved at the informal level without a hearing. TaxAppeal's certified mail filing creates an official record of your protest with the appraisal district."],
-  ["What evidence does TaxAppeal use in my protest letter?", "We analyze comparable sales in your area, current market conditions, property-specific defects, and any discrepancies in county records. Every letter cites Texas Tax Code §41.41 and §41.43."],
-  ["Which Texas counties does TaxAppeal serve?", "TaxAppeal serves all 254 Texas counties including Harris, Dallas, Tarrant, Bexar, Travis, Collin, Denton, Fort Bend, Williamson, Montgomery, and every other county in the state."],
-  ["Can my property tax assessment go up if I protest?", "No. Texas law prevents your assessment from being raised as a result of your protest. There is zero risk to filing."],
+  ["How does TaxAppeal compare to other Texas property tax protest companies?", "Most Texas protest firms charge 25–50% of your savings as a contingency fee. On a $2,000 reduction, that's $500–$1,000 in fees. TaxAppeal charges a flat $89 for a ready-to-sign protest kit — you keep every dollar you save. The difference: we check the bill impact before you pay, and you sign and mail the protest yourself."],
+  ["Do I need to attend a hearing if I file a property tax protest?", "Not necessarily. Many protests are settled at an informal conference with the appraisal district, and you can ask the ARB to decide on your written evidence. TaxAppeal USA does not represent you or attend for you: the appraisal district writes to you directly. Forward us anything it sends and we'll help you understand it."],
+  ["What evidence goes in my TaxAppeal protest kit?", "The appraisal district's own roll: an equal-and-uniform comparison showing how similar homes near you are valued, under Texas Tax Code §41.43(b). The kit also includes Comptroller Form 50-132 filled in, a one-page checklist and a return envelope addressed to your appraisal district."],
+  ["Which Texas counties does TaxAppeal serve?", "TaxAppeal prepares protest kits for all 254 Texas counties including Harris, Dallas, Tarrant, Bexar, Travis, Collin, Denton, Fort Bend, Williamson, Montgomery, and every other county in the state."],
+  ["Can my property tax assessment go up if I protest?", "No. Texas law prevents your assessment from being raised as a result of your protest."],
   ["What is the Appraisal Review Board (ARB) in Texas?", "The Appraisal Review Board is an independent panel that hears property tax protests in Texas. If your informal hearing with the appraisal district doesn't result in an acceptable reduction, your case proceeds to the ARB where you present comparable sales evidence to a three-person panel."],
   ["Can I protest my Texas property taxes every year?", "Yes. Texas homeowners can file a new protest every single year. Your Notice of Appraised Value resets each spring, giving you a fresh window to challenge the value — even if you protested last year."],
   ["What is unequal appraisal and how does it help my Texas protest?", "Under Texas Tax Code §41.43, you can protest that your property is appraised higher than comparable properties — even if your value is accurate. This 'unequal appraisal' argument is powerful because it only requires showing neighboring homes with similar values are assessed lower, regardless of market value."],
-  ["Which appraisal districts handle Texas property tax protests?", "Texas has 254 county appraisal districts (CADs), one per county. Major ones include the Harris County Appraisal District (HCAD), Dallas Central Appraisal District (DCAD), Tarrant Appraisal District (TAD), Bexar Appraisal District, and Travis Central Appraisal District (TCAD). TaxAppeal files with whichever CAD covers your property."],
+  ["Which appraisal districts handle Texas property tax protests?", "Texas has 254 county appraisal districts (CADs), one per county. Major ones include the Harris County Appraisal District (HCAD), Dallas Central Appraisal District (DCAD), Tarrant Appraisal District (TAD), Bexar Appraisal District, and Travis Central Appraisal District (TCAD). The return envelope in your kit is addressed to whichever CAD covers your property."],
 ];
 
 /*
@@ -55,7 +55,7 @@ const cities = [
     slug: "/houston",
     county: "Harris County (HCAD)",
     stats: ["516K accounts protested (2024)", "Harris County HCAD", "6.98% avg reduction"],
-    desc: "Houston homeowners face some of the highest effective property tax rates in the nation. We prepare and mail your protest to the Harris County Appraisal District.",
+    desc: "Houston homeowners face some of the highest effective property tax rates in the nation. We check first, then mail you a ready-to-sign protest for the Harris County Appraisal District.",
   },
   {
     name: "Dallas",
@@ -69,7 +69,7 @@ const cities = [
     slug: "/fort-worth",
     county: "Tarrant County (TAD)",
     stats: ["Annual protest right", "Tarrant Appraisal District", "Fast-growing market"],
-    desc: `Fort Worth and the greater Tarrant County area have seen rapid appreciation. We prepare and mail your protest to the Tarrant Appraisal District before the ${TX_DEADLINE} deadline.`,
+    desc: `Fort Worth and the greater Tarrant County area have seen rapid appreciation. We check first, then mail you a ready-to-sign protest for the Tarrant Appraisal District, due by ${TX_DEADLINE}.`,
   },
   {
     name: "Austin",
@@ -87,19 +87,19 @@ export default function Texas() {
   return (
     <>
       <Head>
-        <title>Texas Property Tax Protest Service | File for $89 — TaxAppeal</title>
-        <meta name="description" content="Protest your Texas property taxes for a flat $89 fee. We draft your dispute letter with comparable sales data and file via USPS certified mail. All 254 Texas counties." />
+        <title>Texas Property Tax Protest Service | $89 Kit — TaxAppeal</title>
+        <meta name="description" content="Protest your Texas property taxes for $89 flat. We check first, then mail you a ready-to-sign Form 50-132 protest kit. You sign it and mail it. All 254 counties." />
         <link rel="canonical" href="https://www.taxappealusa.com/texas" key="canonical" />
         <meta property="og:title" content="Texas Property Tax Protest — $89 Flat Fee | TaxAppeal" key="og:title" />
-        <meta property="og:description" content="Stop overpaying on Texas property taxes. We prepare and mail your protest via certified mail for $89 flat. No contingency fees. Keep 100% of your savings." key="og:description" />
+        <meta property="og:description" content="We check whether a protest will lower your Texas tax bill before you pay. If it will, we mail you a ready-to-sign protest kit for $89 flat. Keep 100% of your savings." key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com/texas" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Texas Property Tax Protest Filing",
+          "name": "Texas Property Tax Protest Kit",
           "provider": { "@type": "Organization", "name": "TaxAppeal USA" },
           "areaServed": { "@type": "State", "name": "Texas" },
-          "description": "Property tax protest letter preparation and USPS certified mail filing for Texas homeowners. Covers all 254 counties.",
+          "description": "A check of whether a protest will lower the tax bill, then a ready-to-sign Form 50-132 protest kit mailed to the Texas homeowner, who signs it and mails it. Covers all 254 counties.",
           "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" }
         })}} />
       
@@ -166,10 +166,10 @@ export default function Texas() {
             Protest Your Texas Property Taxes for $89 Flat
           </h1>
           <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            Stop overpaying. We draft a formal protest letter backed by comparable sales data and legal citations under Texas Tax Code §41.41 & §41.43. You sign it, we file it via USPS certified mail — all for a flat $89. No contingency fees. Keep 100% of your savings.
+            We check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one. If it will, we mail you a ready-to-sign kit: Comptroller Form 50-132 filled in, the appraisal district&apos;s own numbers as evidence, and a return envelope addressed to the district. You sign it and mail it — a flat $89. Keep 100% of your savings.
           </p>
           <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
-            {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["Certified", "Mail with tracking"], ["254", "TX counties"]].map(([n, l]) => (
+            {[["$89", "Flat fee"], ["0%", "Of your savings taken"], ["You", "Sign it and mail it"], ["254", "TX counties"]].map(([n, l]) => (
               <div key={l} style={{ background: C.darkNavy, borderRadius: 10, padding: "16px", textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.gold }}>{n}</div>
                 <div style={{ fontSize: 11, color: "#5A7A9F", marginTop: 4 }}>{l}</div>
@@ -177,9 +177,9 @@ export default function Texas() {
             ))}
           </div>
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
-            File My Texas Protest — $89 →
+            Check My Texas Protest — $89 →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Before notices go out you can reserve your kit: we check again when your values are published, and refund you in full if the case is gone.</div>
         </div>
       </section>
 
@@ -221,7 +221,7 @@ export default function Texas() {
       <section style={{ padding: "56px 40px", background: C.white }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>All 254 Texas Counties Served</h2>
-          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Houston to El Paso, Dallas to the Rio Grande Valley — every Texas homeowner can file.</p>
+          <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Houston to El Paso, Dallas to the Rio Grande Valley — every Texas homeowner can protest.</p>
           <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
             {counties.map(c => (
               <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
@@ -241,7 +241,7 @@ export default function Texas() {
           more than one place. */}
       <section style={{ padding: "56px 40px", background: C.bg }}>
         <div style={{ maxWidth: 980, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Texas cities we file in</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Texas cities we cover</h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.6 }}>Your appraisal district, protest deadline and ARB are all set by your county — find your city below.</p>
           {Object.entries(
             texasCities.reduce((acc, c) => {
@@ -324,7 +324,7 @@ export default function Texas() {
       {/* CTA */}
       <section style={{ background: C.navy, padding: "64px 40px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.white, marginBottom: 12 }}>Ready to protest your Texas property taxes?</h2>
-        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28 }}>Texas lets you protest your appraised value every single year. $89 flat — no hidden fees, no percentage cuts.</p>
+        <p style={{ fontSize: 16, color: C.mutedGray, marginBottom: 28 }}>Texas lets you protest your appraised value every single year. We check first; the kit is $89 flat — no percentage cuts. We do not file your protest: you sign it and mail it.</p>
         <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
           Start My Texas Protest — $89 →
         </button>

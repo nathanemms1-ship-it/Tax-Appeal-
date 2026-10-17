@@ -45,44 +45,47 @@ export default function Landing() {
   const go = () => router.push('/apply');
 
   const faqs = [
-    ["Do I have to do anything after I pay?", "One thing: right after you pay, we show you the complete filing and you sign it yourself — it goes in your name, and in Florida your signature is what makes the petition valid. After that we handle the rest: printing, paying any county filing fee, and mailing it to the correct authority. We email you as soon as it is on its way."],
-    ["What if my dispute is denied?", "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations, but we can't guarantee a reduction."],
-    ["How is $89 different from other services?", "Three types of competitors exist -- and TaxAppeal beats all of them. Contingency firms like O'Connor and Ownwell charge 25-50% of your savings every single year. Subscription services like Abode Money charge $99/year automatically. DIY tools like AppealDesk charge $49 but you print and mail it yourself. TaxAppeal charges $89 flat -- no subscription, no auto-renewal, no percentage ever."],
-    ["What states do you serve?", `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} filing season — we are confirming the exact office every appeal has to reach in those states before we take an order there.` : ""} More states are coming soon — enter your email during signup to be notified when your state launches.`],
-    ["How long does the process take?", "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30–90 days depending on the county."],
-    ["How do you mail my filing?", "It depends on your state. In Texas and Georgia we use USPS certified mail, which creates a signed record that your protest was sent and received. Florida VAB petitions go out as a check to the county with the petition attached, which USPS carries as tracked First Class mail — certified is not offered on that product. Either way we mail it for you and tell you when it is on its way."],
-    ["Can I file in multiple counties?", "Yes — each property requires a separate filing. You can run the process multiple times, once for each property address."],
+    ["Will an appeal actually lower my tax bill?", "We check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. Homestead caps and local freezes can hold a bill flat even when the value drops, so we look at the bill, not just the value."],
+    ["Do I have to do anything after I pay?", "Yes, one thing. We mail you a kit with the official form filled in, your evidence, a checklist and a return envelope addressed to the county. You sign it in ink, add a stamp and mail it — it takes about five minutes. We do not file it for you: it goes in your name, and the county writes to you directly. Forward us anything the county sends and we'll help you understand it."],
+    ["What if my appeal is denied?", "Not every appeal succeeds — the county makes the final decision, and we can't promise a reduction or a particular saving. If the county doesn't lower your value, next year's kit is free. And if our check stops your order before anything is mailed, you get a full refund."],
+    ["How is $89 different from other services?", "Contingency firms like O'Connor and Ownwell charge a share of your savings, often 25-50%, and many re-enroll you each year. Subscription services like Abode Money charge $99 a year. DIY tools like AppealDesk charge $49 for a packet you print and mail yourself. TaxAppeal charges $89 flat, checks whether an appeal will lower your bill before you pay, and mails you the official form filled in, your evidence and a return envelope addressed to the county. You sign it and mail it. No subscription, no auto-renewal, no percentage."],
+    ["What states do you serve?", `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} season — we are confirming the exact office every appeal has to reach in those states before we take an order there.` : ""} More states are coming soon — enter your email during signup to be notified when your state launches.`],
+    ["How long does the process take?", "The check takes a few minutes, before you pay. The PDF of your kit is emailed the same day and the printed kit follows by mail. Signing and mailing it takes about five minutes. After you mail it, counties typically respond within 30–90 days."],
+    ["Do you mail my appeal to the county?", "No. We mail the kit to you, and you mail it to the county in the return envelope we include. Mail it the day your kit arrives, and get proof of mailing at a post office counter — a Certificate of Mailing (PS Form 3817) costs about $2. Georgia and Texas count the postmark; Florida counts the day the petition is RECEIVED, so mail it early or hand-deliver it. In the last days before a deadline there isn't time to mail a printed kit, so we email it as a PDF to print, sign and mail."],
+    ["Can I file in multiple counties?", "Yes — each property needs its own kit. You can run the check once for each property address."],
   ];
 
   return (
     <>
       <Head>
-        <title>Property Tax Protest Service — File Online for $89 | TaxAppeal</title>
-        <meta name="description" content="Protest your property taxes for a flat $89 fee. We draft your dispute with comparable sales data and mail it for you, with tracking. Flat fee, no percentage of your savings. Available in TX, GA, FL, AR, and AL." />
+        <title>Property Tax Protest Service — $89 Ready-to-Sign Kit | TaxAppeal</title>
+        <meta name="description" content="Protest your property taxes for a flat $89. We check first whether an appeal will lower your bill, then mail you a ready-to-sign kit. You sign and mail it." />
         <meta name="keywords" content="property tax protest, dispute property taxes, property tax appeal, lower property taxes, property tax dispute service, protest property tax assessment, Texas property tax protest, Georgia property tax appeal, Florida property tax appeal" />
-        <meta property="og:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" key="og:title" />
-        <meta property="og:description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We mail it for you, with tracking. TX, GA, FL, AR, AL." key="og:description" />
+        <meta property="og:title" content="Property Tax Protest Service — $89 Ready-to-Sign Kit | TaxAppeal" key="og:title" />
+        <meta property="og:description" content="We check whether an appeal will lower your tax bill before you pay. If it will, we mail you a ready-to-sign kit for $89. No percentage cuts." key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com" key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <meta property="og:site_name" content="TaxAppeal USA" key="og:site_name" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Property Tax Protest Service — File for $89 | TaxAppeal" />
-        <meta name="twitter:description" content="We fight your property tax bill. Flat $89 fee. We mail it for you, with tracking. TX, GA, FL, AR, AL." />
+        <meta name="twitter:title" content="Property Tax Protest Service — $89 Ready-to-Sign Kit | TaxAppeal" />
+        <meta name="twitter:description" content="We check first, then mail you a ready-to-sign property tax appeal kit. You sign and mail it. Flat $89." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="canonical" href="https://www.taxappealusa.com" key="canonical" />
         <meta property="og:type" content="website" key="og:type" />
-        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." key="og:title" />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We draft your property tax protest and mail it for you, with tracking. TX, GA, FL, AR, AL." key="og:description" />
+        <meta property="og:title" content="TaxAppeal — We check first. You keep the savings." key="og:title" />
+        <meta property="og:description" content="Flat $89. We check whether an appeal will lower your bill, then mail you the official form filled in, your evidence and a return envelope." key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com" key="og:url" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "Right after you pay, we show you the complete filing and you sign it yourself — it goes in your name. After that we handle printing, paying any county filing fee, and mailing it to the correct authority." }},
-            { "@type": "Question", "name": "What if my dispute is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not all disputes are approved — the appraisal district makes the final decision. We give you the strongest possible case backed by real comparable sales data and legal citations." }},
-            { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Most property tax services charge 25-50% of your savings. On a $2,000 win that's up to $1,000. We charge a flat $89 regardless of outcome — you keep everything you save." }},
-            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} filing season.` : ""} More states are coming soon.` }},
-            { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "Filing takes about 4 minutes on your end. After we mail your protest, appraisal districts typically respond within 30-90 days." }}
+            { "@type": "Question", "name": "Will an appeal actually lower my tax bill?", "acceptedAnswer": { "@type": "Answer", "text": "We check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one." }},
+            { "@type": "Question", "name": "Do I have to do anything after I pay?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, one thing. We mail you a kit with the official form filled in, your evidence and a return envelope addressed to the county. You sign it in ink, add a stamp and mail it — it takes about five minutes. We do not file it for you; it goes in your name." }},
+            { "@type": "Question", "name": "What if my appeal is denied?", "acceptedAnswer": { "@type": "Answer", "text": "Not every appeal succeeds — the county makes the final decision, and we can't promise a reduction. If the county doesn't lower your value, next year's kit is free." }},
+            { "@type": "Question", "name": "How is $89 different from other services?", "acceptedAnswer": { "@type": "Answer", "text": "Many property tax services charge 25-50% of your savings. We charge a flat $89 regardless of outcome, and we check whether an appeal will lower your bill before you pay — you keep everything you save." }},
+            { "@type": "Question", "name": "What states do you serve?", "acceptedAnswer": { "@type": "Answer", "text": `Currently ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((p) => p.code))} open for the ${PENDING[0].servingFrom} season.` : ""} More states are coming soon.` }},
+            { "@type": "Question", "name": "How long does the process take?", "acceptedAnswer": { "@type": "Answer", "text": "The check takes a few minutes, before you pay. Your kit's PDF is emailed the same day and the printed kit follows by mail. Signing and mailing it takes about five minutes. Counties typically respond within 30-90 days." }},
+            { "@type": "Question", "name": "Do you mail my appeal to the county?", "acceptedAnswer": { "@type": "Answer", "text": "No. We mail the kit to you, and you mail it to the county in the return envelope we include. Georgia and Texas count the postmark; Florida counts the day the petition is received, so mail it early or hand-deliver it." }}
           ]
         })}} />
         <link rel="canonical" href="https://www.taxappealusa.com" key="canonical" />
@@ -92,13 +95,13 @@ export default function Landing() {
           "name": "TaxAppeal USA",
           "url": "https://www.taxappealusa.com",
           "email": "Support: customerservice@taxappealusa.com",
-          "description": `Property tax protest and appeal service for homeowners in ${SELLING_TEXT}. Flat $89 fee, tracked USPS mailing.`,
+          "description": `Property tax appeal kits for homeowners in ${SELLING_TEXT}. We check whether an appeal will lower the bill before you pay, then mail you a ready-to-sign kit for a flat $89. You sign and mail it.`,
           "areaServed": SELLING.map((c) => ({ TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" }[c])),
           "offers": {
             "@type": "Offer",
             "price": "89",
             "priceCurrency": "USD",
-            "description": "Property tax protest preparation and tracked USPS mailing"
+            "description": "Ready-to-sign property tax appeal kit: official form filled in, evidence, checklist and a return envelope addressed to the county, mailed to you and emailed as a PDF"
           }
         }) }} />
       </Head>
@@ -530,10 +533,10 @@ export default function Landing() {
           const names = nameList(a.states.map((c) => stateSaleStatus(c).name));
 
           if (a.kind === 'open') {
-            return <>{names} {a.states.length > 1 ? 'are' : 'is'} open — <strong>{a.days} days</strong> left to file. We prepare it, you sign it, we mail it.</>;
+            return <>{names} {a.states.length > 1 ? 'are' : 'is'} open — <strong>{a.days} days</strong> left to file. We check first, mail you a ready-to-sign kit, and you sign it and mail it.</>;
           }
           if (a.kind === 'preorder') {
-            return <>{names} opens {when(a.date)} — <strong>reserve your spot</strong> and we file the day the window opens.</>;
+            return <>{names} opens {when(a.date)} — <strong>reserve your kit</strong>: we check again when values come out and refund you in full if the case is gone.</>;
           }
           // CLOSED. Say so. /check is not gated by the season, and it is the
           // one thing a visitor can actually do today, so that is the ask.
@@ -586,26 +589,28 @@ export default function Landing() {
         <div className="hero-inner">
           <div className="hero-copy">
             <div className="eyebrow">Texas · Georgia · Florida</div>
-            <h1>We fight your property tax bill. You keep the savings.</h1>
+            <h1>Appeal your property tax bill. We check first. You keep the savings.</h1>
             <p className="hero-sub">
-              A flat <strong>$89</strong>. We build the case from your county&rsquo;s own roll, prepare the
-              protest and mail it for you with tracking. No percentage of your savings, ever.
+              We check whether an appeal will actually lower your tax bill, after caps and exemptions,
+              before you pay. If it won&rsquo;t, we&rsquo;ll tell you, and we won&rsquo;t sell you one. If it
+              will, we mail you a ready-to-sign kit for a flat <strong>$89</strong>: you sign it and mail it.
+              No percentage of your savings, ever.
             </p>
             <div className="hero-actions">
               <button className="btn-primary btn-hero" onClick={go}>Check your property — free</button>
-              <span className="hero-note">No charge until your appeal is ready to file.</span>
+              <span className="hero-note">No charge unless an appeal will lower your bill.</span>
             </div>
           </div>
 
           <aside className="price-card">
-            <div className="price-label">Everything included for</div>
+            <div className="price-label">Your ready-to-sign kit</div>
             <div className="price-figure">$89</div>
             <div className="price-sub">Flat rate. No hidden cuts.</div>
             <ul className="price-list">
-              <li>Real comparable sales evidence</li>
-              <li>State-specific legal citations</li>
-              <li>We mail the appeal for you</li>
-              <li>Proof of mailing sent to you</li>
+              <li>The official form, filled in for your home</li>
+              <li>Your evidence, ready to send</li>
+              <li>Return envelope addressed to the county</li>
+              <li>The same kit as a PDF, the same day</li>
             </ul>
           </aside>
         </div>
@@ -616,8 +621,8 @@ export default function Landing() {
             <div className="stat-label">Fewer than 5% of taxpayers ever challenge their assessment.</div>
           </div>
           <div className="stat-card">
-            <div className="stat-num">4 min</div>
-            <div className="stat-label">To answer a few questions and review your finished protest.</div>
+            <div className="stat-num">5 min</div>
+            <div className="stat-label">To sign your kit, add a stamp and put it in the mail.</div>
           </div>
           <div className="stat-card">
             <div className="stat-num">100%</div>
@@ -719,12 +724,12 @@ export default function Landing() {
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
           <div className="section-title">How it works</div>
-          <div className="section-sub">Three steps. Four minutes. We handle the rest.</div>
+          <div className="section-sub">Three steps. We check first, and you sign and mail it.</div>
           <div className="steps">
             {[
-              ["1", "Enter your address", "We automatically pull your county appraisal value, property details, and recent comparable sales from public records — no manual data entry needed."],
-              ["2", "We build your case", "Our system drafts a formal protest letter with real comparable sales, market condition analysis, and state-specific legal citations tailored to your county."],
-              ["3", "We mail it for you", "We send your signed filing to the correct authority by tracked USPS mail — certified in Texas, Georgia, Arkansas and Alabama — and pay any county filing fee. We email you when it goes out."],
+              ["1", "We check first", "Enter your address. We pull your county's value and recent comparable sales, and run your bill through your county's caps and exemptions. If an appeal won't lower your bill by more than our $89 fee, we tell you and don't sell you one."],
+              ["2", "We mail you the kit", "The official form filled in for your home, your evidence, a one-page checklist and a return envelope addressed to the county. The PDF is emailed the same day."],
+              ["3", "You sign it and mail it", "Sign in ink, add a stamp, and mail it before your deadline. It takes about five minutes. The county writes to you directly. We do not file it, represent you or attend hearings."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
                 <div className="step-num">{num}</div>
@@ -746,9 +751,9 @@ export default function Landing() {
               <p>
                 The National Taxpayers Union Foundation estimates that fewer than 5% of taxpayers
                 dispute their assessment, while {STATS.US_OVERASSESSED.value} of taxable U.S.
-                property is over-assessed. Filing costs you $89 and about four minutes. Whether
-                your county grants a reduction is up to your county — we make sure your case is
-                in front of them, on time, with the evidence attached.
+                property is over-assessed. A kit costs $89, and signing and mailing it takes about five
+                minutes. Whether your county grants a reduction is up to your county — we give you the
+                official form filled in and the evidence to send with it.
               </p>
               <p style={{ fontSize: 11, opacity: 0.75, marginTop: 10 }}>
                 Source: <a href={STATS.US_OVERASSESSED.url} target="_blank" rel="noopener noreferrer nofollow" style={{ textDecoration: 'underline' }}>National Taxpayers Union Foundation</a>. Advocacy-organization estimate, not a peer-reviewed study.
@@ -771,9 +776,9 @@ export default function Landing() {
               */}
               <div className="price-note">Flat rate. No percentage of your savings, ever.</div>
               <div className="price-note" style={{ marginTop: 6 }}>
-                In Florida your county charges its own filing fee of $15&ndash;$50 on top. We pay
-                it for you and show your exact total before you pay &mdash; $104 to $139 all in.
-                Texas and Georgia charge no filing fee, so $89 is the whole price.
+                In Florida your county also charges its own filing fee of $15&ndash;$50. You pay it to
+                the county, with a cheque in the envelope; it is not part of our $89. Texas and Georgia
+                charge no filing fee.
               </div>
             </div>
             <div className="price-divider" />
@@ -790,14 +795,14 @@ export default function Landing() {
         <div className="section-inner">
           {/* Was "Everything included for $89" — see the price-note comment above.
               In Florida it is not everything, and the county fee is the part it left out. */}
-          <div className="section-title">What the $89 covers</div>
+          <div className="section-title">What&rsquo;s in your $89 kit</div>
           <div className="checklist">
             {[
-              ["We mail the appeal for you", "Your signed filing goes to the correct authority by tracked USPS mail — no action needed on your end after you sign."],
-              ["Proof of mailing sent to you", "We email you when your filing is dispatched, with the USPS tracking details we hold. Keep it as your record."],
-              ["Real comparable sales evidence", "We search recent transactions in your ZIP code to build a data-backed argument for a lower valuation."],
-              ["State-specific legal citations", "Every letter references the exact statute for your state — Texas Tax Code §41.43, O.C.G.A. §48-5-311, or Florida Statute §194.011."],
-              ["20% reduction requested in your filing", "Your filing requests a 20% reduction from your current assessed value — the strongest defensible position supported by market data. The request is made in your name; your county decides it."],
+              ["The official form, filled in", "Georgia: Form PT-311A or your county's own appeal form. Texas: the Comptroller's Form 50-132. Florida: Form DR-486. Completed for your home, ready for your signature."],
+              ["Your evidence", "Georgia: recent sales of similar homes. Texas: an equal-and-uniform comparison from your appraisal district's own roll. Florida: comparable values. Printed and ready to send with your appeal."],
+              ["A return envelope addressed to the county", "Addressed to your county board of assessors, appraisal district or Value Adjustment Board. Add a stamp and mail it."],
+              ["A one-page checklist", "Where to sign, what to send, and the deadline for your county."],
+              ["The same kit as a PDF", "Emailed the day you order. In the last days before a deadline there isn't time to mail a printed kit, so we email it as a PDF to print, sign and mail."],
             ].map(([title, desc]) => (
               <div key={title} className="check-item">
                 <div className="check-icon">✓</div>
@@ -821,7 +826,7 @@ export default function Landing() {
           {/* One expression, not three JSX children: React inserts a space
               between siblings on separate lines, which rendered "…and Florida ."  */}
           <div className="section-sub">
-            {`We prepare and mail property tax appeals in ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((x) => x.code))} open for the ${PENDING[0].servingFrom} filing season.` : ""}`}
+            {`We prepare ready-to-sign property tax appeal kits in ${SELLING_TEXT}.${PENDING.length ? ` ${nameList(PENDING.map((x) => x.code))} open for the ${PENDING[0].servingFrom} season.` : ""}`}
           </div>
           <div className="state-pills">
             {SELLING.map((c) => (
@@ -842,8 +847,8 @@ export default function Landing() {
       {/* Competitor comparison section */}
       <section className="section" style={{ background: C.white }}>
         <div className="section-inner">
-          <div className="section-title">Why TaxAppeal beats the alternatives</div>
-          <div className="section-sub">Not all property tax services are created equal. Here's how we compare.</div>
+          <div className="section-title">How TaxAppeal compares</div>
+          <div className="section-sub">Different services suit different people. Here's how we compare.</div>
           <div style={{ overflowX: 'auto', marginTop: 24 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, fontFamily: FONTS.body }}>
               <thead>
@@ -860,10 +865,10 @@ export default function Landing() {
                   ['Price', '✅ $89 one-time flat fee', '⚠️ $49 + print/mail costs', '❌ $99/yr subscription', '❌ 25-50% of your savings'],
                   ['Auto-renewal / subscription', '✅ Never. You decide each year.', '✅ No subscription', '❌ $99 auto-billed every year', '❌ Auto-enrolled -- % taken every year'],
                   ['Comparable sales analysis', '✅ Included', '✅ Included', '✅ Included', '✅ Included'],
-                  ['Protest/dispute letter', '✅ Professionally drafted', '✅ Generated', '✅ Generated', '✅ Drafted by their team'],
-                  ['Filing -- we mail it for you', '✅ Tracked USPS mail', '❌ You print, buy postage & mail it', '✅ They handle mailing', '✅ They handle mailing'],
-                  ['Proof of mailing', '✅ Tracked, and we send it to you', '❌ You manage it yourself', '✅ Yes', '✅ Yes'],
-                  ['Deadline risk', '✅ We handle it', '❌ All on you', '✅ They handle it', '✅ They handle it'],
+                  ['Protest/appeal document', '✅ Official form filled in for you', '✅ Generated', '✅ Generated', '✅ Drafted by their team'],
+                  ['Who mails it to the county', '⚠️ You sign & mail it -- envelope pre-addressed', '⚠️ You print, address & mail it', '✅ They handle it', '✅ They handle it'],
+                  ['Printed kit mailed to you', '✅ Yes, plus a PDF the same day', '❌ You print it', '➖ Not applicable', '➖ Not applicable'],
+                  ['Deadline', '⚠️ Yours -- printed on your checklist', '⚠️ Yours', '✅ They handle it', '✅ They handle it'],
                   ['States covered', '✅ TX, FL, GA, AR, AL (5 states)', '⚠️ 50 states (DIY only)', '❌ TX + FL only', '⚠️ Varies by firm'],
                   ['Cost on $2,000 savings', '✅ $89 once -- keep $1,911', '⚠️ $49 + your time + risk', '❌ $99/yr ongoing forever', '❌ $400-$1,000 taken per year'],
                   ['Pay again next year?', '✅ Only if you choose to', '✅ Only if you choose to', '❌ Automatic -- no choice', '❌ Auto-enrolled if savings continue']
@@ -880,7 +885,7 @@ export default function Landing() {
             </table>
           </div>
           <div style={{ marginTop: 20, padding: '16px 20px', background: C.lightBlue, borderRadius: 10, fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> AppealDesk makes you print and mail it yourself. Abode Money auto-bills you every year. TaxAppeal is $89 once.
+            <strong style={{ color: C.darkNavy }}>No subscription. No percentage. No auto-renewal.</strong> Contingency firms take a share of your savings. Abode Money bills you every year. TaxAppeal is $89 once, and we check whether an appeal will actually lower your bill before you pay. We don&rsquo;t file or represent you: you sign the kit and mail it yourself.
           </div>
         </div>
       </section>
@@ -918,11 +923,11 @@ export default function Landing() {
           sentence made the identical claim in words the guard did not match, and it
           also named two states apply.js refuses.
         */}
-        <p>We prepare and mail property tax appeals in Texas, Georgia and Florida.</p>
+        <p>We check first, then mail you a ready-to-sign appeal kit. Texas, Georgia and Florida.</p>
         <button className="footer-cta-btn" onClick={go}>Check your property — free</button>
         {/* mutedGray here was 1.24:1 on the green. onDarkBody is 4.69. */}
         <div className="footer-cta-note">
-          You won&apos;t be charged until your appeal is ready to file.
+          We check first. You won&apos;t be charged unless an appeal will lower your bill.
         </div>
       </div>
 
@@ -953,7 +958,7 @@ export default function Landing() {
       <nav className="footer-links" aria-label="Site">
         <div className="footer-links-inner">
           <div className="footer-col">
-            <h3>Where we file</h3>
+            <h3>Where we work</h3>
             <a href="/florida">Florida property tax appeals</a>
             <a href="/texas">Texas property tax protests</a>
             <a href="/georgia">Georgia property tax appeals</a>
@@ -973,7 +978,7 @@ export default function Landing() {
                 authority reached the page the whole funnel depends on. */}
             <a href="/apply">Start your property tax appeal</a>
             <a href="/blog">County filing guides</a>
-            <a href="/why-certified-mail-matters">Why certified mail matters</a>
+            <a href="/why-certified-mail-matters">How to make sure your appeal arrives on time</a>
           </div>
           <div className="footer-col">
             <h3>Company</h3>

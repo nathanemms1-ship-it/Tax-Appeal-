@@ -779,8 +779,9 @@ export default function CheckPage() {
           */}
           {!d && (
             <p style={{ fontSize: 14.5, color: C.body, lineHeight: 1.6, marginBottom: 34 }}>
-              On top of the $89 there is your county&rsquo;s own filing fee — <strong style={{ color: C.darkNavy }}>$15
-              to $50</strong>, set by the county, not by us. The county keeps that fee either way,
+              Separately, your county charges its own filing fee — <strong style={{ color: C.darkNavy }}>$15
+              to $50</strong>, set by the county, not by us — which you pay to the county with a cheque in
+              your kit&rsquo;s envelope. It is not part of our $89. The county keeps that fee either way,
               which is why we tell you whether an appeal can lower your bill before you pay.
             </p>
           )}
@@ -1215,7 +1216,7 @@ export default function CheckPage() {
                       ) : win.canPreOrder ? (
                         <>
                           <strong style={{ color: C.gold }}>{checkedCounty} County opens {fmtDay(win.openDate)} and closes {fmtDay(win.lastOrderDate)}.</strong>{' '}
-                          Order now and we prepare everything today, then file the morning the window opens.
+                          Order now and we prepare your kit today and mail it to you, so you can sign it and get it to the Value Adjustment Board as soon as the window opens.
                         </>
                       ) : (
                         <>
@@ -1229,8 +1230,10 @@ export default function CheckPage() {
                   {canOrder ? (
                     <>
                       <p style={{ lineHeight: 1.6, margin: '0 0 16px', color: '#C5D3E8' }}>
-                        Flat $89 plus your county&rsquo;s filing fee. No percentage of your savings.
-                        You sign the petition — we prepare it, pay your county filing fee, and mail it with tracking.
+                        Flat $89 for your ready-to-sign kit. No percentage of your savings.
+                        We prepare your petition and mail you the kit with a return envelope addressed to the
+                        Value Adjustment Board. You sign it, add your own cheque for the county&rsquo;s filing fee,
+                        and mail or hand-deliver it. We do not file it or pay the county&rsquo;s fee.
                         {/* WHAT WAS HERE, AND WHY IT IS NOT: 25 Aug 2026.
                             ================================================================
                             "If the Board reduces your value, Florida law requires the county
@@ -1355,9 +1358,9 @@ export default function CheckPage() {
                         {blockedBy === 'county' ? (
                           <>
                             Your assessment is worth challenging. {checkedCounty ? `${checkedCounty} County` : 'Your county'} has
-                            not confirmed the details we need to file there — the address its Value
+                            not confirmed the details a petition there needs — the address its Value
                             Adjustment Board takes petitions at, or the exact fee it charges — and we
-                            will not post a petition to an address we are guessing at. Florida counts a
+                            will not address your kit to an office we are guessing at. Florida counts a
                             petition as filed when it is RECEIVED with the correct fee, so a wrong
                             envelope is not a late filing, it is no filing. We are chasing them.
                             Leave your email and we will tell you the moment it is settled, if there is
@@ -1365,7 +1368,7 @@ export default function CheckPage() {
                           </>
                         ) : (
                           <>
-                            Your assessment is worth challenging — we just cannot file it until the
+                            Your assessment is worth challenging — it just cannot be filed until the
                             window reopens. Leave your email and we will tell you the day it does,
                             with time to spare before the deadline. Nothing else.
                           </>
@@ -1494,13 +1497,13 @@ export default function CheckPage() {
                           <>
                             {checkedCounty ? `${checkedCounty} County` : 'Your county'} has not yet confirmed
                             the filing address or the fee its Value Adjustment Board requires, and we will
-                            not post a petition to an address we are guessing at. Leave your email and we
+                            not address your kit to an office we are guessing at. Leave your email and we
                             will pick this up with you the moment that is settled.
                           </>
                         ) : (
                           <>
                             {checkedCounty ? `${checkedCounty} County has closed for 2026` : 'Your county has closed for 2026'} — so
-                            there is nothing we can file yet. Leave your email and we will tell you the day
+                            there is nothing that can be filed yet. Leave your email and we will tell you the day
                             it reopens, and pick this up with you then.
                           </>
                         )}
@@ -1705,12 +1708,12 @@ export default function CheckPage() {
               {[
                 ['1', 'We read your county record',
                   'Your assessed value, your Save Our Homes cap, and comparable sales from the same roll your county assessed you from.'],
-                ['2', 'We draft the petition',
-                  'The DR-486, filled in with the evidence — you read it before anything is filed.'],
+                ['2', 'We mail you the kit',
+                  'The DR-486 filled in, your evidence, a one-page checklist and a return envelope addressed to your Value Adjustment Board. The PDF is emailed the same day.'],
                 ['3', 'You sign it, not us',
-                  'Florida law requires the owner to sign. It is filed in your name, and we never appear before the Board as your representative.'],
-                ['4', 'We pay the county and mail it tracked',
-                  'Your county filing fee is paid on your behalf, and the petition goes by tracked mail at least seven days early — Florida counts receipt, not postmark.'],
+                  'Florida law requires the owner to sign. You sign it in ink and send it in your name. We do not file it, and we never appear before the Board as your representative.'],
+                ['4', 'You mail it, early',
+                  'Put your own cheque for the county filing fee in the envelope and mail it the day the kit arrives, or hand-deliver it. Florida counts receipt, not postmark. Close to the deadline we email the kit as a PDF only.'],
               ].map(([n, head, body]) => (
                 <div key={n} style={{ display: 'flex', gap: 14, marginBottom: 18 }}>
                   <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', background: C.navy, color: C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>{n}</div>
@@ -1722,8 +1725,9 @@ export default function CheckPage() {
               ))}
 
               <p style={{ fontSize: 14, color: C.body, lineHeight: 1.6, background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', margin: '22px 0 0' }}>
-                <strong style={{ color: C.darkNavy }}>Flat $89 plus your county&rsquo;s filing fee</strong>{' '}
-                (set by the county, $15–$50). Never a percentage of your savings. The county&rsquo;s
+                <strong style={{ color: C.darkNavy }}>Flat $89 for your kit.</strong>{' '}
+                Your county&rsquo;s own filing fee (set by the county, $15–$50) is paid by you, to the
+                county, and is not part of the $89. Never a percentage of your savings. The county&rsquo;s
                 fee is not refundable, which is why we check whether an appeal can lower your bill
                 before you pay rather than after.
               </p>

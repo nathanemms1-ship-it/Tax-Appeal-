@@ -47,16 +47,17 @@ export default function DisclaimerFooter() {
         textAlign: "center",
       }}
     >
-      TaxAppeal USA is a self-service document-preparation and mail filing service. In every state we
-      serve, including Florida, we are not property tax consultants, agents, or representatives, we do
-      not provide tax or legal advice, and we do not represent customers before any appraisal district,
-      board of equalization, value adjustment board, or review board. Every protest and petition is
-      prepared for the property owner, signed by the owner, and filed in the owner&rsquo;s name.
-      {" "}In Florida we also pay your county&rsquo;s Value Adjustment Board filing fee on your behalf
-      and mail your petition to the Clerk of the Value Adjustment Board. Your petition is signed by you
-      as the property owner under section 194.011(3), Florida Statutes. TaxAppeal USA does not sign as
-      your representative, does not appear before the Board, and does not present evidence or argument
-      at a hearing.
+      TaxAppeal USA is a self-service document-preparation service. We prepare a ready-to-sign appeal
+      kit and mail it to you; you sign it and mail it to the county yourself. In every state we serve,
+      including Florida, we are not property tax consultants, agents, or representatives, we do not
+      provide tax or legal advice, and we do not file appeals or represent customers before any
+      appraisal district, board of assessors, board of equalization, value adjustment board, or review
+      board. Every appeal, protest and petition is prepared for the property owner, signed by the
+      owner, and mailed by the owner in the owner&rsquo;s name.
+      {" "}In Florida your petition is signed by you as the property owner under section 194.011(3),
+      Florida Statutes, and the county&rsquo;s Value Adjustment Board filing fee is paid by you directly
+      to the county. TaxAppeal USA does not sign as your representative, does not appear before the
+      Board, and does not present evidence or argument at a hearing.
     </p>
   );
 }

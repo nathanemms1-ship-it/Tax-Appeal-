@@ -24,11 +24,11 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
   const faqs = [
     {
       q: `How do I protest my ${city.name} property taxes?`,
-      a: `You file a formal protest with the ${city.district} by ${deadlineText} or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA prepares your protest letter with comparable sales evidence and mails it via USPS certified mail — creating legal proof of timely filing.`,
+      a: `You send a Notice of Protest (Comptroller Form 50-132) to the ${city.district} by ${deadlineText} or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA checks first whether a protest will actually lower your tax bill, after caps and exemptions. If it will, we mail you a ready-to-sign protest kit for $89: the form filled in, the evidence, a checklist and a return envelope addressed to the ${city.district}. You sign it, add a stamp and mail it.`,
     },
     {
       q: `How much can ${city.name} homeowners save by protesting?`,
-      a: `It depends on the gap between your appraised value and your property's market value, and the appraisal district makes the final call — we cannot promise a number. For scale: a peer-reviewed study of Dallas Central Appraisal District records found the average first-year saving on a successful homeowner-filed protest was $485 in 2020 (American Economic Journal: Economic Policy, 2025), and higher-value homes generally have more at stake. Whatever the reduction is, you keep all of it — unlike contingency firms that take 25–40% of what you save, every year.`,
+      a: `It depends on the gap between your appraised value and your property's market value, and the appraisal district makes the final call — we cannot promise a number. For scale: a peer-reviewed study of Dallas Central Appraisal District records found the average first-year saving on a successful homeowner-filed protest was $485 in 2020 (American Economic Journal: Economic Policy, 2025), and higher-value homes generally have more at stake. We check whether a protest would lower your bill before you pay, and we never promise a specific saving. Whatever the reduction is, you keep all of it — contingency firms typically take 25–40% of what you save, every year.`,
     },
     {
       q: `What is the ${city.name} property tax protest deadline for ${taxYear}?`,
@@ -36,23 +36,22 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
     },
     {
       q: `Do I need to go to a hearing to protest my ${city.name} property taxes?`,
-      a: `No. Many protests are resolved at the informal hearing level before a formal Appraisal Review Board (ARB) hearing. TaxAppeal's certified mail filing puts your protest on record and our evidence package is designed to win at the informal stage.`,
+      a: `That is your choice. Many protests are settled at an informal conference with the appraisal district, and you can ask the Appraisal Review Board (ARB) to decide on your written evidence instead of attending. TaxAppeal USA does not represent you or attend for you: the ${city.district} writes to you directly. Forward us anything it sends and we'll help you understand it.`,
     },
     {
       q: `What evidence do I need to protest in ${city.name}?`,
-      a: `The strongest evidence is comparable sales — homes similar to yours that sold for less than your assessed value. TaxAppeal uses real MLS and public records data to build your comparable sales case automatically based on your property details.`,
+      a: `Texas lets you argue market value or unequal appraisal (§41.43(b)) — that similar homes are valued lower than yours. The ${city.district}'s own roll is the strongest source for the second: it is the district's own numbers. Your TaxAppeal USA kit includes that equal-and-uniform comparison, ready to send with your protest.`,
     },
     {
       q: `Is TaxAppeal USA's $89 fee worth it for ${city.name} homeowners?`,
-      a: `The $89 is what you pay whether or not the district reduces your value — it buys the evidence, the letter, and the certified mail filing. The comparison worth making is against contingency firms, which charge 25–40% of your savings every year: on a $${formattedSavings} reduction that is up to $${Math.round(city.avgSavings * 0.35).toLocaleString()} a year, indefinitely. Ours is $89, once.`,
+      a: `We only sell the $89 kit after checking that a protest would actually lower your bill — if it won't, we tell you and don't sell one. The $89 buys the completed Form 50-132, the evidence, a checklist and a return envelope addressed to the district; you sign it and mail it. If the district doesn't lower your value, next year's kit is free. The comparison worth making is against contingency firms, which charge 25–40% of your savings every year: on a $${formattedSavings} reduction that is up to $${Math.round(city.avgSavings * 0.35).toLocaleString()} a year, indefinitely. Ours is $89, once.`,
     },
   ];
 
   const steps = [
-    { step: "1", title: "Enter Your Address", desc: `Provide your ${city.name} property address. TaxAppeal pulls your current ${city.district} assessed value and property details automatically.` },
-    { step: "2", title: "We Build Your Case", desc: "Our system compiles comparable sales evidence from your neighborhood and generates a formal protest letter citing Texas Tax Code §41.41 and §41.43." },
-    { step: "3", title: "We Mail via Certified Mail", desc: `Your protest is printed and mailed to the ${city.district} via USPS Certified Mail with Return Receipt — creating irrefutable legal proof of timely filing.` },
-    { step: "4", title: "You Save Money", desc: `The appraisal district reviews your evidence and typically responds within 30–90 days. Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate.` },
+    { step: "1", title: "We check first", desc: `We compare your ${city.name} value with similar homes on the ${city.district} roll and run your bill through the caps and exemptions. If a protest won't lower your bill by more than our $89 fee, we tell you and don't sell you one.` },
+    { step: "2", title: "We mail you the kit", desc: `Your protest on Comptroller Form 50-132, filled in, with the equal-and-uniform evidence, a checklist and a return envelope addressed to the ${city.district}. The PDF is emailed the same day.` },
+    { step: "3", title: "You sign it and mail it", desc: `Sign in ink, add a stamp and mail it before ${deadlineText} (or 30 days after your notice, if later). The appraisal district writes to you directly.` },
   ];
 
 
@@ -76,7 +75,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "TaxAppeal USA",
-    "description": `Property tax protest service for ${city.name}, ${city.county} County, Texas`,
+    "description": `Property tax protest kits for ${city.name}, ${city.county} County, Texas: we check first, then mail you a ready-to-sign protest to sign and mail yourself`,
     "url": `https://www.taxappealusa.com/texas/${city.slug}`,
     "areaServed": { "@type": "City", "name": city.name, "containedInPlace": { "@type": "State", "name": "Texas" } },
     "offers": { "@type": "Offer", "price": "89.00", "priceCurrency": "USD" },
@@ -88,11 +87,11 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
       <Head>
         {/* Single template literal — see pages/florida/[city].js. The two-child form
             served `Midland<!-- --> Property Tax Protest Service | ...`. */}
-        <title>{`${city.name} Property Tax Protest Service | File for $89 | TaxAppeal USA`}</title>
-        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with ${city.district} via certified mail. No percentage cuts.`} />
+        <title>{`${city.name} Property Tax Protest Service | $89 Kit | TaxAppeal USA`}</title>
+        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. We check whether a protest can lower your bill first, then mail you a ready-to-sign kit. No % cuts.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} key="canonical" />
         <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} key="og:title" />
-        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. Certified mail filing. No percentage cuts — you keep every dollar of any reduction.`} key="og:description" />
+        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. We check first, then mail you a ready-to-sign protest kit. No percentage cuts.`} key="og:description" />
         <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
@@ -151,7 +150,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             {city.name} Property Tax Protest — $89 Flat Fee
           </h1>
           <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            {city.description} TaxAppeal files your formal protest with the {city.district} — backed by comparable sales data and certified mail — for a flat $89.
+            {city.description} We check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign protest kit for the {city.district} — a flat $89. You sign it and mail it.
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
             {/* Two of these four tiles used to read "$89" with the labels
@@ -160,7 +159,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
                 who looks at it. Replaced with the deadline, which is the fact a
                 visitor to this page actually arrived needing. */}
             {[
-              ["$89", "Flat fee, any outcome"],
+              ["$89", "Flat fee for the kit"],
               ["0%", "Of your savings taken"],
               [deadlineText, `${taxYear} filing deadline`],
               [city.county + " Co.", "Service area"],
@@ -173,10 +172,10 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
           </div>
           <Link href="/apply">
             <button className="btn-gold" style={{ fontSize: 17, padding: "18px 44px" }}>
-              File My {city.name} Protest — $89 →
+              Check My {city.name} Protest — $89 →
             </button>
           </Link>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Takes about 4 minutes. You won&apos;t be charged until your letter is ready.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>If it won&apos;t lower your bill, we&apos;ll tell you, and we won&apos;t sell you one.</div>
         </div>
       </section>
 
@@ -193,7 +192,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             {[
               ["📊", `${city.district} Uses Mass Appraisal`, `The ${city.district} appraises thousands of properties using statistical models that apply broad market trends to entire neighborhoods. Your home's specific condition, updates, and location nuances are often missed — leading to inflated assessments.`],
               ["📈", "Median Home Value Creates High Stakes", `With a median home value of $${formattedValue} in ${city.name}, even a 5% over-assessment means $${Math.round(city.medianValue * 0.05 * 0.025).toLocaleString()} in excess annual taxes. Protesting is one of the highest-ROI financial decisions a homeowner can make.`],
-              ["⚖️", "Texas Law Guarantees Your Right to Protest", `Under Texas Tax Code §41.41, every ${city.county} County homeowner has the legal right to protest their assessed value every single year. You don't need an attorney. TaxAppeal handles the evidence, the letter, and the certified mail filing.`],
+              ["⚖️", "Texas Law Guarantees Your Right to Protest", `Under Texas Tax Code §41.41, every ${city.county} County homeowner has the legal right to protest their assessed value every single year. You don't need an attorney. TaxAppeal USA prepares the form and the evidence; you sign it and mail it.`],
             ].map(([icon, title, desc]) => (
               <div key={title} style={{ display: "flex", gap: 16 }}>
                 <div style={{ width: 44, height: 44, background: C.lightBlue, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{icon}</div>
@@ -214,9 +213,9 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             How TaxAppeal Works in {city.name}
           </h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
-            Four steps. About 4 minutes of your time. You sign the protest; we do the rest.
+            We check first. We mail you the kit. You sign it and mail it.
           </p>
-          <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 20 }}>
+          <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
             {steps.map(s => (
               <div key={s.step} style={{ background: C.white, borderRadius: 12, padding: 24, textAlign: "center", border: `1px solid ${C.border}` }}>
                 <div style={{ width: 44, height: 44, background: C.navy, color: C.gold, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Serif Display',serif", fontSize: 20, margin: "0 auto 16px" }}>{s.step}</div>
@@ -239,10 +238,10 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
           </p>
           <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             {[
-              ["📅", `${taxYear} Protest Deadline`, `${deadlineSentenceText} File early; informal hearing slots fill up fast.`],
-              ["📬", "How TaxAppeal Files", `We mail your protest letter with comparable sales evidence via USPS Certified Mail with Return Receipt to the ${city.district} — creating irrefutable legal proof of timely filing.`],
-              ["📋", "The ARB Process", "If your protest isn't resolved at the informal level, it goes to the Appraisal Review Board (ARB) — an independent panel. TaxAppeal notifies you and provides guidance at each stage."],
-              ["🔗", "Appraisal District Website", `Visit the ${city.district}'s website to look up your current assessed value, download your property record card, and verify your account number before filing.`],
+              ["📅", `${taxYear} Protest Deadline`, `${deadlineSentenceText} Mail early; informal conference slots fill up fast.`],
+              ["📬", "Where Your Protest Goes", `You mail your signed protest to the ${city.district} in the return envelope that comes in your kit. Keep a dated post-office receipt as your own proof of mailing. We do not file your protest for you.`],
+              ["📋", "The ARB Process", "If your protest isn't settled at the informal conference, it goes to the Appraisal Review Board (ARB) — an independent panel. The district writes to you directly; forward us anything it sends and we'll help you understand it."],
+              ["🔗", "Appraisal District Website", `Visit the ${city.district}'s website to look up your current assessed value, download your property record card, and verify your account number before you protest.`],
             ].map(([icon, title, desc]) => (
               <div key={title} style={{ background: C.lightBlue, borderRadius: 12, padding: 24 }}>
                 <div style={{ fontSize: 24, marginBottom: 10 }}>{icon}</div>
@@ -261,7 +260,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             $89 Flat vs. Contingency Firms
           </h2>
           <p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36, lineHeight: 1.7 }}>
-            Every other {city.name} property tax protest service charges a percentage of your savings — every year.
+            Many {city.name} property tax protest services charge a percentage of your savings, every year. Ours is $89 for the kit, once.
           </p>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15, background: C.white, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}` }}>
@@ -313,7 +312,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
               The protest deadline is <strong>{deadlineText} or 30 days from your notice mailing date</strong> — whichever is later. Texas Tax Code §41.44 governs timely filing requirements, and § 1.06 moves any deadline that lands on a weekend or holiday to the next business day.
             </p>
             <p style={{ fontSize: 16, lineHeight: 1.7, color: C.darkNavy }}>
-              TaxAppeal USA prepares your formal protest and sends it to the {city.district} via USPS Certified Mail with Return Receipt — so you have legally admissible proof of timely filing.
+              TaxAppeal USA prepares your protest on Form 50-132 and mails it to you with a return envelope addressed to the {city.district}. You sign it and mail it; a protest is timely if it is postmarked by the deadline. We do not file it or represent you.
             </p>
           </div>
         </div>
@@ -356,13 +355,13 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
               FAQ and the comparison table on this page, but framed as an explicit
               hypothetical ("on a $X reduction, a contingency firm charges $Y") rather
               than as something anyone has earned. */}
-          Protest your {city.name} assessment for $89 flat — no hidden fees, no percentage cuts. If the district lowers your value, you keep 100% of the savings.
+          We check whether a protest will actually lower your tax bill before you pay. If it will, your kit is $89 flat — no percentage cuts. If the district lowers your value, you keep 100% of the savings.
         </p>
         <Link href="/apply">
           <button className="btn-gold">Start My {city.name} Protest — $89 →</button>
         </Link>
         <p style={{ fontSize: 13, color: "#5A7A9F", marginTop: 16 }}>
-          Texas Tax Code §41.41 · {city.district} · USPS Certified Mail Filing
+          Texas Tax Code §41.41 · {city.district} · You sign it and mail it
         </p>
       </section>
 

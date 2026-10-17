@@ -19,10 +19,11 @@ const DEADLINE = deadlineShort(TAX_YEAR);
 const DEADLINE_SENTENCE = deadlineSentence(TAX_YEAR, 'Bexar Central Appraisal District');
 
 const faqs = [
-  ["How do I protest my San Antonio property taxes?",`You file a formal protest with the Bexar Central Appraisal District (BCAD) by ${DEADLINE} or 30 days after your Notice of Appraised Value, whichever is later. TaxAppeal prepares your protest letter with comparable sales evidence and files it via USPS certified mail — creating legal proof of timely filing.`],
+  ["How do I protest my San Antonio property taxes?",`You file a formal protest with the Bexar Central Appraisal District (BCAD) by ${DEADLINE} or 30 days after your Notice of Appraised Value, whichever is later. We check first whether a protest will actually lower your bill. If it will, we mail you Comptroller Form 50-132 filled in, your evidence and a return envelope addressed to BCAD. You sign it in ink and mail it before the deadline.`],
   ["What is BCAD and how does it affect my taxes?","BCAD (Bexar Central Appraisal District) is the government agency that appraises all properties in Bexar County. Your BCAD assessed value directly determines your property tax bill. If BCAD overestimates your value, you overpay — and you have the legal right to protest every year."],
   ["How much can San Antonio homeowners save by protesting?","Any reduction applies to your assessed value, and your saving is that reduction multiplied by your local tax rate. With TaxAppeal's flat $89 fee, you keep 100% of those savings — unlike contingency firms that take 25–40% of what you save."],
-  ["Do I need to attend a BCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing is required. TaxAppeal's certified mail filing creates an official record of your protest with BCAD."],
+  ["Do I need to attend a BCAD hearing?","Not necessarily. Many protests are resolved at the informal level before a formal ARB hearing is required. If yours does go to a hearing, you attend it yourself; BCAD writes to you with the details."],
+  ["Do you file the protest for me?","No. We prepare it and mail it to you; you sign it and mail it. It takes about five minutes. We do not file your protest, represent you, or attend a hearing. The appraisal district writes to you directly; forward us anything it sends and we'll help you understand it."],
   ["What is the San Antonio property tax protest deadline?",`The deadline is ${DEADLINE} or 30 days after your Notice of Appraised Value is mailed by BCAD, whichever is later. Missing this deadline means waiting a full year to challenge your assessment.`],
 ];
 
@@ -36,18 +37,18 @@ export default function SanAntonio() {
     <>
       <Head>
         <title>San Antonio Property Tax Protest Service | File for $89 | TaxAppeal USA</title>
-        <meta name="description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." />
+        <meta name="description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest will lower your bill first, then mail you a ready-to-sign BCAD protest kit." />
         <link rel="canonical" href="https://www.taxappealusa.com/san-antonio" key="canonical" />
         <meta property="og:title" content="San Antonio Property Tax Protest — $89 Flat Fee | TaxAppeal USA" key="og:title" />
-        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest can actually lower your bill before you pay. We file with BCAD via certified mail. No percentage cuts." key="og:description" />
+        <meta property="og:description" content="Protest your San Antonio property taxes for $89 flat. We check whether a protest will lower your bill first, then mail you a ready-to-sign BCAD protest kit." key="og:description" />
         <meta property="og:url" content="https://www.taxappealusa.com/san-antonio" key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context":"https://schema.org","@type":"Service",
-          "name":"San Antonio Property Tax Protest Filing",
+          "name":"San Antonio Property Tax Protest Kit",
           "provider":{"@type":"Organization","name":"TaxAppeal USA"},
           "areaServed":{"@type":"City","name":"San Antonio"},
-          "description":"Property tax protest letter preparation and USPS certified mail filing for San Antonio homeowners.",
+          "description":"A check of whether a protest will lower your bill, then a ready-to-sign Comptroller Form 50-132 kit with evidence and a return envelope addressed to the Bexar Central Appraisal District, mailed to San Antonio homeowners.",
           "offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}
         })}} />
       
@@ -100,17 +101,17 @@ export default function SanAntonio() {
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{fontSize:12,color:C.gold,textTransform:"uppercase",letterSpacing:"2px",marginBottom:16}}>San Antonio, Texas — Property Tax Protest Service</div>
           <h1 className="hero-title" style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,marginBottom:16}}>San Antonio Property Tax Protest — $89 Flat Fee</h1>
-          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>Bexar County homeowners pay some of the highest effective property tax rates in Texas. TaxAppeal files your formal protest with BCAD — backed by comparable sales data and certified mail — for a flat $89.</p>
+          <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:640,marginBottom:32}}>Bexar County homeowners pay some of the highest effective property tax rates in Texas. We check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it won&rsquo;t, we&rsquo;ll tell you, and we won&rsquo;t sell you one. If it will, we mail you a ready-to-sign protest kit for a flat $89: Form 50-132 filled in, your evidence, and an envelope addressed to BCAD.</p>
           <div className="hero-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:32}}>
-            {[["$89","Flat fee"],["0%","Of your savings taken"],["Certified","Mail with tracking"],["Bexar County","Service area"]].map(([n,l]) => (
+            {[["$89","Flat fee"],["0%","Of your savings taken"],["Form 50-132","Filled in for you"],["Bexar County","Service area"]].map(([n,l]) => (
               <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:"16px",textAlign:"center"}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:n.length>8?14:28,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:"#5A7A9F",marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>File My San Antonio Protest — $89 →</button>
-          <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. You won't be charged until your letter is ready.</div>
+          <button className="btn-primary" style={{background:C.gold,color:C.darkNavy,fontSize:17,padding:"18px 44px"}} onClick={go}>Start My San Antonio Protest — $89 →</button>
+          <div style={{fontSize:13,color:"#5A7A9F",marginTop:12}}>Takes about 4 minutes. We check first: if a protest won&rsquo;t lower your bill, we tell you and don&rsquo;t sell you one.</div>
         </div>
       </section>
 
@@ -123,7 +124,7 @@ export default function SanAntonio() {
             {[
               ["📊","Bexar Central Appraisal District Uses Mass Appraisal","BCAD appraises over 700,000 properties annually using mass-appraisal methods that apply broad neighborhood trends rather than assessing each home individually — leading to systematic over-valuation for many homeowners."],
               ["📈","San Antonio's Rapid Growth Works Against You","San Antonio has been one of America's fastest-growing cities for a decade. BCAD's models often lag market corrections, leaving thousands of homeowners assessed above their property's actual current value."],
-              ["⚖️","Texas Law Guarantees Your Right to Protest","Under Texas Tax Code §41.41, every Bexar County homeowner has the legal right to protest their assessed value every year. You don't need an attorney — just evidence. TaxAppeal builds it, you sign the protest, and we file it."],
+              ["⚖️","Texas Law Guarantees Your Right to Protest","Under Texas Tax Code §41.41, every Bexar County homeowner has the legal right to protest their assessed value every year. You don't need an attorney — just evidence. TaxAppeal builds it, you sign the protest, and you mail it."],
             ].map(([icon,title,desc]) => (
               <div key={title} style={{display:"flex",gap:16}}>
                 <div style={{width:44,height:44,background:C.lightBlue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
@@ -145,9 +146,9 @@ export default function SanAntonio() {
           <div className="district-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
             {[
               ["📅", `${TAX_YEAR} Protest Deadline`, `${DEADLINE_SENTENCE} File early — BCAD informal hearings fill up fast.`],
-              ["📬","How TaxAppeal Files","We prepare a protest letter with comparable sales evidence and mail it via USPS Certified Mail with Return Receipt to BCAD — creating irrefutable legal proof of your timely filing."],
+              ["📬","How Your Kit Works","We fill in Form 50-132 with your evidence and mail it to you with a return envelope addressed to BCAD. You sign it in ink, add a stamp and mail it before the deadline. Keep a copy for your records."],
               ["🏘️","Areas Served","All Bexar County municipalities: San Antonio, Helotes, Leon Valley, Converse, Universal City, Schertz, Live Oak, Selma, Kirby, and all unincorporated areas."],
-              ["📋","What Happens After Filing","BCAD schedules an informal hearing where most cases settle. If not, your case goes to the Appraisal Review Board (ARB). TaxAppeal notifies you at each stage."],
+              ["📋","What Happens After Filing","BCAD writes to you directly to schedule an informal meeting, where many cases settle. If not, your case goes to the Appraisal Review Board (ARB), and you attend. Forward us anything BCAD sends and we'll help you understand it."],
             ].map(([icon,title,desc]) => (
               <div key={title} style={{background:C.white,borderRadius:12,padding:24,border:`1px solid ${C.border}`}}>
                 <div style={{fontSize:24,marginBottom:10}}>{icon}</div>
@@ -168,7 +169,7 @@ export default function SanAntonio() {
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.red,marginBottom:12}}>Contingency Firms</div>
               <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.red,marginBottom:8}}>25–40% of savings</div>
               <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,marginBottom:16}}>On a $1,400 reduction that's up to $560 taken before it reaches you — every single year.</p>
-              {["Contingency fee every year","May cherry-pick easy cases","You lose a large portion of savings"].map(item => (
+              {["Contingency fee, often charged every year","The fee grows with your saving","A share of your saving goes to the firm"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.red}}>✗ {item}</div>
               ))}
             </div>
@@ -176,7 +177,7 @@ export default function SanAntonio() {
               <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>TaxAppeal USA</div>
               <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,color:C.gold,marginBottom:8}}>$89 flat. Period.</div>
               <p style={{fontSize:14,color:C.mutedGray,lineHeight:1.7,marginBottom:16}}>Pay $89 once and keep every dollar of your $1,400 savings. No annual fees.</p>
-              {["One-time $89 fee","Every property gets a full protest","Keep 100% of your savings","Certified mail with return receipt"].map(item => (
+              {["One-time $89 fee","We check your bill before you pay","Keep 100% of your savings","Form, evidence and a pre-addressed envelope, mailed to you"].map(item => (
                 <div key={item} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:C.gold}}>✓ {item}</div>
               ))}
             </div>

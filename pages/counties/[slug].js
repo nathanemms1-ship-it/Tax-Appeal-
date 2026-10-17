@@ -36,15 +36,15 @@ import { stateSaleStatus } from '../../lib/stateService';
 import { C } from "../../lib/theme";
 
 const stateTerms = {
-  TX: { verb: "protest", noun: "protest", deadline: TX_DEADLINE, process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: String(TX_TAX_YEAR) },
-  GA: { verb: "appeal", noun: "appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: "2026" },
-  FL: { verb: "petition", noun: "appeal", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: "2026" },
-  AR: { verb: "appeal", noun: "appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
-  AL: { verb: "appeal", noun: "appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: "2026" },
+  TX: { verb: "protest", noun: "protest", aNoun: "a protest", deadline: TX_DEADLINE, process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: String(TX_TAX_YEAR) },
+  GA: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: "2026" },
+  FL: { verb: "petition", noun: "petition", aNoun: "a petition", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: "2026" },
+  AR: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
+  AL: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: "2026" },
 };
 
 // Fallback so any state code (including future launches) always renders and never breaks the build.
-const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: "2026" };
+const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: "2026" };
 const termsFor = (county) => stateTerms[county.code] || DEFAULT_TERMS;
 
 /* countyData.js stores `deadline: "May 15"` on all 254 Texas records — no year, and
@@ -108,20 +108,20 @@ const filingTargetFor = (county, fl) => {
 const directAnswer = (county, fl) => {
   const t = termsFor(county);
   if (county.code === "FL") {
-    const fee = fl ? ` The ${county.name} County VAB filing fee is ${fl.feeText}, payable to ${fl.feePayableTo}.` : "";
+    const fee = fl ? ` The ${county.name} County VAB filing fee is ${fl.feeText}, payable to ${fl.feePayableTo}; you pay it to the county with a cheque in the envelope.` : "";
     const due = fl ? ` For the 2026 tax year that deadline is ${fl.deadlineText}.` : "";
     const receipt = fl?.receiptRequired
       ? ` ${county.name} County does not accept a postmark as proof of timely filing — the petition must be physically received by the deadline.`
-      : "";
-    return `To appeal your ${county.name} County property taxes in 2026, file a Value Adjustment Board petition (${t.form}) with the ${filingTargetFor(county, fl)} within 25 days of your TRIM notice.${due}${receipt} Include evidence of overassessment such as recent comparable sales.${fee} Filing is authorized under ${county.statute}. TaxAppeal USA prepares your DR-486 petition, you sign it yourself as ${county.statute} requires, and we pay the county filing fee and mail it for a flat $89 plus that fee. TaxAppeal USA is not your representative and does not appear before the Board.`;
+      : " Florida counts the petition when it is received, not when it is postmarked.";
+    return `To appeal your ${county.name} County property taxes in 2026, send a Value Adjustment Board petition (${t.form}) to the ${filingTargetFor(county, fl)} within 25 days of your TRIM notice.${due}${receipt} Include evidence of overassessment such as recent comparable values.${fee} Petitions are authorized under ${county.statute}. TaxAppeal USA checks first whether a petition will actually lower your tax bill, after Save Our Homes and other caps. If it will, we mail you a ready-to-sign DR-486 kit for $89: you sign it, add the fee cheque and mail it. We do not file your petition, represent you or appear before the Board.`;
   }
   if (county.code === "GA") {
-    return `To appeal your ${county.name} County property taxes in 2026, file a property tax appeal (${t.form}) with the ${county.district} within 45 days of your annual assessment notice. Support your appeal with comparable sales showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
+    return `To appeal your ${county.name} County property taxes in 2026, send a property tax appeal (${t.form} or the county's own form) to the ${county.district} within 45 days of your annual assessment notice. Support your appeal with recent sales of similar homes showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA checks first whether an appeal will actually lower your tax bill. If it will, we mail you a ready-to-sign appeal kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
   }
   if (county.code === "TX") {
-    return `To protest your ${county.name} County property taxes in ${t.year}, file a Notice of Protest (${t.form}) with the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include comparable sales showing your home is overassessed. Protests are authorized under ${county.statute}. TaxAppeal USA writes and certified-mails your protest for a flat $89 — no percentage of your savings.`;
+    return `To protest your ${county.name} County property taxes in ${t.year}, send a Notice of Protest (${t.form}) to the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include evidence that your home is valued above market or above similar homes. Protests are authorized under ${county.statute}. TaxAppeal USA checks first whether a protest will actually lower your tax bill. If it will, we mail you a ready-to-sign protest kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
   }
-  return `To appeal your ${county.name} County property taxes in ${t.year}, file ${t.form} with the ${county.district} by ${deadlineFor(county)}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares and certified-mails your appeal for a flat $89 — no percentage of your savings.`;
+  return `To appeal your ${county.name} County property taxes in ${t.year}, send ${t.form} to the ${county.district} by ${deadlineFor(county)}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares appeal kits — the form filled in, the evidence and a return envelope — that you sign and mail yourself.`;
 };
 
 /**
@@ -172,19 +172,19 @@ const faqs = (county, fl) => {
     {
       q: `What is the deadline to ${t.verb} property taxes in ${county.name} County, ${county.state}?`,
       a: county.code === "FL" && fl
-        ? `Florida gives you 25 days from the date your TRIM notice is mailed. For the 2026 tax year the ${county.name} County deadline is ${fl.deadlineText}, and TaxAppeal USA works to that date. ${fl.receiptRequired ? `${county.name} County does not accept a postmark as proof of filing — your petition must be physically received by then, which is why we mail well ahead of the deadline.` : "Florida satisfies the deadline by physical receipt, not by postmark, so we mail well ahead of it."} Filing is authorized under ${county.statute}.`
-        : `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)} (or 30 days after your assessment notice, whichever is later). Under ${county.statute}, you must file your ${t.verb} before this date or lose the right to challenge your assessment for the year.`,
+        ? `Florida gives you 25 days from the date your TRIM notice is mailed. For the 2026 tax year the ${county.name} County deadline is ${fl.deadlineText}, and the checklist in your kit is written to that date. ${fl.receiptRequired ? `${county.name} County does not accept a postmark as proof of filing — your petition must be physically received by then, so mail it the day your kit arrives or hand-deliver it.` : "Florida counts the petition when it is received, not when it is postmarked, so mail it the day your kit arrives or hand-deliver it."} Petitions are authorized under ${county.statute}.`
+        : `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)} (or 30 days after your assessment notice, whichever is later). Under ${county.statute}, your ${t.verb} must be in before this date or you lose the right to challenge your assessment for the year.`,
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
-      a: `We generate a professional ${t.noun} using your ${county.name} County property data, comparable sales in your area, and the specific legal arguments that work best in ${county.name} County. You review and sign it, then we send it via trackable USPS mail in your name to the ${target} — filed as your own ${t.noun}.`,
+      a: `First we check whether ${t.aNoun} will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. If it will, for $89 we mail you a ready-to-sign kit: the official form (${t.form}) filled in for your ${county.name} County property, the evidence, a one-page checklist and a return envelope addressed to the ${target}. The same kit is emailed as a PDF the same day. You sign it in ink, add a stamp and mail it. We do not file your ${t.noun} or contact the county; the county writes to you directly.`,
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,
       // "10-20% / $600-$2,000+" had no source. Replaced with a figure that does.
       a: county.code === "FL" && fl?.millage
-        ? `Your saving is the size of the reduction multiplied by your local tax rate. ${county.name} County's ${fl.millage.year} millage is ${fl.millage.totalText} per $1,000 of taxable value, so every $10,000 knocked off a taxable value is worth roughly ${fl.millage.per10kText} a year — before any assessment cap. Where Save Our Homes or the 10% non-homestead cap already holds your taxable value below market, a reduction can be absorbed by the cap and save you nothing at all, which is why our free check tells you which applies to your property before you pay. TaxAppeal USA charges a flat $89 plus the county filing fee — never a percentage of your savings.`
-        : `It depends entirely on the gap between your assessment and your property's market value, and your county makes the final call. For scale, Harris County reported an average value reduction of 6.98% across 516,205 protested accounts in 2024 (HCAD Annual Comprehensive Financial Report). TaxAppeal USA charges a flat $89 — versus the 25–50% of your savings that contingency firms take, every year.`,
+        ? `Your saving is the size of the reduction multiplied by your local tax rate. ${county.name} County's ${fl.millage.year} millage is ${fl.millage.totalText} per $1,000 of taxable value, so every $10,000 knocked off a taxable value is worth roughly ${fl.millage.per10kText} a year — before any assessment cap. Where Save Our Homes or the 10% non-homestead cap already holds your taxable value below market, a reduction can be absorbed by the cap and save you nothing at all, which is why our free check tells you which applies to your property before you pay. TaxAppeal USA charges a flat $89 — never a percentage of your savings. The county's ${fl.feeText} filing fee is separate and paid by you to the county.`
+        : `It depends entirely on the gap between your assessment and your property's market value, and your county makes the final call. For scale, Harris County reported an average value reduction of 6.98% across 516,205 protested accounts in 2024 (HCAD Annual Comprehensive Financial Report). We check whether ${t.aNoun} would lower your bill before you pay, and we never promise a specific saving. TaxAppeal USA charges a flat $89 — versus the 25–50% of your savings that contingency firms take, every year.`,
     },
     // FLORIDA SPLITS VALUING FROM RECEIVING. The old single question — "What appraisal
     // district handles X County?" answered with county.district — was correct for TX and
@@ -195,14 +195,14 @@ const faqs = (county, fl) => {
           {
             q: `Where do I mail my ${county.name} County VAB petition?`,
             a: fl?.vab
-              ? `To the ${fl.vab.vabName}, ${fl.vab.street}, ${fl.vab.city}, ${fl.vab.state} ${fl.vab.zip}${fl.vab.attn ? ` (attn: ${fl.vab.attn})` : ""}. Not to the ${county.district} — the Property Appraiser sets your value but does not receive the petition, and a DR-486 mailed there is never filed. TaxAppeal USA mails to the Clerk's address above and pays the filing fee with it.`
-              : `To the Clerk of the Value Adjustment Board for ${county.name} County — not to the ${county.district}. The Property Appraiser sets your value but does not receive the petition, and a DR-486 mailed there is never filed. TaxAppeal USA confirms the current Clerk address for your county against the county's own published source before mailing.`,
+              ? `To the ${fl.vab.vabName}, ${fl.vab.street}, ${fl.vab.city}, ${fl.vab.state} ${fl.vab.zip}${fl.vab.attn ? ` (attn: ${fl.vab.attn})` : ""}. Not to the ${county.district} — the Property Appraiser sets your value but does not receive the petition, and a DR-486 mailed there is never filed. The return envelope in a TaxAppeal USA kit is already addressed to the Clerk above.`
+              : `To the Clerk of the Value Adjustment Board for ${county.name} County — not to the ${county.district}. The Property Appraiser sets your value but does not receive the petition, and a DR-486 mailed there is never filed. TaxAppeal USA confirms the current Clerk address for your county against the county's own published source before addressing your kit's return envelope.`,
           },
           {
             q: `What is the ${county.name} County VAB filing fee?`,
             a: fl
-              ? `${fl.feeText} per parcel, payable to ${fl.feePayableTo}. Florida House Bill 7031 (effective July 2025) lets counties charge up to $50; ${county.name} County's adopted rate is ${fl.feeText}. TaxAppeal USA pays it on your behalf with your petition, so your all-in cost is ${fl.allInText} and you do not write a separate cheque to the county.`
-              : `Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. TaxAppeal USA pays your county's fee on your behalf with your petition.`,
+              ? `${fl.feeText} per parcel, payable to ${fl.feePayableTo}. Florida House Bill 7031 (effective July 2025) lets counties charge up to $50; ${county.name} County's adopted rate is ${fl.feeText}. You pay it yourself, to the county, with a cheque you put in the envelope with your petition. It is not part of our $89 fee.`
+              : `Florida House Bill 7031 (effective July 2025) lets counties charge up to $50 per petition. You pay your county's fee yourself, to the county, with a cheque in the envelope. It is not part of our $89 fee.`,
           },
           {
             q: `Who is the ${county.name} County Property Appraiser?`,
@@ -212,14 +212,14 @@ const faqs = (county, fl) => {
       : [
           {
             q: `What appraisal district handles ${county.name} County?`,
-            a: `${county.name} County property tax ${t.verb}s are handled by the ${county.district}. TaxAppeal USA directs your filing to the correct address automatically.`,
+            a: `${county.name} County property tax ${t.verb}s are handled by the ${county.district}. The return envelope in a TaxAppeal USA kit is already addressed to it.`,
           },
         ]),
     {
       q: `Is it worth protesting my ${county.name} County property taxes?`,
       // "Between 60-80%" traced to an uncited vendor blog post, not to any agency
       // or study, and was rendering on 572 county pages. See lib/stats.js.
-      a: `It costs nothing to file in most counties, and TaxAppeal USA charges a flat $89. Outcome rates are not published by every state — where they are, they vary widely: a peer-reviewed study of Dallas County records found 69.7% of homeowner-filed protests won a reduction in 2020 (American Economic Journal: Economic Policy, 2025), while Florida counties reported anywhere from 57% down to 0% for tax year 2024. Your county decides, and we cannot promise a result.`,
+      a: `${county.code === "FL" ? "Florida counties charge a small filing fee" : "It costs nothing to file in most counties"}, and TaxAppeal USA charges a flat $89 — after checking whether ${t.aNoun} would actually lower your bill. Outcome rates are not published by every state — where they are, they vary widely: a peer-reviewed study of Dallas County records found 69.7% of homeowner-filed protests won a reduction in 2020 (American Economic Journal: Economic Policy, 2025), while Florida counties reported anywhere from 57% down to 0% for tax year 2024. Your county decides, and we cannot promise a result.`,
     },
     {
       q: `Do I need to attend a hearing for my ${county.name} County ${t.verb}?`,
@@ -227,7 +227,7 @@ const faqs = (county, fl) => {
       // and mailing service and cannot appear for you, so answering a
       // hearing-attendance question that way implied representation we do not
       // provide - and left the owner believing someone would be there.
-      a: `That decision is yours. Many ${county.state} ${t.verb}s are resolved on the written evidence without anyone appearing. If a formal hearing is scheduled, TaxAppeal USA cannot attend for you — we are a document preparation and mailing service, not your representative — so you would attend yourself or choose not to. We notify you when we receive a hearing notice, and your evidence package stays on the record either way.`,
+      a: `That decision is yours. Many ${county.state} ${t.verb}s are resolved on the written evidence without anyone appearing. If a formal hearing is scheduled, TaxAppeal USA cannot attend for you — we prepare documents, we are not your representative — so you would attend yourself or choose not to. The county writes to you directly; forward us anything it sends and we'll help you understand it. Your evidence stays on the record either way.`,
     },
   ];
 };
@@ -267,10 +267,10 @@ export default function CountyPage({ county, fl, contentRevised }) {
      page each spring. Ours recomputes. */
   const title = `${county.name} County, ${county.state} Property Tax ${action} ${t.year} | TaxAppeal USA`;
   const description = county.code === "FL" && fl
-    ? `${county.name} County, Florida VAB petition for 2026 — deadline ${fl.deadlineText}, county filing fee ${fl.feeText}. TaxAppeal USA prepares your DR-486, pays the fee and mails it to the Clerk of the Value Adjustment Board for $89 flat.`
+    ? `${county.name} County, Florida VAB petition 2026 — deadline ${fl.deadlineText}. We check first, then mail you a ready-to-sign DR-486 kit for $89. You pay the ${fl.feeText} county fee.`
     : svc.selling
-      ? `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. TaxAppeal USA mails your ${t.noun} to the ${county.district} for $89 flat.`
-      : `How to ${t.verb} your ${county.name} County, ${county.state} property taxes — the deadline, the ${county.district} and what evidence the board wants. TaxAppeal USA is not filing ${svc.name} appeals this season; we open for the ${svc.servingFrom} season.`;
+      ? `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. We check first, then mail you a ready-to-sign ${t.noun} kit for $89 flat.`
+      : `How to ${t.verb} your ${county.name} County, ${county.state} property taxes — the deadline, the ${county.district} and the evidence. Our ${svc.name} appeal kit opens for the ${svc.servingFrom} season.`;
   const canonicalUrl = `https://www.taxappealusa.com/counties/${county.slug}`;
   const stateHref = `/${county.state.toLowerCase()}`;
 
@@ -323,10 +323,10 @@ export default function CountyPage({ county, fl, contentRevised }) {
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: `${county.name} County property tax ${t.noun} filing`,
-    serviceType: `Property tax ${t.noun} preparation and filing`,
+    name: `${county.name} County property tax ${t.noun} kit`,
+    serviceType: `Property tax ${t.noun} document preparation`,
     url: canonicalUrl,
-    description: `Preparation, county fee payment and tracked mail filing of a ${county.name} County, ${county.state} property tax ${t.noun} under ${county.statute}.`,
+    description: `A check of whether a ${county.name} County, ${county.state} property tax ${t.noun} under ${county.statute} will lower the tax bill, then a ready-to-sign ${t.noun} kit mailed to the owner, who signs it and mails it.`,
     provider: { "@type": "Organization", name: "TaxAppeal USA", url: "https://www.taxappealusa.com" },
     areaServed: { "@type": "AdministrativeArea", name: `${county.name} County, ${county.state}` },
     /* A schema.org Offer is not decoration — Google reads it as a live commercial
@@ -338,11 +338,11 @@ export default function CountyPage({ county, fl, contentRevised }) {
     ...(svc.selling ? {
       offers: {
         "@type": "Offer",
-        price: fl ? String(89 + fl.feeDollars) : "89",
+        price: "89",
         priceCurrency: "USD",
         description: fl
-          ? `$89 service fee plus the ${county.name} County VAB filing fee of ${fl.feeText}, which TaxAppeal USA pays on the customer's behalf.`
-          : "$89 flat service fee. No percentage of savings.",
+          ? `$89 flat for the kit. The ${county.name} County VAB filing fee of ${fl.feeText} is paid by the customer directly to the county and is not included.`
+          : "$89 flat for the kit. No percentage of savings.",
       },
     } : {}),
   };
@@ -426,16 +426,16 @@ export default function CountyPage({ county, fl, contentRevised }) {
             <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 32px", lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
               {county.code === "FL" ? (
                 <>
-                  We prepare your DR-486 petition, pull comparable sales in {county.name} County, and mail it with the county filing fee paid to the <strong style={{ color: C.gold }}>{target}</strong> — $89 flat{fl ? <> plus the {fl.feeText} county fee, <strong style={{ color: C.gold }}>{fl.allInText} all in</strong></> : null}. No percentage of your savings.
+                  We check whether a petition will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign DR-486 kit with a return envelope addressed to the <strong style={{ color: C.gold }}>{target}</strong> — <strong style={{ color: C.gold }}>$89 flat</strong>. You sign it and mail it{fl ? <>, with your county&apos;s {fl.feeText} filing fee, paid by you to the county</> : null}.
                 </>
               ) : (
                 svc.selling ? (
                   <>
-                    We write your protest letter, pull comparable sales in {county.name} County, and send it via trackable USPS mail to the <strong style={{ color: C.gold }}>{county.district}</strong> — all for a flat $89. No percentage of your savings. No hidden fees.
+                    We check whether {t.aNoun} will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign kit with a return envelope addressed to the <strong style={{ color: C.gold }}>{county.district}</strong> — a flat $89. You sign it and mail it. No percentage of your savings.
                   </>
                 ) : (
                   <>
-                    Your {t.noun} goes to the <strong style={{ color: C.gold }}>{county.district}</strong>. Everything below explains how that works and what the board wants to see. We are not filing {svc.name} appeals ourselves this season — we open for {svc.servingFrom}.
+                    Your {t.noun} goes to the <strong style={{ color: C.gold }}>{county.district}</strong>. Everything below explains how that works and what the board wants to see. Our {svc.name} appeal kit is not on sale this season — we open for {svc.servingFrom}.
                   </>
                 )
               )}
@@ -495,8 +495,8 @@ export default function CountyPage({ county, fl, contentRevised }) {
               <p style={{ fontSize: 15, color: C.text, margin: 0, lineHeight: 1.65, fontFamily: "Arial,sans-serif" }}>
                 {county.name} County states that a postmarked petition is untimely — your DR-486 must be
                 physically in the Clerk&apos;s hands by {fl.deadlineText}, not merely posted by then. Mailing on the
-                deadline loses the year. TaxAppeal USA mails {county.name} County petitions well ahead of the date
-                and checks the carrier&apos;s own delivery estimate against the deadline before each one goes out.
+                deadline loses the year. Mail your signed petition the day your kit arrives, or hand-deliver it to the
+                Clerk. Close to the deadline we email the kit as a PDF so you can print, sign and deliver it the same day.
               </p>
             </div>
           </div>
@@ -520,12 +520,10 @@ export default function CountyPage({ county, fl, contentRevised }) {
                 ? { num: "$89", label: "Flat fee — never a %" }
                 : { num: String(svc.servingFrom), label: `Season we open in ${svc.name}` },
               fl
-                ? { num: fl.feeText, label: `${county.name} County VAB fee — we pay it` }
+                ? { num: fl.feeText, label: `${county.name} County VAB fee — paid by you to the county` }
                 : { num: "0%", label: "Of your savings taken" },
               { num: fl ? fl.deadlineShort : deadlineFor(county), label: `${county.name} County ${t.year} deadline` },
-              fl
-                ? { num: fl.allInText, label: "All in — service + county fee" }
-                : { num: "You", label: "Sign it — we mail it" },
+              { num: "You", label: "Sign it and mail it — we mail you the kit" },
             ].map(({ num, label }) => (
               <div key={label}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: C.navy, marginBottom: 4 }}>{num}</div>
@@ -550,20 +548,17 @@ export default function CountyPage({ county, fl, contentRevised }) {
             How to {action} Your {county.name} County Property Taxes
           </h2>
           <p style={{ textAlign: "center", color: C.muted, fontFamily: "Arial,sans-serif", fontSize: 16, marginBottom: 48 }}>
-            Under {county.statute} — we prepare it, you sign it, we mail it
+            Under {county.statute} — we check first, we mail you the kit, you sign it and mail it
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 24 }}>
             {[
-              { n: "1", title: "Enter your address", body: `We look up your ${county.name} County assessed value, comparable sales, and property details automatically.` },
-              { n: "2", title: "Review your case", body: `We calculate your estimated overassessment and show you exactly what evidence we'll submit on your behalf.` },
-              // The signing step was missing from this block entirely. In Florida the
-              // owner's signature on DR-486 Part 3 is what makes the petition valid
-              // (s. 194.011(3), Fla. Stat.), so a "how it works" that omits it
-              // describes a process that cannot happen.
-              { n: "3", title: "Read it and sign it", body: `You review the completed filing and sign it yourself — it is filed in your name, as ${county.state === "Florida" ? "s. 194.011(3), Florida Statutes requires" : "the property owner"}.` },
+              { n: "1", title: "We check first", body: `We compare your ${county.name} County value with similar homes and run your bill through the caps and exemptions. If ${t.aNoun} won't lower your bill by more than our $89 fee, we tell you and don't sell you one.` },
+              // The signing step must stay. In Florida the owner's signature on DR-486
+              // Part 3 is what makes the petition valid (s. 194.011(3), Fla. Stat.).
               // Destination is filingTargetFor(), not county.district — in Florida those
               // are two different offices and only one of them can receive a DR-486.
-              { n: "4", title: county.code === "FL" ? "We mail it for you" : "We mail it certified", body: `Your signed filing goes out to the ${target}${county.code === "FL" ? `, with the ${fl ? fl.feeText : "county"} filing fee paid, by tracked USPS mail` : " by USPS certified mail"} — and we email you when it is on its way.` },
+              { n: "2", title: "We mail you the kit", body: `Your ${t.noun} on the official form (${t.form}), filled in, with your evidence, a one-page checklist and a return envelope addressed to the ${target}. The PDF is emailed the same day.` },
+              { n: "3", title: "You sign it and mail it", body: `Sign in ink${county.code === "FL" ? `, add your ${fl ? fl.feeText : "county"} filing fee cheque` : ""}, add a stamp and mail it before ${fl ? fl.deadlineText : deadlineFor(county)}${county.code === "FL" ? " — Florida counts it when it is received, so mail it the day it arrives" : ""}. You sign as ${county.code === "FL" ? "s. 194.011(3), Florida Statutes requires" : "the property owner"}, and the ${county.code === "FL" ? "Value Adjustment Board" : county.district} writes to you directly.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{n}</div>
@@ -579,11 +574,11 @@ export default function CountyPage({ county, fl, contentRevised }) {
           <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
             <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>$89 Flat vs. 25–50% Contingency</h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 40, lineHeight: 1.7 }}>
-              Every other {county.name} County protest service takes a cut of your savings. TaxAppeal USA doesn't.
+              Many {county.name} County {t.noun} services take a share of your savings. TaxAppeal USA charges $89 for the kit, once, and only after checking that {t.aNoun} would lower your bill.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, maxWidth: 600, margin: "0 auto" }}>
               {[
-                { label: "TaxAppeal USA", fee: "$89 flat", savings: "$1,421 kept", highlight: true },
+                { label: "TaxAppeal USA", fee: "$89 flat", savings: "$1,411 kept", highlight: true },
                 { label: "Typical protest company", fee: "25–50% of savings", savings: "$375–$750 to them", highlight: false },
               ].map(({ label, fee, savings, highlight }) => (
                 <div key={label} style={{ background: highlight ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${highlight ? C.gold : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "24px 20px" }}>
@@ -603,14 +598,14 @@ export default function CountyPage({ county, fl, contentRevised }) {
             "mail it to the Property Appraiser" error this section used to carry. */}
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "56px 32px 48px" }}>
           <h2 style={{ fontSize: 26, fontWeight: 700, color: C.navy, marginBottom: 24 }}>
-            {county.code === "FL" ? `Filing a ${county.name} County VAB Petition` : `${county.name} County Appraisal District`}
+            {county.code === "FL" ? `Your ${county.name} County VAB Petition` : county.code === "TX" ? `${county.name} County Appraisal District` : county.code === "GA" ? `${county.name} County Board of Assessors` : `${county.name} County Board of Equalization`}
           </h2>
 
           {/* FLORIDA: where the petition actually goes. */}
           {county.code === "FL" && (
             <div style={{ background: C.white, border: `2px solid ${C.gold}`, borderRadius: 12, padding: "28px 32px", marginBottom: 20 }}>
               <div style={{ fontSize: 12, color: C.goldDim, fontFamily: "Arial,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
-                Where the petition is filed
+                Where the petition goes
               </div>
               <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, marginBottom: 10 }}>{target}</div>
               {fl?.vab ? (
@@ -622,7 +617,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
               ) : (
                 <p style={{ fontSize: 15, color: C.text, lineHeight: 1.7, fontFamily: "Arial,sans-serif", marginBottom: 14 }}>
                   We confirm the current Clerk address for {county.name} County against the county&apos;s own
-                  published source before mailing, and will not send a petition to an address we have not verified.
+                  published source, and will not address a kit&apos;s return envelope to an address we have not verified.
                 </p>
               )}
               <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, fontFamily: "Arial,sans-serif", margin: 0 }}>
@@ -630,8 +625,8 @@ export default function CountyPage({ county, fl, contentRevised }) {
                 value your petition challenges, but does not receive the petition — a DR-486 mailed there is never
                 filed, and the appeal year is lost.
                 {fl?.vab
-                  ? " TaxAppeal USA mails to the Clerk address above and encloses the filing fee."
-                  : " TaxAppeal USA encloses the filing fee and mails to the Clerk once that address is confirmed."}
+                  ? " The return envelope in your kit is addressed to the Clerk above; you put your signed petition and the fee cheque in it."
+                  : " We address your kit's return envelope to the Clerk only once that address is confirmed."}
                 {fl?.vab?.sourceUrl && (
                   <>
                     {" "}
@@ -665,7 +660,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
               <div>
                 <div style={{ fontSize: 12, color: C.muted, fontFamily: "Arial,sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>County VAB Filing Fee</div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: C.navy }}>{fl.feeText} per parcel</div>
-                <div style={{ fontSize: 13, color: C.muted, fontFamily: "Arial,sans-serif", marginTop: 4 }}>Payable to {fl.feePayableTo} — we pay it for you</div>
+                <div style={{ fontSize: 13, color: C.muted, fontFamily: "Arial,sans-serif", marginTop: 4 }}>Payable to {fl.feePayableTo} — paid by you, not part of our $89</div>
               </div>
             )}
             <div>
@@ -712,9 +707,9 @@ export default function CountyPage({ county, fl, contentRevised }) {
               </>
             ) : (
               <>
-                TaxAppeal USA routes your protest to the correct {county.name} County authority automatically, so you
-                don&apos;t have to track down addresses, forms or deadlines. You review and sign the filing; we pay any
-                county fee and mail it.
+                Your TaxAppeal USA kit comes with the form filled in and a return envelope already addressed to the
+                correct {county.name} County authority, so you don&apos;t have to track down addresses, forms or deadlines.
+                You sign it, add a stamp and mail it. We do not file your {t.noun} or contact the county for you.
               </>
             )}
           </p>
@@ -744,13 +739,13 @@ export default function CountyPage({ county, fl, contentRevised }) {
               Ready to lower your {county.name} County taxes?
             </h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 36, lineHeight: 1.7 }}>
-              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. Get started in under 3 minutes — enter your address and we&apos;ll show you your estimated savings before you pay anything.
+              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. Enter your address and we&apos;ll check whether {t.aNoun} would actually lower your tax bill before you pay anything. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one.
             </p>
             <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
-              File My {action} — {fl ? `${fl.allInText} All In` : "$89 Flat"} →
+              Check My {action} — $89 Kit →
             </Link>
             <div style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "Arial,sans-serif" }}>
-              {fl ? `$89 service + ${fl.feeText} ${county.name} County VAB fee` : "Flat $89"} · trackable USPS mail · No percentage fees · {county.state} only
+              {fl ? `$89 flat · plus ${county.name} County's ${fl.feeText} filing fee, paid by you to the county` : "Flat $89"} · You sign it and mail it · No percentage fees · {county.state} only
             </div>
           </div>
         </div>
@@ -773,7 +768,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
                 {county.name} County cities we cover
               </h2>
               <p style={{ fontSize: 14, color: C.muted, fontFamily: "Arial,sans-serif", marginBottom: 20, lineHeight: 1.7 }}>
-                Every one of these files through the {county.name} County Value Adjustment Board on the
+                Every one of these petitions goes to the {county.name} County Value Adjustment Board on the
                 same {fl.deadlineText} deadline, with the same {fl.feeText} county filing fee.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 18px" }}>
@@ -889,7 +884,6 @@ function floridaFacts(county) {
       feeText: formatVabFee(fee.vabFee),
       feePayableTo: fee.payableTo,
       feeConfirmed: fee.confidence === "confirmed",
-      allInText: `$${89 + feeDollars}`,
       // getFlVabAddress already filtered to confirmed-only; null means "do not display".
       vab: vab
         ? {

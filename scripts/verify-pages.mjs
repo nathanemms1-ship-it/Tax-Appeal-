@@ -1581,13 +1581,18 @@ const t2 = (label, ok, detail) => {
     const fee = getFlVabFee(city.county);
     if (fee.confidence === 'confirmed') {
       confirmedPages++;
-      const total = formatVabFee(8900 + fee.vabFee);
-      if (!text.includes(`${total} in total`)) {
-        wrongTotal.push(`/florida/${city.slug} (${city.county}): expected "${total} in total"`);
+      /*
+       * KIT MODEL, 16 Oct 2026. We no longer collect the county's fee, so there
+       * is no "$X in total". The page must instead name this county's own fee
+       * and say the owner pays it to the county, and must quote no total.
+       */
+      const ownFee = formatVabFee(fee.vabFee);
+      if (!text.includes(ownFee) || !/paid by you/i.test(text) || /\$\d+ in total/.test(text)) {
+        wrongTotal.push(`/florida/${city.slug} (${city.county}): expected its own ${ownFee} fee, "paid by you", and no total`);
       }
       // The title is the ad headline and the search snippet — the first price seen.
       const title = decodeEntities((raw.match(/<title[^>]*>(.*?)<\/title>/) || [])[1] || '');
-      if (!title.includes(total)) badTitle.push(`/florida/${city.slug}: <title> omits ${total}`);
+      if (!title.includes('$89') || /\$1[0-3]\d\b/.test(title)) badTitle.push(`/florida/${city.slug}: <title> must show the $89 kit and no fee-inclusive total`);
     } else {
       unconfirmedPages++;
       if (/\$\d+ in total/.test(text)) {
@@ -1729,7 +1734,7 @@ const t2 = (label, ok, detail) => {
    * Texas/Georgia/Florida on 21 Aug. Without that exclusion this fires on all
    * 1,079 pages and means nothing.
    */
-  const SITE_WIDE_SERVICE_LD = '"name":"Property Tax Dispute Filing"';
+  const SITE_WIDE_SERVICE_LD = '"name":"Property Tax Appeal Kit"';
   const pricedArAl = built.filter((f) => {
     const blocks = [...fs.readFileSync(f, 'utf8')
       .matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
@@ -1750,19 +1755,25 @@ const t2 = (label, ok, detail) => {
    * pages that were telling the truth — a check has to know which claim it is
    * testing, not just which string.
    */
-  const flBare = built.filter((f) => /[\\/]florida[\\/]/.test(f) && /"priceRange"\s*:\s*"\$89"/.test(fs.readFileSync(f, 'utf8')));
-  t2('no Florida page publishes $89 as the whole price range',
-    flBare.length === 0,
-    `Florida checkout adds the county's VAB fee on top, so $89 is the floor, not the range (${flBare.length} pages)`);
+  /*
+   * REVERSED 16 Oct 2026 (Kit model). This asserted that no Florida page
+   * published $89 as the whole price range, because checkout added the VAB fee.
+   * We no longer collect that fee: $89 IS our whole price everywhere. The new
+   * assertion is the opposite failure: no page may still publish a fee-inclusive
+   * range ($104-$139) as our price.
+   */
+  const feeRange = built.filter((f) => /"priceRange"\s*:\s*"\$89-\$1\d\d"/.test(fs.readFileSync(f, 'utf8')));
+  t2('no page publishes a fee-inclusive price range any more',
+    feeRange.length === 0,
+    `we charge $89; the Florida county fee is paid by the owner to the county (${feeRange.length} pages)`);
 
   /**
    * The published range must be the one the fee table produces. It was typed as a
    * literal at first — which would have gone stale the first time a VAB changed a
    * fee, silently, on all 1081 pages.
    */
-  const { default: FEES } = await import('../lib/flCountyFees.js');
-  const dearest = Math.max(...Object.values(FEES).filter((f) => f.confidence === 'confirmed').map((f) => f.vabFee));
-  const expected = `$89-$${((8900 + dearest) / 100).toFixed(0)}`;
+  // Kit model: one price. (Was derived from the dearest county fee until 16 Oct 2026.)
+  const expected = '$89';
   const home = fs.readFileSync(findHtml('index') || '/dev/null', 'utf8');
   t2('the published price range is derived from the county fee table',
     home.includes(`"priceRange":"${expected}"`),

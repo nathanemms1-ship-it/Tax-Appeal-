@@ -97,7 +97,7 @@ export default function WaitlistForm() {
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: FONTS.body, color: C.darkNavy }}>
       <Head>
         <title>Join the Waitlist | TaxAppeal USA</title>
-        <meta name="description" content="TaxAppeal USA is not filing yet. Join the waitlist and we will email you the moment filing opens in your state. Flat $89 service fee plus your county's filing fee when we launch — no percentage of your savings, ever." />
+        <meta name="description" content="TaxAppeal USA isn't taking orders in your state yet. Join the waitlist and we'll email you when we open. A flat $89 kit — no percentage of your savings, ever." />
         <meta name="robots" content="noindex, follow" />
         <link rel="canonical" href="https://www.taxappealusa.com/apply" key="canonical" />
       </Head>
@@ -124,19 +124,20 @@ export default function WaitlistForm() {
         <a href="/" style={{ color: C.navy, fontSize: 14, textDecoration: 'none', fontWeight: 600 }}>← TaxAppeal USA</a>
 
         <h1 style={{ fontFamily: FONTS.display, fontSize: 34, lineHeight: 1.2, margin: '22px 0 14px' }}>
-          We&apos;re not filing yet — join the waitlist
+          We&apos;re not taking orders yet — join the waitlist
         </h1>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: C.body, marginBottom: 14 }}>
-          TaxAppeal USA will begin filing property tax appeals soon. We&apos;re finishing
-          verification with county boards before we take a single order, because a petition
-          that arrives at the wrong office, with the wrong fee, or after a deadline costs a
-          homeowner their entire appeal year. We would rather be late than be the reason
-          that happens.
+          TaxAppeal USA will open orders in your state soon. We check whether an appeal will
+          actually lower your tax bill, after caps and exemptions, before you pay. If it will,
+          we mail you a ready-to-sign kit; you sign it and mail it. We&apos;re finishing our
+          checks of each county&apos;s forms and addresses before we take a single order,
+          because an appeal that goes to the wrong office or arrives after a deadline costs a
+          homeowner their entire appeal year.
         </p>
         <p style={{ fontSize: 17, lineHeight: 1.65, color: C.body, marginBottom: 28 }}>
-          Leave your details and we&apos;ll email you the moment filing opens in your state —
-          well before your deadline, with enough time to file comfortably.
+          Leave your details and we&apos;ll email you the moment we open in your state —
+          well before your deadline, with enough time to sign and mail your kit comfortably.
         </p>
 
         {(status === 'done' || status === 'duplicate') ? (
@@ -214,19 +215,20 @@ export default function WaitlistForm() {
         <div style={{ marginTop: 34, paddingTop: 26, borderTop: `1px solid ${C.border}` }}>
           <h2 style={{ fontSize: 18, color: C.navy, marginBottom: 12 }}>What it will cost when we launch</h2>
           <p style={{ fontSize: 15.5, lineHeight: 1.65, color: C.body, marginBottom: 12 }}>
-            A flat <strong>$89</strong> service fee, plus your county&apos;s own filing fee where
-            one applies — in Florida that is set by each county and runs roughly $15 to $50, and
-            we pay it to the board on your behalf rather than asking you to make a separate trip
-            or write a second check.
+            A flat <strong>$89</strong> for your kit: the official form filled in, your evidence,
+            a checklist and a return envelope addressed to the county. In Florida the county also
+            charges its own filing fee (roughly $15 to $50, set by each county). You pay that to
+            the county with a cheque in the envelope; it is not part of our $89.
           </p>
           <p style={{ fontSize: 15.5, lineHeight: 1.65, color: C.body, marginBottom: 12 }}>
             We never take a percentage of your savings. Every dollar a reduction saves you stays
             yours, that year and every year after it.
           </p>
           <p style={{ fontSize: 15.5, lineHeight: 1.65, color: C.body }}>
-            You sign your own petition — we prepare the document, you read it and sign it, and we
-            mail it to the right office before your deadline. TaxAppeal USA is not your
-            representative, does not appear before the board, and cannot promise a result.
+            You sign and mail your own appeal — we prepare the documents and mail them to you, you
+            read them, sign in ink and mail them to the county before your deadline. We do not file
+            your appeal. TaxAppeal USA is not your representative, does not appear before the board,
+            and cannot promise a result.
           </p>
         </div>
       </div>

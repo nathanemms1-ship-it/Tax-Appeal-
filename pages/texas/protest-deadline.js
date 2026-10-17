@@ -344,7 +344,7 @@ export default function TexasProtestDeadline({ taxYear, floorIso, floorLong, flo
             </div>
             <p style={{ fontSize: 13.5, marginTop: 14, marginBottom: 0, color: C.mutedGray }}>
               Every projection is clamped to the statutory floor: § 41.44 lets a district clear the
-              floor by mailing late, never undercut it. We file in all {txCountyCount} Texas
+              floor by mailing late, never undercut it. We prepare protest kits for all {txCountyCount} Texas
               counties, not only the districts listed here — this table is where the published
               evidence is, not where the coverage is.
             </p>
@@ -470,10 +470,16 @@ export default function TexasProtestDeadline({ taxYear, floorIso, floorLong, flo
             <div className="faq" style={{ marginBottom: 0 }}>
               <h3>What does TaxAppeal USA actually do?</h3>
               <p>
-                We prepare your Notice of Protest (Form 50-132) with comparable-sales evidence, you
-                sign it, and we mail it to your appraisal district by USPS certified mail so there is
-                proof of timely filing. $89 flat, whatever the outcome — we never take a percentage
-                of a reduction. We do not appear at your hearing on your behalf.
+                We check whether a protest will actually lower your tax bill, after caps and
+                exemptions, before you pay. If it won&rsquo;t, we&rsquo;ll tell you, and we won&rsquo;t sell
+                you one. If it will, we mail you a ready-to-sign kit: the Comptroller&rsquo;s Form 50-132
+                filled in, an equal-and-uniform comparison from your appraisal district&rsquo;s own roll,
+                a one-page checklist and a return envelope addressed to your appraisal district. The
+                PDF is emailed the same day. You sign it in ink and mail it before the deadline &mdash;
+                Texas counts the postmark, so a post office counter postmark or a Certificate of Mailing
+                (PS Form 3817, about $2) is your proof. $89 flat, whatever the outcome &mdash; we never
+                take a percentage of a reduction. We do not file your protest, represent you, or appear
+                at your informal conference or ARB hearing; the appraisal district writes to you directly.
               </p>
             </div>
           </section>

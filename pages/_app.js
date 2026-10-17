@@ -28,8 +28,12 @@ import { cssVars } from '../lib/theme'
 const CONFIRMED_FEES = Object.values(FL_COUNTY_FEES)
   .filter((f) => f.confidence === 'confirmed')
   .map((f) => f.vabFee)
+// Kit model (16 Oct 2026): we charge $89 everywhere. A Florida owner pays the
+// county's VAB fee to the county directly; it is not part of our price, so the
+// published range is $89 and the fee table no longer widens it.
 const PRICE_RANGE_MIN = 8900
-const PRICE_RANGE_MAX = 8900 + Math.max(...CONFIRMED_FEES)
+const PRICE_RANGE_MAX = 8900
+void CONFIRMED_FEES
 const usd = (cents) => `$${(cents / 100).toFixed(0)}`
 
 // Google Ads / GA4 tag IDs — set in .env.local and Vercel env vars:
@@ -203,7 +207,7 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" key="icon-16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" key="icon-apple" />
         <title>TaxAppeal — Property Tax Dispute Service | $89 Flat Fee</title>
-        <meta name="description" content="We fight your property tax bill. Flat $89 fee — no percentage cuts. We prepare your property tax protest; you sign it and we mail it for you. Takes 4 minutes. TX, GA, FL, AR, AL." />
+        <meta name="description" content="We check whether an appeal will lower your property tax bill before you pay. If it will, we mail you a ready-to-sign kit for a flat $89. You sign and mail it." />
         {/*
           KEYS AND `canonicalUrl` ARE BOTH LOAD BEARING — see scripts/verify-pages.mjs.
 
@@ -239,14 +243,14 @@ export default function App({ Component, pageProps }) {
         */}
         <meta property="og:type" content="website" key="og:type" />
         <meta property="og:site_name" content="TaxAppeal USA" key="og:site_name" />
-        <meta property="og:title" content="TaxAppeal — We fight your property tax bill. You keep the savings." key="og:title" />
-        <meta property="og:description" content="Flat $89 fee. No percentage cuts. We prepare your property tax protest; you sign it and we mail it for you, with tracking. Takes 4 minutes. Available in TX, FL, GA, AR, and AL." key="og:description" />
+        <meta property="og:title" content="TaxAppeal — We check first. You keep the savings." key="og:title" />
+        <meta property="og:description" content="We check whether an appeal will lower your tax bill before you pay. If it will, we mail you a ready-to-sign appeal kit for a flat $89. No percentage cuts." key="og:description" />
         {!isErrorPage && <meta property="og:url" content={canonicalUrl} key="og:url" />}
         <meta property="og:image" content="https://www.taxappealusa.com/og-image.png" key="og:image" />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="TaxAppeal — $89 Flat Fee Property Tax Dispute Service" />
-        <meta name="twitter:description" content="We prepare your property tax protest; you sign it and we mail it for you. $89 flat — no percentage cuts." />
+        <meta name="twitter:description" content="We check first, then mail you a ready-to-sign property tax appeal kit. You sign and mail it. $89 flat — no percentage cuts." />
         {/* Canonical */}
         {!isErrorPage && <link rel="canonical" href={canonicalUrl} key="canonical" />}
         {/* Favicon is declared ONCE, at the top of this Head. Do not add another here. */}
@@ -269,27 +273,27 @@ export default function App({ Component, pageProps }) {
              lib/flCountyFees.js), so the real range is $89–$139. Texas and Georgia
              have no filing fee, which is why the range starts at $89 rather than
              being a single number. */
-          "description": "Property tax dispute filing service. We prepare property tax protest letters and petitions that the owner signs, and we mail them for a flat $89 service fee — USPS certified mail in Texas and Georgia, and tracked USPS First Class mail in Florida, where the county's VAB filing fee is added and paid to the county on the owner's behalf.",
+          "description": "Property tax appeal document preparation. We check whether an appeal will lower the owner's tax bill, after caps and exemptions, before they pay. If it will, we mail the owner a ready-to-sign kit for a flat $89: the official form filled in, the evidence, a checklist and a return envelope addressed to the county. The owner signs and mails it. We do not file appeals or represent owners.",
           "areaServed": [
             { "@type": "State", "name": "Texas" },
             { "@type": "State", "name": "Georgia" },
             { "@type": "State", "name": "Florida" }
           ],
-          "serviceType": "Property Tax Dispute Filing",
-          "priceRange": `${usd(PRICE_RANGE_MIN)}-${usd(PRICE_RANGE_MAX)}`
+          "serviceType": "Property Tax Appeal Document Preparation",
+          "priceRange": usd(PRICE_RANGE_MIN)
         })}} />
         {/* Structured Data — Service */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Property Tax Dispute Filing",
+          "name": "Property Tax Appeal Kit",
           "provider": {
             "@type": "Organization",
             "name": "TaxAppeal USA",
             "url": "https://www.taxappealusa.com"
           },
           "serviceType": "Document Preparation Service",
-          "description": "Property tax protest and petition preparation with tracked USPS mailing. We analyze your property assessment, find comparable sales, and prepare a formal filing for you to sign.",
+          "description": "Property tax appeal, protest and petition kits. We check whether an appeal will lower your tax bill before you pay, then mail you the official form filled in, your evidence and a return envelope addressed to the county. You sign it and mail it.",
           "offers": {
             "@type": "Offer",
             "priceCurrency": "USD",
@@ -299,7 +303,7 @@ export default function App({ Component, pageProps }) {
               "maxPrice": (PRICE_RANGE_MAX / 100).toFixed(2),
               "priceCurrency": "USD"
             },
-            "description": "$89 service fee per property filing — document preparation and tracked USPS mailing. In Florida the county's VAB filing fee is added at checkout and paid to the county on the owner's behalf."
+            "description": "$89 per property for a ready-to-sign appeal kit, mailed to you and emailed as a PDF. In Florida the county's Value Adjustment Board fee is paid by the owner directly to the county and is not part of the $89."
           },
           "areaServed": ["Texas", "Georgia", "Florida"]
         })}} />

@@ -102,12 +102,11 @@ export async function getStaticProps({ params }) {
       trimDeadline: fmtDate(cityDeadline),
       feeConfirmed,
       feeLabel: feeConfirmed ? formatVabFee(fee.vabFee) : null,
-      totalLabel: feeConfirmed ? formatVabFee(8900 + fee.vabFee) : null,
     },
   };
 }
 
-export default function FloridaCityPage({ city, countySlug, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, feeConfirmed, feeLabel, totalLabel }) {
+export default function FloridaCityPage({ city, countySlug, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, feeConfirmed, feeLabel }) {
   const formattedValue = city.medianHomeValue.toLocaleString();
   const formattedSavings = city.avgSavings.toLocaleString();
   const countyHref = countySlug ? `/counties/${countySlug}` : '/florida';
@@ -133,22 +132,22 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
    * we keep; a bare "$89 Flat" is not.
    */
   const priceLine = feeConfirmed
-    ? `$89 plus ${city.county} County's ${feeLabel} VAB filing fee — ${totalLabel} in total`
-    : `$89 plus ${city.county} County's VAB filing fee`;
-  const feeCta = feeConfirmed ? `${totalLabel} total` : '$89 + county fee';
+    ? `$89 for the kit, plus ${city.county} County's ${feeLabel} filing fee, paid by you to the county`
+    : `$89 for the kit, plus ${city.county} County's filing fee, paid by you to the county`;
+  const feeCta = '$89 kit';
 
   const faqs = [
     {
       q: `How do I appeal my property tax in ${city.name}, Florida?`,
-      a: `When you receive your TRIM notice in August, you have 25 days to file a petition with the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA prepares your petition and mails it for you — you sign it yourself — we generate a professional protest letter with comparable sales evidence and mail it 7+ days before your deadline. The cost is ${priceLine}: our $89 service fee, and the county's own filing fee, which we pay to the ${city.county} County VAB on your behalf.`,
+      a: `When you receive your TRIM notice in August, you have 25 days to get a petition (Form DR-486) to the ${city.county} County Value Adjustment Board (VAB). TaxAppeal USA checks first whether a petition will actually lower your tax bill, after Save Our Homes and the other caps. If it will, we mail you a ready-to-sign kit: DR-486 filled in, comparable values, a checklist and a return envelope addressed to the VAB. You sign it, put in a cheque for the county's filing fee, and mail it. The cost is ${priceLine}.`,
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
-      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18. You must file before this date — TaxAppeal USA prepares your petition and mails it once you sign — by tracked USPS First Class mail, with the county's filing fee paid to the VAB on your behalf — with time to spare. That county fee is collected at checkout on top of our $89, not absorbed by us.`,
+      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18 — for ${city.county} County in 2026 it is ${trimDeadline}. Florida counts a petition when the VAB RECEIVES it, not when it is postmarked, so mail your signed kit the day it arrives or hand-deliver it. Close to the deadline we email the kit as a PDF so you can print, sign and deliver it the same day.`,
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,
-      a: `It depends on the gap between your assessed value and your property's market value, and the Value Adjustment Board makes the final decision - we cannot promise a number. For scale, Miami-Dade's VAB reduced 14,856 residential parcels for tax year 2024, shifting about $589 per reduced parcel (Miami-Dade VAB, Form DR-529). ${city.county} County publishes its own figures each year, and Florida counties differ sharply. Whatever reduction you get, you keep all of it — we never take a percentage. The cost is ${priceLine}.`,
+      a: `It depends on the gap between your assessed value and your property's market value, and the Value Adjustment Board makes the final decision - we cannot promise a number. For scale, Miami-Dade's VAB reduced 14,856 residential parcels for tax year 2024, shifting about $589 per reduced parcel (Miami-Dade VAB, Form DR-529). ${city.county} County publishes its own figures each year, and Florida counties differ sharply. We check whether a petition would lower your bill before you pay, and we never promise a specific saving. Whatever reduction you get, you keep all of it — we never take a percentage. The cost is ${priceLine}.`,
     },
     {
       q: `What is a TRIM notice in Florida?`,
@@ -156,11 +155,11 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
     },
     {
       q: `Do I need an attorney to appeal my ${city.name} property taxes?`,
-      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares a professional, evidence-backed petition letter and mails it 7+ days before your deadline for ${priceLine} — no attorney fees, no percentage of savings.`,
+      a: `No attorney is required. Florida law allows homeowners to file VAB petitions themselves. TaxAppeal USA prepares an evidence-backed petition kit for you to sign and mail, for ${priceLine} — no attorney fees, no percentage of savings. We are not attorneys, we do not file your petition, and we do not represent you at the VAB.`,
     },
     {
       q: `Why choose TaxAppeal USA over other services in ${city.name}?`,
-      a: `Every competitor charges 25-50% of your savings — this costs homeowners heavily. TaxAppeal USA charges a flat $89 service fee regardless of how much you save, plus ${city.county} County's VAB filing fee, which we pay to the county for you. You keep every dollar of the reduction.`,
+      a: `We check whether a petition will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. Many services charge 25-50% of your savings; TaxAppeal USA charges a flat $89 for the kit regardless of how much you save. The county's filing fee is separate and paid by you to the county. You keep every dollar of the reduction.`,
     },
   ];
 
@@ -178,9 +177,9 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: `${city.name} property tax appeal filing`,
-    serviceType: "Florida VAB petition preparation and tracked mail filing",
-    description: `Value Adjustment Board petition preparation, county filing fee payment and tracked mail filing for ${city.name}, ${city.county} County homeowners.`,
+    name: `${city.name} property tax appeal kit`,
+    serviceType: "Florida VAB petition document preparation",
+    description: `A check of whether a Value Adjustment Board petition will lower the tax bill, then a ready-to-sign DR-486 kit mailed to ${city.name}, ${city.county} County homeowners, who sign it and mail it with the county's filing fee.`,
     url: `https://www.taxappealusa.com/florida/${city.slug}`,
     provider: { "@type": "Organization", name: "TaxAppeal USA", url: "https://www.taxappealusa.com", telephone: "+18175644050" },
     areaServed: { "@type": "City", name: city.name },
@@ -197,11 +196,11 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
             quote the TOTAL, not our cut. The old description said "with the county
             filing fee paid", which reads as "we cover it". */}
         <title>{`${city.name} Property Tax Appeal | ${feeCta} | TaxAppeal USA`}</title>
-        <meta name="description" content={`Appeal your ${city.name} property tax bill for ${priceLine}. We prepare your ${city.county} County VAB petition, you sign it, and we mail it 7+ days before your deadline — we pay the county's filing fee to the VAB for you. No percentage of your savings, ever.`} />
+        <meta name="description" content={`Appeal your ${city.name} property taxes. We check first, then mail you a ready-to-sign ${city.county} County VAB petition kit for $89. You pay the county fee.`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://www.taxappealusa.com/florida/${city.slug}`} key="canonical" />
         <meta property="og:title" content={`${city.name} Property Tax Appeal | ${feeCta} | TaxAppeal USA`} key="og:title" />
-        <meta property="og:description" content={`Appeal your ${city.name} property taxes for ${priceLine}. No percentage of your savings, ever. We prepare the petition, you sign it, we mail it on time.`} key="og:description" />
+        <meta property="og:description" content={`Appeal your ${city.name} property taxes: ${priceLine}. We check first, then mail you a ready-to-sign petition kit. You sign it and mail it.`} key="og:description" />
         <meta property="og:url" content={`https://www.taxappealusa.com/florida/${city.slug}`} key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema(trail, `https://www.taxappealusa.com/florida/${city.slug}`)) }} />
@@ -221,14 +220,14 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
           const days = Math.ceil((windowOpen - today) / (1000*60*60*24));
           return (
             <div style={barStyle}>
-              🔒 Reserve your {city.county} County spot now — TRIM notices start arriving in {days} days. Lock in today&apos;s {priceLine}; we file the moment your county&apos;s window opens. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+              🔒 Reserve your {city.county} County kit now — TRIM notices start arriving in {days} days. We check again when your values come out, and refund you in full if the case is gone. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
             </div>
           );
         }
         if (today >= windowOpen && today <= windowClose) {
           return (
             <div style={barStyle}>
-              🚨 Florida's filing window is open — file before your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
+              🚨 Florida's petition window is open — your petition must reach the VAB within your county's 25-day deadline. <a href="/apply" style={{ color: C.darkNavy, textDecoration: 'underline', marginLeft: 6, fontWeight: 700 }}>Get started →</a>
             </div>
           );
         }
@@ -259,7 +258,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
         <section style={{ padding: "40px 0 40px", textAlign: "center" }}>
           <div style={{ background: "#1B2A4A", color: "#C9A84C", display: "inline-block", padding: "6px 18px", borderRadius: "20px", fontSize: "13px", fontWeight: "700", marginBottom: "20px" }}>FLORIDA {city.county.toUpperCase()} COUNTY · VAB PETITION</div>
           <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px", color: "#1B2A4A" }}>{city.name} Property Tax Appeal</h1>
-          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} We prepare your petition and mail it for <strong style={{ color: "#C9A84C" }}>{priceLine}</strong> — and we never take a percentage of what you save.</p>
+          <p style={{ fontSize: "20px", color: "#4b5563", maxWidth: "680px", margin: "0 auto 32px", lineHeight: "1.6" }}>{city.description} We check whether a petition will actually lower your tax bill before you pay. If it will, we mail you a ready-to-sign kit for <strong style={{ color: "#C9A84C" }}>$89 flat</strong>, plus your county&apos;s {feeConfirmed ? `${feeLabel} ` : ""}filing fee, paid by you to the county. You sign it and mail it.</p>
           {/* See lib/flTaglines.js — Florida only, because the savings gate it
               promises is built on the DOR parcel roll we hold only for Florida. */}
           <p style={{ fontSize: "18px", color: "#1B2A4A", maxWidth: "680px", margin: "-16px auto 30px", lineHeight: "1.55", fontWeight: 700 }}>{taglineFor(city.slug || city.name)}</p>
@@ -280,27 +279,26 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
           {!feeConfirmed && (
             <div style={{ maxWidth: "680px", margin: "0 auto 30px", background: "#FFF8E6", border: "1.5px solid #E5C76B", borderRadius: 10, padding: "16px 20px", textAlign: "left", fontSize: 15, lineHeight: 1.6, color: "#1B2A4A" }}>
               <strong>{city.county} County has not set its 2026 filing fee yet.</strong> The Value
-              Adjustment Board usually sets it in late August. We will not take your money for a
-              filing we cannot complete, so we are not accepting {city.county} County orders
-              today — start below and we will email you the moment the fee is confirmed, in time
-              to file.
+              Adjustment Board usually sets it in late August. Your kit has to tell you what to
+              put on the cheque, so we are not accepting {city.county} County orders today — start
+              below and we will email you the moment the fee is confirmed, in time to mail your
+              petition.
             </div>
           )}
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "16px 40px", fontWeight: "800", fontSize: "18px", cursor: "pointer", marginBottom: "40px" }}>Appeal My {city.name} Taxes</button></Link>
         </section>
 
         <div style={{ background: "#1B2A4A", color: "white", borderRadius: "12px", padding: "20px 32px", textAlign: "center", margin: "0 32px 48px" }}>
-          <span style={{ fontSize: "16px", fontWeight: "600" }}>Florida TRIM notices mail around <strong style={{ color: "#C9A84C" }}>{trimOpen}</strong> — you have 25 days to file. <strong style={{ color: "#C9A84C" }}>Do not miss your window.</strong></span>
+          <span style={{ fontSize: "16px", fontWeight: "600" }}>Florida TRIM notices mail around <strong style={{ color: "#C9A84C" }}>{trimOpen}</strong> — you have 25 days, and the VAB must receive your petition by then. <strong style={{ color: "#C9A84C" }}>Do not miss your window.</strong></span>
         </div>
 
         <section style={{ padding: "48px 0", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "32px", fontWeight: "800", textAlign: "center", marginBottom: "40px" }}>How It Works for {city.name} Homeowners</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "24px" }}>
             {[
-              { step: "1", title: "Enter Your Address", desc: `We instantly pull your ${city.county} County assessment data.` },
-              { step: "2", title: "We Build Your Case", desc: "Our system generates a professional VAB petition with real comparable sales evidence." },
-              { step: "3", title: "Mailed Early, Tracked", desc: `Your petition is sent to the ${city.county} County VAB via USPS mail with tracking, 7+ days before your deadline.` },
-              { step: "4", title: "Track Your Outcome", desc: "We notify you when the county responds. Most results in 60-90 days." },
+              { step: "1", title: "We check first", desc: `We compare your ${city.county} County value with comparable values and run your bill through Save Our Homes and the other caps. If a petition won't lower your bill by more than our $89 fee, we tell you and don't sell you one.` },
+              { step: "2", title: "We mail you the kit", desc: `Your DR-486 petition, filled in, with comparable values, a checklist and a return envelope addressed to the ${city.county} County Value Adjustment Board. The PDF is emailed the same day.` },
+              { step: "3", title: "You sign it and mail it", desc: `Sign in ink, add your cheque for the county's filing fee and a stamp, and mail it the day it arrives — the VAB must receive it by ${trimDeadline}. The VAB writes to you directly.` },
             ].map((s) => (
               <div key={s.step} style={{ background: "#f8f9fa", borderRadius: "12px", padding: "28px 24px", textAlign: "center" }}>
                 <div style={{ width: "44px", height: "44px", background: "#1B2A4A", color: "#C9A84C", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "18px", margin: "0 auto 16px" }}>{s.step}</div>
@@ -321,13 +319,13 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
               measuring the two sides differently is the same defect pointed the other
               way. */}
           <h2 style={{ fontSize: "32px", fontWeight: "800", textAlign: "center", marginBottom: "12px" }}>Our Flat Fee vs. The Competition</h2>
-          <p style={{ textAlign: "center", color: "#6b7280", fontSize: "17px", marginBottom: "36px" }}>Every other {city.name} property tax service charges a percentage of your savings.</p>
+          <p style={{ textAlign: "center", color: "#6b7280", fontSize: "17px", marginBottom: "36px" }}>Many {city.name} property tax services charge a percentage of your savings. Ours is $89 for the kit.</p>
           {/* overflow-x so the table scrolls inside its own box instead of widening the page. */}
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px" }}>
               <thead><tr style={{ background: "#1B2A4A", color: "white" }}><th style={{ padding: "14px 20px", textAlign: "left" }}>Service</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Fee Structure</th><th style={{ padding: "14px 20px", textAlign: "center" }}>Cost on an example ${formattedSavings} reduction</th></tr></thead>
               <tbody>
-                <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$89 flat + county filing fee</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>{feeCta}</td></tr>
+                <tr style={{ background: "#C9A84C20", fontWeight: "700" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>TaxAppeal USA</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>$89 flat for the kit</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#16a34a" }}>{feeCta}</td></tr>
                 <tr><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>Ownwell</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>25-35% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.30).toLocaleString()}</td></tr>
                 <tr style={{ background: "#f9fafb" }}><td style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb" }}>O&apos;Connor/CutMyTaxes</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>30-50% of savings</td><td style={{ padding: "14px 20px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: "#dc2626" }}>${Math.round(city.avgSavings * 0.40).toLocaleString()}</td></tr>
                 <tr><td style={{ padding: "14px 20px" }}>Local Tax Attorney</td><td style={{ padding: "14px 20px", textAlign: "center" }}>$300-$800+</td><td style={{ padding: "14px 20px", textAlign: "center", color: "#dc2626" }}>$500+</td></tr>
@@ -335,8 +333,8 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
             </table>
           </div>
           <p style={{ textAlign: "center", color: "#6b7280", fontSize: "13px", marginTop: "14px", lineHeight: 1.6 }}>
-            Our figure is what you pay in total: our $89 service fee{feeConfirmed ? ` plus ${city.county} County's ${feeLabel} VAB filing fee` : " plus your county's VAB filing fee"}, which we pay to the county for you.
-            Competitor figures are their service fee on an example {`$${formattedSavings}`} reduction and exclude any county filing fee, which they also charge separately.
+            Our figure is our $89 kit. {feeConfirmed ? `${city.county} County's ${feeLabel} filing fee` : "Your county's filing fee"} is separate, and you pay it directly to the county.
+            Competitor figures are their service fee on an example {`$${formattedSavings}`} reduction and likewise exclude the county filing fee.
           </p>
         </section>
 
@@ -344,8 +342,8 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
           <h2 style={{ fontSize: "28px", fontWeight: "800", marginBottom: "20px" }}>Florida Property Tax Appeal Law</h2>
           <div style={{ background: "#f8f9fa", borderRadius: "12px", padding: "28px 32px" }}>
             <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151", marginBottom: "16px" }}>Under <strong>Florida Statute §194.011</strong>, every homeowner has the right to petition the VAB to challenge their property assessment. No attorney required.</p>
-            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151", marginBottom: "16px" }}>You have exactly <strong>25 days</strong> from your TRIM notice mailing date to file your VAB petition.</p>
-            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151" }}>TaxAppeal USA prepares your petition and sends it to the {city.county} County VAB via USPS mail, 7+ days before your deadline, so you have proof of timely filing.</p>
+            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151", marginBottom: "16px" }}>You have exactly <strong>25 days</strong> from your TRIM notice mailing date, and Florida counts the petition when it is <strong>received</strong>, not postmarked.</p>
+            <p style={{ fontSize: "16px", lineHeight: "1.7", color: "#374151" }}>TaxAppeal USA prepares your petition and mails it to you with a return envelope addressed to the {city.county} County VAB. You sign it and mail it, or hand-deliver it. We do not file it or represent you.</p>
           </div>
         </section>
 
@@ -363,9 +361,9 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
 
         <section style={{ padding: "60px 0", textAlign: "center", borderTop: "1px solid #e5e7eb" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "16px" }}>Ready to Appeal Your {city.name} Property Taxes?</h2>
-          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>File before your county&apos;s VAB deadline. {priceLine} — and we never take a percentage of your savings.</p>
+          <p style={{ fontSize: "18px", color: "#6b7280", maxWidth: "560px", margin: "0 auto 32px" }}>We check first, before you pay. {priceLine} — and we never take a percentage of your savings.</p>
           <Link href="/apply"><button style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", borderRadius: "10px", padding: "18px 48px", fontWeight: "800", fontSize: "20px", cursor: "pointer" }}>Start My Appeal — {feeCta}</button></Link>
-          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · Mailed Filing</p>
+          <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>Florida Statute §194.011 · TRIM Notice VAB Petition · You sign it and mail it</p>
         </section>
 
         {/* The county page carries the things that vary by county and not by city —
@@ -374,7 +372,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
             becoming 131 copies of the same county facts. */}
         <section style={{ padding: "36px 0", borderTop: "1px solid #e5e7eb", textAlign: "center" }}>
           <p style={{ fontSize: "16px", color: "#4b5563", lineHeight: "1.7", maxWidth: "620px", margin: "0 auto" }}>
-            {city.name} files through {city.county} County. The{" "}
+            {city.name} petitions go to the {city.county} County Value Adjustment Board. The{" "}
             <Link href={countyHref} style={{ color: "#1B2A4A", fontWeight: 700 }}>
               {city.county} County appeal guide
             </Link>{" "}

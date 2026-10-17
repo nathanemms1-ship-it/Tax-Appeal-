@@ -35,7 +35,7 @@ export default function WaitlistBanner() {
         fontFamily: FONTS.body,
       }}
     >
-      <strong style={{ color: C.gold }}>We&apos;re not filing yet.</strong>{' '}
+      <strong style={{ color: C.gold }}>We&apos;re not taking orders yet.</strong>{' '}
       TaxAppeal USA is finishing county verification before taking any orders.{' '}
       <a
         href="/apply"
