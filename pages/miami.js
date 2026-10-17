@@ -203,7 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 <div style={{background:C.navy,borderRadius:12,padding:24,color:C.white}}>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:"1px",color:C.gold,marginBottom:12}}>What TaxAppeal Does</div>
 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold,marginBottom:16}}>What We Do For You</div>
-{["Check first: will a petition lower your bill after caps and exemptions?","Analyze comparable values in Miami","Fill in Form DR-486 citing Florida Statute §194.011","Mail you the kit: petition, evidence, checklist and an envelope addressed to the VAB","Email the same kit as a PDF the same day","Keep 100% of your savings"].map(item => (
+{["Check first: will a petition lower your bill after caps and exemptions?","Analyze comparable values in Miami","Fill in Form DR-486 citing Florida Statute §194.011","Mail you the kit: petition, evidence, checklist and an envelope addressed to the VAB","A PDF copy of the full kit, also emailed to you the same day","Keep 100% of your savings"].map(item => (
 <div key={item} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10,fontSize:13}}>
 <span style={{flexShrink:0,marginTop:1,color:C.gold}}>✓</span><span style={{color:"#cbd5e1"}}>{item}</span>
 </div>

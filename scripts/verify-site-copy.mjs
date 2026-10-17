@@ -43,18 +43,11 @@ const NEGATION = /\b(?:not|never|don't|doesn't|won't|cannot|can't|no longer)\b[^
 const SKIP_DIRS = new Set(['api', 'admin', 'node_modules']);
 
 /*
- * THE FLORIDA FUNNEL, NOT YET. These files describe what happens at purchase
- * for a Florida order TODAY (sign online, we mail the petition with the fee),
- * which is still how Florida checkout works until the Florida kit is built
- * (plan Phase F, before Florida opens in June 2027). Copy must match the
- * product actually sold, so they leave this list together with that change.
- * Georgia and Texas never reach these screens (they buy through
- * components/GaKitStep.js and components/TxKitCheckout.js).
+ * THE FLORIDA FUNNEL joined the kit on 16 Oct 2026 (components/FlKitStep.js),
+ * so nothing is exempt any more. Kept as an empty set so an import of it
+ * still resolves.
  */
-export const PENDING_FL_KIT = new Set([
-  'pages/apply.js', 'pages/success.js', 'pages/portal.js',
-  'components/SignatureStep.js', 'components/StepFloridaFee.js',
-]);
+export const PENDING_FL_KIT = new Set([]);
 const walk = (dir, out = []) => {
   for (const e of readdirSync(dir)) {
     const f = path.join(dir, e);

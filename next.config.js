@@ -71,11 +71,14 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/api/generate-50132': ['./forms/tx/**'],
-      // The Texas mailed kit (lib/kit/txKit.js) fills Form 50-132 wherever a
-      // kit is dispatched: on payment, on the queued-order retry, by hand.
-      '/api/webhooks/stripe': ['./forms/tx/**'],
-      '/api/cron/process-queued-orders': ['./forms/tx/**'],
-      '/api/process-order-now': ['./forms/tx/**'],
+      // The Texas and Florida kits (lib/kit/txKit.js, lib/kit/flKit.js) fill the
+      // official PDF forms wherever a kit is dispatched: on payment, on the
+      // queued-order retry, by hand, and when a reservation is finished by the
+      // daily cron (Texas roll pass, 16 Oct 2026: it was missing here).
+      '/api/webhooks/stripe': ['./forms/tx/**', './forms/fl/**'],
+      '/api/cron/process-queued-orders': ['./forms/tx/**', './forms/fl/**'],
+      '/api/process-order-now': ['./forms/tx/**', './forms/fl/**'],
+      '/api/cron/notice-reminder': ['./forms/tx/**', './forms/fl/**'],
     },
   },
 

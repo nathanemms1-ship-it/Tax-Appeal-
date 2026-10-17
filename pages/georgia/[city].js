@@ -103,7 +103,7 @@ export default function GeorgiaCityPage({ city }) {
           <div className="steps-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20}}>
             {[
               {n:"1",t:"We check first",d:`We compare your ${city.name} value with recent sales of similar homes in ${city.county} County and run your bill through the caps and exemptions. If an appeal won't lower your bill by more than our $89 fee, we tell you and don't sell you one.`},
-              {n:"2",t:"We mail you the kit",d:`Your appeal on Form PT-311A or the county's own form, filled in, with the sales evidence, a checklist and a return envelope addressed to the ${city.district}. The PDF is emailed the same day.`},
+              {n:"2",t:"We mail you the kit",d:`Your appeal on Form PT-311A or the county's own form, filled in, with the sales evidence, a checklist and a return envelope addressed to the ${city.district}. A PDF copy of the full kit is also emailed to you the same day.`},
               {n:"3",t:"You sign it and mail it",d:`Sign in ink, add a stamp and mail it so it is postmarked within 45 days of your notice date. The ${city.district} writes to you directly.`},
             ].map(s=>(
               <div key={s.n} style={{background:C.white,borderRadius:12,padding:24,textAlign:"center",border:`1px solid ${C.border}`}}>

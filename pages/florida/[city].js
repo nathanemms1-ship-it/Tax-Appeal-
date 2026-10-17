@@ -297,7 +297,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "24px" }}>
             {[
               { step: "1", title: "We check first", desc: `We compare your ${city.county} County value with comparable values and run your bill through Save Our Homes and the other caps. If a petition won't lower your bill by more than our $89 fee, we tell you and don't sell you one.` },
-              { step: "2", title: "We mail you the kit", desc: `Your DR-486 petition, filled in, with comparable values, a checklist and a return envelope addressed to the ${city.county} County Value Adjustment Board. The PDF is emailed the same day.` },
+              { step: "2", title: "We mail you the kit", desc: `Your DR-486 petition, filled in, with comparable values, a checklist and a return envelope addressed to the ${city.county} County Value Adjustment Board. A PDF copy of the full kit is also emailed to you the same day.` },
               { step: "3", title: "You sign it and mail it", desc: `Sign in ink, add your cheque for the county's filing fee and a stamp, and mail it the day it arrives — the VAB must receive it by ${trimDeadline}. The VAB writes to you directly.` },
             ].map((s) => (
               <div key={s.step} style={{ background: "#f8f9fa", borderRadius: "12px", padding: "28px 24px", textAlign: "center" }}>

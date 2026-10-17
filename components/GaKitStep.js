@@ -264,7 +264,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           {quote.sellable && quote.kitKey && quote.presale ? (<>
             <div style={{ ...box, background: K.bg }}>
               <b>Reserve your kit for ${SERVICE_PRICE_DOLLARS}.</b> When your notice arrives, enter its value from the link in your receipt and we check again.
-              If an appeal still lowers your bill, we mail you your completed appeal on {county} County&rsquo;s own form, with the evidence page and a return envelope addressed to the county, and email the PDF.
+              If an appeal still lowers your bill, we mail you your completed appeal on {county} County&rsquo;s own form, with the evidence page and a return envelope addressed to the county, and email you a PDF copy of the full kit.
               If it no longer does, we refund you in full before anything is mailed.
             </div>
             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>
@@ -279,7 +279,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
               {quote.delivery === 'pdf' ? (<>
                 <b>Your deadline is close, so this is the PDF kit (${SERVICE_PRICE_DOLLARS}):</b> your completed appeal on {county} County's own form with the evidence page, emailed to you as soon as you pay. There isn't time to mail you a printed kit, so you print it, sign it and mail it to the county yourself.
               </>) : (<>
-                <b>What you get for ${SERVICE_PRICE_DOLLARS}:</b> your completed appeal on {county} County's own form, with the evidence page and a return envelope already addressed to the county, mailed to you — plus the same kit as a PDF emailed today. You sign it, add postage and mail it.
+                <b>What you get for ${SERVICE_PRICE_DOLLARS}:</b> your completed appeal on {county} County's own form, with the evidence page and a return envelope already addressed to the county, mailed to you — plus a PDF copy of the full kit, emailed to you today. You sign it, add postage and mail it.
               </>)}
             </div>
             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>

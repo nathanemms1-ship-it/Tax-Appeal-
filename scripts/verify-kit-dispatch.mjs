@@ -83,7 +83,7 @@ const spendOk = async () => ({ ok: true });
 const run = (r, opts = {}) => dispatchKit(r, { supabase: opts.supabase || fakeSupabase(), resend: opts.resend ?? fakeResend(), alertOps, now: opts.now || NOW, lobApiKey: 'test_x', lobFetch: opts.lob || fakeLob(), addressLookup: opts.addressLookup || addressLookup, checkSpend: opts.checkSpend || spendOk });
 
 // ── 1. THE LOB CALL ─────────────────────────────────────────────────────────
-t('Georgia and Texas are kit states; Florida is not (yet)', isKitState('GA') && isKitState('ga') && isKitState('TX') && !isKitState('FL'));
+t('Georgia, Texas and Florida are kit states; Arkansas is not', isKitState('GA') && isKitState('ga') && isKitState('TX') && isKitState('FL') && !isKitState('AR'));
 t('a recipient without a street is refused', (await code(() => lobRecipient({ name: 'A', city: 'X', state: 'GA', zip: '30044' }))) === 'recipient_incomplete');
 t('a bad ZIP or state is refused', (await code(() => lobRecipient({ name: 'A', street: '1 St', city: 'X', state: 'Georgia', zip: '30044' }))) === 'recipient_incomplete'
   && (await code(() => lobRecipient({ name: 'A', street: '1 St', city: 'X', state: 'GA', zip: '3004' }))) === 'recipient_incomplete');
@@ -125,8 +125,36 @@ for (const ps of ['refunded', 'partially_refunded', 'disputed', 'unpaid']) {
 }
 lob = fakeLob(); db = fakeSupabase(); r = await run(row({ kit_order: null }), { lob, supabase: db });
 t('a pre-sale order with no notice data waits as awaiting_notice', lob.calls.length === 0 && r.status === 'awaiting_notice' && db.updates.some((u) => u.dispute_status === 'awaiting_notice'));
-lob = fakeLob(); r = await run(row({ state_code: 'FL' }), { lob });
-t('a Florida order is not sent down the kit path (no FL kit builder yet)', lob.calls.length === 0 && r.reason === 'not_a_kit_state');
+lob = fakeLob(); r = await run(row({ state_code: 'AR' }), { lob });
+t('an Arkansas order is not sent down the kit path', lob.calls.length === 0 && r.reason === 'not_a_kit_state');
+
+// Florida (16 Oct 2026): the same pipe, the DR-486 builder, Florida's receipt rule.
+{
+  const { flOrder, FL_NOW } = await import('./kit/fl-fixture.mjs');
+  const flRow = row({ state_code: 'FL', county: 'Hillsborough', owner_street: '1234 Sample Oak Dr', owner_city: 'Tampa', owner_state: 'FL', owner_zip: '33614', kit_order: flOrder() });
+  lob = fakeLob(); db = fakeSupabase(); rs = fakeResend();
+  // 16 Aug 2027: 22 days before the 7 Sept deadline, past Florida's 16-day mail cut-off.
+  r = await run(flRow, { lob, supabase: db, resend: rs, now: FL_NOW });
+  const f = lob.calls[0]?.form;
+  t('a paid Florida kit order is mailed once, to the customer', r.status === KIT_STATUS.MAILED && lob.calls.length === 1 && f.get('to[address_city]') === 'Tampa' && f.get('perforated_page') === '7' && f.get('extra_service') === null);
+  const fem = rs.sent[0];
+  // INJECTION: drop the FL branch of deadlineLine -> FAILS ("postmarked" would be told to a receipt state).
+  t('the Florida email says RECEIVED, never postmarked, and names the fee check and Part 3',
+    /RECEIVED by the Value Adjustment Board by September 7, 2027/.test(fem?.text) && !/postmarked/i.test(fem?.text)
+    && /\$50 check or money order payable to "Board of County Commissioners"/.test(fem?.text)
+    && /Part 3 of the DR-486 \(page 4\)/.test(fem?.text) && /do not file your petition/.test(fem?.text) && /^Petition-kit-2027-/.test(fem?.attachments?.[0]?.filename || ''));
+  // 12 days out: a GA/TX kit would still mail (cut-off 10); Florida's is 16, so PDF only.
+  lob = fakeLob(); db = fakeSupabase(); rs = fakeResend();
+  r = await run(flRow, { lob, supabase: db, resend: rs, now: new Date('2027-08-26T15:00:00Z') });
+  // INJECTION: call deliveryMode without the state in dispatchKit -> FAILS (it would mail, arriving too late).
+  t('Florida 12 days out: PDF emailed, nothing mailed (Florida cut-off, not the GA/TX one)', r.status === KIT_STATUS.EMAILED && lob.calls.length === 0 && /Hand-deliver it/.test(rs.sent[0]?.text) && /601 East Kennedy Blvd, Floor 12/.test(rs.sent[0]?.text));
+  lob = fakeLob(); alerts.length = 0;
+  r = await run(flRow, { lob, now: new Date('2027-09-05T15:00:00Z') });
+  t('Florida 2 days out: nothing sent, a person decides', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'deadline_too_close');
+  lob = fakeLob();
+  r = await run(row({ state_code: 'FL', county: 'Dixie', kit_order: flOrder({ property: { ...flOrder().property, county: 'Dixie' } }) }), { lob, now: FL_NOW });
+  t('Florida, county without a confirmed VAB address or fee: no mail, needs_review', lob.calls.length === 0 && r.status === 'needs_review' && /^(address|fee)_not_confirmed$/.test(r.reason));
+}
 
 // Texas (15 Oct 2026): the same pipe, the Texas builder.
 {

@@ -50,7 +50,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
 
   const steps = [
     { step: "1", title: "We check first", desc: `We compare your ${city.name} value with similar homes on the ${city.district} roll and run your bill through the caps and exemptions. If a protest won't lower your bill by more than our $89 fee, we tell you and don't sell you one.` },
-    { step: "2", title: "We mail you the kit", desc: `Your protest on Comptroller Form 50-132, filled in, with the equal-and-uniform evidence, a checklist and a return envelope addressed to the ${city.district}. The PDF is emailed the same day.` },
+    { step: "2", title: "We mail you the kit", desc: `Your protest on Comptroller Form 50-132, filled in, with the equal-and-uniform evidence, a checklist and a return envelope addressed to the ${city.district}. A PDF copy of the full kit is also emailed to you the same day.` },
     { step: "3", title: "You sign it and mail it", desc: `Sign in ink, add a stamp and mail it before ${deadlineText} (or 30 days after your notice, if later). The appraisal district writes to you directly.` },
   ];
 

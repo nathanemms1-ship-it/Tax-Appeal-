@@ -546,8 +546,8 @@ const applySrc = read('pages/apply.js');
  * people to delete the reason. Test the code; leave the history alone.
  */
 t('the needsManualFiling flag is gone from the whole funnel',
-  !/needsManualFiling/.test(readCode('pages/apply.js')) &&
-  !/needsManualFiling/.test(readCode('components/StepFloridaFee.js')),
+  // components/StepFloridaFee.js was removed with the Florida kit (16 Oct 2026).
+  !/needsManualFiling/.test(readCode('pages/apply.js')),
   'it promised routing that was never implemented; if it returns, build the queue first');
 /**
  * `setFlCountyBlocked({` — the brace matters, and the injection test is what proved it.

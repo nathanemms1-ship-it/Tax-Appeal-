@@ -627,10 +627,12 @@ t('the invitation tells the owner only to add what is true (SOURCE READ)',
     /onClick=\{\(\) => onAddIssues\(false\)\}/.test(flCheck));
 }
 
-// "Total today $89" is not the total for a Florida order, and this screen is now
-// the one before checkout.
-t('the details step shows the real total, not a hardcoded $89 (SOURCE READ)',
-  /vabFeeCents \? `\$\$\{89 \+ vabFeeCents \/ 100\}` : "\$89"/.test(apply));
+// Florida kit (16 Oct 2026): "Total today" IS $89 now. The county's fee is paid
+// by the owner, to the county, with a check in the kit, and the screen says so
+// beside the number rather than adding it to a total we never charge.
+t('the details step shows $89 and names the county fee as the owner\'s own (SOURCE READ)',
+  /vabFeeCents\s*\n?\s*\? <>\$89 for your petition kit\. Your county&rsquo;s \$\{vabFeeCents \/ 100\} filing fee is paid by you, to the county/.test(apply)
+  && !/\$\{89 \+ vabFeeCents \/ 100\}/.test(apply));
 t('only a CONFIRMED county fee is printed beside the word Total (SOURCE READ)',
   /info\?\.confidence === 'confirmed' \? info\.vabFee : null/.test(apply));
 

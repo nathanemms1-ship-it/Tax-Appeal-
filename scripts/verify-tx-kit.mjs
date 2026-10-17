@@ -108,7 +108,8 @@ t('an unverified district address is never printed on a real kit', await code(()
 
 // ── 7. WIRING ───────────────────────────────────────────────────────────────
 const cfg = read('next.config.js');
-t('every route that dispatches kits bundles the blank Form 50-132', ['/api/webhooks/stripe', '/api/cron/process-queued-orders', '/api/process-order-now'].every((r) => cfg.includes(`'${r}': ['./forms/tx/**']`)));
+// INJECTION: drop the notice-reminder entry (the Texas roll pass dispatches kits) -> FAILS.
+t('every route that dispatches kits bundles the blank Form 50-132', ['/api/webhooks/stripe', '/api/cron/process-queued-orders', '/api/process-order-now', '/api/cron/notice-reminder'].every((r) => new RegExp(`'${r}': \\[[^\\]]*'\\./forms/tx/\\*\\*'`).test(cfg)));
 t('the Texas kit does not import the Georgia kit (keeps 2 MB of GA forms out of it)', !/from '\.\/gaKit'/.test(read('lib/kit/txKit.js')));
 
 // ── 8. SOLD ONLY WHEN THE BILL DROPS (lib/kit/txQuote.js) ──────────────────

@@ -177,7 +177,7 @@ const faqs = (county, fl) => {
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
-      a: `First we check whether ${t.aNoun} will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. If it will, for $89 we mail you a ready-to-sign kit: the official form (${t.form}) filled in for your ${county.name} County property, the evidence, a one-page checklist and a return envelope addressed to the ${target}. The same kit is emailed as a PDF the same day. You sign it in ink, add a stamp and mail it. We do not file your ${t.noun} or contact the county; the county writes to you directly.`,
+      a: `First we check whether ${t.aNoun} will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we'll tell you, and we won't sell you one. If it will, for $89 we mail you a ready-to-sign kit: the official form (${t.form}) filled in for your ${county.name} County property, the evidence, a one-page checklist and a return envelope addressed to the ${target}. A PDF copy of the full kit is also emailed to you the same day. You sign it in ink, add a stamp and mail it. We do not file your ${t.noun} or contact the county; the county writes to you directly.`,
     },
     {
       q: `How much can I save on my ${county.name} County property taxes?`,
@@ -557,7 +557,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
               // Part 3 is what makes the petition valid (s. 194.011(3), Fla. Stat.).
               // Destination is filingTargetFor(), not county.district — in Florida those
               // are two different offices and only one of them can receive a DR-486.
-              { n: "2", title: "We mail you the kit", body: `Your ${t.noun} on the official form (${t.form}), filled in, with your evidence, a one-page checklist and a return envelope addressed to the ${target}. The PDF is emailed the same day.` },
+              { n: "2", title: "We mail you the kit", body: `Your ${t.noun} on the official form (${t.form}), filled in, with your evidence, a one-page checklist and a return envelope addressed to the ${target}. A PDF copy of the full kit is also emailed to you the same day.` },
               { n: "3", title: "You sign it and mail it", body: `Sign in ink${county.code === "FL" ? `, add your ${fl ? fl.feeText : "county"} filing fee cheque` : ""}, add a stamp and mail it before ${fl ? fl.deadlineText : deadlineFor(county)}${county.code === "FL" ? " — Florida counts it when it is received, so mail it the day it arrives" : ""}. You sign as ${county.code === "FL" ? "s. 194.011(3), Florida Statutes requires" : "the property owner"}, and the ${county.code === "FL" ? "Value Adjustment Board" : county.district} writes to you directly.` },
             ].map(({ n, title, body }) => (
               <div key={n} style={{ background: C.white, border: "1px solid #E5E3DC", borderRadius: 12, padding: "28px 24px" }}>

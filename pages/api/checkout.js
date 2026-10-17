@@ -12,6 +12,7 @@ import { Redis } from '@upstash/redis';
 import { gaSellability, gaPresaleSellability } from '../../lib/kit/gaQuote';
 import { txSellability } from '../../lib/kit/txQuote';
 import { txPresaleSellability } from '../../lib/kit/txPresale';
+import { flSellability } from '../../lib/kit/flQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 
 let kitRedis = null;
@@ -166,17 +167,20 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
 // A Georgia pre-sale (16 Oct 2026) is checked by its own gate: no notice value
 // exists yet, so the full gate would refuse it. It is finished, or refunded,
 // when the notice arrives (lib/kit/presale.js).
-const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: (o) => (o?.presale === true ? txPresaleSellability(o) : txSellability(o)) };
+// Florida (16 Oct 2026): no pre-sale yet, so a stored presale order is refused outright.
+const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: (o) => (o?.presale === true ? txPresaleSellability(o) : txSellability(o)), FL: (o) => (o?.presale === true ? { ok: false, reason: 'not_a_presale' } : flSellability(o)) };
 const kitState = (stateCode || '').trim().toUpperCase();
 const isKitGA = kitState === 'GA';
 const isKitTX = kitState === 'TX';
-const isKit = isKitGA || isKitTX;
+const isKitFL = kitState === 'FL';
+const isKit = isKitGA || isKitTX || isKitFL;
+const kitDoc = isKitTX ? 'protest' : isKitFL ? 'petition' : 'appeal';
 let kitOrder = null;
 // 'mail' or 'pdf' (lib/kit/delivery.js), from the STORED order, never the browser.
 let kitDelivery = 'mail';
 if (isKit) {
   if (!kitKey || !new RegExp(`^kit:${kitState}:[0-9a-f-]{36}$`).test(String(kitKey)) || !kitRedis) {
-    return res.status(409).json({ error: isKitTX ? 'Please run the protest check for your home first.' : 'Please run the appeal check for your home first.', code: 'KIT_CHECK_REQUIRED' });
+    return res.status(409).json({ error: `Please run the ${kitDoc} check for your home first.`, code: 'KIT_CHECK_REQUIRED' });
   }
   try {
     const raw = await kitRedis.get(kitKey);
@@ -193,8 +197,10 @@ if (isKit) {
         ? 'Your deadline is too close for us to get your kit to you in time, so we will not take your money for it.'
         : sell.needs
         ? 'Please answer the remaining question about your county\'s appeal form first.'
+        : sell.reason === 'need_deadline'
+        ? 'Please enter the petition deadline printed on your TRIM notice first.'
         : sell.noCase
-          ? 'Our check found a protest would not lower your tax bill by more than our fee, so we will not sell you one.'
+          ? `Our check found a ${kitDoc} would not lower your tax bill by more than it costs, so we will not sell you one.`
           : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
       code: sell.reason === 'deadline_too_close' ? 'KIT_TOO_LATE' : sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
     });
@@ -208,10 +214,10 @@ if (password) {
 passwordHash = await bcrypt.hash(password, 10);
 }
 
-const isFL = (stateCode || '').toUpperCase() === 'FL';
-const countyFeeInfo = isFL ? getFlVabFee(county) : null;
-const vabFee = isFL ? countyFeeInfo.vabFee : 0;
-const vabPayableTo = isFL ? countyFeeInfo.payableTo : '';
+// Florida is a kit (16 Oct 2026): the county's filing fee is paid BY THE OWNER,
+// to the county, with a check in the kit. It is never charged here.
+const vabFee = 0;
+const vabPayableTo = '';
 
 /*
   MOVED UP from below `lineItems`, because the service line needs it too. 24 Aug.
@@ -245,7 +251,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Texas protest kit, reserved',
-description: `Reserved for ${kitOrder.property.address}. When the appraisal district publishes ${kitOrder.taxYear} values, we check your protest again. If it still lowers your bill, we mail you Form 50-132 filled in, the evidence and a return envelope addressed to the district, and email the PDF. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your protest or represent you.`,
+description: `Reserved for ${kitOrder.property.address}. When the appraisal district publishes ${kitOrder.taxYear} values, we check your protest again. If it still lowers your bill, we mail you Form 50-132 filled in, the evidence and a return envelope addressed to the district, and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your protest or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -269,7 +275,31 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Texas protest kit, mailed to you',
-description: `Your completed, ready-to-sign protest for ${kitOrder.property.address}: the Comptroller's Form 50-132 filled in, the comparable-properties evidence from the district's own roll, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} appraisal district — mailed to you, with the PDF emailed today. You sign and mail it; we do not file your protest or represent you.`,
+description: `Your completed, ready-to-sign protest for ${kitOrder.property.address}: the Comptroller's Form 50-132 filled in, the comparable-properties evidence from the district's own roll, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} appraisal district — mailed to you, with a PDF copy of the full kit emailed to you today. You sign and mail it; we do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitFL && kitDelivery === 'pdf' ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Florida petition kit, PDF by email',
+description: `Your deadline is close, so your completed, ready-to-sign petition for ${kitOrder.property.address} (Form DR-486 filled in and the evidence) is emailed to you as a PDF as soon as you pay. You print it, sign it, add the county's filing fee check, and mail or hand-deliver it to the Value Adjustment Board yourself. The county fee is paid by you to the county and is not part of this charge. We do not file your petition or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitFL ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Florida petition kit, mailed to you',
+description: `Your completed, ready-to-sign petition for ${kitOrder.property.address}: Form DR-486 filled in, the property appraiser's own qualified sales as evidence, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} County Value Adjustment Board — mailed to you, with a PDF copy of the full kit emailed to you today. You sign it, add the county's filing fee check and send it. The county fee is paid by you to the county and is not part of this charge. We do not file your petition or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -281,7 +311,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Georgia appeal kit, reserved',
-description: `Reserved for ${kitOrder.property.address}. When your ${kitOrder.taxYear} assessment notice arrives, you enter its value and we check your case again. If an appeal still lowers your bill, we mail you the completed, ready-to-sign kit with a return envelope addressed to the county and email the PDF. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your appeal or represent you.`,
+description: `Reserved for ${kitOrder.property.address}. When your ${kitOrder.taxYear} assessment notice arrives, you enter its value and we check your case again. If an appeal still lowers your bill, we mail you the completed, ready-to-sign kit with a return envelope addressed to the county and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your appeal or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -305,7 +335,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Georgia appeal kit, mailed to you',
-description: `Your completed, ready-to-sign appeal for ${kitOrder.property.address}: the ${countyPhrase} appeal form filled in, evidence of recorded sales, and a return envelope addressed to the county — mailed to you, with the PDF emailed today. You sign and mail it; we do not file your appeal or represent you.`,
+description: `Your completed, ready-to-sign appeal for ${kitOrder.property.address}: the ${countyPhrase} appeal form filled in, evidence of recorded sales, and a return envelope addressed to the county — mailed to you, with a PDF copy of the full kit emailed to you today. You sign and mail it; we do not file your appeal or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },
@@ -316,48 +346,15 @@ quantity: 1,
 price_data: {
 currency: 'usd',
 product_data: {
-name: isFL
-  ? 'TaxAppeal USA — VAB petition preparation and filing'
-  : 'TaxAppeal USA — Property tax protest preparation and filing',
-description: isFL
-  ? `We prepare your DR-486 petition for ${address}, pay the ${countyPhrase} filing fee on your behalf, and mail it to the Value Adjustment Board with USPS tracking. You sign it — we do not represent you.`
-  : `We prepare your property tax protest for ${address} and mail it to the ${countyPhrase} appraisal district by USPS certified mail with return receipt. You sign it — we do not represent you.`,
+name: 'TaxAppeal USA — Property tax protest preparation',
+description: `We prepare your property tax protest for ${address}. You sign it — we do not represent you.`,
 },
 unit_amount: 8900,
 },
 quantity: 1,
 },
 ];
-if (isFL && vabFee > 0) {
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: {
-/*
- * STRIP THE SUFFIX, THEN ADD IT BACK. BOTH LINES, NOT ONE.
- *
- * `name` read `${county} County VAB Filing Fee` and `county` arrives carrying
- * its own suffix (apply.js takes bdJson.resolvedCounty, which is
- * "Broward County"), so a live test purchase billed a customer for a
- * "Broward County County VAB Filing Fee" on the Stripe payment screen.
- *
- * The description below was correct — but only by luck, because it appended
- * nothing. Hand it a bare county name and IT breaks instead, reading "the
- * Broward Value Adjustment Board". One of the two was always going to be wrong
- * depending on which caller ran.
- *
- * Normalising once makes both correct for either shape. Note this is display
- * only: getFlVabFee already normalises for its own lookup, which is why the
- * $25 charged was right while the label was not.
- */
-name: `${countyLabel} County VAB Filing Fee`,
-description: `Mandatory filing fee paid on your behalf to the ${countyLabel} County Value Adjustment Board (required by Florida law § 194.013)`,
-},
-unit_amount: vabFee,
-},
-quantity: 1,
-});
-}
+// The Florida VAB fee line was removed with the kit (16 Oct 2026): the owner pays the county directly.
 
 /**
  * ==========================================================================

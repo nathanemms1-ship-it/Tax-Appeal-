@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import WaitlistForm from '../components/WaitlistForm';
 import ApplyHead from '../components/ApplyHead';
-import StepFloridaFee, { getFlVabFee } from '../components/StepFloridaFee';
+// Florida is a kit (16 Oct 2026): components/FlKitStep.js. The old fee-and-sign
+// step (components/StepFloridaFee.js) went with the online signature.
+import { getFlVabFee } from '../lib/flCountyFees';
+import FlKitStep from '../components/FlKitStep';
 import GaKitStep from '../components/GaKitStep';
 import TxKitCheckout from '../components/TxKitCheckout';
 import ContactModal from '../components/ContactModal';
@@ -74,7 +77,7 @@ const STEPS = ["property", "issues", "account", "dispute"];
  * the petition and the address we send the confirmation to. Calling it an account
  * step would promise a login that only exists if they choose to set one later.
  */
-const stepLabels = { property: "Your Property", issues: "Property Issues", account: "Your Details", dispute: "Dispute Letter" };
+const stepLabels = { property: "Your Property", issues: "Property Issues", account: "Your Details", dispute: "Your Kit" };
 
 const SUPPORTED_STATES = {
   TX: { name: "Texas", deadlineNote: "May 15 or 30 days after appraisal notice, whichever is later", filingNote: "Postmark by deadline counts in Texas", board: "Appraisal Review Board (ARB)", statute: "Texas Tax Code §41.41 & §41.43" },
@@ -931,12 +934,12 @@ function UnsupportedState({ stateCode, onBack, account, property }) {
       <div style={{ ...cardStyle, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 8 }}>
-          We&rsquo;re not filing in {stateName} yet
+          We&rsquo;re not open in {stateName} yet
         </h2>
         <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 20, lineHeight: 1.6 }}>
           {servingFrom
-            ? <>We are not filing in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> filing season, and we will email you the day filing opens so you have time to get it in.</>
-            : <>We are not filing in {stateName} yet, and we will email you the day we open there.</>}
+            ? <>We are not preparing appeals in {stateName} this season. We will be there for the <strong style={{ color: C.navy }}>{servingFrom}</strong> season, and we will email you the day it opens so you have time to get your appeal in.</>
+            : <>We are not preparing appeals in {stateName} yet, and we will email you the day we open there.</>}
         </p>
         <LeadCapture
           payload={capturePayload}
@@ -990,28 +993,29 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
 
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 16, fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
           {reason === "fee" ? (
-            <>Before we file in a county we confirm its Value Adjustment Board filing fee for the current
-            tax year directly with that county. Many boards set the fee at an organising meeting in late
+            <>Before we prepare petitions in a county we confirm its Value Adjustment Board filing fee for the current
+            tax year directly with that county, because your kit includes the check you write for it. Many boards set the fee at an organising meeting in late
             August, and {countyName} County has not published its 2026 figure yet.</>
           ) : (
-            <>Before we file in a county we confirm two things directly with that county&rsquo;s Value
-            Adjustment Board: the exact address a petition and filing-fee check must be delivered to, and
-            the filing fee for the current tax year. {countyName} County has not published a petition
-            mailing address, so we are confirming it with their clerk by phone.</>
+            <>Before we prepare petitions in a county we confirm two things directly with that county&rsquo;s Value
+            Adjustment Board: the exact address your signed petition and filing-fee check must be delivered to
+            (it goes on the return envelope in your kit), and the filing fee for the current tax year.
+            {' '}{countyName} County has not published a petition mailing address, so we are confirming it with
+            their clerk by phone.</>
           )}
         </p>
 
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 20, fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
-          We are not going to take your money and guess. Florida counts your petition as filed when it is
-          physically <strong style={{ color: C.darkNavy }}>received</strong> with the correct fee &mdash; a
-          wrong address or a short check is not a late filing, it is no filing, and there is no way to fix
+          We are not going to take your money and guess. Florida counts your petition when the Board
+          {' '}<strong style={{ color: C.darkNavy }}>receives</strong> it with the correct fee &mdash; a
+          wrong address or a short check is not a late petition, it is no petition, and there is no way to fix
           it after the deadline.
         </p>
 
         <LeadCapture
           payload={capturePayload}
           street={property?.street}
-          promise={`as soon as ${countyName} County is confirmed, so you can file — and only if there is still enough time to get your petition delivered before your deadline.`}
+          promise={`as soon as ${countyName} County is confirmed — and only if there is still enough time for you to sign your petition and get it to the Board before your deadline.`}
         />
 
         <div style={{ marginTop: 16 }}>
@@ -1083,12 +1087,12 @@ function NoParcelRecord({ property, account, detail, onBack }) {
 
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
           {outsideCoverage
-            ? <>This address does not appear to be in Florida, and Florida is the only state whose Value Adjustment Board we file with at this time of year.</>
+            ? <>This address does not appear to be in Florida, and Florida is the only state where we prepare Value Adjustment Board petitions at this time of year.</>
             : <>We searched the current Florida Department of Revenue tax roll and there is no parcel matching this address. That usually means one of three things: the address has a unit, lot or suite number we need, it is very recently built or recently split from another parcel and has not reached the published roll yet, or it is spelled differently on the county&rsquo;s records than the way it is written here.</>}
         </p>
 
         <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, textAlign: 'left', marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>
-          <strong style={{ color: C.darkNavy }}>Without that record we cannot file for you, and we are not going to try.</strong>{' '}
+          <strong style={{ color: C.darkNavy }}>Without that record we cannot prepare your petition, and we are not going to try.</strong>{' '}
           A Value Adjustment Board petition has to name the parcel, state the assessed value you are
           disputing and state the value you are asking for. We would be guessing at all three, and you
           would be signing it under penalty of perjury. A petition the county cannot match to a parcel
@@ -1175,6 +1179,7 @@ function NoParcelRecord({ property, account, detail, onBack }) {
  */
 function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCents }) {
   const isTX = String(property?.state || "").trim().toUpperCase() === "TX";
+  const isFL = String(property?.state || "").trim().toUpperCase() === "FL";
   const [err, setErr] = useState("");
   /**
    * CLOSED BY DEFAULT, AND THE DEFAULT IS THE PROPERTY.
@@ -1250,7 +1255,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
         the form.
       */}
       <div className="apply-sell">
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ You sign it — we mail it for you</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>🛡️ We check first — you sign it and mail it</div>
         {/* An <h1> while this was step one. It is step three now, and the page's
             heading belongs to the screen the visitor actually lands on.
 
@@ -1259,14 +1264,14 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
             and has already been told their property qualifies. Replaced with a
             line about where they actually are, and clamped: fontSize 38 was a
             hardcoded pixel value in a file with no clamp() and no vw units. */}
-        <h2 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.6rem, 5.2vw, 2.375rem)", color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>Last step before we prepare your filing.</h2>
-        <p style={{ fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>No forms to mail. No county offices to call. You sign it — we do the rest.</p>
-        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal finds the discrepancy, builds your case with real comparable sales data, and files your protest for a flat $89 fee.</p>
+        <h2 className="hero" style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.6rem, 5.2vw, 2.375rem)", color: C.darkNavy, lineHeight: 1.15, marginBottom: 12 }}>Last step before we prepare your kit.</h2>
+        <p style={{ fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 24, fontFamily: "'DM Serif Display', serif", lineHeight: 1.3 }}>The official form filled in, your evidence, and a return envelope addressed to {isFL ? "the Value Adjustment Board" : isTX ? "your appraisal district" : "your county"}. You sign it in ink and mail it.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 28, fontFamily: "'DM Sans', sans-serif" }}>The National Taxpayers Union Foundation estimates that 30–60% of taxable property in the United States is over-assessed, and that fewer than 5% of taxpayers ever challenge it. TaxAppeal checks whether an appeal will actually lower your bill, builds your case with real comparable sales data, and mails you a ready-to-sign kit for a flat $89.</p>
         <div className="stat-flex" style={{ background: C.darkNavy, borderRadius: 10, padding: "18px 22px", marginBottom: 20 }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 44, color: C.gold, lineHeight: 1, flexShrink: 0 }}>&lt;5%</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: C.white, marginBottom: 4 }}>of taxpayers ever challenge their assessment</div>
-            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.5 }}>Most over-assessed homeowners simply pay the bill. Filing takes about four minutes and costs $89 — whether your county grants a reduction is up to your county. Source: National Taxpayers Union Foundation.</div>
+            <div style={{ fontSize: 12, color: C.mutedGray, lineHeight: 1.5 }}>Most over-assessed homeowners simply pay the bill. Signing and mailing your kit takes about five minutes, and our fee is $89{isFL ? " (the county’s filing fee is separate, paid by you to the county)" : ""} — whether your county grants a reduction is up to your county. Source: National Taxpayers Union Foundation.</div>
           </div>
         </div>
         <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 }}>
@@ -1304,7 +1309,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
           somebody is deciding whether to buy, not on the one where they are
           entering their email to complete a purchase they have already chosen.
         */}
-        {[["You sign it — we mail it for you", "You review and sign your filing, then we mail it in your name"], ["We send you the proof", "We email you when it is dispatched, with the tracking details we hold"], ["Takes about 4 minutes", "Answer a few questions; you review and sign, and we do the rest"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
+        {[["We check first", "If an appeal won’t lower your bill, we tell you and don’t sell you one"], ["We mail you the kit", `The official form filled in, your evidence and a return envelope addressed to ${isFL ? "the Value Adjustment Board" : isTX ? "your appraisal district" : "your county"}. A PDF copy is emailed the same day`], ["You sign it and mail it", isFL ? "Sign Part 3 in ink, add your check for the county’s filing fee, and mail it so the Board receives it by your deadline, or hand-deliver it" : "Sign it in ink, add a stamp and mail it before your deadline. It takes about five minutes"], ["Keep 100% of what you save", "No percentage cuts — your savings are yours"]].map(([t, d]) => (
           <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
             <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.lightBlue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.navy, flexShrink: 0, marginTop: 2 }}>✓</div>
             <div>
@@ -1315,7 +1320,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
         ))}
       </div>
       <div className="card-padding" style={{ ...cardStyle, position: "sticky", top: 20 }}>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Who are we filing for?</h2>
+        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: C.darkNavy, marginBottom: 6 }}>Who is this {isFL ? "petition" : isTX ? "protest" : "appeal"} for?</h2>
         {/* THE STATE CHIPS ARE GONE FROM THIS SIDEBAR, AND THE REASON THEY WERE
             HERE HAS GONE WITH THEM.
 
@@ -1335,8 +1340,8 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
             and it is not this file's to fix — see "Homepage sells AR and AL" in the
             open items queue, and the two verify-pages warnings that carry it. */}
         <p style={{ fontSize: 13, color: C.bodyGray, marginBottom: 20, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-          This goes on the petition, so use the name your county has on the property
-          record. We email the confirmation and the tracking to the address below.
+          This goes on the form, so use the name your county has on the property
+          record. We email your confirmation and the PDF copy of your kit to the address below.
         </p>
         {/*
           "TOTAL TODAY $89" WAS NOT THE TOTAL, AND THIS IS NOW THE SCREEN BEFORE
@@ -1362,15 +1367,17 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
             <span style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Total today</span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: C.darkNavy }}>
-                {vabFeeCents ? `$${89 + vabFeeCents / 100}` : "$89"}
+                $89
               </span>
               <span style={{ background: "#E6F4ED", color: C.green, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>One-time only</span>
             </div>
           </div>
           <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 6, lineHeight: 1.5 }}>
             {vabFeeCents
-              ? <>$89 filing service + ${vabFeeCents / 100} county filing fee, paid to your Value Adjustment Board on your behalf.</>
-              : <>$89 filing service. Your county adds its own filing fee ($15&ndash;$50), shown before you pay.</>}
+              ? <>$89 for your petition kit. Your county&rsquo;s ${vabFeeCents / 100} filing fee is paid by you, to the county, with a check in the kit. It is not part of our fee.</>
+              : property?.state?.trim?.().toUpperCase() === 'FL'
+              ? <>$89 for your petition kit. Your county&rsquo;s filing fee ($15&ndash;$50) is paid by you, to the county, with a check in the kit.</>
+              : <>$89 for your kit, mailed to you.</>}
           </div>
         </div>
         {err && <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "9px 13px", fontSize: 12, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 14 }}>{err}</div>}
@@ -1506,7 +1513,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
         )}
         <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>
           🔒 Secure checkout · 256-bit encryption<br />
-          <span style={{ marginTop: 4, display: "block" }}>You won't be charged until your appeal is ready to file.</span>
+          <span style={{ marginTop: 4, display: "block" }}>You won't be charged until we&rsquo;ve checked that an appeal will lower your bill.</span>
         </div>
       </div>
     </div>
@@ -2809,15 +2816,15 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
           actually sold for.
         </p>
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-          A recent arms-length sale is the strongest evidence a Property Appraiser has. If we filed, they would answer
-          every comparable sale we cited with your own closing figure, and the Board would agree with them.
+          A recent arms-length sale is the strongest evidence a Property Appraiser has. If you petitioned, they would answer
+          every comparable sale in it with your own closing figure, and the Board would agree with them.
         </p>
         <div style={{ background: C.lightBlue, border: '1px solid #C5D3E8', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 14, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
           {px1.address ? <><strong>{px1.address}</strong><br /></> : null}
           Just value on the {px1.rollYear || ''} roll: {money(d.facts?.justValue)} · Sold {when} for {money(sale.subjectSale?.salePrice)}
         </div>
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
-          We&rsquo;re not going to take $89 for a filing we expect to lose. This changes as the market moves and as your
+          We&rsquo;re not going to take $89 for a petition kit we expect to lose. This changes as the market moves and as your
           purchase recedes from the assessment date — we re-read every roll and will email you if it becomes worth filing.
         </p>
         <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
@@ -2907,7 +2914,7 @@ function StepFloridaCheck({ property, account, onEligible, onBack, issues, costO
         <p style={{ color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 24, fontSize: 14 }}>
           {d.rescuable && onAddIssues && !alreadyAsked
             ? <>You haven&rsquo;t been charged, and you won&rsquo;t be unless the numbers work. We re-read every roll — if this changes, we&rsquo;ll email you at the address you gave us.</>
-            : <>We&rsquo;re not going to take $89 for a filing that cannot help you. We re-read every roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.</>}
+            : <>We&rsquo;re not going to take $89 for a petition kit that cannot help you. We re-read every roll — if this changes, we&rsquo;ll email you at the address you gave us. Nothing else.</>}
         </p>
         <button style={{ ...secondaryBtn, width: 'auto', padding: '13px 24px' }} onClick={onBack}>
           ← Check a different property
@@ -3232,7 +3239,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
             */}
             <strong>Don&apos;t wait — deadlines are firm.</strong>{' '}
             {issuesDeadline
-              ? <>Your petition must be <em>received</em> by {issuesCounty ? `${issuesCounty} County` : 'your county'} on {issuesDeadline} — Florida counts receipt, not postmark, so we mail well ahead of it. Finish now to protect your right to appeal.</>
+              ? <>Your petition must be <em>received</em> by {issuesCounty ? `${issuesCounty} County` : 'your county'} on {issuesDeadline} — Florida counts receipt, not postmark, so plan to mail your signed petition the day your kit arrives, or hand-deliver it. Finish now to protect your right to appeal.</>
               : <>Florida counts a petition as filed when it is physically received, not when it is postmarked, so the useful deadline is earlier than the published one. Finish now to protect your right to appeal.</>}
           </div>
         </div>
@@ -4122,7 +4129,7 @@ function DisputeLetter({ propData, letter, issues, onRestart, account, property,
         </div>
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", isFLFlow ? "We mail your petition" : "We mail it certified", isFLFlow ? "Tracked USPS First Class mail to your county's Value Adjustment Board, with the filing fee paid" : "USPS certified mail to your appraisal district, with tracking"], ["🧾", "You receive the proof", isFLFlow ? "We email you the dispatch confirmation and tracking details we hold" : "USPS certified mail proof sent to you"], ["⏳", "Await the decision", isFLFlow ? "Boards respond in 30–90 days" : "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
+          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", "We mail you the kit", isFLFlow ? "Form DR-486 filled in, your evidence, and a return envelope addressed to your county's Value Adjustment Board. A PDF copy is emailed the same day" : "Your form filled in, your evidence, and a return envelope addressed to your appraisal district. A PDF copy is emailed the same day"], ["✍️", "You sign it and mail it", isFLFlow ? "Sign Part 3 in ink, add your check for the county's filing fee, and mail it so the Board receives it by your deadline" : "Sign it in ink, add a stamp and mail it before your deadline"], ["⏳", "Await the decision", isFLFlow ? "Boards respond in 30–90 days" : "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
               <div>
@@ -4150,6 +4157,8 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // Georgia is sold as a Kit (15 Oct 2026): its own step, components/GaKitStep.js,
   // runs the appeal check and checkout. Nothing below run()'s GA guard runs for it.
   const [gaKit, setGaKit] = useState(false);
+  // Florida too (16 Oct 2026): components/FlKitStep.js owns the check and checkout.
+  const [flKit, setFlKit] = useState(false);
   // Open when the owner says the matched property is not theirs.
   const [txPickCounty, setTxPickCounty] = useState(false);
   // Blob URL for the watermarked page one of the filled Form 50-132.
@@ -4348,6 +4357,7 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
     // GEORGIA: the kit step owns everything from here (lookup, comps, the bill
     // check, the county questions, checkout). No /api/lookup, no document here.
     if (String(property?.state || '').trim().toUpperCase() === 'GA') { setGaKit(true); setLoading(false); return; }
+    if (String(property?.state || '').trim().toUpperCase() === 'FL') { setFlKit(true); setLoading(false); return; }
     const ownerMail = resolveOwnerMailing(account, property);
     try {
       const res = await fetch("/api/lookup", {
@@ -4900,6 +4910,28 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
    * owner what to do. § 41.44(d) is why we can always offer to file: a notice is
    * sufficient on owner, property and dissatisfaction alone.
    */
+  if (flKit) {
+    return (
+      <FlKitStep
+        property={property}
+        account={account}
+        ownerMail={resolveOwnerMailing(account, property)}
+        issues={issues || []}
+        costOverrides={costOverrides || {}}
+        attribution={attributionPayload()}
+        refCode={(() => {
+          if (typeof window === 'undefined') return '';
+          try {
+            const code = localStorage.getItem('taxappeal_ref');
+            const at = Number(localStorage.getItem('taxappeal_ref_at') || 0);
+            if (!code || !at || (Date.now() - at) > 90 * 24 * 60 * 60 * 1000) return '';
+            return code.trim().toUpperCase();
+          } catch (e) { return ''; }
+        })()}
+      />
+    );
+  }
+
   if (gaKit) {
     return (
       <GaKitStep
@@ -5632,7 +5664,8 @@ function ApplyFunnel() {
     setFlFeeData({ ...feeInfo, county, countySource: source });
     setFlCountyError(null);
     setFlCountyBlocked(null);
-    setStep('florida-fee');
+    // Straight to the kit check (16 Oct 2026): nothing is signed online any more.
+    setStep('dispute');
     window.scrollTo(0, 0);
   };
 
@@ -6063,7 +6096,6 @@ function ApplyFunnel() {
             */
             clearHandoff(); setStep("property"); window.scrollTo(0,0);
           }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "florida-fee" && <StepFloridaFee feeData={flFeeData} property={property} account={account} onAuthorize={(sig) => { setFlSignature(sig); setStep("dispute"); window.scrollTo(0,0); }} onBack={() => { setStep("account"); window.scrollTo(0,0); }} onChangeCounty={() => setFlCountyError({ kind: "pick", county: property.county || "", message: "Pick the county this property is in. It sets your filing fee and which Value Adjustment Board receives your petition." })} />}
           {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>
       )}

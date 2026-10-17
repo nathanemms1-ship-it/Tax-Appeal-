@@ -149,7 +149,7 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         banner: '#1B2A4A',
         heading: 'Your Appeal Kit Is Being Printed',
         subheading: 'We mail it to you and email you the PDF',
-        intro: 'Thank you — your payment is in. We are printing your completed appeal kit and mailing it to you by first-class mail, and we will email you the same kit as a PDF the moment it is sent. You sign the form, add postage and mail it to the county in the envelope we include. We prepare the documents; we do not file your appeal or represent you.',
+        intro: 'Thank you — your payment is in. We are printing your completed appeal kit and mailing it to you by first-class mail, and we will also email you a PDF copy of the full kit the moment it is sent. You sign the form, add postage and mail it to the county in the envelope we include. We prepare the documents; we do not file your appeal or represent you.',
       };
 
     case 'kit_pdf':
@@ -188,6 +188,8 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   if (orderStatus === 'awaiting_notice' && String(stateCode || '').toUpperCase() === 'TX') {
     return '✅ Payment received — your protest kit is reserved — TaxAppeal USA';
   }
+  if (isFL && orderStatus === 'kit_queued') return '✅ Payment received — your petition kit is being printed — TaxAppeal USA';
+  if (isFL && orderStatus === 'kit_pdf') return '✅ Payment received — your petition kit is on its way to your inbox — TaxAppeal USA';
   return claimFor(orderStatus, {
     docWord: isFL ? 'petition' : 'letter',
     authority: '',
@@ -233,6 +235,19 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
       intro: 'Thank you — your payment is in. When your appraisal district publishes this year\'s values (usually in April), we check your protest again on them, automatically; you do not need to do anything. If a protest still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
       ctaLabel: null,
     }
+    : isFL && orderStatus === 'kit_queued'
+    ? {
+      ...claimBase,
+      subject: '✅ Payment received — your petition kit is being printed — TaxAppeal USA',
+      heading: 'Your Petition Kit Is Being Printed',
+      intro: 'Thank you — your payment is in. We are printing your completed Value Adjustment Board petition kit (Form DR-486 filled in, your evidence and a return envelope addressed to the board) and mailing it to you by first-class mail. A PDF copy of the full kit is also emailed to you the moment it is sent. You sign the petition, add a check for the county\'s filing fee, and mail or hand-deliver it: Florida counts the date the board RECEIVES it. We prepare the documents; we do not file your petition or represent you.',
+    }
+    : isFL && orderStatus === 'kit_pdf'
+    ? {
+      ...claimBase,
+      subject: '✅ Payment received — your petition kit is on its way to your inbox — TaxAppeal USA',
+      intro: 'Thank you — your payment is in. Your deadline is close, so instead of mailing a printed kit we are emailing you the completed petition kit as a PDF in the next few minutes. Print it, sign it in ink, add a check for the county\'s filing fee, and hand-deliver or mail it to the Value Adjustment Board address shown in the kit. Florida counts the date the board RECEIVES it, not the postmark. We prepare the documents; we do not file it or represent you.',
+    }
     : claimBase;
 
   /**
@@ -248,7 +263,16 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
   // 'signature_reminder' is the same point in the journey as 'awaiting_signature' —
   // unsigned — so it gets the same four steps. Added with the cron on 25 Aug.
   const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice' || orderStatus === 'kit_pdf';
-  const steps = isKit
+  const steps = isKit && isFL
+    ? [
+        orderStatus === 'kit_pdf'
+          ? 'Your kit arrives by email in a few minutes as a PDF: print it on plain paper'
+          : 'Your kit arrives by mail in a few days, and a PDF copy of the full kit is emailed to you today',
+        'You sign Part 3 of the DR-486 in ink and add a check for the county\'s filing fee',
+        'You mail it or hand-deliver it so the Value Adjustment Board RECEIVES it by the deadline',
+        'If the board does not lower your value, next year\'s kit is free',
+      ]
+    : isKit
     ? [
         orderStatus === 'awaiting_notice' && stateCode === 'TX'
           ? 'Your district publishes this year\'s values and we re-check your protest automatically'
@@ -256,7 +280,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
           ? 'Your notice arrives: you tell us the value on it and we re-check your case'
           : orderStatus === 'kit_pdf'
           ? 'Your kit arrives by email in a few minutes as a PDF: print it on plain paper'
-          : 'Your kit arrives by mail in a few days, and the PDF is emailed today',
+          : 'Your kit arrives by mail in a few days, and a PDF copy of the full kit is emailed to you today',
         orderStatus === 'kit_pdf'
           ? 'You sign the form in ink and mail it in any envelope to the address shown in the kit, before the postmark deadline'
           : 'You sign the appeal form in ink, add postage and mail it to the county in the envelope we include',

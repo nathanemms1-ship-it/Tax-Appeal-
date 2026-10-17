@@ -192,8 +192,8 @@ export default function Success() {
 
   const getMailStatusBadge = () => {
     switch (mailStatus) {
-      case 'sending': return { icon: '⏳', text: 'Filing your protest...', color: C.bodyGray, bg: C.bg };
-      case 'sent':    return { icon: '📬', text: isFlorida ? 'Petition dispatched!' : 'Certified letter dispatched!', color: C.green, bg: '#E6F4ED' };
+      case 'sending': return { icon: '⏳', text: isFlorida ? 'Recording your signature...' : 'Sending your protest...', color: C.bodyGray, bg: C.bg };
+      case 'sent':    return { icon: '📬', text: isFlorida ? 'Signature recorded' : 'Letter dispatched!', color: C.green, bg: '#E6F4ED' };
       case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
       case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
       // runMail sets 'queued' (it mirrors ORDER_STATUS.QUEUED). This case read only
@@ -225,7 +225,7 @@ export default function Success() {
    * a customer who reads "appraisal district" on their receipt has been told their
    * petition went somewhere that does not exist in their state.
    */
-  const mailLine = isFlorida ? 'tracked USPS First Class mail' : 'USPS certified mail with return receipt';
+  const mailLine = isFlorida ? 'USPS First Class mail' : 'tracked USPS mail';
   const doc = isFlorida ? 'petition' : 'protest';
   const recipient = isFlorida ? 'Value Adjustment Board' : 'appraisal district';
   const Doc = doc.charAt(0).toUpperCase() + doc.slice(1);
@@ -233,13 +233,13 @@ export default function Success() {
   const steps = session?.isPreOrder ? [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
     { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc} — it is prepared and held in your name.`, done: true },
-    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. We will submit your ${doc} via ${mailLine} the moment it opens.`, done: false, active: true },
+    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. Your ${doc} is held until then and goes out via ${mailLine} the moment it opens.`, done: false, active: true },
     { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS tracking number will be emailed to you once it is dispatched.', done: false },
     { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days after filing.`, done: false },
   ] : [
     { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
-    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc} — it is filed in your name.`, done: true },
-    { icon: '📬', title: isFlorida ? 'Petition dispatch' : 'Certified mail dispatch', desc: mailStatus === 'sent' ? `Your signed ${doc} has been dispatched via ${mailLine}.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : `Your ${doc} will be mailed via ${mailLine} within 1 business day.`, done: mailStatus === 'sent', active: mailStatus === 'sending' },
+    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc}, in your name.`, done: true },
+    { icon: '📬', title: isFlorida ? 'Next steps' : 'Mail dispatch', desc: isFlorida ? 'We will email you about each next step.' : mailStatus === 'sent' ? `Your signed ${doc} has been dispatched via ${mailLine}.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : `Your ${doc} will be mailed via ${mailLine} within 1 business day.`, done: mailStatus === 'sent', active: mailStatus === 'sending' },
     { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
     { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days.`, done: false },
   ];
@@ -260,7 +260,7 @@ export default function Success() {
   return (
     <>
       <Head>
-        <title>TaxAppeal — Review and sign your protest</title>
+        <title>TaxAppeal — Your order</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* This page renders the customer's order, property address and petition.
             robots.txt Disallow only stops crawling, not indexing of a URL that is
@@ -321,9 +321,9 @@ export default function Success() {
           <>
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
-              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{session?.isPreOrder ? 'You are reserved — first in line!' : 'Your protest is filed!'}</h1>
+              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{session?.isPreOrder ? 'You are reserved — first in line!' : isFlorida ? 'Your order is confirmed' : 'Your protest is on its way!'}</h1>
               <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed as soon as your filing window opens on ' + scheduledDateLabel + '.') : (session?.stateCode === 'FL' ? 'Your petition and county filing fee are on their way to the Value Adjustment Board by trackable USPS First Class mail.' : 'Your property tax protest is being sent via USPS certified mail with return receipt.')}
+                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed as soon as your filing window opens on ' + scheduledDateLabel + '.') : (session?.stateCode === 'FL' ? 'Your order is confirmed, and we will email you about each next step.' : 'Your property tax protest is being sent via tracked USPS mail.')}
               </p>
             </div>
 
@@ -489,8 +489,11 @@ export default function Success() {
  */
 function KitSuccess({ session, sessionId }) {
   const isTX = session?.stateCode === 'TX';
-  const word = isTX ? 'protest' : 'appeal';
-  const where = isTX ? 'your appraisal district' : `the ${String(session?.county || '').replace(/\s+County\s*$/i, '').trim() || 'county'} County Board of Assessors`;
+  const isFL = session?.stateCode === 'FL';
+  const word = isTX ? 'protest' : isFL ? 'petition' : 'appeal';
+  const countyBare = String(session?.county || '').replace(/\s+County\s*$/i, '').trim();
+  const where = isTX ? 'your appraisal district' : isFL ? `the ${countyBare ? countyBare + ' County ' : ''}Value Adjustment Board` : `the ${countyBare || 'county'} County Board of Assessors`;
+  const body = isTX ? 'The district' : isFL ? 'The Board' : 'The county';
   const first = session?.customerName ? `, ${session.customerName.split(' ')[0]}` : '';
   const card = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 20 };
   const label = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: C.mutedGray, marginBottom: 14, fontWeight: 500 };
@@ -499,23 +502,27 @@ function KitSuccess({ session, sessionId }) {
   const steps = pdfOnly ? [
     { title: 'Payment confirmed', desc: 'Your payment has been processed.', done: true },
     { title: `Your ${word} kit arrives by email`, desc: 'In the next few minutes, as a PDF. Your deadline is close, so nothing is mailed to you.' },
-    { title: 'Print it, sign it, mail it', desc: `Print it on plain paper, sign the form in ink and mail it in any envelope to ${where}, at the address shown in the kit. A post office counter postmark is safest.` },
-    { title: `${isTX ? 'The district' : 'The county'} writes to you`, desc: 'Forward us anything it sends and we will help you understand it.' },
+    { title: 'Print it, sign it, mail it', desc: isFL
+      ? `Print it on plain paper, sign Part 3 in ink, add your check for the county's filing fee, and mail it to ${where} at the address shown in the kit so it is received by your deadline, or hand-deliver it. Florida counts the day it arrives, not the postmark.`
+      : `Print it on plain paper, sign the form in ink and mail it in any envelope to ${where}, at the address shown in the kit. A post office counter postmark is safest.` },
+    { title: `${body} writes to you`, desc: 'Forward us anything it sends and we will help you understand it.' },
   ] : presale && isTX ? [
     { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
     { title: 'Your district publishes this year\'s values', desc: 'Usually in April. You don\'t need to do anything.' },
-    { title: 'We check your protest again', desc: 'If it still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.' },
+    { title: 'We check your protest again', desc: 'If it still lowers your bill, we print and mail your kit, and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed.' },
     { title: 'You sign it and mail it', desc: `Sign the form in ink, add a stamp and mail it to ${where} in the return envelope we include.` },
   ] : presale ? [
     { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
     { title: 'Your notice arrives', desc: 'Counties mail notices between April and June. Enter its value and date from the link in your receipt email; we remind you too.' },
-    { title: 'We check your case again', desc: `If an ${word} still lowers your bill, we print and mail your kit and email the PDF. If it no longer does, we refund you in full before anything is mailed.` },
+    { title: 'We check your case again', desc: `If an ${word} still lowers your bill, we print and mail your kit, and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed.` },
     { title: 'You sign it and mail it', desc: `Sign the form in ink, add a stamp and mail it to ${where} in the return envelope we include.` },
   ] : [
     { title: 'Payment confirmed', desc: 'Your payment has been processed.', done: true },
-    { title: `Your ${word} kit is printed and mailed to you`, desc: `By first-class mail, usually within a few business days. We email you the same kit as a PDF the moment it is sent, so you can start right away.` },
-    { title: 'You sign it and mail it', desc: `Sign the form in ink, put it in the return envelope we include, add a stamp and mail it to ${where}. The checklist inside shows the exact pages and the postmark deadline.` },
-    { title: `${isTX ? 'The district' : 'The county'} writes to you`, desc: isTX ? 'Usually with an informal conference or a hearing date. Forward us anything it sends and we will help you understand it.' : 'With its decision or a hearing date. Forward us anything it sends and we will help you understand it.' },
+    { title: `Your ${word} kit is printed and mailed to you`, desc: `By first-class mail, usually within a few business days. We also email you a PDF copy of the full kit the moment it is sent, so you can start right away.` },
+    { title: 'You sign it and mail it', desc: isFL
+      ? `Sign Part 3 of the form in ink, add your check for the county's filing fee, put both in the return envelope we include, add a stamp and mail it to ${where} the day the kit arrives, or hand-deliver it. Florida counts your petition when the Board receives it, not by postmark. The checklist inside shows the exact pages and your deadline.`
+      : `Sign the form in ink, put it in the return envelope we include, add a stamp and mail it to ${where}. The checklist inside shows the exact pages and the postmark deadline.` },
+    { title: `${body} writes to you`, desc: isTX ? 'Usually with an informal conference or a hearing date. Forward us anything it sends and we will help you understand it.' : isFL ? 'The Board schedules a hearing for every petition and mails you the date, then its decision. That is normal. Forward us anything it sends and we will help you understand it.' : 'With its decision or a hearing date. Forward us anything it sends and we will help you understand it.' },
   ];
   return (
     <>
@@ -524,11 +531,15 @@ function KitSuccess({ session, sessionId }) {
         <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{pdfOnly ? `Your ${word} kit is coming by email` : presale ? `Your ${word} kit is reserved` : `Your ${word} kit is on its way`}</h1>
         <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
           {pdfOnly
-            ? `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it and mail it to ${where} before the postmark deadline printed on it.`
+            ? (isFL
+              ? `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it, add your check for the county's filing fee, and mail it to ${where} so it is received by the deadline printed on it, or hand-deliver it.`
+              : `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it and mail it to ${where} before the postmark deadline printed on it.`)
             : presale && isTX
             ? `Thank you${first}. When your appraisal district publishes this year's values, we check your protest again automatically: we mail your kit, or refund you in full.`
             : presale
             ? `Thank you${first}. When your assessment notice arrives, enter its value from the link in your receipt email. We check your case again then: we mail your kit, or refund you in full.`
+            : isFL
+            ? `Thank you${first}. We are printing your completed, ready-to-sign ${word} and mailing it to you. You sign it, add your check for the county's filing fee, and mail it to ${where}.`
             : `Thank you${first}. We are printing your completed, ready-to-sign ${word} and mailing it to you. You sign it and mail it to ${where}.`}
         </p>
       </div>
@@ -570,7 +581,7 @@ function KitSuccess({ session, sessionId }) {
       <div style={{ background: C.lightBlue, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>Important</div>
         <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-          TaxAppeal USA prepares your {word} documents. We do not file your {word}, represent you or appear for you: you sign it and mail it, and the deadline is yours to meet. If {isTX ? 'the district' : 'the county'} does not lower your value, next year&rsquo;s kit is free.
+          TaxAppeal USA prepares your {word} documents. We do not file your {word}, represent you or appear for you: you sign it and mail it, and the deadline is yours to meet.{isFL ? <> The county&rsquo;s filing fee is paid by you, to the county, with the check you put in the envelope. It is not part of our fee.</> : null} If {isTX ? 'the district' : isFL ? 'the Board' : 'the county'} does not lower your value, next year&rsquo;s kit is free.
           A confirmation has been sent to <strong>{session?.email}</strong>.
         </div>
       </div>
@@ -646,7 +657,7 @@ function SetPasswordCard({ sessionId, email, isPreOrder }) {
       </div>
       <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 12 }}>
         {isPreOrder
-          ? <>Your petition is prepared and waiting for your county to open, so there will be a stretch with nothing in your inbox. A password lets you look in on it any time — we still email you the moment it is filed, with tracking.</>
+          ? <>Your petition is prepared and waiting for your county to open, so there will be a stretch with nothing in your inbox. A password lets you look in on it any time — we still email you every update.</>
           : <>We email you every update, so you do not need one. It just saves you a reset link the first time you come back to check on your appeal.</>}
       </div>
       {status === 'error' && message && (

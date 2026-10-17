@@ -1709,7 +1709,7 @@ export default function CheckPage() {
                 ['1', 'We read your county record',
                   'Your assessed value, your Save Our Homes cap, and comparable sales from the same roll your county assessed you from.'],
                 ['2', 'We mail you the kit',
-                  'The DR-486 filled in, your evidence, a one-page checklist and a return envelope addressed to your Value Adjustment Board. The PDF is emailed the same day.'],
+                  'The DR-486 filled in, your evidence, a one-page checklist and a return envelope addressed to your Value Adjustment Board. A PDF copy of the full kit is also emailed to you the same day.'],
                 ['3', 'You sign it, not us',
                   'Florida law requires the owner to sign. You sign it in ink and send it in your name. We do not file it, and we never appear before the Board as your representative.'],
                 ['4', 'You mail it, early',

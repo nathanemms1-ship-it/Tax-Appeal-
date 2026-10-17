@@ -9,11 +9,19 @@ const STATUS_CONFIG = {
   // whose mailing FAILED and was flagged for review told the customer
   // "Your dispute letter has been filed." The portal concealed failure.
   awaiting_signature: { label: 'Signature needed', color: '#B45309', bg: '#FEF3C7', icon: '✍️',
-    description: 'We need your signature before we can file. Check your email for the link.' },
-  queued: { label: 'Queued for filing', color: '#1D4ED8', bg: '#DBEAFE', icon: '🗓️',
-    description: 'Your petition is prepared and will be filed as soon as your county\'s filing window opens.' },
+    description: 'We need your signature on your document. Check your email for the link.' },
+  queued: { label: 'Reserved', color: '#1D4ED8', bg: '#DBEAFE', icon: '🗓️',
+    description: 'Your document is prepared and held until your county\'s filing window opens. We email you each update.' },
   needs_review: { label: 'Needs attention', color: '#B91C1C', bg: '#FEE2E2', icon: '⚠️',
-    description: 'We hit a problem filing this and our team has been alerted. We will contact you shortly.' },
+    description: 'We hit a problem with this order and our team has been alerted. We will contact you shortly.' },
+  kit_queued: { label: 'Kit being prepared', color: C.navy, bg: C.lightBlue, icon: '🖨️',
+    description: 'We are printing your ready-to-sign kit. We mail it to you and email you a PDF copy of the full kit.' },
+  kit_mailed: { label: 'Kit mailed to you', color: C.navy, bg: C.lightBlue, icon: '📬',
+    description: 'Your kit is in the mail to you, and a PDF copy is in your email. Sign it in ink and mail it in the return envelope so it arrives before your deadline. The county writes to you directly.' },
+  kit_emailed: { label: 'Kit emailed to you', color: C.navy, bg: C.lightBlue, icon: '📧',
+    description: 'Your deadline is close, so your kit was emailed to you as a PDF. Print it, sign it in ink and mail it so it arrives before your deadline, or hand-deliver it.' },
+  awaiting_notice: { label: 'Reserved', color: C.navy, bg: C.lightBlue, icon: '🗓️',
+    description: 'Your kit is reserved. We check your case again when your values are published, and refund you in full if the case is gone.' },
   pending: {
     label: 'Under Review',
     color: '#D97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(217,119,6,0.3)',
@@ -141,34 +149,37 @@ export default function Portal() {
   const status = order ? (STATUS_CONFIG[order.dispute_status] || STATUS_CONFIG.filed) : null;
   const displaySavings = order?.savings_amount || order?.actual_savings || order?.estimated_savings || 0;
   const isFL = order ? (order.state_code || order.state || '').toUpperCase() === 'FL' : false;
+  const isKit = order ? /^kit_|^awaiting_notice$/.test(order.dispute_status || '') : false;
 
   const timelineSteps = order ? [
     {
       label: 'Order Placed',
-      sublabel: 'Payment processed, letter generated',
+      sublabel: isKit ? 'Payment processed, kit prepared' : 'Payment processed, letter generated',
       done: true,
       date: order.created_at
     },
     {
-      label: 'Letter Mailed',
-      sublabel: isFL ? 'Trackable First Class mail dispatched via USPS' : 'Certified mail dispatched via USPS',
+      label: isKit ? 'Kit Sent to You' : 'Letter Mailed',
+      sublabel: isKit ? (order.dispute_status === 'kit_emailed' ? 'Emailed to you as a PDF' : 'Mailed to you, with a PDF copy by email') : 'Sent by USPS mail',
       done: !!order.lob_letter_id,
       date: order.mailed_at
     },
     {
-      label: 'Appeal Filed',
-      sublabel: 'Dispute on record with county assessor',
-      done: !!order.lob_letter_id,
+      label: isKit ? 'You Sign and Mail It' : 'Appeal Filed',
+      sublabel: isKit
+        ? (isFL ? 'Sign Part 3, add your check for the county filing fee, and mail it so the Value Adjustment Board receives it by your deadline, or hand-deliver it' : 'Sign it in ink and mail it in the return envelope before your deadline')
+        : 'Dispute on record with county assessor',
+      done: !isKit && !!order.lob_letter_id,
       date: order.mailed_at
     },
     {
-      label: order.dispute_status && !['pending','filed'].includes(order.dispute_status)
+      label: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status)
         ? 'Decision Received'
         : 'Awaiting Decision',
-      sublabel: order.dispute_status && !['pending','filed'].includes(order.dispute_status)
+      sublabel: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status)
         ? `County ruled: ${STATUS_CONFIG[order.dispute_status]?.label}`
         : 'Typical wait: 4–12 weeks',
-      done: order.dispute_status && !['pending','filed'].includes(order.dispute_status),
+      done: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status),
       date: order.decision_date
     }
   ] : [];
@@ -273,7 +284,7 @@ export default function Portal() {
                 </form>
               </div>
               <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
-                Use the email & password you created when you filed.
+                Use the email & password you created when you ordered.
               </p>
               <p style={{ color: '#334155', fontSize: 13, textAlign: 'center', marginTop: 8 }}>
                 Need help? Contact Customer Service:{' '}
@@ -384,7 +395,7 @@ export default function Portal() {
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
 <div>
 <div style={{ color: '#cbd5e1', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{order.lob_tracking_number}</div>
-<div style={{ color: '#475569', fontSize: 13 }}>{isFL ? 'USPS First Class Mail (trackable, not certified)' : 'USPS Certified Mail'}</div>
+<div style={{ color: '#475569', fontSize: 13 }}>{isKit ? 'Your kit, by USPS mail to you' : 'USPS mail'}</div>
 </div>
 <a
 href={`https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(order.lob_tracking_number)}`}
@@ -407,7 +418,7 @@ Track on USPS.com →
                     { label: 'State', value: order.state },
                     { label: 'County', value: order.county },
                     { label: 'Assessed Value', value: order.assessed_value ? `$${Number(order.assessed_value).toLocaleString()}` : null },
-                    { label: 'Filed', value: formatDate(order.created_at) },
+                    { label: 'Ordered', value: formatDate(order.created_at) },
                   ].filter(r => r.value).map(row => (
                     <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                       <span style={{ color: '#475569', fontSize: 14, flexShrink: 0 }}>{row.label}</span>

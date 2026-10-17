@@ -45,7 +45,7 @@ export function reminderEmail(row, link) {
       '',
       link,
       '',
-      'It takes a minute. We check your case again on the notice value: if an appeal still lowers your bill, we mail you your completed kit and email the PDF the same day. If it no longer does, we refund you in full.',
+      'It takes a minute. We check your case again on the notice value: if an appeal still lowers your bill, we mail you your completed kit and email you a PDF copy of the full kit the same day. If it no longer does, we refund you in full.',
       '',
       'Your appeal must be postmarked within 45 days of the date on the notice, so the sooner the better.',
       '',

@@ -610,7 +610,7 @@ export default function Landing() {
               <li>The official form, filled in for your home</li>
               <li>Your evidence, ready to send</li>
               <li>Return envelope addressed to the county</li>
-              <li>The same kit as a PDF, the same day</li>
+              <li>A PDF copy of the full kit, emailed to you</li>
             </ul>
           </aside>
         </div>
@@ -728,7 +728,7 @@ export default function Landing() {
           <div className="steps">
             {[
               ["1", "We check first", "Enter your address. We pull your county's value and recent comparable sales, and run your bill through your county's caps and exemptions. If an appeal won't lower your bill by more than our $89 fee, we tell you and don't sell you one."],
-              ["2", "We mail you the kit", "The official form filled in for your home, your evidence, a one-page checklist and a return envelope addressed to the county. The PDF is emailed the same day."],
+              ["2", "We mail you the kit", "The official form filled in for your home, your evidence, a one-page checklist and a return envelope addressed to the county. A PDF copy of the full kit is also emailed to you the same day."],
               ["3", "You sign it and mail it", "Sign in ink, add a stamp, and mail it before your deadline. It takes about five minutes. The county writes to you directly. We do not file it, represent you or attend hearings."],
             ].map(([num, title, desc]) => (
               <div key={num} className="step">
@@ -867,7 +867,7 @@ export default function Landing() {
                   ['Comparable sales analysis', '✅ Included', '✅ Included', '✅ Included', '✅ Included'],
                   ['Protest/appeal document', '✅ Official form filled in for you', '✅ Generated', '✅ Generated', '✅ Drafted by their team'],
                   ['Who mails it to the county', '⚠️ You sign & mail it -- envelope pre-addressed', '⚠️ You print, address & mail it', '✅ They handle it', '✅ They handle it'],
-                  ['Printed kit mailed to you', '✅ Yes, plus a PDF the same day', '❌ You print it', '➖ Not applicable', '➖ Not applicable'],
+                  ['Printed kit mailed to you', '✅ Yes, plus a PDF copy by email', '❌ You print it', '➖ Not applicable', '➖ Not applicable'],
                   ['Deadline', '⚠️ Yours -- printed on your checklist', '⚠️ Yours', '✅ They handle it', '✅ They handle it'],
                   ['States covered', '✅ TX, FL, GA, AR, AL (5 states)', '⚠️ 50 states (DIY only)', '❌ TX + FL only', '⚠️ Varies by firm'],
                   ['Cost on $2,000 savings', '✅ $89 once -- keep $1,911', '⚠️ $49 + your time + risk', '❌ $99/yr ongoing forever', '❌ $400-$1,000 taken per year'],

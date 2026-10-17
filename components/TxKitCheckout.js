@@ -122,7 +122,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
           On last year&rsquo;s values your home already looks over-appraised. Your district publishes {review.taxYear} values in the spring.
           When it does, we check your protest again on the new values, automatically. If it still lowers your bill, we mail you
           the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes and a return envelope addressed to the
-          appraisal district, and email the PDF the same day. If it no longer does, we refund you in full before anything is mailed.
+          appraisal district, and email you a PDF copy of the full kit the same day. If it no longer does, we refund you in full before anything is mailed.
           You don&rsquo;t need to do anything until then.
         </p>
         <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.6, color: K.ink, cursor: 'pointer' }}>
@@ -150,7 +150,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
         <p style={head}>Your protest kit, mailed to you &mdash; ${SERVICE_PRICE_DOLLARS}</p>
         <p style={body}>
           We mail you the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes from the district&rsquo;s own roll,
-          and a return envelope addressed to the appraisal district. We email you the same kit as a PDF today. You sign it,
+          and a return envelope addressed to the appraisal district. A PDF copy of the full kit is also emailed to you today. You sign it,
           add postage and mail it.
         </p>
       </>)}

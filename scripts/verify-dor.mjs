@@ -509,7 +509,7 @@ t('...and carries a disclosure, which is what surfaces the condition question', 
 // undefined, and a guard that throws a TypeError names the assertion file rather
 // than the defect. It still fails the build either way; this way it says why.
 t('...that quotes the real numbers', typeof marginalNoCap.disclosure === 'string'
-  && marginalNoCap.disclosure.includes('$104') && marginalNoCap.disclosure.includes('not refundable'));
+  && marginalNoCap.disclosure.includes('$104') && marginalNoCap.disclosure.includes('the county keeps its filing fee'));
 
 const strongNoCap = noCap(300000);
 t('a comfortable no-cap parcel is unchanged', strongNoCap.eligible === true && strongNoCap.reason === 'no_cap_differential');
