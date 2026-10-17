@@ -20,6 +20,7 @@ import { processTxPresale } from '../../../lib/kit/txPresale';
 import { presaleDeps } from '../../../lib/kit/presaleDeps';
 import { findComps } from '../../../lib/tx/comps';
 import { buildProtest } from '../../../lib/tx/protest';
+import { reminderDue, reminderEmail as kitReminderEmail, sentUrl, OUT_WITH_CUSTOMER } from '../../../lib/kit/afterMailing';
 
 export const REMIND_EVERY_DAYS = 7;
 export const LATE_ALERT_DAYS = 10;
@@ -126,6 +127,33 @@ async function txRollPass(supabase, now) {
   return { checked: (rows || []).length, processed, lateAlerts };
 }
 
+/*
+ * KITS OUT WITH THE CUSTOMER (17 Oct 2026, lib/kit/afterMailing.js). At most
+ * three reminders per kit (arrived, about a week out, the last safe days),
+ * never after the deadline, none once they tell us it is sent. Each is
+ * recorded in kit_order.after.reminders before the next run can repeat it.
+ */
+async function afterMailingPass(supabase, resend, now) {
+  const { data: rows, error } = await supabase.from('orders').select('id, state_code, customer_name, customer_email, dispute_status, payment_status, kit_order')
+    .in('dispute_status', OUT_WITH_CUSTOMER).eq('payment_status', 'paid').limit(500);
+  if (error) return { error: error.message };
+  let sent = 0;
+  for (const row of rows || []) {
+    const stage = reminderDue(row, now);
+    if (!stage || !resend || !row.customer_email) continue;
+    const k = row.kit_order || {};
+    try {
+      const mail = kitReminderEmail(row, stage, sentUrl(row.id), now);
+      await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [row.customer_email], subject: mail.subject, text: mail.text });
+    } catch (e) { console.error(`[after-mailing] email failed for order ${row.id}:`, e?.message); continue; }
+    const after = { ...(k.after || {}), reminders: { ...(k.after?.reminders || {}), [stage]: now.toISOString() } };
+    // Conditional on the status: a kit marked sent meanwhile is never written back.
+    await supabase.from('orders').update({ kit_order: { ...k, after } }).eq('id', row.id).eq('dispute_status', row.dispute_status);
+    sent++;
+  }
+  return { checked: (rows || []).length, sent };
+}
+
 export default async function handler(req, res) {
   if (requireCronSecret(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Not configured.' });
@@ -164,5 +192,6 @@ export default async function handler(req, res) {
     await supabase.from('orders').update({ kit_order: k }).eq('id', row.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
   }
   const tx = await txRollPass(supabase, now);
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx });
+  const afterMailing = await afterMailingPass(supabase, resend, now);
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing });
 }

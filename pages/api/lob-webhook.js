@@ -1,117 +1,122 @@
-import crypto from 'crypto';
-import { getSupabaseAdmin } from './supabase';
-
 /**
- * Lob signs every webhook. Without verification anyone could POST a forged
- * "delivered" event and rewrite an order's mailing status.
+ * POST /api/lob-webhook — Lob's tracking events for the kits we mail to customers.
+ *
+ * WHY IT WAS DEAD (found 17 Oct 2026). Lob signs `${timestamp}.${raw body}`,
+ * and this route signed a copy of the body Next.js had
+ * already parsed and re-serialised, which is not byte-for-byte what Lob sent.
+ * Every event failed the check, got a 401, and was retried into the void. The
+ * raw body is now read directly (bodyParser off) and signed as received.
+ *
+ * WHAT IT DOES NOW
+ *   - keeps lob_status / lob_tracking_number / mailed_at / delivered_at current
+ *   - processed_for_delivery or delivered: the kit reached the customer, so
+ *     kit_order.after.arrivedAt starts the "sign it and send it" reminder
+ *     (lib/kit/afterMailing.js)
+ *   - returned_to_sender: ops are paged and the customer is told the PDF we
+ *     emailed is the complete kit. Once per order.
+ * Always 2xx once the signature is good: Lob retries anything else for days.
  */
-function verifyLobSignature(req) {
-  const secret = process.env.LOB_WEBHOOK_SECRET;
-  if (!secret) return false; // fail closed
-  const sig = req.headers['lob-signature'];
-  const ts = req.headers['lob-signature-timestamp'];
-  if (!sig || !ts) return false;
-  // Reject anything older than 5 minutes to stop replay.
-  if (Math.abs(Date.now() - Number(ts)) > 5 * 60 * 1000) return false;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(`${ts}.${JSON.stringify(req.body)}`)
-    .digest('hex');
-  const a = Buffer.from(String(sig)), b = Buffer.from(expected);
+import crypto from 'crypto';
+import { Resend } from 'resend';
+import { getSupabaseAdmin } from './supabase';
+import { alertOps } from '../../lib/alertOps';
+import { returnedEmail } from '../../lib/kit/afterMailing';
+
+export const config = { api: { bodyParser: false } };
+
+async function readRaw(req) {
+  const chunks = [];
+  for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** Lob's timestamp header, in milliseconds whether Lob sends seconds or ms. */
+export function lobTimestampMs(ts) {
+  const n = Number(ts);
+  if (Number.isFinite(n)) return n < 1e12 ? n * 1000 : n;
+  const d = Date.parse(String(ts || ''));
+  return Number.isNaN(d) ? null : d;
+}
+
+/** Lob signs `${timestamp}.${raw body}` with HMAC-SHA256, hex. Exported for verify-after-mailing. */
+export function verifyLobSignature({ raw, signature, timestamp, secret, now = Date.now() }) {
+  if (!secret || !signature || !timestamp) return false; // fail closed
+  const ms = lobTimestampMs(timestamp);
+  if (ms === null || Math.abs(now - ms) > 5 * 60 * 1000) return false; // replay window
+  const expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${raw}`).digest('hex');
+  const a = Buffer.from(String(signature)); const b = Buffer.from(expected);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// Kits are mailed as ordinary Lob letters (lib/kit/lobKit.js), so only letter.* events can match an order.
+export const STATUS_BY_EVENT = Object.freeze({
+  'letter.mailed': 'mailed',
+  'letter.in_transit': 'in_transit',
+  'letter.in_local_area': 'in_transit',
+  'letter.processed_for_delivery': 'out_for_delivery',
+  'letter.delivered': 'delivered',
+  'letter.re-routed': 're_routed',
+  'letter.returned_to_sender': 'returned',
+});
+const ARRIVED = new Set(['out_for_delivery', 'delivered']);
+
 export default async function handler(req, res) {
-  if (!verifyLobSignature(req)) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const raw = await readRaw(req);
+  if (!verifyLobSignature({ raw, signature: req.headers['lob-signature'], timestamp: req.headers['lob-signature-timestamp'], secret: process.env.LOB_WEBHOOK_SECRET })) {
     console.error('lob-webhook: signature verification failed');
     return res.status(401).json({ error: 'Invalid signature' });
   }
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const event = req.body;
-    console.log('Lob webhook received:', JSON.stringify(event));
-
+    const event = JSON.parse(raw || '{}');
     const eventType = event?.event_type?.id || event?.event_type || '';
     const lobObject = event?.body || event?.object || {};
-    const metadata = lobObject?.metadata || {};
-
-    console.log('Event type:', eventType);
-    console.log('Metadata:', JSON.stringify(metadata));
-
-    // Kits are mailed to the CUSTOMER as ordinary Lob letters (lib/kit/lobKit.js),
-    // so only letter.* tracking events can match an order.
-    const STATUS_BY_EVENT = {
-      'letter.mailed': 'mailed',
-      'letter.in_transit': 'in_transit',
-      'letter.in_local_area': 'in_transit',
-      'letter.processed_for_delivery': 'out_for_delivery',
-      'letter.delivered': 'delivered',
-      'letter.re-routed': 'needs_review',
-      'letter.returned_to_sender': 'needs_review',
-    };
-
-    if (!STATUS_BY_EVENT[eventType]) {
-      console.log('Ignoring event type:', eventType);
-      return res.status(200).json({ received: true, action: 'ignored' });
-    }
-
-    const trackingNumber = lobObject?.tracking_number || null;
-
-    // ------------------------------------------------------------------
-    // Persist the event.
-    //
-    // Nothing here ever wrote to the database. lob_status was set once at
-    // fulfillment and mailed_at was written NOWHERE in the repo — while /portal
-    // reads both to render the timeline and the USPS tracking link. So every
-    // customer's status froze at "dispatched" forever and the tracking number Lob
-    // hands us on each event was logged to Vercel and thrown away.
-    // ------------------------------------------------------------------
-    const lobId = lobObject?.id || null;
     const newStatus = STATUS_BY_EVENT[eventType];
-
-    if (lobId && newStatus) {
-      try {
-        const supabase = getSupabaseAdmin();
-        const patch = { lob_status: newStatus };
-        // Lob only populates tracking_number once the piece is actually in the
-        // mailstream, so take it whenever it appears rather than only at dispatch.
-        if (trackingNumber) patch.lob_tracking_number = trackingNumber;
-        if (newStatus === 'mailed') patch.mailed_at = event?.date_created || new Date().toISOString();
-        // DELIVERED TIMESTAMP — added 6 Aug 2026 so transit time is measurable.
-        //
-        // Lob's own Expected Delivery Date Range for first-class mail is seven to
-        // fourteen days, and lib/kit/delivery.js bets a buffer against that before
-        // switching a kit to PDF-only. Without this column the row records that a
-        // piece was mailed and that it is now delivered, but not WHEN, so the buffer
-        // cannot be measured against reality.
-        if (newStatus === 'delivered') patch.delivered_at = event?.date_created || new Date().toISOString();
-
-        const { error } = await supabase
-          .from('orders')
-          .update(patch)
-          .eq('lob_letter_id', lobId);
-
-        if (error) {
-          // Do not fail the webhook on a write error — Lob would retry the same
-          // event forever. Log loudly instead.
-          console.error(`lob-webhook: DB update failed for ${lobId}:`, error.message);
-        } else {
-          console.log(`lob-webhook: ${lobId} -> ${newStatus}${trackingNumber ? ` (tracking ${trackingNumber})` : ''}`);
-        }
-      } catch (dbErr) {
-        console.error('lob-webhook: DB update threw:', dbErr.message);
-      }
-    } else if (!lobId) {
-      console.error(`lob-webhook: ${eventType} arrived with no object id — cannot match an order`);
+    if (!newStatus) return res.status(200).json({ received: true, action: 'ignored' });
+    const lobId = lobObject?.id || null;
+    if (!lobId) {
+      console.error(`lob-webhook: ${eventType} arrived with no object id`);
+      return res.status(200).json({ received: true, action: 'no_id' });
+    }
+    const at = event?.date_created || new Date().toISOString();
+    const supabase = getSupabaseAdmin();
+    const { data: row, error: readErr } = await supabase.from('orders')
+      .select('id, state_code, customer_name, customer_email, dispute_status, kit_order')
+      .eq('lob_letter_id', lobId).maybeSingle();
+    if (readErr || !row) {
+      console.error(`lob-webhook: no order for ${lobId}${readErr ? `: ${readErr.message}` : ''}`);
+      return res.status(200).json({ received: true, action: 'no_order' });
     }
 
-    console.log(`Lob tracking event: ${eventType} for ${lobId || 'unknown'}`);
+    const patch = { lob_status: newStatus };
+    if (lobObject?.tracking_number) patch.lob_tracking_number = lobObject.tracking_number;
+    if (newStatus === 'mailed') patch.mailed_at = at;
+    if (newStatus === 'delivered') patch.delivered_at = at;
 
+    const k = row.kit_order && typeof row.kit_order === 'object' ? row.kit_order : null;
+    const after = k?.after ? { ...k.after } : null;
+    let returnedNow = false;
+    if (after) {
+      if (ARRIVED.has(newStatus) && !after.arrivedAt) after.arrivedAt = at;
+      if (newStatus === 'returned' && !after.returnedAt) { after.returnedAt = at; returnedNow = true; }
+      patch.kit_order = { ...k, after };
+    }
+    const { error } = await supabase.from('orders').update(patch).eq('id', row.id);
+    if (error) console.error(`lob-webhook: update failed for ${lobId}: ${error.message}`);
+
+    if (returnedNow) {
+      await alertOps('Kit returned to sender', `order=${row.id} letter=${lobId}\nUSPS returned the printed kit. The customer has been emailed that the PDF copy is the complete kit. Check their mailing address.`, { force: true });
+      if (process.env.RESEND_API_KEY && row.customer_email) {
+        try {
+          const mail = returnedEmail(row);
+          await new Resend(process.env.RESEND_API_KEY).emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [row.customer_email], subject: mail.subject, text: mail.text });
+        } catch (e) { console.error(`lob-webhook: returned email failed for ${row.id}:`, e?.message); }
+      }
+    }
     return res.status(200).json({ received: true, eventType, action: 'processed' });
   } catch (err) {
-    console.error('Lob webhook error:', err);
-    // Always return 200 to Lob so it doesn't retry
-    return res.status(200).json({ received: true, error: err.message });
+    console.error('lob-webhook error:', err?.message);
+    return res.status(200).json({ received: true, error: 'processing_failed' });
   }
 }

@@ -20,6 +20,8 @@ const STATUS_CONFIG = {
     description: 'Your kit is in the mail to you, and a PDF copy is in your email. Sign it in ink and mail it in the return envelope so it arrives before your deadline. The county writes to you directly.' },
   kit_emailed: { label: 'Kit emailed to you', color: C.navy, bg: C.lightBlue, icon: '📧',
     description: 'Your deadline is close, so your kit was emailed to you as a PDF. Print it, sign it in ink and mail it so it arrives before your deadline, or hand-deliver it.' },
+  kit_sent: { label: 'Sent by you', color: C.navy, bg: C.lightBlue, icon: '✉️',
+    description: 'You told us your kit is signed and sent. The county writes to you directly. Email a photo of anything it sends to ' + C_EMAIL + ' and we will tell you your options.' },
   awaiting_notice: { label: 'Reserved', color: C.navy, bg: C.lightBlue, icon: '🗓️',
     description: 'Your kit is reserved. We check your case again when your values are published, and refund you in full if the case is gone.' },
   pending: {
@@ -171,7 +173,7 @@ export default function Portal() {
     {
       label: isKit ? 'Kit Sent to You' : 'Letter Mailed',
       sublabel: isKit ? (order.dispute_status === 'kit_emailed' ? 'Emailed to you as a PDF' : 'Mailed to you, with a PDF copy by email') : 'Sent by USPS mail',
-      done: !!order.lob_letter_id,
+      done: !!order.lob_letter_id || ['kit_emailed', 'kit_sent'].includes(order.dispute_status),
       date: order.mailed_at
     },
     {
@@ -179,8 +181,9 @@ export default function Portal() {
       sublabel: isKit
         ? (isFL ? 'Sign Part 3, add your check for the county filing fee, and mail it so the Value Adjustment Board receives it by your deadline, or hand-deliver it' : 'Sign it in ink and mail it in the return envelope before your deadline')
         : 'Dispute on record with county assessor',
-      done: !isKit && !!order.lob_letter_id,
-      date: order.mailed_at
+      // Done once the customer tells us at /mailed (status kit_sent).
+      done: isKit ? order.dispute_status === 'kit_sent' : !!order.lob_letter_id,
+      date: isKit ? null : order.mailed_at
     },
     {
       label: hasDecision
