@@ -28,6 +28,7 @@ import { checkSpend } from '../../../lib/spendGuard';
 import { countyNoFromName } from '../../../lib/dor/coverage';
 import { millageForCounty, MILLAGE_YEAR } from '../../../lib/dor/millage';
 import { outcomePatch } from '../../../lib/kit/outcome';
+import { alertOps } from '../../../lib/alertOps';
 
 /**
  * INLINED, NOT IMPORTED. 7 Sept 2026.
@@ -281,6 +282,11 @@ ${emailBody.substring(0, 4000)}`
   if (updateError) {
     console.error('[inbound-email] Supabase update failed:', updateError.message);
     return res.status(200).json({ received: true, error: 'db_update_failed' });
+  }
+  // A forwarded "denied" letter claims the free kit; a person confirms it was a
+  // decision on the evidence, not a no-show dismissal (lib/kit/guarantee.js).
+  if (kitPatch?.kit_order?.after?.guarantee?.status === 'needs_review' && !order.kit_order?.after?.guarantee) {
+    await alertOps('Free-kit claim from a forwarded letter', `order=${order.id}\nReview the letter in admin (raw_email_content) and verify or reject.`, { key: `guarantee-review:${order.id}` });
   }
 
   // ── Step 4: Notify the customer via email ──

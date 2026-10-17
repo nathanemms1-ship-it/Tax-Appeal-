@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Stripe from 'stripe';
 import { normalizeAttribution } from '../../lib/attribution';
 import { getFlVabFee } from '../../lib/flCountyFees';
@@ -13,6 +14,8 @@ import { txSellability } from '../../lib/kit/txQuote';
 import { txPresaleSellability } from '../../lib/kit/txPresale';
 import { flSellability } from '../../lib/kit/flQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
+import { findFreeKit, claimFreeKit, releaseFreeKit } from '../../lib/kit/freeKit';
+import { fulfillSession } from '../../lib/fulfillOrder';
 
 let kitRedis = null;
 try {
@@ -48,6 +51,8 @@ ownerStreet, ownerCity, ownerState, ownerZip,
 stateCode,
 refCode,
 perkCode,
+// Next year's free kit (lib/kit/guarantee.js): optional; found by parcel without it.
+freeCode,
 } = req.body;
 
   // Trimmed and length-capped before it can reach Stripe. See lib/attribution.js.
@@ -208,6 +213,54 @@ if (isKit) {
     });
   }
   kitDelivery = sell.delivery === 'pdf' ? 'pdf' : 'mail';
+}
+
+/**
+ * ==========================================================================
+ * NEXT YEAR'S FREE KIT (17 Oct 2026). No Stripe, no charge.
+ * ==========================================================================
+ * The guarantee: if the county did not lower the value, next year's kit is
+ * free, once the decision letter proves it (lib/kit/guarantee.js). The same
+ * property, the free tax year, a verified claim: claimed atomically, then the
+ * order is fulfilled exactly as a paid one (lib/fulfillOrder.js fulfillSession)
+ * with amount 0. A reservation (pre-sale) is not free yet: the guarantee
+ * applies once this year's values exist, so it waits rather than being charged.
+ */
+if (isKit) {
+  let free = null;
+  try { free = await findFreeKit(getSupabaseAdmin(), kitOrder?.presale === true ? { ...kitOrder, presale: false } : kitOrder, freeCode); } catch (e) { free = null; }
+  if (free && kitOrder.presale === true) {
+    return res.status(409).json({ error: 'Your free kit applies once this year\'s values are published. We will email you then, and there is nothing to pay.', code: 'FREE_KIT_WAITS_FOR_VALUES' });
+  }
+  if (free) {
+    const freeSessionId = `free_${crypto.randomUUID()}`;
+    const claimed = await claimFreeKit(getSupabaseAdmin(), free, freeSessionId);
+    if (!claimed) return res.status(409).json({ error: 'That free kit has just been used. If that was not you, contact customerservice@taxappealusa.com.', code: 'FREE_KIT_USED' });
+    try {
+      await fulfillSession({
+        id: freeSessionId, payment_status: 'paid', amount_total: 0, customer_email: email,
+        metadata: {
+          customerName: `${firstName} ${lastName}`, email, address, county,
+          parcelId: String(parcelId || '').trim().slice(0, 60),
+          assessedValue: assessedValue ? String(assessedValue) : '', targetReduction: targetReduction ? String(targetReduction) : '',
+          savings: savings ? String(savings) : '',
+          ownerStreet: ownerStreet || '', ownerCity: ownerCity || '', ownerState: ownerState || '', ownerZip: ownerZip || '',
+          kitKey, kitDelivery, stateCode: stateCode || '',
+          // No referral commission and no coupon on a free kit.
+          refCode: '', perkCode: '', gclid: '', utm: '',
+          freeFromOrder: String(free.id),
+        },
+      });
+    } catch (e) {
+      await releaseFreeKit(getSupabaseAdmin(), free);
+      console.error('[checkout] free kit fulfilment failed:', e?.message);
+      return res.status(500).json({ error: 'We could not create your free kit just now. Nothing has been charged; please try again.' });
+    }
+    return res.status(200).json({ url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id=${freeSessionId}`, free: true });
+  }
+  if (freeCode && String(freeCode).trim()) {
+    return res.status(409).json({ error: 'That free-kit code does not match this property and tax year, or it has been used. Remove it to continue, or contact customerservice@taxappealusa.com.', code: 'FREE_KIT_CODE_INVALID' });
+  }
 }
 
 try {

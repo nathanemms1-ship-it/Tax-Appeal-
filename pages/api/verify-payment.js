@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import Stripe from 'stripe';
 import { enforceRateLimit } from '../../lib/rateLimit';
+import { getSupabaseAdmin } from './supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -15,6 +16,27 @@ export default async function handler(req, res) {
 
   const { session_id } = req.query;
   if (!session_id) return res.status(400).json({ error: 'Missing session_id' });
+
+  /*
+   * A FREE KIT (17 Oct 2026, lib/kit/freeKit.js) has no Stripe session: its id
+   * is free_<uuid>, as unguessable as a Stripe one, and the order row is the
+   * record. Same shape back, amountPaid 0 and free: true (no ad conversion).
+   */
+  if (/^free_[0-9a-f-]{36}$/.test(String(session_id))) {
+    const supabase = getSupabaseAdmin();
+    const { data: o } = supabase ? await supabase.from('orders').select('customer_name, customer_email, property_address, county, state_code, dispute_status, target_reduction, estimated_savings').eq('stripe_session_id', String(session_id)).maybeSingle() : { data: null };
+    if (!o) return res.status(404).json({ error: 'Order not found' });
+    return res.status(200).json({
+      paid: true, free: true,
+      customerName: o.customer_name || '', email: o.customer_email || '', address: o.property_address || '', county: o.county || '',
+      targetReduction: o.target_reduction || null, savings: o.estimated_savings || null, amountPaid: 0,
+      transactionId: crypto.createHash('sha256').update(`txn:${session_id}`).digest('hex').slice(0, 24),
+      stateCode: String(o.state_code || '').toUpperCase(),
+      isKit: true,
+      kitPresale: false,
+      kitPdfOnly: o.dispute_status === 'kit_emailed',
+    });
+  }
 
   try {
     const session = await stripe.checkout.sessions.retrieve(session_id);

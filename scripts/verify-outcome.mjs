@@ -43,7 +43,10 @@ const now = on('2027-10-01');
 const denied = O.outcomePatch(row(), 'not_lowered', { now });
 t('"not lowered" becomes a denied decision on the columns the portal and admin read', denied.dispute_status === 'denied' && denied.outcome === 'denied' && denied.decision_date && denied.outcome_reported_at);
 // INJECTION: record the guarantee for any answer -> FAILS.
-t('...and records next year\'s free kit for this property', denied.kit_order.after.guarantee?.freeKitYear === 2028 && denied.kit_order.after.guarantee.parcelId === 'P1');
+t('...and CLAIMS next year\'s free kit for this property: proof still needed, no code yet', denied.kit_order.after.guarantee?.freeKitYear === 2028 && denied.kit_order.after.guarantee.parcelId === 'P1' && denied.kit_order.after.guarantee.status === 'needs_proof' && !denied.kit_order.after.guarantee.code);
+// INJECTION: let a forwarded letter verify the claim -> FAILS (it cannot tell a denial from a no-show dismissal).
+t('a forwarded letter claims it for a person to review, never verifies it', O.outcomePatch(row(), 'not_lowered', { now, source: 'letter' }).kit_order.after.guarantee.status === 'needs_review');
+t('an answer never overwrites a claim already decided', !O.outcomePatch(row({ guarantee: { status: 'verified', code: 'FREE-ABCDEFGH' } }), 'not_lowered', { now }).kit_order.after.guarantee.status.startsWith('needs'));
 t('a lowered value records no free kit, and keeps the new value given', (() => { const p = O.outcomePatch(row(), 'lowered', { newValue: '$350,000', now }); return p.dispute_status === 'approved' && !p.kit_order.after.guarantee && p.kit_order.after.outcome.newValue === 350000; })());
 t('"still waiting" and "did not send" change no status and free nothing', ['waiting', 'not_sent'].every((a) => { const p = O.outcomePatch(row(), a, { now }); return !('dispute_status' in p) && !p.kit_order.after.guarantee; }));
 t('an unknown answer writes nothing', O.outcomePatch(row(), 'won_big', { now }) === null);
@@ -58,7 +61,8 @@ const api = read('pages/api/kit/outcome.js');
 t('the route needs this order\'s outcome token', /checkOutcomeToken\(orderId, b\.t\)/.test(api));
 // INJECTION: remove the DECIDED check -> FAILS.
 t('a decision already recorded is never overwritten from a link', /if \(DECIDED\.includes\(row\.dispute_status\)\) return res\.status\(200\)/.test(api) && /\.eq\('dispute_status', row\.dispute_status\)/.test(api));
-t('"not lowered" emails the customer and tells ops', /answer === 'not_lowered' && g/.test(api) && /guaranteeEmail\(row\)/.test(api) && /alertOps\('Free next-year kit recorded'/.test(api));
+t('"not lowered" emails the customer how to prove it, with their outcome link', /answer === 'not_lowered' && g\?\.status === G\.NEEDS_PROOF/.test(api) && /guaranteeEmail\(row, outcomeUrl\(row\.id\)\)/.test(api)
+  && O.guaranteeEmail(row({}, { customer_name: 'Pat' }), 'https://x/o').text.includes('https://x/o') && /dismissed or withdrawn/.test(O.guaranteeEmail(row(), 'L').text));
 t('/outcome exists and offers every answer the record knows', existsSync(new URL('../pages/outcome.js', import.meta.url)) && Object.keys(O.OUTCOMES).every((k) => read('pages/outcome.js').includes(`['${k}',`)));
 const cron = read('pages/api/cron/notice-reminder.js');
 t('the daily cron asks and records each ask', /outcomePass\(supabase, resend, now\)/.test(cron) && /outcomeAsks: \[\.\.\.\(k\.after\?\.outcomeAsks \|\| \[\]\), now\.toISOString\(\)\]/.test(cron));

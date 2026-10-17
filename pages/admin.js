@@ -890,6 +890,58 @@ function PartnersView({ data, loading, error, onRetry }) {
   );
 }
 
+/**
+ * FREE-KIT CLAIMS TO REVIEW (17 Oct 2026). A claim lands here when the
+ * uploaded letter was unclear or did not match the order, or came in as a
+ * forwarded email. Rules: a dismissal (no-show) or withdrawal does not qualify;
+ * any reduction means the promise was kept. pages/api/admin-guarantees.js.
+ */
+function GuaranteeReview({ password }) {
+  const [claims, setClaims] = useState(null);
+  const [msg, setMsg] = useState('');
+  const [reason, setReason] = useState({});
+  const call = (body) => fetch('/api/admin-guarantees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, ...body }) }).then((r) => r.json());
+  const load = () => call({}).then((j) => setClaims(j.claims || [])).catch(() => setMsg('Could not load claims'));
+  useEffect(() => { if (password) load(); }, [password]);
+  const act = async (orderId, action) => {
+    if (action !== 'file' && !confirm(action === 'verify' ? 'Verify this claim and email the customer a free-kit code?' : 'Reject this claim and email the customer the reason?')) return;
+    const j = await call({ orderId, action, reason: reason[orderId] || 'dismissed' });
+    if (j.url) { window.open(j.url, '_blank', 'noopener'); return; }
+    setMsg(j.error ? `Error: ${j.error}` : `${orderId}: ${j.status}${j.code ? ` (code ${j.code})` : ''}`);
+    load();
+  };
+  if (!claims || claims.length === 0) return null;
+  return (
+    <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 28 }}>
+      <div style={{ padding: "16px 20px", borderBottom: `1.5px solid ${C.border}`, fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>
+        Free-kit claims to review ({claims.length})
+      </div>
+      {msg && <div style={{ padding: "8px 20px", fontSize: 12, color: C.mutedGray }}>{msg}</div>}
+      <table>
+        <thead><tr style={{ background: C.bg }}><th>Customer</th><th>Property</th><th>Why</th><th>Letter</th><th>Decide</th></tr></thead>
+        <tbody>
+          {claims.map((c) => (
+            <tr key={c.id}>
+              <td>{c.name}<br /><span style={{ fontSize: 11, color: C.mutedGray }}>{c.email}</span></td>
+              <td>{c.address}<br /><span style={{ fontSize: 11, color: C.mutedGray }}>{c.state} parcel {c.parcelId} &middot; {c.taxYear}</span></td>
+              <td style={{ fontSize: 12 }}>{c.guarantee?.reason}{c.guarantee?.proof?.read ? <><br /><span style={{ color: C.mutedGray }}>read: {c.guarantee.proof.read.outcome} {c.guarantee.proof.read.value_before ?? '?'} &rarr; {c.guarantee.proof.read.value_after ?? '?'} ({c.guarantee.proof.read.tax_year ?? '?'}, {c.guarantee.proof.read.parcel_id ?? '?'})</span></> : null}{c.decisionDetail ? <><br /><span style={{ color: C.mutedGray }}>{c.decisionDetail}</span></> : null}</td>
+              <td>{c.guarantee?.proof?.path ? <button onClick={() => act(c.id, 'file')}>View</button> : <span style={{ fontSize: 11, color: C.mutedGray }}>forwarded email</span>}</td>
+              <td style={{ whiteSpace: "nowrap" }}>
+                <button onClick={() => act(c.id, 'verify')}>Verify</button>{' '}
+                <select value={reason[c.id] || 'dismissed'} onChange={(e) => setReason((r) => ({ ...r, [c.id]: e.target.value }))}>
+                  <option value="dismissed">dismissed</option><option value="withdrawn">withdrawn</option><option value="lowered">lowered</option>
+                  <option value="not_a_decision">not a decision</option><option value="wrong_property">wrong property/year</option><option value="other">other</option>
+                </select>{' '}
+                <button onClick={() => act(c.id, 'reject')}>Reject</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
@@ -1274,6 +1326,8 @@ export default function Admin() {
               </div>
             ))}
           </div>
+
+          <GuaranteeReview password={password} />
 
           {/* Kits waiting to be sent */}
           <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 28 }}>

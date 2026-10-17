@@ -16,6 +16,7 @@ import { SERVICE_PRICE_DOLLARS } from '../lib/pricing';
 import { C } from '../lib/theme';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import PartnerCodeField from './PartnerCodeField';
+import FreeKitField from './FreeKitField';
 
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, bg: C.bg, btn: C.navy, off: C.mutedGray, white: C.white, bad: C.red };
 const panel = { border: `1px solid ${K.line}`, borderRadius: 10, padding: 18, margin: '14px 0', background: K.white };
@@ -61,6 +62,9 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
   const [agreed, setAgreed] = useState(false);
   // What the customer typed in the partner coupon field; `perkCode` seeds it.
   const [perkInput, setPerkInput] = useState(perkCode || '');
+  // Next year's free kit (lib/kit/guarantee.js): shown by FreeKitField, decided again at checkout.
+  const [freeCode, setFreeCode] = useState('');
+  const [freeKit, setFreeKit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [waitlisted, setWaitlisted] = useState(false);
@@ -96,7 +100,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
           // every order; it stays wired so the record cannot silently break.
           txCautions: (review.cautions || []).map((c) => c.code),
           ownerStreet: ownerMail?.street, ownerCity: ownerMail?.city, ownerState: ownerMail?.state, ownerZip: ownerMail?.zip,
-          stateCode: 'TX', kitKey: review.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '',
+          stateCode: 'TX', kitKey: review.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '', freeCode,
         }),
       });
       const j = await r.json();
@@ -187,9 +191,10 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
         <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
         <span>I understand TaxAppeal USA prepares my protest and mails it to me. I sign and mail it myself; TaxAppeal USA does not file it, represent me or appear for me.</span>
       </label>
-      <PartnerCodeField value={perkInput} onChange={setPerkInput} />
+      <FreeKitField kitKey={review.kitKey} code={freeCode} onCode={setFreeCode} onFree={setFreeKit} />
+      {!freeKit && <PartnerCodeField value={perkInput} onChange={setPerkInput} />}
       <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
-        {busy ? 'Opening checkout…' : review?.delivery === 'pdf' ? `Get my protest kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my protest kit — $${SERVICE_PRICE_DOLLARS}`}
+        {busy ? 'Opening checkout…' : freeKit ? 'Get my free protest kit' : review?.delivery === 'pdf' ? `Get my protest kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my protest kit — $${SERVICE_PRICE_DOLLARS}`}
       </button>
       {err && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
       <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>

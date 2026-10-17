@@ -22,6 +22,7 @@ import { findComps } from '../../../lib/tx/comps';
 import { buildProtest } from '../../../lib/tx/protest';
 import { reminderDue, reminderEmail as kitReminderEmail, sentUrl, OUT_WITH_CUSTOMER } from '../../../lib/kit/afterMailing';
 import { askDue, askEmail, outcomeUrl, ASKABLE } from '../../../lib/kit/outcome';
+import { G as GUARANTEE, seasonEmail } from '../../../lib/kit/guarantee';
 
 export const REMIND_EVERY_DAYS = 7;
 export const LATE_ALERT_DAYS = 10;
@@ -181,6 +182,38 @@ async function outcomePass(supabase, resend, now) {
   return { checked: (rows || []).length, asked };
 }
 
+/** Pure: should this proved free kit get its "ready to use" email today? */
+export function seasonEmailDue(row, ws, now = new Date()) {
+  const g = row?.kit_order?.after?.guarantee;
+  if (!g || g.status !== GUARANTEE.VERIFIED || g.seasonEmailedAt || !g.code) return false;
+  if (Number(g.freeKitYear) !== now.getUTCFullYear()) return false;
+  return Boolean(ws && (ws.canFile || ws.isOpen));
+}
+
+/*
+ * "YOUR FREE KIT IS READY" (17 Oct 2026, lib/kit/guarantee.js). Once, when the
+ * free year's season opens for that county.
+ */
+async function freeKitSeasonPass(supabase, resend, now) {
+  const { data: rows, error } = await supabase.from('orders').select('id, state_code, county, customer_name, customer_email, kit_order')
+    .eq('kit_order->after->guarantee->>status', GUARANTEE.VERIFIED).limit(500);
+  if (error) return { error: error.message };
+  let sent = 0;
+  for (const row of rows || []) {
+    const ws = getFilingWindowStatus(String(row.state_code || '').toUpperCase(), row.kit_order?.property?.county || row.county, { strict: true });
+    if (!seasonEmailDue(row, ws, now) || !resend || !row.customer_email) continue;
+    const k = row.kit_order;
+    try {
+      const mail = seasonEmail(row);
+      await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [row.customer_email], subject: mail.subject, text: mail.text });
+    } catch (e) { console.error(`[free-kit-season] email failed for order ${row.id}:`, e?.message); continue; }
+    const after = { ...k.after, guarantee: { ...k.after.guarantee, seasonEmailedAt: now.toISOString() } };
+    await supabase.from('orders').update({ kit_order: { ...k, after } }).eq('id', row.id).eq('kit_order->after->guarantee->>status', GUARANTEE.VERIFIED);
+    sent++;
+  }
+  return { checked: (rows || []).length, sent };
+}
+
 export default async function handler(req, res) {
   if (requireCronSecret(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Not configured.' });
@@ -221,5 +254,6 @@ export default async function handler(req, res) {
   const tx = await txRollPass(supabase, now);
   const afterMailing = await afterMailingPass(supabase, resend, now);
   const outcomes = await outcomePass(supabase, resend, now);
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes });
+  const freeKits = await freeKitSeasonPass(supabase, resend, now);
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes, freeKits });
 }

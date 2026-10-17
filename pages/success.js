@@ -58,7 +58,8 @@ export default function Success() {
         // customer's name, email and property address — it does not belong in a
         // payload sent to Google. The hash is stable, so dedupe still works.
         const transactionId = data.transactionId || 'unknown';
-        if (typeof window !== 'undefined' && window.gtag) {
+        // A free kit (data.free) is not a purchase: no conversion is reported.
+        if (typeof window !== 'undefined' && window.gtag && !data.free) {
           window.gtag('event', 'purchase', {
             transaction_id: transactionId,
             currency: 'USD',
@@ -272,7 +273,7 @@ function KitSuccess({ session, sessionId }) {
         ) : null)}
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 15 }}>
           <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-          <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((session && session.amountPaid) || 8900) / 100).toFixed(2)}</span>
+          <span style={{ fontWeight: 700, color: C.darkNavy }}>{session?.free ? '$0.00 (free kit)' : `$${(((session && session.amountPaid) || 8900) / 100).toFixed(2)}`}</span>
         </div>
       </div>
 

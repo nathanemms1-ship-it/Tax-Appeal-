@@ -147,7 +147,8 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
         'If anything needs your attention we will contact you directly',
       ];
 
-  const totalCents = Number(amountPaid) || 8900;
+  // 0 is a real amount: a free kit (lib/kit/freeKit.js). Only a MISSING amount defaults.
+  const totalCents = amountPaid === 0 || amountPaid === '0' ? 0 : Number(amountPaid) || 8900;
   const money = (c) => `$${(c / 100).toFixed(2)}`;
 
   return `<!DOCTYPE html>

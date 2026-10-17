@@ -15,6 +15,7 @@ import { SERVICE_PRICE_DOLLARS } from '../lib/pricing';
 import { C } from '../lib/theme';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import PartnerCodeField from './PartnerCodeField';
+import FreeKitField from './FreeKitField';
 
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, bg: C.bg, bad: C.red, btn: C.navy, off: C.mutedGray, white: C.white };
 const box = { border: `1px solid ${K.line}`, borderRadius: 10, padding: 16, margin: '14px 0', background: K.white };
@@ -54,6 +55,9 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
   const [agreed, setAgreed] = useState(false);
   // What the customer typed in the partner coupon field; `perkCode` seeds it.
   const [perkInput, setPerkInput] = useState(perkCode || '');
+  // Next year's free kit (lib/kit/guarantee.js): shown by FreeKitField, decided again at checkout.
+  const [freeCode, setFreeCode] = useState('');
+  const [freeKit, setFreeKit] = useState(false);
   const ready = /^\d{4}-\d{2}-\d{2}$/.test(trimDeadline) && typeof attend === 'boolean';
 
   const runCheck = async () => {
@@ -93,7 +97,7 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
           assessedValue: quote.justValue ?? null, targetReduction: quote.requestedValue ?? null,
           savings: quote.yearlySaving ?? null,
           ownerStreet: ownerMail.street, ownerCity: ownerMail.city, ownerState: ownerMail.state, ownerZip: ownerMail.zip,
-          stateCode: 'FL', kitKey: quote.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '',
+          stateCode: 'FL', kitKey: quote.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '', freeCode,
         }),
       });
       const j = await r.json();
@@ -176,9 +180,10 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
             <span>I understand TaxAppeal USA prepares my petition and sends it to me. I sign it, pay the county&rsquo;s filing fee and get it to the Value Adjustment Board myself; TaxAppeal USA does not file it, pay the fee, represent me or appear for me.</span>
           </label>
-          <PartnerCodeField value={perkInput} onChange={setPerkInput} />
+          <FreeKitField kitKey={quote.kitKey} code={freeCode} onCode={setFreeCode} onFree={setFreeKit} />
+          {!freeKit && <PartnerCodeField value={perkInput} onChange={setPerkInput} />}
           <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
-            {busy ? 'Opening checkout…' : quote.delivery === 'pdf' ? `Get my petition kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my petition kit — $${SERVICE_PRICE_DOLLARS}`}
+            {busy ? 'Opening checkout…' : freeKit ? 'Get my free petition kit' : quote.delivery === 'pdf' ? `Get my petition kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my petition kit — $${SERVICE_PRICE_DOLLARS}`}
           </button>
           {err && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
           <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>If the board doesn&rsquo;t lower your value, next year&rsquo;s kit is free.</p>
