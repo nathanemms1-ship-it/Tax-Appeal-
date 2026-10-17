@@ -27,6 +27,7 @@ import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../../lib/inputLimits';
 import { checkSpend } from '../../../lib/spendGuard';
 import { countyNoFromName } from '../../../lib/dor/coverage';
 import { millageForCounty, MILLAGE_YEAR } from '../../../lib/dor/millage';
+import { outcomePatch } from '../../../lib/kit/outcome';
 
 /**
  * INLINED, NOT IMPORTED. 7 Sept 2026.
@@ -74,7 +75,7 @@ function clients() {
 // Only the columns this route actually reads. select('*') shipped every column of
 // the orders row, including the password hash, into this function's memory and
 // into any log line that stringified it.
-const ORDER_FIELDS = 'id, customer_name, customer_email, property_address, account_number, dispute_status, county, state_code';
+const ORDER_FIELDS = 'id, customer_name, customer_email, property_address, account_number, dispute_status, county, state_code, kit_order';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -254,6 +255,13 @@ ${emailBody.substring(0, 4000)}`
 
   const summary = cap(parsed.summary, 1200);
 
+  // KIT ORDERS (17 Oct 2026): the same outcome record /outcome writes, so a
+  // denied letter records next year's free kit (lib/kit/outcome.js).
+  const kitPatch = order.kit_order
+    ? outcomePatch(order, { approved: 'lowered', partial: 'partial', denied: 'not_lowered' }[parsed.decision], { source: 'letter' })
+    : null;
+  const kitOutcome = kitPatch ? { outcome: kitPatch.outcome, outcome_reported_at: kitPatch.outcome_reported_at, kit_order: kitPatch.kit_order } : {};
+
   const { error: updateError } = await supabase
     .from('orders')
     .update({
@@ -265,7 +273,8 @@ ${emailBody.substring(0, 4000)}`
       // will end up in reporting and marketing claims.
       savings_amount: safeSavings,
       actual_savings: savingsBasis === 'stated_in_letter' ? safeSavings : null,
-      raw_email_content: emailBody.substring(0, 10000)
+      raw_email_content: emailBody.substring(0, 10000),
+      ...kitOutcome,
     })
     .eq('id', order.id);
 

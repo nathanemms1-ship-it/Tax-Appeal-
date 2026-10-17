@@ -52,7 +52,7 @@ const STATUS_CONFIG = {
     label: 'Denied',
     color: '#EF4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',
     icon: '❌',
-    description: 'Your appeal was denied by the county. No further action is required.'
+    description: 'The county did not lower your value. If your order came with our free-next-year-kit guarantee, we have recorded it and will email you when next year\u2019s values come out.'
   }
 };
 

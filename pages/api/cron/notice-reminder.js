@@ -21,6 +21,7 @@ import { presaleDeps } from '../../../lib/kit/presaleDeps';
 import { findComps } from '../../../lib/tx/comps';
 import { buildProtest } from '../../../lib/tx/protest';
 import { reminderDue, reminderEmail as kitReminderEmail, sentUrl, OUT_WITH_CUSTOMER } from '../../../lib/kit/afterMailing';
+import { askDue, askEmail, outcomeUrl, ASKABLE } from '../../../lib/kit/outcome';
 
 export const REMIND_EVERY_DAYS = 7;
 export const LATE_ALERT_DAYS = 10;
@@ -154,6 +155,32 @@ async function afterMailingPass(supabase, resend, now) {
   return { checked: (rows || []).length, sent };
 }
 
+/*
+ * "WHAT DID THE COUNTY DECIDE?" (17 Oct 2026, lib/kit/outcome.js). Weeks after
+ * the deadline, then monthly while they are still waiting, at most four times.
+ * Without the answer we cannot keep the free-next-year guarantee.
+ */
+async function outcomePass(supabase, resend, now) {
+  const { data: rows, error } = await supabase.from('orders').select('id, state_code, customer_name, customer_email, dispute_status, payment_status, kit_order')
+    .in('dispute_status', ASKABLE).eq('payment_status', 'paid').limit(500);
+  if (error) return { error: error.message };
+  let asked = 0;
+  for (const row of rows || []) {
+    if (!askDue(row, now) || !resend || !row.customer_email) continue;
+    const link = outcomeUrl(row.id);
+    if (!link) continue;
+    const k = row.kit_order || {};
+    try {
+      const mail = askEmail(row, link);
+      await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [row.customer_email], subject: mail.subject, text: mail.text });
+    } catch (e) { console.error(`[outcome-ask] email failed for order ${row.id}:`, e?.message); continue; }
+    const after = { ...(k.after || {}), outcomeAsks: [...(k.after?.outcomeAsks || []), now.toISOString()] };
+    await supabase.from('orders').update({ kit_order: { ...k, after } }).eq('id', row.id).eq('dispute_status', row.dispute_status);
+    asked++;
+  }
+  return { checked: (rows || []).length, asked };
+}
+
 export default async function handler(req, res) {
   if (requireCronSecret(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Not configured.' });
@@ -193,5 +220,6 @@ export default async function handler(req, res) {
   }
   const tx = await txRollPass(supabase, now);
   const afterMailing = await afterMailingPass(supabase, resend, now);
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing });
+  const outcomes = await outcomePass(supabase, resend, now);
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes });
 }
