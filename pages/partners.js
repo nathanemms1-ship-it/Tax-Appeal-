@@ -90,7 +90,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
     <>
       <Head>
         <title>Partner Program — Earn $20 Per Referral | TaxAppeal USA</title>
-        <meta name="description" content="Real estate agents and HOA managers: earn $20 for every homeowner you refer to TaxAppeal USA. Share your unique link, we handle the rest. Paid monthly." />
+        <meta name="description" content="Real estate agents and HOA managers: earn $20 for every homeowner you refer to TaxAppeal USA. We check each client's tax bill before they pay, then mail them a ready-to-sign kit. Paid monthly." />
         <link rel="canonical" href="https://www.taxappealusa.com/partners" key="canonical" />
       </Head>
       {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
@@ -112,21 +112,21 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
             <div style={{fontSize:9,textTransform:'uppercase',letterSpacing:'1.5px',color:C.mutedGray}}>Property Tax Dispute</div>
           </div>
         </Link>
-        <Link href="/apply"><button style={{background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'10px 22px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>File an appeal →</button></Link>
+        <Link href="/apply"><button style={{background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'10px 22px',fontSize:14,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Check my property →</button></Link>
       </div>
       <section style={{background:C.navy,padding:'64px 40px'}}>
         <div className="container">
           <div style={{fontSize:12,color:C.gold,textTransform:'uppercase',letterSpacing:'2px',marginBottom:16}}>Partner Program</div>
           <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:42,lineHeight:1.15,color:C.white,marginBottom:16,maxWidth:600}}>
-            Earn $20 every time a client files their property tax appeal
+            Earn $20 every time a client orders a property tax appeal kit
           </h1>
           <p style={{fontSize:18,color:C.mutedGray,lineHeight:1.6,maxWidth:560,marginBottom:40}}>
-            Share your unique link. When a homeowner clicks it and completes a paid filing, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
+            Share your unique link. When a homeowner clicks it and completes a paid order, you earn $20 — automatically tracked, paid monthly. No percentages, no paperwork, no minimums.
           </p>
           <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
             {/* "$89 — Customer pays" was flatly untrue for every Florida customer,
                 who pays $89 plus a county filing fee of $15–$50. */}
-            {[['$20','Per referral, flat'],['$89 + county fee','Customer pays'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
+            {[['$20','Per referral, flat'],['$89','Kit price (FL county fee extra)'],['Monthly','Payout schedule'],['No minimum','To get paid']].map(([n,l])=>(
               <div key={l} style={{background:C.darkNavy,borderRadius:10,padding:'16px',textAlign:'center'}}>
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.gold}}>{n}</div>
                 <div style={{fontSize:11,color:'#5A7A9F',marginTop:4}}>{l}</div>
@@ -182,13 +182,13 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                 You keep earning on the clients you bring us
               </h2>
               <p style={{fontSize:15.5,color:C.bodyGray,lineHeight:1.75,marginBottom:14}}>
-                When someone you refer files again next season, you earn another <strong>$20</strong> &mdash;
+                When someone you refer orders again next season, you earn another <strong>$20</strong> &mdash;
                 automatically. You don&rsquo;t need to send them a new link, and you don&rsquo;t need to do
-                anything at all. We record who referred each customer at their first filing and it stays
+                anything at all. We record who referred each customer at their first order and it stays
                 with them, for as long as you&rsquo;re an active partner.
               </p>
               <p style={{fontSize:15.5,color:C.bodyGray,lineHeight:1.75}}>
-                When your state&rsquo;s filing window opens we email you first, with your link, so you can
+                When your state&rsquo;s appeal season opens we email you first, with your link, so you can
                 reach your clients before we contact them. <strong style={{color:C.darkNavy}}>And if a client
                 of yours comes back on their own later, you still get paid.</strong> We are not going to take
                 your client direct.
@@ -205,7 +205,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                 </div>
               ))}
               <div style={{fontSize:12.5,color:C.mutedGray,marginTop:12,lineHeight:1.6}}>
-                Each time that homeowner files again. Nothing further required from you.
+                Each time that homeowner orders again. Nothing further required from you.
               </div>
             </div>
           </div>
@@ -219,10 +219,11 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
               <p style={{fontSize:15,color:C.bodyGray,lineHeight:1.7,marginBottom:8}}>Ideal for real estate agents, HOA managers, financial advisors, and anyone with homeowner clients. Your clients need this — now you get paid for the referral.</p>
               {/* Counted, not written. See getStaticProps at the foot of this file. */}
               <p style={{fontSize:13,color:C.mutedGray,lineHeight:1.7,marginBottom:32}}>
-                Filing in {coverage.servingStates.join(', ')} — all {coverage.texas.served} Texas counties, all {coverage.georgia.served} Georgia counties, and {coverage.florida.complete ? `all ${coverage.florida.total}` : `${coverage.florida.served} of Florida's ${coverage.florida.total}`} Florida counties.
-                {!coverage.florida.complete && ` The other ${coverage.florida.notYetOpen} have not published the Value Adjustment Board address and fee we need to file correctly, so we do not take orders there yet — a client in one of them is told, charged nothing, and emailed the moment their county opens.`}
+                Kits are available today in {coverage.florida.complete ? `all ${coverage.florida.total} Florida counties` : `${coverage.florida.served} of Florida's ${coverage.florida.total} counties`}{(coverage.texas.served > 0 || coverage.georgia.served > 0) ? `, and in ${[coverage.texas.served > 0 && `${coverage.texas.served} Texas`, coverage.georgia.served > 0 && `${coverage.georgia.served} Georgia`].filter(Boolean).join(' and ')} counties so far` : ''}.
+                {` Texas and Georgia counties open one at a time as we confirm where each county takes appeals${(Number(coverage.texas.target) > 0 || Number(coverage.georgia.target) > 0) ? ` (we are preparing ${[Number(coverage.texas.target) > 0 && `${coverage.texas.target} in Texas`, Number(coverage.georgia.target) > 0 && `${coverage.georgia.target} in Georgia`].filter(Boolean).join(' and ')})` : ''}; a client in a county that is not open yet is told so, charged nothing, and emailed when it opens.`}
+                {!coverage.florida.complete && ` The other ${coverage.florida.notYetOpen} Florida counties have not published the Value Adjustment Board address and fee we need to address the kit correctly, so we do not take orders there yet — a client in one of them is told, charged nothing, and emailed the moment their county opens.`}
               </p>
-              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients file in 4 minutes',desc:`They click your link, enter their address, and our system pulls comparable market sales data to build a customized filing. They review it, sign it themselves, and pay $89 — plus their county's filing fee where one applies, which in Florida is ${FL_FEE_RANGE} set by the county. We prepare and mail the filing to the correct county authority.`},{n:'4',title:'You get paid monthly',desc:`On the 1st of each month we settle the previous month’s completed orders and send $20 each to your bank account via Stripe Connect. We hold each order for ${holdbackDays} days first, so a customer refund can’t land after you’ve already been paid — referrals from the last few days of a month simply go out in the following run. Refunded and cancelled orders never count, and your dashboard shows exactly which referrals counted, which are still waiting, and why.`}].map(({n,title,desc})=>(
+              {[{n:'1',title:'Sign up below',desc:'Takes 60 seconds. We generate your unique referral link and email it to you instantly.'},{n:'2',title:'Share your link',desc:'Text it, email it, put it in your email signature. The link tracks every referral automatically — no code for your client to enter.'},{n:'3',title:'Clients order in about 4 minutes',desc:`They click your link and enter their address. Before they pay, we check whether an appeal will actually lower their tax bill, after caps and exemptions — if it won't, we tell them and don't sell one. If it will, they pay $89 and we mail them a ready-to-sign kit: the official form filled in, the evidence, a checklist and a return envelope addressed to the county, with a PDF copy emailed the same day. They sign it in ink and mail it themselves. In Florida the county's own filing fee (${FL_FEE_RANGE}) is extra: your client pays it to the county with a check in the envelope, and none of it comes to us.`},{n:'4',title:'You get paid monthly',desc:`On the 1st of each month we settle the previous month’s completed orders and send $20 each to your bank account via Stripe Connect. We hold each order for ${holdbackDays} days first, so a customer refund can’t land after you’ve already been paid — referrals from the last few days of a month simply go out in the following run. Refunded and cancelled orders never count, and your dashboard shows exactly which referrals counted, which are still waiting, and why.`}].map(({n,title,desc})=>(
                 <div key={n} style={{display:'flex',gap:16,marginBottom:24}}>
                   <div style={{width:36,height:36,background:C.navy,color:C.gold,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Serif Display',serif",fontSize:18,flexShrink:0}}>{n}</div>
                   <div><div style={{fontSize:16,fontWeight:500,marginBottom:4}}>{title}</div><div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7}}>{desc}</div></div>
@@ -241,7 +242,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     already forbids exactly this shape of claim on every other page.
                     The reason to make the call is the call, not a number. */}
                 <p style={{fontSize:14,color:C.bodyGray,lineHeight:1.75}}>
-                  That&apos;s a call worth making. Your client gets their assessment reviewed and a properly prepared appeal filed — and you&apos;re the one who told them about it. It costs you nothing, it makes you look good, and it puts you back in front of them right before they think about buying, selling, or shopping a policy.
+                  That&apos;s a call worth making. Your client gets their tax bill checked and, if an appeal will help, a ready-to-sign kit in the mail — and you&apos;re the one who told them about it. It costs you nothing, it makes you look good, and it puts you back in front of them right before they think about buying, selling, or shopping a policy.
                 </p>
               </div>
               <div style={{background:C.lightGreen,border:'1px solid #86efac',borderRadius:10,padding:'16px 20px',marginTop:16}}>
@@ -256,20 +257,20 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     that, and as nothing more. Do not restore a caption that implies a
                     typical result until there are results to be typical of. */}
                 <div style={{fontSize:11,fontWeight:500,color:C.green,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>The math, at $20 a referral</div>
-                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:8}}>Simple multiplication, not a projection — how much you earn depends entirely on how many of your clients choose to file.</div>
-                {[['10 clients file','$200'],['25 clients file','$500'],['50 clients file','$1,000'],['100 clients file','$2,000']].map(([vol,amt])=>(
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginBottom:8}}>Simple multiplication, not a projection — how much you earn depends entirely on how many of your clients choose to order a kit.</div>
+                {[['10 clients order','$200'],['25 clients order','$500'],['50 clients order','$1,000'],['100 clients order','$2,000']].map(([vol,amt])=>(
                   <div key={vol} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #bbf7d0',fontSize:13,color:C.darkNavy}}>
                     <span style={{color:C.bodyGray}}>{vol}</span><span><strong>{amt}</strong></span>
                   </div>
                 ))}
-                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>Filing season comes once a year, and it repeats — when a client of yours files again, you earn $20 again, automatically, with nothing further required from you. If they come back through your link, you earn $20 again.</div>
+                <div style={{fontSize:12,color:C.bodyGray,lineHeight:1.6,marginTop:10}}>Appeal season comes once a year, and it repeats — when a client of yours orders again, you earn $20 again, automatically, with nothing further required from you. If they come back through your link, you earn $20 again.</div>
               </div>
               <div style={{background:C.lightBlue,border:`1px solid ${C.border}`,borderRadius:12,padding:'20px 24px',marginTop:24}}>
                 <div style={{fontSize:14,fontWeight:500,marginBottom:8}}>What to tell your clients</div>
                 {/* The single highest-risk string on the page: a partner says this in
                     their own name, to their own client. "for $89 flat" is a price
                     quote they cannot honour in Florida. */}
-                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They prepare the appeal, you sign it, and they mail it. $89 plus your county&apos;s filing fee, and no percentage of your savings. Takes about 4 minutes. Here&apos;s my link: [your link]&rdquo;</div>
+                <div style={{fontSize:14,color:C.bodyGray,lineHeight:1.7,fontStyle:'italic'}}>&ldquo;Your property tax notice just came in — I use TaxAppeal USA for my clients. They check whether an appeal will actually lower your tax bill before you pay, and if it will, they mail you a ready-to-sign kit for a flat fee of $89 — you sign it and mail it. No percentage of your savings. In Florida the county&apos;s own filing fee is extra and paid to the county. Here&apos;s my link: [your link]&rdquo;</div>
               </div>
             </div>
             <div>
@@ -318,7 +319,7 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
                     <button onClick={handleStripeConnect} disabled={connectLoading} style={{display:'block',width:'100%',background:C.navy,color:C.white,border:'none',borderRadius:8,padding:'12px 20px',fontSize:14,fontWeight:500,textAlign:'center',cursor:connectLoading?'not-allowed':'pointer',opacity:connectLoading?0.7:1,fontFamily:"'DM Sans',sans-serif"}}>{connectLoading?'Redirecting to Stripe...':'Connect Bank Account via Stripe →'}</button>
                     <p style={{fontSize:11,color:C.mutedGray,textAlign:'center',marginTop:8}}>Secured by Stripe. We never see your bank details.</p>
                   </div>
-                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their filing earns you $20.</p>
+                  <p style={{fontSize:12,color:C.mutedGray,textAlign:'center',lineHeight:1.6,marginTop:12}}>Share this link via text, email, or social. Every client who clicks it and completes their order earns you $20.</p>
                   </>
                   )}
                 </div>
@@ -392,15 +393,15 @@ export default function PartnersPage({ coverage, coverageAnswer, holdbackDays })
         <div className="container">
           <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:28,textAlign:'center'}}>Partner FAQ</h2>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and files — nothing extra required.'],
+            {[['Does my client need to enter a code?','No. Your unique link automatically tracks the referral. Your client just clicks and orders — nothing extra required.'],
             ['When do I get paid?',`On the 1st of each month we settle the previous month’s completed orders and send your $20 per order to your connected bank account through Stripe. Each order is held for ${holdbackDays} days before it is paid, so a referral from the last few days of a month goes out in the following run rather than that one — it shows as pending on your dashboard in the meantime. There is no minimum balance. You need a connected bank account to receive a payout; until you connect one your earnings keep accruing and go out in the first run after you do.`],
-            ['Which referrals count?','Orders that were paid for and not refunded. Abandoned checkouts, refunds and chargebacks do not count, and neither does a filing you buy for yourself through your own link. Your dashboard lists anything that did not count and the reason, so the number you see is the number we pay.'],
-            ['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed filing earns you $20.'],
-            ['What if a client files again next year?','You earn $20 again, and you do not have to do anything to get it. We record who referred each customer at their first filing and the credit stays with you for as long as you are an active partner — whether they come back through your link or on their own. The one exception is if they are actively referred by a different partner that season, in which case the credit follows that referral.'],
+            ['Which referrals count?','Orders that were paid for and not refunded. Abandoned checkouts, refunds and chargebacks do not count, and neither does a kit you buy for yourself through your own link. Your dashboard lists anything that did not count and the reason, so the number you see is the number we pay.'],
+            ['Is there a limit to referrals?','No limit. Refer as many clients as you like. Every completed order earns you $20.'],
+            ['What if a client orders again next year?','You earn $20 again, and you do not have to do anything to get it. We record who referred each customer at their first order and the credit stays with you for as long as you are an active partner — whether they come back through your link or on their own. The one exception is if they are actively referred by a different partner that season, in which case the credit follows that referral.'],
             // Counted at build time. When Nathan confirms another county by phone,
             // this answer changes on the next deploy with no copy edit.
             ['Does TaxAppeal serve all counties?', coverageAnswer],
-            ['What does the fee cover?',`Your client pays $89 for the appeal itself: a dispute letter or petition built from comparable market sales data and county assessment records, prepared for them to sign, then mailed with tracking, plus status updates through the county process. Florida counties also charge a mandatory filing fee of ${FL_FEE_RANGE} set by each county — we collect it and pay the county on your client's behalf, and none of it comes to us. Texas and Georgia have no county filing fee.`],
+            ['What does the fee cover?',`Your client pays $89 for the kit. First we check whether an appeal will actually lower their tax bill, after caps and exemptions; if it won't, we tell them and don't sell one. If it will, we mail them the official form filled in for their home, the evidence, a one-page checklist and a return envelope addressed to the county, appraisal district or Value Adjustment Board, and email a PDF copy of the full kit the same day. They sign it in ink and mail it themselves: we do not file it, represent them or attend any hearing. Florida counties also charge their own filing fee of ${FL_FEE_RANGE}, which your client pays directly to the county with a check in the envelope. It is not part of the $89, and we never collect or pay it. Texas and Georgia have no county filing fee. If our check stops the order before anything is mailed, they get a full refund; if the county doesn't lower the value, next year's kit is free.`],
             // Rewritten from "Stripe will automatically issue you a 1099-NEC and file
             // it with the IRS". That is only true if Stripe tax reporting is enabled
             // on the platform account — a setting, not a guarantee. If it is off,

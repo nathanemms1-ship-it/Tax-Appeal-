@@ -121,7 +121,7 @@ for (const status of KIT_STATUSES) {
   t('the receipt does not call itself the official record',
     !/official record of the protest/i.test(withLetter));
   // The summary still has to be there — we removed the document, not the receipt.
-  t('the filing summary survives', /FILING SUMMARY/i.test(withLetter));
+  t('the order summary survives', /ORDER SUMMARY/i.test(withLetter));
   t('the total paid survives', withLetter.includes('$114.00'));
 }
 

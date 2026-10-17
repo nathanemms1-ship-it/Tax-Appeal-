@@ -123,8 +123,8 @@ export default async function handler(req, res) {
         business_profile: {
           product_description:
             'Referral partner for TaxAppeal USA. Refers property owners to a property tax appeal '
-            + 'preparation and mailing service and receives a fixed $20 referral fee for each '
-            + 'completed filing. Does not provide tax, legal, or appraisal advice.',
+            + 'document-preparation service and receives a fixed $20 referral fee for each '
+            + 'completed order. Does not provide tax, legal, or appraisal advice.',
         },
         /**
          * A DEFAULT, AND A DELIBERATE ONE — Stripe shows it on the review screen with

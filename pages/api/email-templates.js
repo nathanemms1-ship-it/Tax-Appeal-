@@ -1,4 +1,5 @@
 import { escapeHtml as h } from '../../lib/escape';
+import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 import { BUSINESS_NAME, LEGAL_ENTITY, BUSINESS_ADDRESS, BUSINESS_ADDRESS_LINES } from '../../lib/businessInfo';
 
 /**
@@ -78,7 +79,7 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   return claimFor(orderStatus).subject;
 }
 
-export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, amountPaid = 8900, stateCode, orderStatus, noticeUrl = null }) {
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, amountPaid = SERVICE_PRICE_CENTS, stateCode, orderStatus, noticeUrl = null }) {
   const fullName = `${firstName} ${lastName}`;
   // The one button a receipt may carry: (pre-sale) the notice link.
   const ctaUrl = orderStatus === 'awaiting_notice' ? noticeUrl : null;
@@ -148,7 +149,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
       ];
 
   // 0 is a real amount: a free kit (lib/kit/freeKit.js). Only a MISSING amount defaults.
-  const totalCents = amountPaid === 0 || amountPaid === '0' ? 0 : Number(amountPaid) || 8900;
+  const totalCents = amountPaid === 0 || amountPaid === '0' ? 0 : Number(amountPaid) || SERVICE_PRICE_CENTS;
   const money = (c) => `$${(c / 100).toFixed(2)}`;
 
   return `<!DOCTYPE html>
@@ -168,7 +169,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
           <tr>
             <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
               <div style="font-size:22px;font-weight:700;color:#C9A84C;letter-spacing:0.05em;">TaxAppeal USA</div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Appeal Kits</div>
             </td>
           </tr>
 
@@ -208,7 +209,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fc;border:1px solid #e5e8ef;border-radius:6px;margin-bottom:28px;">
                 <tr>
                   <td style="padding:20px 24px;">
-                    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:16px;">Filing Summary</div>
+                    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1B2A4A;margin-bottom:16px;">Order Summary</div>
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Property Owner</td>
@@ -229,7 +230,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                       </tr>` : ''}
                       ${lobId ? `
                       <tr>
-                        <td style="font-size:13px;color:#666;padding:5px 0;">Letter ID</td>
+                        <td style="font-size:13px;color:#666;padding:5px 0;">Kit mailing ID</td>
                         <td style="font-size:13px;color:#1B2A4A;font-weight:600;text-align:right;">${h(lobId)}</td>
                       </tr>` : ''}
                       <tr>
@@ -262,7 +263,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                   <td align="center" style="padding:16px;background:#1B2A4A;border-radius:6px;">
                     <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}"
                        style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
-                      📦 Track Your Letter on USPS.com →
+                      📦 Track Your Kit on USPS.com →
                     </a>
                   </td>
                 </tr>
@@ -283,7 +284,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <!-- Questions -->
               <div style="background:#fff8e7;border:1px solid #f0d98a;border-radius:6px;padding:16px 20px;margin-bottom:8px;">
                 <div style="font-size:13px;color:#7a6010;line-height:1.6;">
-                  <strong>Questions about your filing?</strong><br/>
+                  <strong>Questions about your kit?</strong><br/>
                   Reply to this email or contact us at
                   <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
                   — we're happy to help.
@@ -299,7 +300,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               <div style="font-size:12px;color:#999;">
                 TaxAppeal USA · taxappealusa.com<br/>
                 Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
-                Filing disputes handled exclusively at <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
+                Order and billing disputes handled exclusively at <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
                 ${LEGAL_ENTITY}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
               </div>
               <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>

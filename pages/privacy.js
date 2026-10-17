@@ -8,7 +8,7 @@ export default function Privacy() {
     <>
       <Head>
         <title>Privacy Policy | TaxAppeal USA</title>
-        <meta name="description" content="Privacy Policy for TaxAppeal USA property tax protest service." />
+        <meta name="description" content="Privacy Policy for TaxAppeal USA, which checks your property tax bill and prepares a ready-to-sign appeal kit you mail yourself." />
         <meta name="robots" content="noindex" />
       </Head>
       <div style={{ background: '#f4f6f9', minHeight: '100vh', padding: '40px 20px', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
@@ -22,7 +22,7 @@ export default function Privacy() {
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1B2A4A', margin: '16px 0 8px' }}>Privacy Policy</h1>
             {/* Was "June 2025" — fourteen months stale, and the first line a Google Ads
                 policy review or a regulator reads. /terms already says August 2026. */}
-            <p style={{ fontSize: 13, color: '#999' }}>Last updated: August 2026</p>
+            <p style={{ fontSize: 13, color: '#999' }}>Last updated: October 2026</p>
           </div>
 
           <div style={{ fontSize: 15, color: '#444', lineHeight: 1.8 }}>
@@ -33,16 +33,16 @@ export default function Privacy() {
               <li><strong>Identity:</strong> First name, last name, email address</li>
               <li><strong>Property:</strong> Property address, county, state, assessed value, property characteristics</li>
               <li><strong>Payment:</strong> Payment is processed by Stripe — we never see or store your full card number</li>
-              <li><strong>Dispute details:</strong> Issues selected, protest letter content</li>
+              <li><strong>Appeal details:</strong> Issues selected, the contents of your kit, and any notice or county decision letter you upload</li>
               <li><strong>Usage:</strong> IP address, browser type, pages visited (via server logs)</li>
             </ul>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>2. How We Use Your Information</h2>
             <ul>
-              <li>To prepare and mail your property tax protest letter</li>
-              <li>To send you order confirmation and tracking information</li>
-              <li>To send filing deadline reminders and outcome follow-up emails</li>
-              <li>To maintain records of filings for legal and business purposes</li>
+              <li>To check whether an appeal will lower your tax bill, and to prepare your appeal kit and mail it to you</li>
+              <li>To send you order confirmation, your kit as a PDF, and delivery updates on your kit</li>
+              <li>To send deadline reminders and to ask what the county decided</li>
+              <li>To maintain records of orders and kits for legal and business purposes, including the next-year guarantee</li>
               <li>To improve our service and detect fraud</li>
             </ul>
 
@@ -60,10 +60,10 @@ export default function Privacy() {
                 <tbody>
                   {[
                     ['Stripe', 'Payment processing', 'Name, email, payment amount'],
-                    ['Lob.com', 'Mail dispatch — certified (TX/GA) and First Class (FL)', 'Name, property address, letter content'],
+                    ['Lob.com', 'Printing your kit and mailing it to you (First Class)', 'Name, mailing address, kit contents'],
                     ['Resend', 'Email confirmation delivery', 'Name, email, order summary'],
                     ['RentCast', 'Property records and comparable sales lookup', 'Property address'],
-                    ['Anthropic', 'Letter generation (Claude AI)', 'Property data, protest details'],
+                    ['Anthropic', 'Reading notices and county decision letters you upload (Claude AI)', 'The uploaded image, property details'],
                     ['Google', 'Address autocomplete', 'Address input (partial)'],
                     // Added 24 Aug. _app.js has loaded gtag with the Google Ads
                     // conversion ID since the campaign started on 19 Aug, and fires
@@ -72,7 +72,7 @@ export default function Privacy() {
                     // recipient anywhere on this page.
                     ['Google Analytics', 'Site usage measurement', 'Pages visited, IP address, device type'],
                     ['Google Ads', 'Advertising and conversion measurement', 'Pages visited, whether an order completed, order value'],
-                    ['Upstash', 'Temporary data caching', 'Letter content (2-hour TTL)'],
+                    ['Upstash', 'Temporary data caching and rate limiting', 'Check results and kit details (up to 7 days)'],
                     ['Supabase', 'Order database storage', 'Full order record'],
                     ['Vercel', 'Application hosting', 'Server logs, IP addresses'],
                   ].map(([svc, purpose, data], i) => (
@@ -90,9 +90,9 @@ export default function Privacy() {
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>4. Data Retention</h2>
             <ul>
               <li><strong>Order records:</strong> Retained for 7 years for legal and tax purposes</li>
-              <li><strong>Letter content:</strong> Temporarily cached for 2 hours, then purged from Redis</li>
+              <li><strong>Check results and kit details:</strong> Temporarily cached for up to 7 days while you order, then purged from Redis</li>
               <li><strong>Email logs:</strong> Retained by Resend per their data policy (90 days)</li>
-              <li><strong>Waitlist entries:</strong> Retained until you unsubscribe or filing season opens</li>
+              <li><strong>Waitlist entries:</strong> Retained until you unsubscribe or we email you that orders are open for you</li>
             </ul>
 
             <h2 style={{ color: '#1B2A4A', fontSize: 17, marginTop: 32 }}>5. Your Rights</h2>

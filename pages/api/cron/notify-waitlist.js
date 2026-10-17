@@ -1,3 +1,4 @@
+import { SERVICE_PRICE_DOLLARS } from '../../../lib/pricing';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
@@ -64,20 +65,20 @@ function buildEmail({ email, name, state, county, propertyAddress, daysLeft, isF
   const urgencyBg = { critical: '#FEE8E7', urgent: '#FEF9E7', warning: '#FFFDE7', normal: '#EEF3FB' };
 
   const subject = isFirstDay
-    ? `🎉 Your ${stateName} filing window just opened — file today!`
+    ? `🎉 Your ${stateName} appeal season just opened — check your home today`
     : daysLeft <= 3
-    ? `🚨 URGENT: Only ${daysLeft} days left to file your property tax protest`
+    ? `🚨 Only ${daysLeft} days left to appeal your property taxes`
     : daysLeft <= 7
-    ? `⏰ ${daysLeft} days left to file your ${stateName} property tax protest`
-    : `📅 Reminder: ${daysLeft} days remaining to file your protest`;
+    ? `⏰ ${daysLeft} days left to appeal your ${stateName} property taxes`
+    : `📅 Reminder: ${daysLeft} days left to appeal your property taxes`;
 
   const headline = isFirstDay
-    ? `Your Filing Window is Open!`
-    : `${daysLeft} Days Left to File`;
+    ? `Appeal Season is Open`
+    : `${daysLeft} Days Left to Appeal`;
 
   const message = isFirstDay
-    ? `Great news, ${h(firstName)}! The property tax protest filing window for ${location} just opened. You can now file your dispute and potentially save hundreds or thousands on your tax bill this year.`
-    : `Hi ${h(firstName)}, just a reminder that you have <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> left to file your property tax protest in ${location}. Don't let the deadline pass — filing takes about 4 minutes and could save you significant money.`;
+    ? `Hi ${h(firstName)}, the property tax appeal season for ${location} just opened. We check whether an appeal will actually lower your tax bill, after caps and exemptions, before you pay. If it won't, we tell you, and we won't sell you one.`
+    : `Hi ${h(firstName)}, just a reminder that you have <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> left to appeal your property taxes in ${location}. The check takes about two minutes and is free.`;
 
   return {
     subject,
@@ -130,19 +131,19 @@ function buildEmail({ email, name, state, county, propertyAddress, daysLeft, isF
       <div style="text-align:center;margin-bottom:28px;">
         <a href="${filingUrl}"
            style="display:inline-block;background:#1B3A6B;color:#fff;text-decoration:none;padding:16px 36px;border-radius:10px;font-size:16px;font-weight:600;letter-spacing:-0.2px;">
-          File My Protest Now — $89 →
+          Check my home — free →
         </a>
-        <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">Takes about 4 minutes. You won't be charged until your letter is ready.</p>
+        <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">If an appeal would lower your bill, the ready-to-sign kit is $89. If it wouldn't, you pay nothing.</p>
       </div>
 
       <!-- Why file -->
       <div style="border-top:1px solid #e2e8f0;padding-top:20px;">
-        <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:12px;">Why file this year?</div>
+        <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:12px;">How it works</div>
         ${[
-          ['💰', 'Flat $89 — we never take a percentage of your savings'],
-          ['✅', 'Tracked USPS mail, so you have a record that you filed on time'],
-          ['📬', 'You sign it, we mail it for you'],
-          ['🔒', '$89 flat fee, no percentage cuts'],
+          ['🔍', 'We check your bill before you pay: no case, no sale'],
+          ['📬', 'We mail you a ready-to-sign kit with a return envelope; you sign it and mail it'],
+          ['💰', `Flat $${SERVICE_PRICE_DOLLARS}, never a share of your savings`],
+          ['🛡️', "If the county doesn't lower your value, next year's kit is free"],
         ].map(([icon, text]) => `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;color:#475569;">
             <span>${icon}</span><span>${text}</span>
@@ -154,7 +155,7 @@ function buildEmail({ email, name, state, county, propertyAddress, daysLeft, isF
         <p style="font-size:12px;color:#94a3b8;margin:0;">
           Questions? <a href="mailto:customerservice@taxappealusa.com" style="color:#1B3A6B;text-decoration:none;">customerservice@taxappealusa.com</a>
           <br><br>
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${unsubToken(email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from filing reminders</a>
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taxappealusa.com'}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${unsubToken(email)}" style="color:#cbd5e1;font-size:11px;text-decoration:none;">Unsubscribe from these reminders</a>
         </p>
       </div>
     </div>
@@ -182,18 +183,18 @@ function buildCountyConfirmedEmail({ name, county, propertyAddress, daysLeft, fe
   const firstName = name ? name.split(' ')[0] : 'there';
   const feeLine = fee ? `$${(fee / 100).toFixed(0)}` : 'the county filing fee';
   return {
-    subject: `${county} County is confirmed — you can file now`,
+    subject: `${county} County is confirmed — we can prepare your petition kit`,
     html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#F4F7FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:560px;margin:40px auto;padding:0 16px 40px;">
   <div style="text-align:center;padding:24px 0 18px;"><span style="font-size:20px;font-weight:700;color:#0F1F3D;"><span style="color:#22c55e;">Tax</span>Appeal USA</span></div>
   <div style="background:#fff;border-radius:16px;padding:32px 34px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
     <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">${h(county)} County is confirmed</h1>
-    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — when you came to us earlier we could not file in ${h(county)} County, because the county had not confirmed the details we need to get a petition delivered correctly. That has now come back to us.</p>
-    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Their Value Adjustment Board filing fee is <strong>${h(feeLine)}</strong>${payableTo ? `, payable to ${h(payableTo)}` : ''}, and we have their petition mailing address confirmed. You can file.</p>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — when you came to us earlier we could not prepare a petition kit for ${h(county)} County, because the county had not confirmed the details we need to address it correctly. That has now come back to us.</p>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Their Value Adjustment Board filing fee is <strong>${h(feeLine)}</strong>${payableTo ? `, payable to ${h(payableTo)}` : ''} (you pay it to the county with a check in the kit; it is not part of our fee), and we have their petition address confirmed.</p>
     ${propertyAddress ? `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin:0 0 18px;"><div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Your property</div><div style="font-size:14px;color:#1e293b;">${h(propertyAddress)}</div></div>` : ''}
-    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 22px;"><strong>You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.</strong> Florida counts a petition as filed when it is physically received, so we stop accepting new filings while there is still enough time for yours to arrive.</p>
-    <div style="text-align:center;margin:0 0 8px;"><a href="https://www.taxappealusa.com/apply" style="display:inline-block;background:#C9A84C;color:#0F1F3D;font-weight:700;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:8px;">File my petition &rarr;</a></div>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 22px;"><strong>You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.</strong> Florida counts a petition when the board receives it, so we stop selling kits while there is still time for yours to reach you and get back to the board.</p>
+    <div style="text-align:center;margin:0 0 8px;"><a href="https://www.taxappealusa.com/apply" style="display:inline-block;background:#C9A84C;color:#0F1F3D;font-weight:700;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:8px;">Check my petition &rarr;</a></div>
   </div>
   <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;line-height:1.6;">TaxAppeal USA · 3130 Sabine St, Ste B, Forest Hill, TX 76119<br/>You asked us to tell you when ${h(county)} County opened. This is that email.</p>
 </div></body></html>`,
@@ -209,10 +210,10 @@ function buildCountyMissedEmail({ name, county, propertyAddress }) {
 <div style="max-width:560px;margin:40px auto;padding:0 16px 40px;">
   <div style="text-align:center;padding:24px 0 18px;"><span style="font-size:20px;font-weight:700;color:#0F1F3D;"><span style="color:#22c55e;">Tax</span>Appeal USA</span></div>
   <div style="background:#fff;border-radius:16px;padding:32px 34px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-    <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">We could not file in ${h(county)} County this year</h1>
-    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — we said we would write to you either way, so here it is. ${h(county)} County did not confirm the details we need in time for us to get a petition delivered before this year's deadline, so we are not going to pretend otherwise or take your money at the last minute.</p>
+    <h1 style="margin:0 0 18px;font-size:21px;color:#0F1F3D;">We could not prepare a kit for ${h(county)} County this year</h1>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">Hi ${h(firstName)} — we said we would write to you either way, so here it is. ${h(county)} County did not confirm the details we need in time to send you a correctly addressed kit before this year's deadline, so we are not going to pretend otherwise or take your money at the last minute.</p>
     ${propertyAddress ? `<p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">This was for <strong>${h(propertyAddress)}</strong>.</p>` : ''}
-    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">You can still file the petition yourself directly with your county's Value Adjustment Board — you do not need us to do it, and the form (DR-486) is free from the Florida Department of Revenue. If you want to go that route, call your county clerk's VAB office and ask for the petition mailing address and the current filing fee. That is the same call we make.</p>
+    <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 16px;">You can still file a petition yourself with your county's Value Adjustment Board: the form (DR-486) is free from the Florida Department of Revenue. If you want to go that route, call your county clerk's VAB office and ask for the petition mailing address and the current filing fee. That is the same call we make.</p>
     <p style="font-size:15px;color:#334155;line-height:1.7;margin:0;">We have kept your details for next season and will write when the window opens, with ${h(county)} County confirmed by then. You were never charged.</p>
   </div>
   <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;line-height:1.6;">TaxAppeal USA · 3130 Sabine St, Ste B, Forest Hill, TX 76119</p>

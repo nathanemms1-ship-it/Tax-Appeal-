@@ -636,7 +636,7 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
             The {state.name} filing window is closed right now, so there is nothing that can be filed today.{datesCertain
               ? <> We start taking pre-orders in <strong style={{ color: C.navy, fontSize: 20 }}>{daysToPreOrder} days</strong>{preOrderOn ? ` on ${preOrderOn}` : ""}, and {state.name} filing opens{opensOn ? ` on ${opensOn}` : " after that"}.</>
-              : <> Pre-orders open about two months before your county starts accepting protests.</>} We have your address and your email — we will write to you the moment our filing window opens. Nothing to do until then.
+              : <> Pre-orders open about two months before your county starts accepting protests.</>} We have your address and your email — we will write to you the moment it opens. Nothing to do until then.
           </p>
         )}
         {(isTooClose || datesCertain) && (

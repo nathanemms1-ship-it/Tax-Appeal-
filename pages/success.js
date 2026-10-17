@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { SERVICE_PRICE_CENTS } from '../lib/pricing';
 
 import { C } from "../lib/theme";
 import LogoMark from '../components/LogoMark';
@@ -63,7 +64,7 @@ export default function Success() {
           window.gtag('event', 'purchase', {
             transaction_id: transactionId,
             currency: 'USD',
-            value: (data.amountPaid || 8900) / 100,
+            value: (data.amountPaid || SERVICE_PRICE_CENTS) / 100,
             items: [{
               item_id: 'property-tax-appeal',
               item_name: 'Property Tax Appeal Filing',
@@ -77,7 +78,7 @@ export default function Success() {
           if (gadsId && purchaseLabel) {
             window.gtag('event', 'conversion', {
               send_to: `${gadsId}/${purchaseLabel}`,
-              value: (data.amountPaid || 8900) / 100,
+              value: (data.amountPaid || SERVICE_PRICE_CENTS) / 100,
               currency: 'USD',
               transaction_id: transactionId,
             });
@@ -273,7 +274,7 @@ function KitSuccess({ session, sessionId }) {
         ) : null)}
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 15 }}>
           <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-          <span style={{ fontWeight: 700, color: C.darkNavy }}>{session?.free ? '$0.00 (free kit)' : `$${(((session && session.amountPaid) || 8900) / 100).toFixed(2)}`}</span>
+          <span style={{ fontWeight: 700, color: C.darkNavy }}>{session?.free ? '$0.00 (free kit)' : `$${(((session && session.amountPaid) || SERVICE_PRICE_CENTS) / 100).toFixed(2)}`}</span>
         </div>
       </div>
 

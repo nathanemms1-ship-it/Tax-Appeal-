@@ -87,8 +87,8 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/html');
   return res.status(200).send(page('Unsubscribed',
     `<h1>You’re unsubscribed</h1>
-     <p><strong>${email}</strong> will no longer receive filing-deadline reminders.</p>
-     <p style="margin-top:16px;">You will still get transactional email about any filing you have already paid for —
-     receipts, tracking, and the county’s decision.</p>
+     <p><strong>${email}</strong> will no longer receive appeal deadline reminders.</p>
+     <p style="margin-top:16px;">You will still get transactional email about any kit you have already paid for —
+     receipts, your kit’s delivery updates, and our question about what the county decided.</p>
      <p style="margin-top:20px;"><a href="https://www.taxappealusa.com">Return to TaxAppeal USA</a></p>`));
 }

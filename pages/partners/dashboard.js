@@ -613,7 +613,7 @@ export default function PartnerDashboard() {
       <footer style={{ background: C.darkNavy, padding: '20px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <p style={{ color: C.mutedGray, fontSize: 12 }}>© 2026 TaxAppeal USA · customerservice@taxappealusa.com</p>
         <div style={{ display: 'flex', gap: 16 }}>
-          {[['Partners', '/partners'], ['File an appeal', '/apply'], ['Terms', '/terms']].map(([l, h]) => (
+          {[['Partners', '/partners'], ['Check a property', '/apply'], ['Terms', '/terms']].map(([l, h]) => (
             <a key={h} href={h} style={{ color: C.mutedGray, fontSize: 12, textDecoration: 'none' }}>{l}</a>
           ))}
         </div>

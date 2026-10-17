@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Stripe from 'stripe';
 import { enforceRateLimit } from '../../lib/rateLimit';
 import { getSupabaseAdmin } from './supabase';
+import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
 
     const meta = session.metadata || {};
     const stateCode = (meta.stateCode || meta.ownerState || '').toUpperCase();
-    const totalPaid = session.amount_total || 8900;
+    const totalPaid = session.amount_total || SERVICE_PRICE_CENTS;
     // KIT ORDERS (GA, TX, FL) carry a kitKey in the metadata. The page
     // needs only to know it is one: nothing is signed online and nothing goes to
     // a county. The key itself points at the stored order and is not returned.

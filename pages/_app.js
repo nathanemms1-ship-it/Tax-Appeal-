@@ -6,6 +6,7 @@ import DisclaimerFooter from '../components/DisclaimerFooter'
 import WaitlistBanner from '../components/WaitlistBanner'
 import FL_COUNTY_FEES from '../lib/flCountyFees'
 import { cssVars } from '../lib/theme'
+import { SERVICE_PRICE_CENTS } from '../lib/pricing'
 
 /**
  * THE SITE-WIDE PRICE RANGE, DERIVED — NOT TYPED.
@@ -31,8 +32,8 @@ const CONFIRMED_FEES = Object.values(FL_COUNTY_FEES)
 // Kit model (16 Oct 2026): we charge $89 everywhere. A Florida owner pays the
 // county's VAB fee to the county directly; it is not part of our price, so the
 // published range is $89 and the fee table no longer widens it.
-const PRICE_RANGE_MIN = 8900
-const PRICE_RANGE_MAX = 8900
+const PRICE_RANGE_MIN = SERVICE_PRICE_CENTS
+const PRICE_RANGE_MAX = SERVICE_PRICE_CENTS
 void CONFIRMED_FEES
 const usd = (cents) => `$${(cents / 100).toFixed(0)}`
 

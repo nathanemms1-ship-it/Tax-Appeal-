@@ -97,7 +97,7 @@ const coverageBlock = () => `
 
 const partnerScriptBlock = (referralLink) => `
 <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA for my clients — they prepare your property tax appeal, you sign it, and they mail it for you. $89 plus your county's filing fee, and no percentage of your savings. Here's the link: ${escapeHtml(referralLink)}"</div>
+<div style="font-size:13px;color:#27500A;line-height:1.6;"><strong>What to tell your clients:</strong><br>"I use TaxAppeal USA. They check whether an appeal will actually lower your tax bill before you pay, and if it will, they mail you a ready-to-sign kit for a flat fee of $89 &mdash; you sign it and mail it yourself. In Florida the county's own filing fee is extra and paid to the county. Here's the link: ${escapeHtml(referralLink)}"</div>
 </div>`;
 
 /**
@@ -224,9 +224,9 @@ function couponBlock(perkCode) {
 <div style="background:#F0FBF4;border:1px solid #A7DFC0;border-radius:10px;padding:20px 24px;margin-bottom:20px;">
   <div style="font-size:11px;font-weight:700;color:#12694A;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your $20 coupon</div>
   <div style="font-size:22px;color:#0F5C40;font-weight:700;letter-spacing:0.06em;text-align:center;margin:10px 0 12px;">${escapeHtml(perkCode)}</div>
-  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Filing on your own property? Use it at checkout and pay <strong>$69 instead of $89</strong>.</p>
-  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Not filing this year? Give it to a client or a friend &mdash; it works for anyone, once, and it doesn&rsquo;t expire.</p>
-  <p style="font-size:13px;color:#4B6076;line-height:1.65;margin:0;">One thing to know: an order that uses your coupon doesn&rsquo;t also earn the $20 referral commission. <strong>The coupon is the $20</strong> &mdash; you&rsquo;re choosing to take it as a discount for whoever files instead of as a commission. It&rsquo;s one or the other, never both.</p>
+  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Appealing your own property? Use it at checkout and pay <strong>$69 instead of $89</strong>.</p>
+  <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 10px;">Not appealing this year? Give it to a client or a friend &mdash; it works for anyone, once, and it doesn&rsquo;t expire.</p>
+  <p style="font-size:13px;color:#4B6076;line-height:1.65;margin:0;">One thing to know: an order that uses your coupon doesn&rsquo;t also earn the $20 referral commission. <strong>The coupon is the $20</strong> &mdash; you&rsquo;re choosing to take it as a discount for whoever orders instead of as a commission. It&rsquo;s one or the other, never both.</p>
 </div>`;
 }
 
@@ -246,7 +246,7 @@ html: `<!DOCTYPE html>
 <div style="background:#fff;border-radius:16px;overflow:hidden;">
 <div style="background:#1B3A6B;padding:28px 36px;text-align:center;">
 <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;">Here's Your Referral Link</h1>
-<p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who files</p>
+<p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who orders a kit</p>
 </div>
 <div style="padding:32px 36px;">
 <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${escapeHtml(firstName || 'there')}, looks like you already have a TaxAppeal referral link tied to this email address — here it is again. Share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>
@@ -430,7 +430,7 @@ html: `<!DOCTYPE html>
 <div style="background:#fff;border-radius:16px;overflow:hidden;">
 <div style="background:#1B3A6B;padding:28px 36px;text-align:center;">
 <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;">Your Referral Link is Ready</h1>
-<p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who files</p>
+<p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Earn $20 for every client who orders a kit</p>
 </div>
 <div style="padding:32px 36px;">
 <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 20px;">Hi ${escapeHtml(firstName)}, welcome to the TaxAppeal partner program. Your unique referral link is below — share it with any homeowner whose property tax notice just arrived and you'll earn <strong>$20 for every completed order</strong>, paid monthly.</p>

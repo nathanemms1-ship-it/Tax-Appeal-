@@ -37,10 +37,28 @@ export const BANNED = [
   ['the only company', /\bthe only (?:company|service)\b/gi],
   ['mailing service', /\b(?:preparation and )?mailing service\b/gi],
   ['not filing yet', /\bnot filing (?:yet|in|\w+ appeals)\b/gi],
+  // Added 17 Oct 2026 after a sweep of partner pages and emails found wordings the
+  // list above missed ("We prepare and mail the filing to the correct county
+  // authority", "we collect it and pay the county on your client's behalf").
+  ['prepare and mail the filing', /\bprepare\w* and mail\w* (?:the|your|their) (?:filing|protest|appeal|petition|letter)/gi],
+  ["on someone's behalf", /\bon (?:their|your clients?'?s?|the (?:owner|homeowner)'?s?) behalf/gi],
+  ['mail it to the county authority', /\bmail\w* (?:the filing |it |them )?to the (?:correct )?county authority/gi],
+  ['$89 plus the county fee', /\$89 ?(?:\+|plus) (?:your |their |the )?county/gi],
+  ['we collect the fee', /\bwe collect (?:it|the (?:county(?:'s)? )?(?:filing )?fee)/gi],
+  ['our filing', /\bour (?:[\w-]+ ){0,3}filing\b/gi],
+  ['dispute letter', /\bdispute letter\b/gi],
+  ['clients file in', /\bclients? file in \d/gi],
 ];
 const NEGATION = /\b(?:not|never|don't|doesn't|won't|cannot|can't|no longer)\b[^.]{0,40}$/i;
 
-const SKIP_DIRS = new Set(['api', 'admin', 'node_modules']);
+// Emails, Stripe descriptions and rendered lib copy are customer-facing too (17 Oct
+// 2026: the partner emails and lib/floridaCities.js carried old claims this check
+// never read). Only admin pages and ops-only text are skipped.
+const SKIP_DIRS = new Set(['admin', 'node_modules']);
+const INTERNAL_ONLY = new Set([
+  'lib/appealAddresses.js', 'lib/healthChecks.js', 'lib/alertOps.js', 'lib/spendGuard.js', 'lib/heartbeat.js',
+  'pages/api/admin-health.js', 'pages/api/admin-guarantees.js', 'pages/api/get-orders.js', 'pages/api/cron/health-monitor.js',
+]);
 
 /*
  * THE FLORIDA FUNNEL joined the kit on 16 Oct 2026 (components/FlKitStep.js),
@@ -63,7 +81,8 @@ export const FILES = [
   path.join(root, 'lib/copy/kit.js'),
   path.join(root, 'lib/stats.js'),
   path.join(root, 'lib/stateService.js'),
-];
+  ...walk(path.join(root, 'lib')),
+].filter((f, i, all) => all.indexOf(f) === i && !INTERNAL_ONLY.has(path.relative(root, f)));
 // The rewritten "how to make sure it arrives on time" page keeps its old URL
 // (search history); the slug itself is not a claim.
 const KEPT_SLUG = /\/why-certified-mail-matters/g;
