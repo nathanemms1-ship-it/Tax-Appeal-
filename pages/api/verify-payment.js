@@ -1,20 +1,8 @@
 import crypto from 'crypto';
 import Stripe from 'stripe';
-import { Redis } from '@upstash/redis';
 import { enforceRateLimit } from '../../lib/rateLimit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-let redis = null;
-try {
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (redisUrl && redisToken) {
-    redis = new Redis({ url: redisUrl, token: redisToken });
-  }
-} catch (e) {
-  console.log("Redis init failed:", e.message);
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -35,27 +23,9 @@ export default async function handler(req, res) {
     }
 
     const meta = session.metadata || {};
-    let letter = null;
-    if (meta.letterKey && redis) {
-      try {
-        letter = await redis.get(meta.letterKey);
-        console.log("Letter retrieved from Redis:", meta.letterKey, "length:", letter?.length);
-      } catch (e) {
-        console.log("Redis letter retrieval failed:", e.message);
-      }
-    }
-
     const stateCode = (meta.stateCode || meta.ownerState || '').toUpperCase();
-    const isFL = stateCode === 'FL';
-    const vabFee = meta.vabFee ? parseInt(meta.vabFee, 10) : 0;
-    const vabPayableTo = meta.vabPayableTo || '';
-    const flSignatureName = meta.flSignatureName || '';
-    const flSignatureTimestamp = meta.flSignatureTimestamp || '';
-    const flAuthDate = meta.flAuthDate || '';
-    const isPreOrder = meta.isPreOrder === 'true';
-    const scheduledFileDate = meta.scheduledFileDate || null;
-    const totalPaid = session.amount_total || (8900 + vabFee);
-    // KIT ORDERS (GA, TX; 15 Oct 2026) carry a kitKey in the metadata. The page
+    const totalPaid = session.amount_total || 8900;
+    // KIT ORDERS (GA, TX, FL) carry a kitKey in the metadata. The page
     // needs only to know it is one: nothing is signed online and nothing goes to
     // a county. The key itself points at the stored order and is not returned.
     const isKit = typeof meta.kitKey === 'string' && /^kit:[A-Z]{2}:/.test(meta.kitKey);
@@ -66,15 +36,9 @@ export default async function handler(req, res) {
       email: session.customer_email || '',
       address: meta.address || '',
       county: meta.county || '',
-      assessedValue: meta.assessedValue || null,
       targetReduction: meta.targetReduction || null,
       savings: meta.savings || null,
       amountPaid: totalPaid,
-      // passwordHash was returned here and is NOT read by pages/success.js — the
-      // hash is consumed server-side by lib/fulfillOrder.js straight off the Stripe
-      // metadata. Returning it put a customer's password hash in a browser response
-      // (and in any client-side error report) for no functional reason.
-      //
       // transactionId replaces session_id in the GA4 / Google Ads purchase event.
       // session_id is a bearer token for this endpoint, and this endpoint returns
       // the customer's name, email and property address — so it was being handed to
@@ -85,25 +49,7 @@ export default async function handler(req, res) {
         .update(`txn:${session_id}`)
         .digest('hex')
         .slice(0, 24),
-      districtName: meta.districtName || null,
-      districtAddress: meta.districtAddress || null,
-      districtCity: meta.districtCity || null,
-      districtState: meta.districtState || null,
-      districtZip: meta.districtZip || null,
-      ownerStreet: meta.ownerStreet || null,
-      ownerCity: meta.ownerCity || null,
-      ownerState: meta.ownerState || null,
-      ownerZip: meta.ownerZip || null,
-      letter,
       stateCode,
-      isFL,
-      vabFee,
-      vabPayableTo,
-      flSignatureName,
-      flSignatureTimestamp,
-      flAuthDate,
-      isPreOrder,
-      scheduledFileDate,
       isKit,
       // A Georgia pre-sale: reserved now, built when the notice arrives.
       kitPresale: isKit && meta.kitPresale === 'true',

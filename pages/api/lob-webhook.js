@@ -1,11 +1,9 @@
 import crypto from 'crypto';
-import { deliveryConfirmationEmail } from './email-templates';
 import { getSupabaseAdmin } from './supabase';
 
 /**
  * Lob signs every webhook. Without verification anyone could POST a forged
- * "delivered" event with an arbitrary owner_email and make us email a delivery
- * confirmation, from our own domain, for a letter that was never mailed.
+ * "delivered" event and rewrite an order's mailing status.
  */
 function verifyLobSignature(req) {
   const secret = process.env.LOB_WEBHOOK_SECRET;
@@ -41,86 +39,34 @@ export default async function handler(req, res) {
     console.log('Event type:', eventType);
     console.log('Metadata:', JSON.stringify(metadata));
 
-    // Only handle delivery events
-    // Florida mails via the Lob CHECKS api (the VAB filing fee is a physical
-    // check; checks cannot be sent certified). Those emit check.* events, so the
-    // letter-only whitelist meant every single Florida webhook was discarded —
-    // FL customers never got a delivery confirmation and lob_status never advanced.
-    const deliveryEvents = [
-      'letter.delivered',
-      'letter.certified.mailed',
-      'letter.certified.in_transit',
-      'letter.certified.out_for_delivery',
-      'letter.certified.delivered',
-      'letter.certified.re_routed',
-      'letter.certified.returned_to_sender',
-      'check.mailed',
-      'check.in_transit',
-      'check.in_local_area',
-      'check.processed_for_delivery',
-      'check.delivered',
-      'check.re_routed',
-      'check.returned_to_sender',
-    ];
+    // Kits are mailed to the CUSTOMER as ordinary Lob letters (lib/kit/lobKit.js),
+    // so only letter.* tracking events can match an order.
+    const STATUS_BY_EVENT = {
+      'letter.mailed': 'mailed',
+      'letter.in_transit': 'in_transit',
+      'letter.in_local_area': 'in_transit',
+      'letter.processed_for_delivery': 'out_for_delivery',
+      'letter.delivered': 'delivered',
+      'letter.re-routed': 'needs_review',
+      'letter.returned_to_sender': 'needs_review',
+    };
 
-    if (!deliveryEvents.includes(eventType)) {
+    if (!STATUS_BY_EVENT[eventType]) {
       console.log('Ignoring event type:', eventType);
       return res.status(200).json({ received: true, action: 'ignored' });
     }
 
-    const ownerEmail = metadata?.owner_email;
-    const propertyAddress = metadata?.property_address;
-    const county = metadata?.county;
     const trackingNumber = lobObject?.tracking_number || null;
-
-    // Get district name from the letter's to address
-    // metadata.state_code is set by send-letter.js on the FL cheque payload. The old
-    // fallback appended "Appraisal District" unconditionally, which is the one thing
-    // Florida does not have — petitions go to the Clerk of the Value Adjustment Board.
-    const isFLMail = String(metadata?.state_code || '').toUpperCase() === 'FL';
-    const districtName = lobObject?.to?.name
-      || county + (isFLMail ? ' County Value Adjustment Board' : ' Appraisal District');
-
-    // Format delivery date
-    let deliveredDate = null;
-    if (event?.date_created) {
-      deliveredDate = new Date(event.date_created).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric'
-      });
-    }
 
     // ------------------------------------------------------------------
     // Persist the event.
     //
-    // Nothing here ever wrote to the database. save-order sets lob_status to
-    // 'dispatched' once at fulfillment and mailed_at was written NOWHERE in the
-    // repo — while /portal reads both to render the timeline and the USPS
-    // tracking link. So every customer's status froze at "dispatched" forever
-    // and the tracking number Lob hands us on each event was logged to Vercel
-    // and thrown away.
-    //
-    // This matters more for Florida than anywhere else: FL mails a check
-    // First-Class with no certified service and no return receipt, so these
-    // check.* events are the ONLY delivery evidence that exists for a state
-    // whose deadline is receipt, not postmark.
+    // Nothing here ever wrote to the database. lob_status was set once at
+    // fulfillment and mailed_at was written NOWHERE in the repo — while /portal
+    // reads both to render the timeline and the USPS tracking link. So every
+    // customer's status froze at "dispatched" forever and the tracking number Lob
+    // hands us on each event was logged to Vercel and thrown away.
     // ------------------------------------------------------------------
-    const STATUS_BY_EVENT = {
-      'check.mailed': 'mailed',
-      'letter.certified.mailed': 'mailed',
-      'check.in_transit': 'in_transit',
-      'letter.certified.in_transit': 'in_transit',
-      'check.in_local_area': 'in_transit',
-      'check.processed_for_delivery': 'out_for_delivery',
-      'letter.certified.out_for_delivery': 'out_for_delivery',
-      'check.delivered': 'delivered',
-      'letter.delivered': 'delivered',
-      'letter.certified.delivered': 'delivered',
-      'check.re_routed': 'needs_review',
-      'letter.certified.re_routed': 'needs_review',
-      'check.returned_to_sender': 'needs_review',
-      'letter.certified.returned_to_sender': 'needs_review',
-    };
-
     const lobId = lobObject?.id || null;
     const newStatus = STATUS_BY_EVENT[eventType];
 
@@ -134,16 +80,11 @@ export default async function handler(req, res) {
         if (newStatus === 'mailed') patch.mailed_at = event?.date_created || new Date().toISOString();
         // DELIVERED TIMESTAMP — added 6 Aug 2026 so transit time is measurable.
         //
-        // Lob's own Expected Delivery Date Range for a live first-class cheque is
-        // SEVEN TO FOURTEEN DAYS. lib/filingWindows.js currently bets a 12-day buffer
-        // against that, which leaves Lob's worst case two days past a deadline Florida
-        // satisfies by physical RECEIPT. The bet is deliberate and it is Nathan's, but
-        // it has to be reviewable against reality in the first week of the window.
-        //
-        // Without this column there is nothing to review: the row records that a piece
-        // was mailed and that it is now delivered, but not WHEN, so mailed_at ->
-        // delivered cannot be computed. One line here turns the buffer from a
-        // judgement into a measurement.
+        // Lob's own Expected Delivery Date Range for first-class mail is seven to
+        // fourteen days, and lib/kit/delivery.js bets a buffer against that before
+        // switching a kit to PDF-only. Without this column the row records that a
+        // piece was mailed and that it is now delivered, but not WHEN, so the buffer
+        // cannot be measured against reality.
         if (newStatus === 'delivered') patch.delivered_at = event?.date_created || new Date().toISOString();
 
         const { error } = await supabase
@@ -152,8 +93,8 @@ export default async function handler(req, res) {
           .eq('lob_letter_id', lobId);
 
         if (error) {
-          // Do not fail the webhook on a write error — Lob would retry and we
-          // would re-send the delivery email. Log loudly instead.
+          // Do not fail the webhook on a write error — Lob would retry the same
+          // event forever. Log loudly instead.
           console.error(`lob-webhook: DB update failed for ${lobId}:`, error.message);
         } else {
           console.log(`lob-webhook: ${lobId} -> ${newStatus}${trackingNumber ? ` (tracking ${trackingNumber})` : ''}`);
@@ -165,32 +106,7 @@ export default async function handler(req, res) {
       console.error(`lob-webhook: ${eventType} arrived with no object id — cannot match an order`);
     }
 
-    // Send delivery confirmation email if we have the customer's email.
-    // check.delivered was whitelisted above but was NOT in this condition, so a
-    // Florida customer's petition could arrive and they would never be told.
-    // Florida is the state where that email matters most: it is the only proof
-    // of receipt they will ever get.
-    if (ownerEmail && newStatus === 'delivered') {
-      const { subject, html, text } = deliveryConfirmationEmail({
-        customerName: metadata?.customer_name || '',
-        address: propertyAddress || '',
-        districtName,
-        deliveredDate,
-        trackingNumber,
-      });
-
-      const emailRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_API_SECRET || '' },
-        body: JSON.stringify({ to: ownerEmail, subject, html, text }),
-      });
-
-      const emailData = await emailRes.json();
-      console.log('Delivery email sent:', emailData);
-    }
-
-    // Log all tracking events for visibility
-    console.log(`Lob tracking event: ${eventType} for ${propertyAddress} — ${ownerEmail}`);
+    console.log(`Lob tracking event: ${eventType} for ${lobId || 'unknown'}`);
 
     return res.status(200).json({ received: true, eventType, action: 'processed' });
   } catch (err) {

@@ -36,22 +36,16 @@ export default async function handler(req, res) {
     county,
     trackingNumber,
     lobId,
-    sessionId,
-    letter,
     amountPaid,
     customerName,
     stateCode,
     // Dropped until 6 Aug 2026: without it the template cannot tell a queued
     // pre-order from a filed one and claimed "Has Been Filed" for both.
     orderStatus,
-    // The /success?session_id=... signing link. Forwarded, not rebuilt here: the
-    // caller knows the session id, and a parameter silently dropped in this file is
-    // exactly how stateCode and orderStatus were both lost before it.
-    signingUrl,
-    // Pre-sale receipts only: the private "enter your notice" link.
+    // Pre-sale receipts only: the private "enter your notice" link. Forwarded,
+    // not rebuilt here: a parameter silently dropped in this file is exactly how
+    // stateCode and orderStatus were both lost before it.
     noticeUrl,
-    vabFee,
-    scheduledFileDate,
     type = 'confirmation',
     subject: prebuiltSubject,
     html: prebuiltHtml,
@@ -61,10 +55,9 @@ export default async function handler(req, res) {
   if (!to) return res.status(400).json({ error: 'Missing recipient email' });
 
   try {
-    // If the caller already built the email (e.g. pages/api/lob-webhook.js passes
-    // { subject, html, text }), send it exactly as provided instead of rebuilding
-    // it from `type`. Without this, prebuilt delivery emails were discarded and a
-    // default confirmation email was sent with empty fields.
+    // If the caller already built the email ({ subject, html, text }), send it
+    // exactly as provided instead of rebuilding it from `type`. Without this, a
+    // prebuilt email was discarded and a default confirmation sent with empty fields.
     if (prebuiltHtml && prebuiltSubject) {
       const response = await resend.emails.send({
         from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
@@ -78,25 +71,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, id: response?.data?.id || response?.id });
     }
 
-    let subject, html;
-    if (type === 'delivery') {
-      const { deliveryEmailTemplate } = await import('./email-templates');
-      subject = '📬 Your Dispute Letter Has Been Delivered';
-      html = deliveryEmailTemplate({ firstName, trackingNumber, address, county, stateCode });
-    } else {
-      subject = confirmationSubject({ stateCode, orderStatus });
-      html = confirmationEmailTemplate({
-        firstName: firstName || (customerName || '').split(' ')[0] || 'there',
-        stateCode,
-        lastName,
-        address,
-        county,
-        trackingNumber,
-        lobId,
-        sessionId,
-        letter, amountPaid,
-        orderStatus, vabFee, scheduledFileDate, signingUrl, noticeUrl });
-    }
+    const subject = confirmationSubject({ stateCode, orderStatus });
+    const html = confirmationEmailTemplate({
+      firstName: firstName || (customerName || '').split(' ')[0] || 'there',
+      stateCode,
+      lastName,
+      address,
+      county,
+      trackingNumber,
+      lobId,
+      amountPaid,
+      orderStatus, noticeUrl });
 
     const emailPayload = {
       from: 'TaxAppeal USA <customerservice@taxappealusa.com>',
@@ -106,7 +91,7 @@ export default async function handler(req, res) {
       html,
     };
 
-    // BCC Trustpilot on confirmation emails only (not delivery notifications)
+    // BCC Trustpilot on confirmation emails only
     if (type === 'confirmation') {
       emailPayload.bcc = [TRUSTPILOT_BCC];
     }

@@ -148,9 +148,30 @@ const A = await import('../lib/attribution.js');
   t('apply.js no longer writes sessionStorage attribution by hand',
     !/sessionStorage\.setItem\(['"]taxappeal_utm/.test(apply),
     'a second writer is how the click id ended up inside the utm blob');
-  t('the checkout call carries the attribution',
-    /\.\.\.attributionPayload\(\)/.test(apply),
-    'THIS IS THE LINK THAT DID NOT EXIST — capture ran and nothing sent it');
+  /**
+   * RE-POINTED 17 Oct 2026. The checkout body used to be built in apply.js
+   * (`...attributionPayload()` in the letter checkout, now deleted). GA, TX and
+   * FL check out through the three kit components, so the link is now two hops:
+   * apply.js hands each one attribution={attributionPayload()}, and each one
+   * spreads it into the /api/checkout body.
+   *
+   * INJECTION: drop `...attribution,` from any kit, or the attribution= prop
+   * from any render -> FAILS naming the component.
+   */
+  for (const [file, tag] of [
+    ['components/GaKitStep.js', 'GaKitStep'],
+    ['components/FlKitStep.js', 'FlKitStep'],
+    ['components/TxKitCheckout.js', 'TxKitCheckout'],
+  ]) {
+    const kit = src(file);
+    const checkoutCall = kit.slice(kit.indexOf("fetch('/api/checkout'"));
+    t(`${tag}: the checkout call carries the attribution`,
+      kit.includes("fetch('/api/checkout'") && /body: JSON\.stringify\(\{\s*\.\.\.attribution,/.test(checkoutCall),
+      'THIS IS THE LINK THAT DID NOT EXIST — capture ran and nothing sent it');
+    t(`${tag}: takes attribution as a prop`, /export default function \w+\(\{[^)]*\battribution\b/.test(kit));
+    t(`apply.js passes attribution={attributionPayload()} to ${tag}`,
+      new RegExp(`<${tag}\\b[^>]*?attribution=\\{attributionPayload\\(\\)\\}`).test(apply));
+  }
 
   const florida = src('pages/florida.js');
   t('/florida uses the shared capture too', /captureAttribution\(/.test(florida));

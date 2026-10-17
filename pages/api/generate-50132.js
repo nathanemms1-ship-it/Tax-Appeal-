@@ -198,7 +198,7 @@ export default async function handler(req, res) {
      * the Texas branch was written. This route never read either one — the
      * words did not appear in the file. So every defect a Texas customer
      * reported was posted, received, and dropped: the condition exhibit existed
-     * only in scripts/tx/preview-protest.mjs and had never once reached a real
+     * only in a preview script (since deleted) and had never once reached a real
      * packet. Same shape as `pd.cadId` above — a field the sender sets and the
      * receiver never reads.
      */
@@ -305,15 +305,15 @@ export default async function handler(req, res) {
      * on a 2-hour TTL, handing the caller a `letterKey` and the markup. Three
      * things were wrong with that and they compounded.
      *
-     * 1. THE DOCUMENT WAS THE WRONG DOCUMENT. lib/tx/protestHtml.js renders an
-     *    HTML page titled as Form 50-132. That is the defect that got a Florida
+     * 1. THE DOCUMENT WAS THE WRONG DOCUMENT. The old lib/tx/protestHtml.js
+     *    (deleted Oct 2026) rendered an HTML page titled as Form 50-132. That is the defect that got a Florida
      *    petition refused at the Hillsborough front desk and again at
      *    Miami-Dade five days later. lib/tx/fill50132.js fills the
      *    Comptroller's own PDF and has since 15 Sept; nothing called it.
      *
      * 2. THE CACHE OUTLIVED NOTHING. A pre-order taken on 1 February is
      *    dispatched in April. A 2-hour TTL means the key is long gone, and
-     *    lib/fulfillOrder.js flips the row to needs_review and pages ops. The
+     *    the old fulfillment path flipped the row to needs_review. The
      *    document that survived would have been the wrong one anyway, built
      *    from February's roll against April's assessment.
      *
@@ -327,13 +327,8 @@ export default async function handler(req, res) {
      * doing what it was decided to do on 17 Sept — the packet is assembled at
      * filing time, not at purchase time.
      *
-     * WHAT STILL HAS TO HAPPEN, and it is a workflow decision rather than a
-     * code one: a Texas order currently reaches lib/fulfillOrder.js
-     * attemptMail(), which POSTs to /api/send-letter — the Lob route, which is
-     * FLORIDA ONLY by decision (Nathan hand-prints and hand-mails TX and GA).
-     * With no letter to find, that path now stops at needs_review instead of
-     * mailing a look-alike, which is the safe failure and not the finished one.
-     * The Texas dispatch path is the next piece.
+     * A Texas order is now a kit (15 Oct 2026): lib/kit/dispatchKit.js
+     * builds it from the stored kitKey order and mails it to the customer.
      */
 
     /**

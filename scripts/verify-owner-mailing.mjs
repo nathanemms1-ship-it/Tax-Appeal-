@@ -12,6 +12,10 @@
  *   "Direct all correspondence and the Board's determination to the property
  *    owner at the address above."
  *
+ * (17 Oct 2026: the letter pipeline — generate-dr486, save-order, finalize-order —
+ * is gone. The address now travels kit component -> checkout -> order row ->
+ * lib/kit/dispatchKit.js; sections 5, 6 and 8 follow it there.)
+ *
  * pages/api/generate-dr486.js has always taken those as separate parameters.
  * pages/apply.js filled both from the property, at three call sites, so a
  * landlord's county mail went to their tenant and a snowbird's went to a house
@@ -33,6 +37,9 @@
  * property's state must not.
  */
 import { readFileSync } from 'node:fs';
+import { register } from 'node:module';
+// lib/kit/dispatchKit.js imports without extensions, as the app does.
+register('./resolve-extensionless.mjs', import.meta.url);
 
 let pass = 0;
 const failures = [];
@@ -46,6 +53,14 @@ const { resolveOwnerMailing } = await import('../lib/ownerMailing.js');
 // in apply.js precisely BECAUSE that was the bug.
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 const apply = strip(readFileSync('pages/apply.js', 'utf8'));
+/**
+ * The three kit checkouts. Since 17 Oct 2026 these — not apply.js — build the
+ * /api/checkout body: GA, TX and FL are sold only as kits, and the letter
+ * pipeline that used to send ownerStreet from apply.js was deleted.
+ */
+const KIT_UIS = ['components/GaKitStep.js', 'components/FlKitStep.js', 'components/TxKitCheckout.js'];
+const kits = Object.fromEntries(KIT_UIS.map((f) => [f, strip(readFileSync(f, 'utf8'))]));
+const KIT_TAG = { 'components/GaKitStep.js': 'GaKitStep', 'components/FlKitStep.js': 'FlKitStep', 'components/TxKitCheckout.js': 'TxKitCheckout' };
 
 const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '33178' };
 
@@ -119,13 +134,33 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
   t('no call site still copies the property into the owner address fields',
     leftovers.length === 0, leftovers);
 
-  // Two since 14 Oct 2026: the third was the Georgia /api/generate-pt311a call,
-  // deleted with that route (Georgia is now a mailed kit; lib/kit/dispatchKit.js
-  // addresses it from the order row's owner_* columns).
-  const wired = [...apply.matchAll(/ownerStreet:\s*ownerMail\.street/g)].length;
-  t('both ownerStreet call sites read the resolved mailing address',
-    wired === 2,
-    `${wired} of 2 — the order row and the preview petition`);
+  for (const f of KIT_UIS) {
+    const left = [...kits[f].matchAll(/owner(Street|City|State|Zip):\s*property\??\.\w+/g)].map((m) => m[0]);
+    t(`${KIT_TAG[f]} does not copy the property into the owner address fields`, left.length === 0, left);
+  }
+
+  /**
+   * RE-POINTED 17 Oct 2026. This counted `ownerStreet: ownerMail.street` in
+   * apply.js (the order row and the preview petition). Both call sites were
+   * deleted with the letter pipeline; the order row is now written from the
+   * checkout body each kit component builds. So: every kit component must send
+   * all four owner fields from its ownerMail prop, and apply.js must hand each
+   * of them the shared resolver's answer.
+   *
+   * INJECTION: change any kit to `ownerStreet: property.street` -> FAILS twice
+   *   (the leftover sweep above and this one); drop ownerMail= from one render
+   *   in apply.js -> FAILS naming that component.
+   */
+  for (const f of KIT_UIS) {
+    const src = kits[f];
+    t(`${KIT_TAG[f]} sends all four owner fields from ownerMail`,
+      ['Street', 'City', 'State', 'Zip'].every((k) =>
+        new RegExp(`owner${k}:\\s*ownerMail\\??\\.${k.toLowerCase()}\\b`).test(src)));
+    t(`${KIT_TAG[f]} takes ownerMail as a prop rather than deriving its own`,
+      /export default function \w+\(\{[^)]*\bownerMail\b/.test(src) && !/resolveOwnerMailing|const ownerMail\s*=/.test(src));
+    const render = new RegExp(`<${KIT_TAG[f]}\\b[^>]*?ownerMail=\\{resolveOwnerMailing\\(account, property\\)\\}`);
+    t(`apply.js passes ownerMail={resolveOwnerMailing(account, property)} to ${KIT_TAG[f]}`, render.test(apply));
+  }
 
   /**
    * ==========================================================================
@@ -154,6 +189,12 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
     allDecls > 0 && derived === allDecls, `${derived} of ${allDecls} declarations`);
   t('and more than one scope needs it, so the resolver is genuinely shared',
     derived >= 2, derived);
+  // The kit renders call the resolver inline (ownerMail={resolveOwnerMailing(...)}),
+  // so they are not `const ownerMail` declarations; no OTHER expression may feed
+  // an ownerMail= prop.
+  const props = [...apply.matchAll(/ownerMail=\{([^}]*\)?)\}/g)].map((m) => m[1]);
+  t('every ownerMail= prop is the shared resolver',
+    props.length >= 3 && props.every((p) => p === 'resolveOwnerMailing(account, property)'), props);
 
   t('apply.js imports the resolver rather than defining its own',
     /import \{ resolveOwnerMailing \} from ['"]\.\.\/lib\/ownerMailing['"]/.test(apply));
@@ -163,12 +204,22 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
 // 6. THE DANGEROUS DIRECTION. An out-of-state owner must not move the filing.
 // ---------------------------------------------------------------------------
 {
-  t('stateCode still comes from the PROPERTY, not the mailing address',
-    /stateCode:\s*property\.state\s*\?/.test(apply),
-    'an owner in New York with a Florida rental would otherwise be filed under New York rules');
+  /**
+   * RE-POINTED 17 Oct 2026 from apply.js's `stateCode: property.state ?` (the
+   * deleted letter checkout). Each kit component now sends the state of the KIT
+   * it is, as a literal — and which kit renders is decided by the property's
+   * state in apply.js. Neither can be moved by a mailing address.
+   *
+   * INJECTION: `stateCode: ownerMail.state` in any kit -> FAILS.
+   */
+  for (const [f, sc] of [['components/GaKitStep.js', 'GA'], ['components/FlKitStep.js', 'FL'], ['components/TxKitCheckout.js', 'TX']]) {
+    t(`${KIT_TAG[f]} sends stateCode '${sc}' — the kit's state, not the owner's`,
+      new RegExp(`stateCode:\\s*'${sc}'`).test(kits[f]) && (kits[f].match(/stateCode:/g) || []).length === 1,
+      'an owner in New York with a Florida rental would otherwise be filed under New York rules');
+  }
 
-  t('no stateCode is taken from ownerMail',
-    !/stateCode:\s*ownerMail/.test(apply));
+  t('no stateCode is taken from ownerMail, in apply.js or any kit',
+    ![apply, ...Object.values(kits)].some((src) => /stateCode:\s*ownerMail/.test(src)));
 
   // The same trap one level down: the county and the filing window are property
   // facts. If either ever reads the mailing address the petition goes to the
@@ -203,28 +254,50 @@ const PROPERTY = { street: '10941 NW 43 LN', city: 'Doral', state: 'FL', zip: '3
 }
 
 // ---------------------------------------------------------------------------
-// 8. IT HAS TO SURVIVE TO THE PETITION. Three files downstream, none of which
-//    this change touched — which is the point: they were always correct.
+// 8. IT HAS TO SURVIVE TO THE KIT. checkout -> Stripe metadata -> the order
+//    row -> the kit printed at dispatch.
+//
+//    RE-POINTED 17 Oct 2026. This followed the letter: save-order wrote
+//    owner_street, finalize-order read it back for the mail-time re-render, and
+//    generate-dr486 printed it. All three were deleted. The live path is
+//    checkout (metadata) -> lib/fulfillOrder.js (the insert) -> dispatchKit's
+//    kitOrderFromRow (which builds the kit from the ROW at send time).
 // ---------------------------------------------------------------------------
 {
   const checkout = strip(readFileSync('pages/api/checkout.js', 'utf8'));
-  const saveOrder = strip(readFileSync('pages/api/save-order.js', 'utf8'));
-  const finalize = strip(readFileSync('pages/api/finalize-order.js', 'utf8'));
-  const dr486 = strip(readFileSync('pages/api/generate-dr486.js', 'utf8'));
+  const fulfil = strip(readFileSync('lib/fulfillOrder.js', 'utf8'));
   const cols = strip(readFileSync('lib/orderColumns.js', 'utf8'));
 
   t('checkout accepts ownerStreet', /ownerStreet/.test(checkout));
-  t('save-order writes it to owner_street', /owner_street:\s*ownerStreet/.test(saveOrder));
+  t('checkout carries all four owner fields into the session metadata',
+    ['Street', 'City', 'State', 'Zip'].every((k) => new RegExp(`owner${k}: owner${k} \\|\\| ''`).test(checkout)));
+  t('fulfillOrder writes them to owner_street / city / state / zip',
+    ['street', 'city', 'state', 'zip'].every((k) =>
+      new RegExp(`owner_${k}:\\s*m\\.owner${k[0].toUpperCase()}${k.slice(1)}\\b`).test(fulfil)));
   t('owner_street is a declared column — no migration was needed',
     /'owner_street'/.test(cols));
   t('property_address is a SEPARATE declared column',
     /'property_address'/.test(cols),
     'if these shared one column the mailing address would overwrite the parcel');
-  t('the mail-time re-render reads owner_street back',
-    /ownerStreet:\s*order\.owner_street/.test(finalize),
-    'without this the signed petition that actually posts loses the mailing address');
-  t('the petition prints it in its own Mailing Address field',
-    /Mailing Address/.test(dr486) && /Property Address/.test(dr486));
+
+  // EXECUTED, not matched: the kit is built from what kitOrderFromRow returns.
+  const { kitOrderFromRow, KIT_ROW_COLUMNS } = await import('../lib/kit/dispatchKit.js');
+  t('the dispatch read selects the owner_* columns',
+    ['owner_street', 'owner_city', 'owner_state', 'owner_zip'].every((c) => KIT_ROW_COLUMNS.includes(c)));
+  const built = kitOrderFromRow({
+    state_code: 'FL', county: 'Miami-Dade', customer_name: 'Pat Owner', customer_email: 'p@example.com',
+    owner_street: '88 Ocean Dr', owner_city: 'Brooklyn', owner_state: 'NY', owner_zip: '11201',
+    kit_order: {
+      property: { ...PROPERTY, county: 'Miami-Dade' },
+      owner: { street: PROPERTY.street, city: PROPERTY.city, state: 'FL', zip: PROPERTY.zip },
+    },
+  }, { addressLookup: () => null });
+  t('the mail-time kit takes the owner address from the order row',
+    built?.owner?.street === '88 Ocean Dr' && built.owner.city === 'Brooklyn' && built.owner.state === 'NY' && built.owner.zip === '11201',
+    built?.owner);
+  t('...and the PROPERTY on the kit is untouched by it',
+    built?.property?.street === PROPERTY.street && built.property.state === 'FL', built?.property);
+  t('...and the kit\'s filing state is the property\'s, not the owner\'s', built?.state === 'FL', built?.state);
 }
 
 // ---------------------------------------------------------------------------

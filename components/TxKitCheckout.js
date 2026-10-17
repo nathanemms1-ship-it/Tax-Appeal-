@@ -14,6 +14,8 @@
 import { useEffect, useState } from 'react';
 import { SERVICE_PRICE_DOLLARS } from '../lib/pricing';
 import { C } from '../lib/theme';
+import { normalizePerkCode } from '../lib/partnerPerk';
+import PartnerCodeField from './PartnerCodeField';
 
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, bg: C.bg, btn: C.navy, off: C.mutedGray, white: C.white, bad: C.red };
 const panel = { border: `1px solid ${K.line}`, borderRadius: 10, padding: 18, margin: '14px 0', background: K.white };
@@ -35,8 +37,30 @@ export const TX_NO_CASE_COPY = {
   no_packet: 'We could not build a protest for this property.',
 };
 
+/**
+ * THE HEARING DISCLOSURE, on the screen where the Texas kit is bought (17 Oct
+ * 2026: it lived on the old letter screen, which kit buyers never reached).
+ * verify-tx-form holds every element: boards' practice, not statute; the
+ * four-day s. 41.45(e-1) cure beside the dismissal risk; who gets the notice.
+ */
+function HearingNote() {
+  return (
+    <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>
+      <strong style={{ color: K.ink }}>Most protests never reach a hearing.</strong>{' '}
+      Your form asks the appraisal district for an informal conference, which is where most are settled.
+      If your district does set a hearing, it is yours to attend &mdash; in person, by phone or by video &mdash; or you can
+      deliver a sworn affidavit with your evidence before it begins. Appraisal review boards generally dismiss a protest
+      when the owner does neither, though Texas law lets you request a new hearing if you file a written statement showing
+      good cause within four days of the missed hearing. TaxAppeal does not attend hearings, and your appraisal district
+      sends the hearing notice to you, not to us.
+    </p>
+  );
+}
+
 export default function TxKitCheckout({ review, property, account, ownerMail, attribution = {}, refCode = '', perkCode = '', previewUrl = null }) {
   const [agreed, setAgreed] = useState(false);
+  // What the customer typed in the partner coupon field; `perkCode` seeds it.
+  const [perkInput, setPerkInput] = useState(perkCode || '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [waitlisted, setWaitlisted] = useState(false);
@@ -72,7 +96,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
           // every order; it stays wired so the record cannot silently break.
           txCautions: (review.cautions || []).map((c) => c.code),
           ownerStreet: ownerMail?.street, ownerCity: ownerMail?.city, ownerState: ownerMail?.state, ownerZip: ownerMail?.zip,
-          stateCode: 'TX', kitKey: review.kitKey, refCode, perkCode,
+          stateCode: 'TX', kitKey: review.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '',
         }),
       });
       const j = await r.json();
@@ -125,10 +149,12 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
           appraisal district, and email you a PDF copy of the full kit the same day. If it no longer does, we refund you in full before anything is mailed.
           You don&rsquo;t need to do anything until then.
         </p>
+        <HearingNote />
         <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.6, color: K.ink, cursor: 'pointer' }}>
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
           <span>I understand TaxAppeal USA prepares my protest and mails it to me. I sign and mail it myself; TaxAppeal USA does not file it, represent me or appear for me. If this year&rsquo;s values no longer show a case, I am refunded in full.</span>
         </label>
+        <PartnerCodeField value={perkInput} onChange={setPerkInput} />
         <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
           {busy ? 'Opening checkout\u2026' : `Reserve my protest kit \u2014 $${SERVICE_PRICE_DOLLARS}`}
         </button>
@@ -161,6 +187,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
         <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
         <span>I understand TaxAppeal USA prepares my protest and mails it to me. I sign and mail it myself; TaxAppeal USA does not file it, represent me or appear for me.</span>
       </label>
+      <PartnerCodeField value={perkInput} onChange={setPerkInput} />
       <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
         {busy ? 'Opening checkout…' : review?.delivery === 'pdf' ? `Get my protest kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my protest kit — $${SERVICE_PRICE_DOLLARS}`}
       </button>
@@ -168,6 +195,7 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
       <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>
         If the district doesn&rsquo;t lower your value, next year&rsquo;s kit is free.
       </p>
+      <HearingNote />
     </div>
   );
 }

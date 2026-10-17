@@ -1074,31 +1074,6 @@ export default function Admin() {
   };
 
   /**
-   * Read a full petition on /apply without buying one.
-   *
-   * The blur on the preview is the paywall, and it is also why two real defects
-   * survived until a mailed PDF proof exposed them on 12 Aug. The old way to lift
-   * it — NEXT_PUBLIC_PREVIEW_UNBLURRED — unblurs for every visitor and has to be
-   * remembered back off. This unlocks THIS browser for 8 hours and then lapses on
-   * its own. Works for every state, not just Florida.
-   */
-  const [previewMsg, setPreviewMsg] = useState('');
-  const togglePreview = async (unlock) => {
-    setPreviewMsg('');
-    try {
-      const res = await fetch('/api/preview-unlock', {
-        method: unlock ? 'POST' : 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: unlock ? JSON.stringify({ password }) : undefined,
-      });
-      const data = await res.json();
-      setPreviewMsg(data.error ? `✗ ${data.error}` : `✓ ${data.note}`);
-    } catch (e) {
-      setPreviewMsg('✗ Failed to reach the server');
-    }
-  };
-
-  /**
    * RE-READ THE ACTIVE TAB WHEN THE OPERATOR COMES BACK TO IT.
    *
    * This page had NO useEffect at all. Nothing ran on mount, nothing ran on focus,
@@ -1159,32 +1134,26 @@ export default function Admin() {
   });
 
   /**
-   * `needs_review` orders belong in this panel — widened 11 Aug 2026.
+   * Kits the system has not sent yet: `kit_queued` (the hourly cron retries these)
+   * and `needs_review` (a rule or Lob refused the kit; the cron does not retry it,
+   * so Process Now is the only way back once the cause is fixed).
    *
-   * This filter was `=== 'queued'`, which meant an order that failed a mail attempt
-   * and was written to `needs_review` vanished from the only screen an operator
-   * looks at. It was also refused by /api/process-order-now, so a paid order could
-   * end up with no route back into the system short of editing the row by hand.
-   *
-   * They sort to the top rather than by date: an order the system has already given
-   * up on is more urgent than one still waiting for its window to open.
+   * needs_review sorts to the top: an order the system has given up on is more
+   * urgent than one still in the retry queue.
    */
-  const DISPATCHABLE_STATUSES = ['queued', 'needs_review'];
+  const DISPATCHABLE_STATUSES = ['kit_queued', 'needs_review'];
   const queuedOrders = [...orders]
     .filter(o => DISPATCHABLE_STATUSES.includes(o.dispute_status))
     .sort((a, b) => {
       const aBad = a.dispute_status === 'needs_review' ? 0 : 1;
       const bBad = b.dispute_status === 'needs_review' ? 0 : 1;
       if (aBad !== bBad) return aBad - bBad;
-      // Then a failing order ahead of a healthy one, then oldest first.
-      const aErr = a.last_dispatch_error ? 0 : 1;
-      const bErr = b.last_dispatch_error ? 0 : 1;
-      if (aErr !== bErr) return aErr - bErr;
+      // Then oldest first.
       return new Date(a.created_at) - new Date(b.created_at);
     });
 
   const handleProcessNow = async (orderId) => {
-    if (!confirm('Dispatch this order now? This will mail the letter immediately.')) return;
+    if (!confirm('Dispatch this kit now? This sends it to the customer immediately.')) return;
     setProcessingId(orderId);
     setProcessResults(prev => ({ ...prev, [orderId]: null }));
     try {
@@ -1195,7 +1164,7 @@ export default function Admin() {
       });
       const data = await res.json();
       if (data.success) {
-        setProcessResults(prev => ({ ...prev, [orderId]: { success: true, trackingNumber: data.trackingNumber } }));
+        setProcessResults(prev => ({ ...prev, [orderId]: { success: true, status: data.status, letterId: data.letterId } }));
         fetchOrders();
       } else {
         setProcessResults(prev => ({ ...prev, [orderId]: { success: false, error: data.error } }));
@@ -1306,11 +1275,11 @@ export default function Admin() {
             ))}
           </div>
 
-          {/* Queued Pre-Orders */}
+          {/* Kits waiting to be sent */}
           <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 28 }}>
             <div style={{ padding: "16px 20px", borderBottom: `1.5px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>🎟️ Queued Pre-Orders</div>
-              <div style={{ fontSize: 12, color: C.mutedGray }}>{queuedOrders.length} waiting on a filing window</div>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy }}>🎟️ Kits Not Yet Sent</div>
+              <div style={{ fontSize: 12, color: C.mutedGray }}>{queuedOrders.length} queued or needing review</div>
             </div>
             <table>
               <thead>
@@ -1319,21 +1288,15 @@ export default function Admin() {
                   <th>Customer</th>
                   <th>Property</th>
                   <th>State / County</th>
-                  <th>Scheduled File Date</th>
-                  <th>Opens In</th>
-                  {/* Added 11 Aug 2026. Every dispatch failure used to be a console
-                      line in Vercel; this table showed a normal-looking row with a
-                      button that returned the same error every hour. */}
-                  <th>Dispatch</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {queuedOrders.length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign: "center", padding: "32px", color: C.mutedGray }}>No queued pre-orders</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: "center", padding: "32px", color: C.mutedGray }}>No kits waiting</td></tr>
                 ) : (
                   queuedOrders.map(order => {
-                    const daysUntil = order.scheduled_file_date ? Math.ceil((new Date(order.scheduled_file_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     const result = processResults[order.id];
                     return (
                       <tr key={order.id} style={{ cursor: "default" }}>
@@ -1344,25 +1307,12 @@ export default function Admin() {
                         </td>
                         <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.property_address || '—'}</td>
                         <td>{[order.state_code, order.county].filter(Boolean).join(' / ') || '—'}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>{order.scheduled_file_date ? formatDate(order.scheduled_file_date) : '—'}</td>
-                        <td style={{ whiteSpace: "nowrap", color: daysUntil !== null && daysUntil <= 0 ? C.green : C.bodyGray, fontWeight: daysUntil !== null && daysUntil <= 0 ? 700 : 400 }}>
-                          {daysUntil === null ? '—' : daysUntil <= 0 ? 'Window open' : `${daysUntil} days`}
-                        </td>
                         <td style={{ maxWidth: 260 }}>
-                          {order.dispute_status === 'needs_review' && (
-                            <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 3 }}>NEEDS REVIEW</div>
+                          {order.dispute_status === 'needs_review' ? (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: C.red }}>NEEDS REVIEW</div>
+                          ) : (
+                            <span style={{ fontSize: 11, color: C.mutedGray }}>Queued for the hourly retry</span>
                           )}
-                          {order.dispatch_attempts ? (
-                            <div style={{ fontSize: 11, color: order.dispatch_attempts >= 12 ? C.red : '#B7791F', fontWeight: 600 }}>
-                              {order.dispatch_attempts} failed attempt{order.dispatch_attempts === 1 ? '' : 's'}
-                              {order.dispatch_attempts >= 12 ? ' · parked, not retrying' : ''}
-                            </div>
-                          ) : null}
-                          {order.last_dispatch_error ? (
-                            <div title={order.last_dispatch_error} style={{ fontSize: 11, color: C.mutedGray, lineHeight: 1.4, marginTop: 2, maxHeight: 34, overflow: 'hidden' }}>
-                              {order.last_dispatch_error}
-                            </div>
-                          ) : (!order.dispatch_attempts && order.dispute_status === 'queued' ? <span style={{ fontSize: 11, color: C.mutedGray }}>—</span> : null)}
                         </td>
                         <td>
                           <button
@@ -1374,7 +1324,7 @@ export default function Admin() {
                           </button>
                           {result && (
                             <div style={{ fontSize: 11, marginTop: 4, color: result.success ? C.green : C.red, maxWidth: 160 }}>
-                              {result.success ? `✓ Filed${result.trackingNumber ? ' · ' + result.trackingNumber : ''}` : `✗ ${result.error}`}
+                              {result.success ? `✓ ${result.status === 'kit_emailed' ? 'Emailed' : 'Mailed'}${result.letterId ? ' · ' + result.letterId : ''}` : `✗ ${result.error}`}
                             </div>
                           )}
                         </td>
@@ -1489,9 +1439,6 @@ export default function Admin() {
                 <div>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: C.mutedGray, marginBottom: 10, fontWeight: 500 }}>Filing</div>
                   {[
-                    ["District", selectedOrder.district_name],
-                    ["District Address", selectedOrder.district_address],
-                    ["City/State/Zip", [selectedOrder.district_city, selectedOrder.district_state, selectedOrder.district_zip].filter(Boolean).join(', ')],
                     ["Lob Letter ID", selectedOrder.lob_letter_id],
                     ["Tracking #", selectedOrder.lob_tracking_number],
                     ["Mail Status", selectedOrder.lob_status],
@@ -1553,26 +1500,6 @@ export default function Admin() {
             <FunnelView data={funnelData} loading={funnelLoading} error={funnelError} onRetry={fetchFunnel} onWindowChange={(days) => fetchFunnel(null, days)} />
           )}
 
-          {/* Operator tools. Deliberately at the bottom and visually quiet — used
-              rarely, and nothing here should compete with the order list. */}
-          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", color: C.mutedGray, marginBottom: 8 }}>Operator tools</div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <button onClick={() => togglePreview(true)}
-                style={{ background: C.white, color: C.darkNavy, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                🔓 Unlock petition preview (8h)
-              </button>
-              <button onClick={() => togglePreview(false)}
-                style={{ background: "transparent", color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                Re-blur
-              </button>
-              <span style={{ fontSize: 12, color: C.bodyGray }}>{previewMsg}</span>
-            </div>
-            <div style={{ fontSize: 12, color: C.mutedGray, marginTop: 8, lineHeight: 1.6, maxWidth: 640 }}>
-              Shows the complete petition on <code>/apply</code> in <strong>this browser only</strong>, for any state,
-              so a document can be reviewed without buying one. Customers are unaffected and it expires by itself.
-            </div>
-          </div>
         </div>
       )}
     </>

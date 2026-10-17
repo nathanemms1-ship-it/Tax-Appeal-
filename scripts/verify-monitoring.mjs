@@ -10,14 +10,15 @@
  * file has to cover, because no other test will.
  *
  * What is asserted:
- *   1. LOB_BANK_ACCOUNT_ID is in the required-env list at critical severity.
+ *   1. (retired 17 Oct 2026 — LOB_BANK_ACCOUNT_ID fed the Florida Lob cheque in
+ *      send-letter.js, deleted with the letter pipeline.)
  *   2. checkSalesGate returns CRITICAL for the split-brain state specifically —
  *      public says open, server says closed — and not merely for "off".
  *   3. Heartbeat staleness thresholds exceed each job's schedule in vercel.json,
  *      so ordinary jitter cannot produce a false "cron is dead".
- *   4. The filing-deadline check treats `isOpen && !canFile` as the critical case,
- *      because that is the transition after which process-queued-orders stops
- *      selecting an order permanently and without logging anything.
+ *   4. (retired 17 Oct 2026 — checkFilingDeadlines watched the letter queue that
+ *      process-queued-orders gated on canFile. Kits are gated at checkout instead:
+ *      flSellability and dispatchKit's deliveryMode, covered by the kit suites.)
  */
 
 import { readFileSync } from 'node:fs';
@@ -45,18 +46,7 @@ let pass = 0;
 const failures = [];
 const t = (name, cond, got) => (cond ? pass++ : failures.push(got === undefined ? name : `${name} — got: ${JSON.stringify(got)}`));
 
-// ── 1. LOB_BANK_ACCOUNT_ID is watched ─────────────────────────────────────────
-// send-letter.js puts this straight into the Lob cheque payload. Unset, it becomes
-// `bank_account: undefined`, Lob rejects, and no Florida petition mails.
 const healthSrc = read('lib/healthChecks.js');
-const sendLetterSrc = read('pages/api/send-letter.js');
-
-t('send-letter still reads LOB_BANK_ACCOUNT_ID (if not, this check is stale)',
-  sendLetterSrc.includes('process.env.LOB_BANK_ACCOUNT_ID'));
-t('LOB_BANK_ACCOUNT_ID is in REQUIRED_ENV',
-  healthSrc.includes("key: 'LOB_BANK_ACCOUNT_ID'"));
-t('LOB_BANK_ACCOUNT_ID is critical, not warn',
-  /LOB_BANK_ACCOUNT_ID'[^}]*sev: 'critical'/.test(healthSrc));
 
 // ── 2. Sales gate, including split brain ──────────────────────────────────────
 const { checkSalesGate } = await import('../lib/healthChecks.js');
@@ -131,27 +121,9 @@ t('heartbeat: process-queued-orders does NOT stamp from its catch block',
 t('heartbeat: process-queued-orders stamps on the sales-paused path',
   /sales_paused[\s\S]{0,400}stampHeartbeat|stampHeartbeat[\s\S]{0,200}sales_paused/.test(pqoSrc));
 
-// ── 4. Filing deadlines: the permanent-skip transition ────────────────────────
-// process-queued-orders gates on canFile === isOpen && !tooClose, and `continue`s
-// without logging when it fails. Once tooClose flips, that order is never selected
-// again — paid, queued, and in Florida unrecoverable because the deadline is receipt.
-const cronSrc = read('pages/api/cron/process-queued-orders.js');
-t('deadline check premise: the cron still gates on canFile',
-  cronSrc.includes('windowStatus.canFile'));
-// Pinned the literal `missed.length || urgent.length` at first, which broke the day a
-// third bucket (stale — season closed) was ORed in between them, even though the thing
-// being asserted was still true. Assert that `missed` reaches critical, not the exact
-// shape of the expression around it.
-t('deadline check treats window-open-but-not-fileable as critical',
-  /!w\.canFile/.test(healthSrc) &&
-  /if \([^)]*\bmissed\.length\b[^)]*\)\s*return result\('Filing deadlines', 'critical'/.test(healthSrc));
-t('deadline check excludes reversed payments, matching the cron',
-  /refunded[\s\S]{0,80}partially_refunded[\s\S]{0,80}disputed/.test(
-    healthSrc.slice(healthSrc.indexOf('checkFilingDeadlines'))));
-
-// All three new checks must actually be wired into runAllChecks, or they are inert.
+// The surviving checks must actually be wired into runAllChecks, or they are inert.
 const runAll = healthSrc.slice(healthSrc.indexOf('export async function runAllChecks'));
-for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines']) {
+for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkStuckOrders']) {
   t(`runAllChecks includes ${fn}`, runAll.includes(fn));
 }
 
@@ -173,10 +145,7 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
   // A static buffer is a judgement call. Lob gives a real estimate per piece, so the
   // mailing path must compare against the actual deadline rather than trust the guess.
   t('getFilingWindowStatus exposes the hard deadline', /hardDeadline,/.test(fw));
-  const sl = read('pages/api/send-letter.js');
-  t('send-letter reads Lob per-piece expected delivery', /expected_delivery_date/.test(sl));
-  t('it compares that against the hard deadline', /expectedDate > ws\.hardDeadline/.test(sl));
-  t('a late-arriving petition pages a human', /may arrive AFTER the filing deadline/.test(sl));
+  // The send-letter per-piece Lob ETA checks were removed with send-letter.js.
 
   // The customer-facing delivery claim is asserted in verify-emails.mjs, which
   // RENDERS the template — grepping this source matches the explanatory comments
@@ -184,220 +153,40 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
 }
 
 /**
- * ── 4a-bis. THE LOB KEY AND THE BANK ACCOUNT MUST BE THE SAME ENVIRONMENT ─────
+ * ── 4a-bis. A LOB TEST KEY IN PRODUCTION IS CRITICAL ──────────────────────────
  *
- * Found live on 12 Aug: LOB_BANK_ACCOUNT_ID held a TEST bank account in production.
- * Nothing had ever exercised it — send-letter.js passes bank_account only on the
- * Florida path (/v1/checks); Texas and Georgia use /v1/letters and need none, and
- * the only order ever mailed was Georgian. On 24 August every Florida dispatch
- * would have failed with "bank account not found".
+ * The bank-account half of this block went with send-letter.js (the Florida Lob
+ * cheque was its only consumer). What remains live: kits ship through Lob, and a
+ * test key records them as mailed while nothing leaves the building.
  *
- * checkLob proved the KEY worked and stopped there. Existence and verification of
- * the bank account can only be answered by Lob, per environment.
- *
- * Asserted behaviourally with a stubbed Lob, because the failure is a specific
- * status code producing a specific severity — not a string being present.
+ * INJECTION: return 'ok' for a test_ key in checkLob -> FAILS.
  */
 {
   const { checkLob } = await import('../lib/healthChecks.js');
 
-  const withLob = async ({ key, bankId, bankStatus = 200, bankBody = { verified: true } }, fn) => {
+  const withLob = async ({ key, status = 200 }, fn) => {
     const realFetch = globalThis.fetch;
     const realKey = process.env.LOB_API_KEY;
-    const realBank = process.env.LOB_BANK_ACCOUNT_ID;
-    process.env.LOB_API_KEY = key;
-    if (bankId === undefined) delete process.env.LOB_BANK_ACCOUNT_ID;
-    else process.env.LOB_BANK_ACCOUNT_ID = bankId;
-    globalThis.fetch = async (url) => String(url).includes('/bank_accounts/')
-      ? { ok: bankStatus === 200, status: bankStatus, json: async () => bankBody }
-      : { ok: true, status: 200, json: async () => ({ data: [] }) };
+    if (key === undefined) delete process.env.LOB_API_KEY; else process.env.LOB_API_KEY = key;
+    globalThis.fetch = async () => ({ ok: status === 200, status, json: async () => ({ data: [] }) });
     try { return await fn(); } finally {
       globalThis.fetch = realFetch;
       if (realKey === undefined) delete process.env.LOB_API_KEY; else process.env.LOB_API_KEY = realKey;
-      if (realBank === undefined) delete process.env.LOB_BANK_ACCOUNT_ID; else process.env.LOB_BANK_ACCOUNT_ID = realBank;
     }
   };
 
-  const mismatch = await withLob({ key: 'live_abc', bankId: 'bank_test_one', bankStatus: 404 }, () => checkLob());
-  t('a bank account missing from the key\'s Lob environment is CRITICAL',
-    mismatch.status === 'critical' && /does not exist in Lob's live environment/.test(mismatch.detail || ''));
+  const good = await withLob({ key: 'live_abc' }, () => checkLob());
+  t('a live, accepted Lob key reads OK', good.status === 'ok', good);
 
-  const unverified = await withLob({ key: 'live_abc', bankId: 'bank_x', bankBody: { verified: false } }, () => checkLob());
-  t('an unverified bank account is CRITICAL, not OK',
-    unverified.status === 'critical' && /NOT VERIFIED/.test(unverified.detail || ''));
+  const testMode = await withLob({ key: 'test_abc' }, () => checkLob());
+  t('a test key is CRITICAL even when Lob accepts it',
+    testMode.status === 'critical' && /TEST MODE/.test(testMode.detail || ''), testMode);
 
-  const missing = await withLob({ key: 'live_abc', bankId: undefined }, () => checkLob());
-  t('an unset LOB_BANK_ACCOUNT_ID is CRITICAL',
-    missing.status === 'critical' && /not set/.test(missing.detail || ''));
+  const rejected = await withLob({ key: 'live_abc', status: 401 }, () => checkLob());
+  t('a rejected Lob key is CRITICAL', rejected.status === 'critical', rejected);
 
-  const good = await withLob({ key: 'live_abc', bankId: 'bank_ok' }, () => checkLob());
-  t('a live key with a present, verified bank account reads OK',
-    good.status === 'ok' && /present and verified/.test(good.detail || ''));
-
-  const testMode = await withLob({ key: 'test_abc', bankId: 'bank_ok' }, () => checkLob());
-  t('a test key is still CRITICAL even when its bank account is fine',
-    testMode.status === 'critical' && /TEST MODE/.test(testMode.detail || ''));
-}
-
-/**
- * ── 4c. "NOT OPEN YET" AND "CLOSED FOR THE SEASON" ARE NOT THE SAME THING ─────
- *
- * getFilingWindowStatus reports `isOpen: false` for both, and checkFilingDeadlines
- * counted both as `waiting` — printed to the operator as "waiting on a window that
- * has not opened yet (safe)". So a paid, signed, PERMANENTLY UNFILEABLE order was
- * reported as healthy by the one check written to catch that exact condition, while
- * process-queued-orders hit `!canFile` and did `continue` every hour in silence.
- *
- * Found on a real Cherokee County, GA order created 23 June 2026 — eight days after
- * Cherokee's 15 June close — which had been invisible for seven weeks.
- *
- * Asserted behaviourally, against the real numbers, because the string "waiting"
- * appearing in the file proves nothing about which bucket a row lands in.
- */
-{
-  /**
-   * CALL THE REAL FUNCTION. The first version of this block reimplemented the
-   * bucketing locally and asserted on its own copy — so neutering the actual branch
-   * in healthChecks.js changed nothing and the test still passed. That is the same
-   * tautology recorded against an earlier check in this project: comparing a value
-   * against the helper that produces it proves only that arithmetic works.
-   *
-   * So: stub Supabase's response, invoke checkFilingDeadlines() itself, and assert on
-   * what the operator would actually see.
-   */
-  const { checkFilingDeadlines } = await import('../lib/healthChecks.js');
-
-  const withStubbedOrders = async (rows, fn) => {
-    const realFetch = globalThis.fetch;
-    const realUrl = process.env.SUPABASE_URL;
-    const realKey = process.env.SUPABASE_SERVICE_KEY;
-    process.env.SUPABASE_URL = 'https://stub.invalid';
-    process.env.SUPABASE_SERVICE_KEY = 'stub';
-    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => rows });
-    try { return await fn(); } finally {
-      globalThis.fetch = realFetch;
-      if (realUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = realUrl;
-      if (realKey === undefined) delete process.env.SUPABASE_SERVICE_KEY; else process.env.SUPABASE_SERVICE_KEY = realKey;
-    }
-  };
-
-  // The real row: Cherokee County GA, bought 23 June 2026, eight days after Cherokee's
-  // 15 June close. Its next window is ~295 days out and we sell 60 days ahead.
-  const stale = await withStubbedOrders(
-    [{ id: 'cherokee-fixture', county: 'Cherokee', state_code: 'GA', payment_status: 'paid', created_at: '2026-06-23T15:37:59Z' }],
-    () => checkFilingDeadlines(),
-  );
-  t('an order whose season has closed is reported CRITICAL, not as safely waiting',
-    stale.status === 'critical' && /SEASON THEY BOUGHT HAS CLOSED/.test(stale.detail || ''));
-  t('a closed-season order is not counted in the safe waiting tally',
-    !/1 waiting on a window that has not opened yet/.test(stale.detail || ''));
-
-  /**
-   * Only worth having if it stays quiet for a legitimate pre-order — otherwise it
-   * is noise on every order taken inside its pre-order window.
-   *
-   * ==========================================================================
-   * THE FIXTURE IS DERIVED FROM THE WINDOW, NOT FROM `new Date()`
-   * ==========================================================================
-   * This used to be a Broward order stamped `new Date()`, which asserted that a
-   * Florida order placed *today* reads as safely waiting. That was true in
-   * August, when Florida had not opened. It stopped being true on 7 September
-   * 2026: the window is open until the 18th, but daysUntilHard (11) is below
-   * minDays (12), so `canFile` is false and the order correctly lands in the
-   * `missed` bucket. The check was right and the fixture had expired — the same
-   * failure the FL window assertions had on 2 September, for the same reason.
-   *
-   * A fixture whose meaning depends on today's date is not a guard, it is a
-   * timer. So: find a state whose window is currently CLOSED, and stamp the
-   * order 30 days before that window's next opening — comfortably inside
-   * PRE_ORDER_DAYS (60). That is a legitimate pre-order by construction, in any
-   * month of any year.
-   *
-   * INJECTION: count a not-yet-open window as stale -> FAILS.
-   */
-  const { FILING_WINDOWS, getFilingWindowStatus } = await import('../lib/filingWindows.js');
-  const closedState = Object.keys(FILING_WINDOWS)
-    .map((st) => [st, getFilingWindowStatus(st, null, { strict: true })])
-    .find(([, w]) => w && !w.isOpen && w.openDate);
-
-  if (!closedState) {
-    // Every season open at once should be impossible with these five states. If it
-    // ever happens, this fixture needs rethinking rather than quietly passing.
-    t('a closed season exists to build the pre-order fixture from', false);
-  } else {
-    const [st, w] = closedState;
-    const created = new Date(new Date(w.openDate).getTime() - 30 * 24 * 60 * 60 * 1000);
-    const fresh = await withStubbedOrders(
-      [{ id: 'preorder-fixture', county: null, state_code: st, payment_status: 'paid', created_at: created.toISOString() }],
-      () => checkFilingDeadlines(),
-    );
-    t('an order placed inside its pre-order window still reads as safely waiting',
-      fresh.status === 'ok' && /waiting on a window that has not opened yet/.test(fresh.detail || ''));
-  }
-
-  const health = read('lib/healthChecks.js');
-  t('the season-missed bucket is wired into the deadline check',
-    /const stale = \[\]/.test(health) && /stale\.push\(/.test(health));
-  t('a missed season is CRITICAL, not a warning',
-    /if \(missed\.length \|\| stale\.length \|\| urgent\.length\) return result\('Filing deadlines', 'critical'/.test(health));
-  t('the deadline check derives its threshold from PRE_ORDER_DAYS rather than a literal',
-    /PRE_ORDER_DAYS \* 24 \* 60 \* 60 \* 1000/.test(health) &&
-    /import \{ getFilingWindowStatus, PRE_ORDER_DAYS \}/.test(health));
-}
-
-/**
- * ── 4d. THE PETITION PREVIEW UNLOCKS FOR ONE OPERATOR, NOT FOR EVERYONE ───────
- *
- * The blur on /apply is the paywall AND the reason two real defects survived to a
- * mailed document on 12 Aug: reading our own petition required buying one. The old
- * lever, NEXT_PUBLIC_PREVIEW_UNBLURRED, lifts it for EVERY visitor and must be
- * remembered back off — the same shape as the Lob test key and the test bank
- * account that both nearly outlived their purpose the same evening.
- *
- * What must hold: it fails CLOSED, the route is admin-gated, and the global env
- * override cannot creep back into the render path.
- */
-{
-  const applySrc = read('pages/apply.js');
-  const applyCode = applySrc
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
-  const unlockApi = read('pages/api/preview-unlock.js');
-
-  t('the unlock route is admin-gated, with the guard the right way round',
-    /if \(await requireAdmin\(req, res, 'preview-unlock'\)\) return;/.test(unlockApi));
-
-  t('the unlock expires on its own',
-    /Max-Age=\$\{clearing \? 0 : UNLOCK_SECONDS\}/.test(unlockApi) &&
-    /UNLOCK_SECONDS = 8 \* 60 \* 60/.test(unlockApi),
-    'a lock with no expiry is the global flag again, wearing a cookie');
-
-  // Not httpOnly is REQUIRED here, not an oversight — apply.js reads it in the
-  // browser. Asserted so nobody "hardens" it into uselessness without reading why.
-  // Strip BOTH comment forms. The first version stripped only /* */ and tripped on
-  // the line comment that explains why HttpOnly is absent — a check reporting the
-  // documentation of a decision as a violation of it.
-  const unlockCode = unlockApi
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
-  t('the cookie stays readable by the page that needs it',
-    !/HttpOnly/i.test(unlockCode));
-
-  t('the preview starts blurred and can only be unblurred after mount',
-    /useState\(false\);?\s*\n\s*useEffect\(\(\) => \{[\s\S]{0,400}ta_preview_unlocked=1/.test(applyCode),
-    'reading the cookie during render both breaks hydration and risks an unblurred first paint');
-
-  t('the blur is driven by the per-browser flag, not the global env var',
-    /previewUnlocked \? \{\} : \{ filter: "blur\(4px\)"/.test(applyCode) &&
-    !/NEXT_PUBLIC_PREVIEW_UNBLURRED[^\n]*\?\s*\{\}\s*:\s*\{ filter/.test(applyCode));
-
-  t('the global override survives for local development only',
-    /NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true'/.test(applyCode),
-    'removing it entirely leaves no way to review a petition with no admin to log in as');
-
-  const adminSrc = read('pages/admin.js');
-  t('an operator can reach it without curl',
-    /preview-unlock/.test(adminSrc) && /Unlock petition preview/.test(adminSrc));
+  const unset = await withLob({ key: undefined }, () => checkLob());
+  t('an unset LOB_API_KEY is CRITICAL', unset.status === 'critical' && /not set/.test(unset.detail || ''), unset);
 }
 
 /**
@@ -677,8 +466,12 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
      * with Database, Schema, Filing deadlines, Lead capture, Visitor counter and
      * Check outcomes all OK in the same report. The 24 Aug retry was applied to
      * checkDatabase alone, so the contention simply moved to the next probe — and
-     * this is structurally the most exposed one, because it is one of fifteen
-     * fired through a single Promise.all AND issues two requests of its own.
+     * this is structurally exposed, because it is one of fourteen fired through a
+     * single Promise.all. (It issued two requests per pass until 17 Oct 2026; the
+     * awaiting_signature query went with the e-sign flow, so a pass is now ONE
+     * needs_review query.)
+     *
+     * INJECTION: re-add a second query per pass -> the call counts FAIL.
      *
      * Executed, not matched, for the reason given above.
      */
@@ -701,20 +494,23 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
     };
     const emptyRows = () => ({ ok: true, status: 200, json: async () => [] });
 
-    // Healthy path untouched: two requests (the check's own pair), no retry, and the
-    // same detail the daily all-clear has always printed.
+    // Healthy path untouched: one request (the needs_review query), no retry, and
+    // the same detail the daily all-clear has always printed.
     const sHealthy = await runStuck(emptyRows);
     t('a healthy stuck-orders check still answers ok', sHealthy.res.status === 'ok');
-    t('it costs exactly its own two requests when nothing fails', sHealthy.calls === 2, sHealthy.calls);
+    t('it costs exactly its one request when nothing fails', sHealthy.calls === 1, sHealthy.calls);
+    t('the one query reads needs_review — the only stuck state left',
+      /dispute_status=eq\.needs_review/.test(read('lib/healthChecks.js')) &&
+      !/awaiting_signature/.test(stripComments(read('lib/healthChecks.js'))));
     t('the healthy stuck-orders detail is unchanged', sHealthy.res.detail === 'no paid order is stuck');
 
-    // THE 25 AUG CASE. One stall in the pair, then fine.
+    // THE 25 AUG CASE. One stall, then fine.
     const sFlap = await runStuck((n) => {
       if (n === 1) throw new Error('timeout after 6000ms');
       return emptyRows();
     });
     t('a single stalled stuck-orders request no longer warns', sFlap.res.status === 'ok', sFlap.res.detail);
-    t('the whole pair is retried once', sFlap.calls === 4, sFlap.calls);
+    t('the query is retried once', sFlap.calls === 2, sFlap.calls);
     t('the recovered stuck-orders probe NAMES the failed attempt, so a flap is not hidden',
       /earlier attempts failed: timeout after 6000ms/.test(sFlap.res.detail), sFlap.res.detail);
 
@@ -735,7 +531,7 @@ for (const fn of ['checkSalesGate', 'checkCronHeartbeat', 'checkFilingDeadlines'
      */
     const sDown = await runStuck(() => { throw new Error('fetch failed'); });
     t('a genuinely unreadable orders table still warns — never ok', sDown.res.status === 'warn');
-    t('every configured attempt is really made', sDown.calls === DB_PROBE_ATTEMPTS * 2, sDown.calls);
+    t('every configured attempt is really made', sDown.calls === DB_PROBE_ATTEMPTS, sDown.calls);
     t('the exhausted stuck-orders alert says the answer is UNKNOWN, not that orders are stuck',
       /UNKNOWN, not clear/.test(sDown.res.detail) && !/^check failed/.test(sDown.res.detail), sDown.res.detail);
     t('and it points the reader at the Database check to tell contention from an outage',

@@ -34,131 +34,71 @@ const { getAppealAddress, isMailable, APPEAL_ADDRESSES, MAX_VERIFIED_AGE_DAYS } 
 let pass = 0; const failures = [];
 const t = (name, cond) => (cond ? pass++ : failures.push(name));
 
-const src = readFileSync(new URL('../pages/api/send-letter.js', import.meta.url), 'utf8');
-
 // ── 1. THE RAIL IS CONNECTED ────────────────────────────────────────────────
-/** INJECTION: delete the import from send-letter.js -> all four FAIL. */
-t('send-letter imports the verified address table', /from '\.\.\/\.\.\/lib\/appealAddresses'/.test(src));
-t('...and looks the county up in it', /getAppealAddress\(stateCode, county\)/.test(src));
-t('...and gates on isMailable, not on the caller\'s say-so', /isMailable\(verifiedRow\)/.test(src));
-t('...and refuses rather than mailing when the row is not mailable',
-  /reason: 'address_not_confirmed'/.test(src));
-
 /**
- * ===========================================================================
- * A MISSING ROW IS NOT PERMISSION TO MAIL.
- * ===========================================================================
- * 4 Oct 2026. The four assertions above all passed while the guard was
- * inverted, because they only ever asked what happens when a row EXISTS:
+ * RE-POINTED 17 Oct 2026. This block pinned pages/api/send-letter.js — the
+ * import, the getAppealAddress lookup, the isMailable gate, the missing-row
+ * refusal and their ORDER before the Lob call. send-letter was deleted with the
+ * letter pipeline. Nothing of ours mails to a district any more: the customer
+ * mails the kit, in an envelope we address from this table.
  *
- *   Harris  — seeded, 'unverified'  -> refused, correctly
- *   Kaufman — no row at all         -> waved through, envelope addressed
- *                                      from the request body
+ * The rail now has to be bolted onto the kit gates instead, and the composition
+ * that used to be REIMPLEMENTED here as `willMail` is now a real exported
+ * function: lib/kit/countyOpen.js kitCountyOpen, the county half of
+ * gaSellability / txSellability. So this calls it, against the real table.
  *
- * `if (verifiedRow)` could not distinguish "this state keeps no table" (AR,
- * AL — where the caller's fields are accepted by design) from "this county is
- * missing from the table this state does keep". So the seven loaded districts
- * with no address row had LESS protection than the thirteen with unconfirmed
- * ones, which is the opposite of the point.
+ * A MISSING ROW IS NOT PERMISSION (4 Oct 2026): Kaufman had no row and was
+ * waved through while Harris, seeded but unverified, was refused. The no-row
+ * counties below are asserted absent from the table AND refused.
  *
- * Behavioural, not a source grep — a grep is what missed it the first time.
- *
- * INJECTION: drop `&& hasAddressTable(stateCode)` -> AR/AL FAIL.
- * INJECTION: drop the whole `if (!verifiedRow && ...)` block -> TX/GA FAIL.
+ * INJECTION: change countyOpen.js to `if (row && !isMailable(row, now))` -> the
+ *   no-row assertions FAIL.
+ * INJECTION: drop the getAppealAddress/isMailable gate from txQuote, txPresale
+ *   or gaQuote -> the wiring assertions FAIL.
  */
 {
-  const { getAppealAddress, isMailable, hasAddressTable } = await import(
-    new URL('../lib/appealAddresses.js', import.meta.url));
+  const { kitCountyOpen } = await import('../lib/kit/countyOpen.js');
+  const refused = (st, c) => kitCountyOpen(st, c).open === false;
 
-  /*
-    HONEST LABEL: this exercises the COMPOSITION send-letter depends on --
-    getAppealAddress + hasAddressTable + isMailable -- not the handler, which
-    needs Lob keys, auth and Supabase to call.
-
-    Worth saying because the first draft of this block called itself
-    behavioural and was injection-tested twice; both injections tripped only
-    the source assertion below, because `willMail` is a REIMPLEMENTATION and
-    a reimplementation cannot notice that the real file changed. Sixth time
-    this session a check has reported success without being able to report
-    failure, so it is named rather than quietly left.
-
-    The source assertions underneath are what actually pin send-letter, and
-    they are written to pin the ORDER as well as the presence.
-  */
-  const willMail = (state, county) => {
-    const row = getAppealAddress(state, county);
-    if (!row && hasAddressTable(state)) return 'refuse-no-row';
-    if (!row) return 'caller-address';          // AR / AL, by design
-    return isMailable(row) ? 'mail' : 'refuse-unverified';
-  };
-
-  /*
-    UPDATED 4 Oct 2026, hours after it was written, and it failed first --
-    which is the point. It named Kaufman, a county that HAD no row. Kaufman
-    was then seeded, so the assertion went red: the right outcome for the
-    wrong-looking reason.
-
-    It now names counties that are genuinely absent from the table, so the
-    no-row path stays tested as the table fills rather than quietly losing
-    its only subject. Picking a real county that happens to be unseeded
-    today would decay the same way.
-  */
   t('a Texas county with no row is refused, not mailed from the body',
-    willMail('TX', 'Midland') === 'refuse-no-row'
-    && willMail('TX', 'Potter') === 'refuse-no-row');
-  t('so is a Georgia one', willMail('GA', 'Nowhere') === 'refuse-no-row');
+    getAppealAddress('TX', 'Midland') == null && getAppealAddress('TX', 'Potter') == null
+    && kitCountyOpen('TX', 'Midland').reason === 'address_not_confirmed'
+    && kitCountyOpen('TX', 'Potter').reason === 'address_not_confirmed');
+  t('so is a Georgia one', getAppealAddress('GA', 'Nowhere') == null && refused('GA', 'Nowhere'));
   t('a seeded-but-unverified county is still refused',
-    willMail('TX', 'Harris') === 'refuse-unverified');
-  t('a state that keeps no table still accepts the caller\'s address',
-    willMail('AR', 'Benton') === 'caller-address'
-    && willMail('AL', 'Jefferson') === 'caller-address');
+    getAppealAddress('TX', 'Harris') != null && !isMailable(getAppealAddress('TX', 'Harris'))
+    && kitCountyOpen('TX', 'Harris').reason === 'address_not_confirmed');
+  t('a state that is not sold as a kit is never open',
+    kitCountyOpen('AR', 'Benton').open === false && kitCountyOpen('AL', 'Jefferson').open === false);
   /*
-    The seven were seeded on 4 Oct, so they moved from 'refuse-no-row' to
-    'refuse-unverified'. Both are refusals; what matters is that NONE of the
-    districts whose roll we hold can be mailed, by either route. Asserting
-    the reason would just re-break this the day someone makes a phone call --
-    asserting the outcome will not.
+    Asserting the OUTCOME, not the reason, as before: what matters is that NONE
+    of the districts whose roll we hold can be sold a kit addressed from an
+    unverified row, by either route.
   */
   t('no district whose roll we hold can reach the post today', [
     'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
     'Harris', 'Dallas', 'Tarrant', 'Travis', 'Collin', 'Denton', 'El Paso',
     'Montgomery', 'Hidalgo', 'Cameron', 'Bell', 'Nueces', 'Jefferson',
-  ].every((c) => willMail('TX', c).startsWith('refuse')));
-  t('...and the seven seeded today are refused as unverified, not as missing', [
+  ].every((c) => refused('TX', c)));
+  t('...and the seven seeded on 4 Oct are refused as unverified, not as missing', [
     'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
-  ].every((c) => willMail('TX', c) === 'refuse-unverified'));
+  ].every((c) => getAppealAddress('TX', c) != null && refused('TX', c)));
 
-  // --- what actually pins the handler ------------------------------------
-  t('send-letter refuses a missing row, and only where the state keeps a table',
-    /if \(!verifiedRow && hasAddressTable\(stateCode\)\) \{/.test(src));
-  t('...importing the predicate rather than re-deriving it',
-    /hasAddressTable[^}]*\} from '\.\.\/\.\.\/lib\/appealAddresses'/.test(src));
-
-  /*
-    ORDER IS THE WHOLE PROPERTY. A fail-closed check placed after the envelope
-    is built, or after the Lob call, refuses nothing.
-  */
-  const iNoRow  = src.indexOf('if (!verifiedRow && hasAddressTable(stateCode))');
-  const iMailable = src.indexOf('isMailable(verifiedRow)');
-  const iEnvelope = src.indexOf('let toName = districtName;');
-  const iLob    = src.indexOf('api.lob.com/v1/letters');
-  t('the missing-row refusal comes before the envelope is addressed',
-    iNoRow > -1 && iEnvelope > -1 && iNoRow < iEnvelope);
-  t('...and before the mailable check, which assumes a row exists',
-    iNoRow > -1 && iMailable > -1 && iNoRow < iMailable);
-  t('...and before anything is handed to Lob',
-    iNoRow > -1 && iLob > -1 && iNoRow < iLob);
+  // --- what pins the live gates ---------------------------------------------
+  const rd = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+  for (const [f, re] of [
+    ['lib/kit/countyOpen.js', /const row = addressLookup\(st, county\);\s*if \(!row \|\| !isMailable\(row, now\)\) return \{ open: false, reason: 'address_not_confirmed' \};/],
+    ['lib/kit/txQuote.js', /getAppealAddress\('TX', kitOrder\?\.property\?\.county\)/],
+    ['lib/kit/txPresale.js', /const row = getAppealAddress\('TX', o\.property\?\.county\);\s*if \(!row \|\| !isMailable\(row, now\)\) return \{ ok: false, reason: 'address_not_confirmed' \};/],
+    ['lib/kit/gaQuote.js', /const row = getAppealAddress\('GA', county\);\s*if \(!row \|\| !isMailable\(row, now\)\) return \{ ok: false, reason: 'address_not_confirmed' \};/],
+  ]) {
+    t(`${f} refuses a missing row as well as an unverified one`, re.test(rd(f)));
+  }
+  // The table, not the request body, addresses the envelope the customer mails.
+  t('the TX and GA kits build the envelope from the verified row',
+    /formatEnvelope/.test(rd('lib/kit/txKit.js')) && /formatEnvelope/.test(rd('lib/kit/gaKit.js'))
+    && /addressLookup\(state, k\.property\?\.county \|\| row\.county\)/.test(rd('lib/kit/dispatchKit.js')));
 }
-
-/**
- * The address MAILED must come from the table, not the body. Checking the row
- * and then using the caller's address would leave the verification decorative —
- * which is a subtler version of the bug this file exists for.
- */
-t('the envelope is built from the verified row, not the request body',
-  /toName = verifiedRow\.addressee/.test(src) && /address_line1: toLine1/.test(src));
-t('the request body no longer addresses the envelope directly',
-  !/address_line1: districtAddress/.test(src));
 
 // ── 2. THE GATE ACTUALLY REJECTS WHAT IT SHOULD ─────────────────────────────
 /**
@@ -329,7 +269,14 @@ if (elPaso && !isMailable(elPaso)) {
    *
    * INJECTION: restore the throw, or drop the Continue button -> FAILS.
    */
-  const branch = apply.slice(apply.indexOf('setTxReview(txJson);'), apply.indexOf('} else if (stateCode === \'GA\')'));
+  // Anchor re-pointed 17 Oct 2026: the `} else if (stateCode === 'GA')` branch
+  // that ended this slice was deleted (GA and FL return to their kit step at the
+  // top of run()). The TX branch now runs to the end of run() itself; a slice
+  // that cannot find its end fails rather than widening to the rest of the file.
+  const brStart = apply.indexOf('setTxReview(txJson);');
+  const brEnd = brStart > -1 ? apply.indexOf('\n  };\n', brStart) : -1;
+  const branch = brStart > -1 && brEnd > brStart ? apply.slice(brStart, brEnd) : '';
+  t('the TX packet branch was located (setTxReview -> end of run)', branch.length > 0 && branch.length < 2000);
   t('cautions are routed to state, not thrown as an error',
     /setTxReview\(/.test(branch) && !/throw/.test(branch));
 
@@ -459,7 +406,7 @@ if (elPaso && !isMailable(elPaso)) {
  * grepping for what READS `txCautions` after I added it: at that point the
  * answer was nothing, in any file. Fourth instance of that shape today.
  *
- * INJECTION: drop txCautions from the checkout body in apply.js -> FAILS.
+ * INJECTION: drop txCautions from the checkout body in TxKitCheckout -> FAILS.
  */
 {
   const apply = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
@@ -472,7 +419,8 @@ if (elPaso && !isMailable(elPaso)) {
   const kitUi2 = readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8');
   t('the Texas kit checkout records the cautions on the order',
     /txCautions:\s*\(review\.cautions/.test(kitUi2));
-  t('and the checkout body carries them', /txCautions:\s*pd\.txCautions/.test(apply));
+  // (`txCautions: pd.txCautions` went with the letter checkout in apply.js; the
+  // kit checkout above is the one body that carries them now.)
   t('checkout accepts the field rather than dropping it silently',
     /^txCautions,$/m.test(checkout) && /txCautions:\s*Array\.isArray/.test(checkout));
   t('fulfillOrder writes them to the column',

@@ -221,14 +221,45 @@ t('the retry never selects password_hash', !/password_hash|\*/.test(KIT_ROW_COLU
 const fulfill = read('lib/fulfillOrder.js');
 // INJECTION: remove the dispatchKit call from fulfillOrder -> FAILS.
 t('a paid kit order is dispatched from the Stripe webhook path', /isKitState\(stateCode\)/.test(fulfill) && /await dispatchKit\(order,/.test(fulfill) && /kit_order: kitOrder/.test(fulfill));
-t('kit orders never start as awaiting_signature', /!isKit \? ORDER_STATUS\.AWAITING_SIGNATURE/.test(fulfill));
+// RE-POINTED 17 Oct 2026: the e-sign flow (ORDER_STATUS.AWAITING_SIGNATURE) is
+// deleted. What must hold now: nothing in fulfillOrder can start an order as
+// awaiting_signature, and a paid NON-kit order (checkout should make that
+// impossible) lands in needs_review and pages a person, never silently.
+// INJECTION: restore `!isKit ? ORDER_STATUS.AWAITING_SIGNATURE`, or drop the
+// non-kit pageOps -> FAILS.
+{
+  const code = fulfill.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  t('no order can start as awaiting_signature', !/AWAITING_SIGNATURE|awaiting_signature/.test(code));
+  t('a paid non-kit order starts as needs_review', /const disputeStatus = !isKit \? KIT_STATUS\.NEEDS_REVIEW/.test(code));
+  t('...and pages a person', /if \(isKit\) return \{[^}]*\};\s*await pageOps\('Paid order for a non-kit state'/.test(code));
+}
 t('the hourly cron retries kits', /dispatchQueuedKits\(/.test(read('pages/api/cron/process-queued-orders.js')));
 t('kit_order is a listed orders column', /'kit_order'/.test(read('lib/orderColumns.js')) && existsSync(new URL('../scripts/migrations/2026-10-14-kit-order.sql', import.meta.url)));
 // The look-alike Georgia form route is gone, and nothing may call it.
 // INJECTION: restore pages/api/generate-pt311a.js or its fetch in apply.js -> FAILS.
 t('the look-alike PT-311A route is deleted', !existsSync(new URL('../pages/api/generate-pt311a.js', import.meta.url)));
 t('the apply flow no longer calls it', !/fetch\(\s*["']\/api\/generate-pt311a/.test(read('pages/apply.js')));
-t('a Georgia order cannot fall through to the generic letter', /stateCode === 'GA'\) \{[\s\S]{0,1500}throw new Error\(/.test(read('pages/apply.js')));
+// RE-POINTED 17 Oct 2026: the generic letter is deleted, so "cannot fall
+// through to it" becomes: nothing in apply.js can generate one, every non-TX
+// non-kit state stops on the not-preparing message before any document or
+// checkout call, and checkout itself refuses non-kit states before Stripe.
+// INJECTION: restore a fetch('/api/generate-letter'), drop the !isTX return,
+// or move the STATE_NOT_OPEN gate below sessions.create -> FAILS.
+{
+  const applySrc = read('pages/apply.js');
+  t('apply.js has no generate-letter / generate-dr486 call', !/fetch\(\s*["'`]\/api\/generate-(letter|dr486)/.test(applySrc));
+  const run = applySrc.slice(applySrc.indexOf('function StepDispute('));
+  t('GA and FL hand off to their kit step before anything else runs',
+    /=== 'GA'\) \{ setGaKit\(true\); setLoading\(false\); return; \}/.test(run) &&
+    /=== 'FL'\) \{ setFlKit\(true\); setLoading\(false\); return; \}/.test(run));
+  t('a non-TX non-kit state stops on "not preparing appeals for this state"',
+    /if \(!isTX\) \{\s*setErrMsg\("We are not preparing appeals for this state yet\."\);\s*setLoading\(false\);\s*return;\s*\}/.test(run));
+  const co = read('pages/api/checkout.js');
+  const gate = co.indexOf("code: 'STATE_NOT_OPEN'");
+  t('checkout refuses non-kit states (STATE_NOT_OPEN) before creating a Stripe session',
+    gate > -1 && gate < co.indexOf('stripe.checkout.sessions.create(') &&
+    /if \(!\['GA', 'TX', 'FL'\]\.includes\(\(stateCode \|\| ''\)\.trim\(\)\.toUpperCase\(\)\)\) \{\s*return res\.status\(409\)/.test(co));
+}
 const tpl = await import('../pages/api/email-templates.js');
 const kitReceipt = tpl.confirmationEmailTemplate({ firstName: 'Pat', lastName: 'Owner', address: 'x', county: 'Gwinnett', stateCode: 'GA', orderStatus: 'kit_queued' });
 const presaleReceipt = tpl.confirmationEmailTemplate({ firstName: 'Pat', lastName: 'Owner', address: 'x', county: 'Gwinnett', stateCode: 'GA', orderStatus: 'awaiting_notice' });
@@ -303,8 +334,14 @@ t('the pre-sale receipt promises the refund if the case no longer holds', /refun
   const vp = read('pages/api/verify-payment.js');
   const succ = read('pages/success.js');
   t('verify-payment says whether the order is a kit, without returning the kitKey', /const isKit = typeof meta\.kitKey === 'string'/.test(vp) && /^\s*isKit,$/m.test(vp) && !/kitKey:/.test(vp));
-  t('a kit order renders the kit confirmation before any signature step', /session\?\.isKit \? \(/.test(succ) && succ.indexOf('session?.isKit ? (') < succ.indexOf(') : needsSignature ? ('));
-  t('a kit order sets no mail status (no "manual dispatch" banner)', /if \(data\.isKit\) return;/.test(succ) && succ.indexOf('if (data.isKit) return;') < succ.indexOf("if (!canMail) { setMailStatus('manual')"));
+  // RE-POINTED 17 Oct 2026: the signing flow and the browser-side mailing
+  // (SignatureStep, runMail, setMailStatus) are deleted from success.js. A kit
+  // session renders KitSuccess, and none of the old machinery may come back.
+  // INJECTION: re-import SignatureStep or restore runMail -> FAILS.
+  const succCode = succ.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  t('a kit order renders the kit confirmation', /session\?\.isKit \? \(\s*<KitSuccess session=\{session\}/.test(succCode));
+  t('success.js has no signature step and no browser-side mailing',
+    !/SignatureStep|runMail|setMailStatus|needsSignature/.test(succCode));
   const kitSucc = succ.slice(succ.indexOf('function KitSuccess('), succ.indexOf('function SetPasswordCard('));
   t('the kit confirmation never says filed or certified, and says we do not file', kitSucc.length > 500 && !/certified|is filed|we file|we mail it to the/i.test(kitSucc) && /We do not file your \{word\}, represent you or appear for you/.test(kitSucc));
 }

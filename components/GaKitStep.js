@@ -10,6 +10,8 @@
 import { useState } from 'react';
 import { SERVICE_PRICE_DOLLARS } from '../lib/pricing';
 import { C } from '../lib/theme';
+import { normalizePerkCode } from '../lib/partnerPerk';
+import PartnerCodeField from './PartnerCodeField';
 
 // The site palette (lib/theme.js), named for what this step uses it for.
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, good: C.green, warn: C.navy, bg: C.bg, bad: C.red, btn: C.navy, off: C.mutedGray, white: C.white };
@@ -56,6 +58,8 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [agreed, setAgreed] = useState(false);
+  // What the customer typed in the partner coupon field; `perkCode` seeds it.
+  const [perkInput, setPerkInput] = useState(perkCode || '');
   // PRE-SALE (16 Oct 2026). Before the notice arrives, the check runs on LAST
   // year's value (lib/kit/gaQuote.js presaleGaKit) and the kit is built when the
   // notice comes in, or refunded in full.
@@ -122,7 +126,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
           assessedValue: quote.presale ? quote.priorValue : quote.noticeValue, targetReduction: quote.requestedValue || null, // the value asked for, as target_reduction means everywhere else
           savings: quote.savings?.yearlySaving || null,
           ownerStreet: ownerMail.street, ownerCity: ownerMail.city, ownerState: ownerMail.state, ownerZip: ownerMail.zip,
-          stateCode: 'GA', kitKey: quote.kitKey, refCode, perkCode,
+          stateCode: 'GA', kitKey: quote.kitKey, refCode, perkCode: normalizePerkCode(perkInput) || '',
         }),
       });
       const j = await r.json();
@@ -271,6 +275,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 3 }} />
               <span>I understand TaxAppeal USA prepares my appeal documents only. I sign and mail my own appeal; TaxAppeal USA does not file it, represent me or appear for me, and no outcome is guaranteed. If my notice no longer shows a case, I am refunded in full. If the county does not lower my value, next year's kit is free.</span>
             </label>
+            <PartnerCodeField value={perkInput} onChange={setPerkInput} />
             <button style={agreed && !busy ? btn : btnOff} disabled={!agreed || busy} onClick={checkout}>
               {busy ? 'Opening secure checkout…' : `Reserve my appeal kit — $${SERVICE_PRICE_DOLLARS}`}
             </button>
@@ -286,6 +291,7 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 3 }} />
               <span>I understand TaxAppeal USA prepares my appeal documents only. I sign and mail my own appeal; TaxAppeal USA does not file it, represent me or appear for me, and no outcome is guaranteed. If the county does not lower my value, next year's kit is free.</span>
             </label>
+            <PartnerCodeField value={perkInput} onChange={setPerkInput} />
             <button style={agreed && !busy ? btn : btnOff} disabled={!agreed || busy} onClick={checkout}>
               {busy ? 'Opening secure checkout…' : quote.delivery === 'pdf' ? `Get my appeal kit (PDF) — $${SERVICE_PRICE_DOLLARS}` : `Get my appeal kit — $${SERVICE_PRICE_DOLLARS}`}
             </button>

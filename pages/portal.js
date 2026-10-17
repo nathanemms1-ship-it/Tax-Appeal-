@@ -5,13 +5,13 @@ import { C } from "../lib/theme";
 const C_EMAIL = 'customerservice@taxappealusa.com';
 
 const STATUS_CONFIG = {
-  // These three were missing, so portal.js fell back to `filed` — meaning an order
-  // whose mailing FAILED and was flagged for review told the customer
-  // "Your dispute letter has been filed." The portal concealed failure.
-  awaiting_signature: { label: 'Signature needed', color: '#B45309', bg: '#FEF3C7', icon: '✍️',
-    description: 'We need your signature on your document. Check your email for the link.' },
-  queued: { label: 'Reserved', color: '#1D4ED8', bg: '#DBEAFE', icon: '🗓️',
-    description: 'Your document is prepared and held until your county\'s filing window opens. We email you each update.' },
+  // needs_review was once missing, so an order whose mailing FAILED fell back to
+  // `filed` and told the customer it had been filed. Unknown statuses now fall
+  // back to FALLBACK_STATUS below, which claims nothing.
+  //
+  // `awaiting_signature` and `queued` went with the online signature (17 Oct
+  // 2026); every order is now a kit. Any legacy row still carrying one renders
+  // the neutral fallback.
   needs_review: { label: 'Needs attention', color: '#B91C1C', bg: '#FEE2E2', icon: '⚠️',
     description: 'We hit a problem with this order and our team has been alerted. We will contact you shortly.' },
   kit_queued: { label: 'Kit being prepared', color: C.navy, bg: C.lightBlue, icon: '🖨️',
@@ -52,6 +52,12 @@ const STATUS_CONFIG = {
     icon: '❌',
     description: 'Your appeal was denied by the county. No further action is required.'
   }
+};
+
+// For a status this page does not know. Says only what is true of every order.
+const FALLBACK_STATUS = {
+  label: 'In progress', color: C.navy, bg: C.lightBlue, border: C.border, icon: '📋',
+  description: 'We have your order and email you each update. Questions? Email ' + C_EMAIL + '.',
 };
 
 export default function Portal() {
@@ -146,10 +152,14 @@ export default function Portal() {
     setView('login');
   };
 
-  const status = order ? (STATUS_CONFIG[order.dispute_status] || STATUS_CONFIG.filed) : null;
+  const status = order ? (STATUS_CONFIG[order.dispute_status] || FALLBACK_STATUS) : null;
   const displaySavings = order?.savings_amount || order?.actual_savings || order?.estimated_savings || 0;
   const isFL = order ? (order.state_code || order.state || '').toUpperCase() === 'FL' : false;
   const isKit = order ? /^kit_|^awaiting_notice$/.test(order.dispute_status || '') : false;
+
+  // Only a county ruling counts as a decision; any other status (legacy or
+  // unknown) is still awaiting one.
+  const hasDecision = !isKit && ['approved', 'partial', 'denied'].includes(order?.dispute_status);
 
   const timelineSteps = order ? [
     {
@@ -173,13 +183,13 @@ export default function Portal() {
       date: order.mailed_at
     },
     {
-      label: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status)
+      label: hasDecision
         ? 'Decision Received'
         : 'Awaiting Decision',
-      sublabel: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status)
+      sublabel: hasDecision
         ? `County ruled: ${STATUS_CONFIG[order.dispute_status]?.label}`
         : 'Typical wait: 4–12 weeks',
-      done: order.dispute_status && !isKit && !['pending','filed'].includes(order.dispute_status),
+      done: hasDecision,
       date: order.decision_date
     }
   ] : [];

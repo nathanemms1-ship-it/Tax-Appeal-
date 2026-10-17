@@ -32,9 +32,9 @@
  *    funnel asks the customer for their TRIM notice figure — which is the correct
  *    answer, and is what the manual-entry path already exists for.
  *
- *    The web search is RETAINED for the appraisal district's mailing address,
- *    because that is a published administrative fact, not a value, and a wrong
- *    one fails loudly (returned mail) rather than silently.
+ *    The district mailing-address web search that followed it is gone too (Oct
+ *    2026): kits read county addresses from lib/appealAddresses.js, never from
+ *    a model.
  *
  * ============================================================================
  * FLORIDA: JUST VALUE vs ASSESSED VALUE
@@ -52,15 +52,13 @@
  */
 
 import { Redis } from '@upstash/redis';
-import { getCountyPortal } from '../../lib/countyPortals';
 import { enforceRateLimit } from '../../lib/rateLimit';
-import { LIMITS, cap, PROMPT_ROUTE_CONFIG } from '../../lib/inputLimits';
+import { LIMITS, cap } from '../../lib/inputLimits';
 import { checkSpend } from '../../lib/spendGuard';
 import { lookupProperty, RentcastError } from '../../lib/providers/rentcast';
 import { lookupAndQualify } from '../../lib/dor/parcels';
 
-// Still interpolates the address into the district prompt, so it keeps the 64 KB
-// body ceiling rather than Next's 1 MB default. See lib/inputLimits.js.
+// Keeps the 64 KB body ceiling rather than Next's 1 MB default. See lib/inputLimits.js.
 /**
  * INLINED, NOT IMPORTED. 7 Sept 2026.
  *
@@ -132,8 +130,7 @@ const CACHE_VERSION = 'v5-fl-county-only';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // RentCast is billed per call, and this route can still fall through to an
-  // Anthropic call for the district. A daily cap is kept because bogus
+  // RentCast is billed per call. A daily cap is kept because bogus
   // incrementing addresses ("1 Main St", "2 Main St", ...) miss every cache BY
   // CONSTRUCTION, so the caches below are no defence against a deliberate
   // attacker — only against ordinary repeat traffic.
@@ -503,97 +500,6 @@ export default async function handler(req, res) {
     marketValue = null;
 
     const countyName = county ? `${county} County` : `${city} County`;
-    const districtKey = `district:${stateUpper}:${(county || city).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    let appraisalDistrict = await cacheGet(districtKey);
-    if (appraisalDistrict) console.log(`DISTRICT FROM CACHE (${districtKey}):`, appraisalDistrict?.districtName);
-
-    // ── STEP 3: District mailing address (web search) ─────────────────────────
-    //
-    // Scope narrowed to the district ONLY. The old prompt also asked Claude to
-    // find the assessed value, sqft, beds, baths and year built by searching
-    // Redfin — see the header. Those are gone.
-    //
-    // A mailing address is a published administrative fact and fails loudly if
-    // wrong (the letter comes back). A misread assessed value fails silently, on a
-    // sworn document. That asymmetry is why one of these is acceptable here and
-    // the other is not.
-    if (!appraisalDistrict) {
-      try {
-        const portalInfo = getCountyPortal(stateUpper, county);
-        const districtName = portalInfo?.name || `${countyName} Appraisal District`;
-
-        if (!(await checkSpend('anthropic', 1)).ok) throw new Error('anthropic daily ceiling');
-        const searchRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-5',
-            max_tokens: 600,
-            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-            messages: [{
-              role: 'user',
-              content: `Find the official mailing address of the ${districtName} in ${countyName}, ${stateUpper} where property owners file value appeals or protests. Include phone, website, and the filing deadline.
-
-Return ONLY this JSON, with null for anything you cannot verify from an official source:
-{"districtName": null, "mailingAddress": null, "city": null, "state": "${stateUpper}", "zip": null, "phone": null, "website": null, "filingDeadlineNote": null, "filingMethod": null}`,
-            }],
-          }),
-        });
-
-        const searchJson = await searchRes.json();
-        if (searchJson.content) {
-          const text = searchJson.content.filter((x) => x.type === 'text').map((x) => x.text).join('');
-          const match = text.match(/\{[\s\S]*\}/);
-          if (match) {
-            const data = JSON.parse(match[0]);
-            if (data?.districtName || data?.mailingAddress) {
-              appraisalDistrict = data;
-              await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
-              console.log(`CACHED district for ${districtKey} (180 days)`);
-            }
-          }
-        }
-      } catch (e) {
-        console.log('District web search failed:', e.message);
-      }
-    }
-
-    // ── STEP 4: District fallback without search ──────────────────────────────
-    if (!appraisalDistrict) {
-      try {
-        if (!(await checkSpend('anthropic', 1)).ok) throw new Error('anthropic daily ceiling');
-        const fallbackRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 400,
-            messages: [{
-              role: 'user',
-              content: `What is the official mailing address of the ${countyName} Appraisal District in ${stateUpper} where property owners file property tax appeals? Return ONLY JSON:
-{"districtName": "Official name", "mailingAddress": "Street address", "city": "City", "state": "${stateUpper}", "zip": "ZIP", "phone": "Phone or null", "website": "URL or null", "filingDeadlineNote": "Filing deadline", "filingMethod": "mail | online | in-person | mail or online"}`,
-            }],
-          }),
-        });
-        const fallbackJson = await fallbackRes.json();
-        const fallbackText = (fallbackJson.content || []).map((x) => x.text || '').join('');
-        const match = fallbackText.match(/\{[\s\S]*\}/);
-        if (match) {
-          appraisalDistrict = JSON.parse(match[0]);
-          await cacheSet(districtKey, appraisalDistrict, TTL_SECONDS);
-        }
-      } catch (e) {
-        console.log('District fallback failed:', e.message);
-      }
-    }
 
     const taxYear = new Date().getFullYear().toString();
     console.log('FINAL:', { assessedValue, sqft, yearBuilt, beds, baths, annualTax, parcelId, county: countyName, lookupStatus });
@@ -612,7 +518,6 @@ Return ONLY this JSON, with null for anything you cannot verify from an official
       // see lib/dor/qualify.js for why that is not a judgement call.
       savings,
       valueSource,
-      appraisalDistrict,
       resolvedCounty: countyName,
       // The UI uses these two. `valueNeedsConfirmation` must drive a visible
       // "check this against your TRIM notice" step — see the Florida note in the

@@ -108,10 +108,6 @@ const ROUTES = [
   // rosters above; it additionally imports lib/checkOutcomes.js, so a broken
   // vocabulary module fails here rather than on the first admin page load.
   { name: 'check-roster',     body: {} },
-  // Lifts the preview blur for one operator's browser. No password sent, so the
-  // expected answer is the auth rejection — what is proven is that it imports and
-  // executes, and verify-security separately proves the guard is not negated.
-  { name: 'preview-unlock',   body: {} },
   // Claim a portal password after paying. Invoked with a session id Stripe will not
   // recognise, so the expected answer is a rejection — what is proven is that the
   // module imports and the handler executes. It is the only write path a customer
@@ -119,31 +115,6 @@ const ROUTES = [
   // so a defect in it is invisible until somebody has already paid.
   { name: 'portal/set-password', body: { session_id: 'cs_test_smoke', password: 'smoketest' } },
   { name: 'health',           body: {}, method: 'GET' },
-  {
-    // The route that broke. Every field the funnel sends, so a field that stops
-    // being wired through fails here rather than in front of a customer.
-    name: 'generate-dr486',
-    body: {
-      ownerFirstName: 'Test', ownerLastName: 'Owner', ownerEmail: 'smoke@example.com',
-      ownerStreet: FL.street, ownerCity: FL.city, ownerState: 'FL', ownerZip: FL.zip,
-      propertyAddress: '1130 GLENWOOD CT, WESTON, FL, 33326',
-      county: 'Broward', parcelId: '504007071100',
-      assessedValue: 1047630, requestedValue: 859057, taxYear: '2026',
-      comps: [{ address: '1170 LAGUNA SPRINGS DR, WESTON', parcelId: '504007071310', saleDate: '2026-04-01', salePrice: 869000, sqft: 2952, pricePerSqft: 294, yearBuilt: 1989 }],
-      // Without this the handler now DROPS the comps (they cannot carry the DOR
-      // attribution without stated provenance) and this fixture would silently
-      // exercise the no-comps branch instead of the one it was written for —
-      // the same shape of invisible gap as the `comps` ReferenceError above.
-      compsSource: 'county',
-      askRestsOn: 'mass_appraisal_floor', costToCureTotal: 102600,
-      valuationBasis: '1. Fla. Stat. § 193.011(6) — condition defects priced at cost to cure.',
-      valuationGrounds: [{ criterion: 'Fla. Stat. § 193.011(6)', basis: 'Condition.' }],
-      issues: ['Roof damage or age (leaks, missing shingles, sagging)'],
-      propertyDetails: '2,952 sq ft, built 1989', notes: '', zip: FL.zip,
-      ownerSignatureName: '', ownerSignatureDate: '',
-      willNotAttend: true, authorizeConfidential: false, preview: true,
-    },
-  },
 ];
 
 /**

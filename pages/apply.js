@@ -9,14 +9,12 @@ import GaKitStep from '../components/GaKitStep';
 import TxKitCheckout from '../components/TxKitCheckout';
 import ContactModal from '../components/ContactModal';
 import { isFlCountySupported, FL_COUNTY_NAMES } from '../lib/flVabAddresses';
-import { normalizePerkCode } from '../lib/partnerPerk';
 import { getFilingWindowStatus, windowBlocksEntry, walkthroughState } from '../lib/filingWindows';
 import { LOADED_COUNTY_NAMES, coveredCadFromName } from '../lib/tx/coverage';
 import { SERVING_FROM } from '../lib/stateService';
 import { resolveOwnerMailing } from '../lib/ownerMailing';
 import { captureAttribution, attributionPayload } from '../lib/attribution';
 import { readVerdict } from '../lib/checkHandoff';
-import { deriveValuation, buildCategoryIndex } from '../lib/valuation';
 import { curePriceFor, totalCostToCure } from '../lib/costToCure';
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
@@ -49,7 +47,7 @@ import LogoMark from '../components/LogoMark';
  *
  * THE PASSWORD IS GONE FROM HERE ENTIRELY. It protects the portal, and the portal
  * shows the status of an appeal that does not exist yet. It is offered on /success
- * after the DR-486 signature instead. See lib/noPassword.js.
+ * after payment instead. See lib/noPassword.js.
  *
  * Florida inserts two sub-steps that are not numbered: `florida-check` between
  * property and issues, and `florida-fee` between account and dispute. SUBSTEPS in
@@ -116,17 +114,12 @@ const ISSUE_CATEGORIES = [
   { category: "Appearance & Maintenance", color: C.purple, icon: "🔧", issues: ["Deferred maintenance (peeling paint, rotten trim)","Severely dated kitchen requiring full update","Severely dated bathrooms requiring full update","Significant curb appeal issues reducing buyer interest","Overgrown or neglected landscaping"] },
 ];
 
-// Issue text -> category, so the valuation module can weight defects by severity
-// without duplicating the category list.
-const ISSUE_CATEGORY_INDEX = buildCategoryIndex(ISSUE_CATEGORIES);
-
 const base = { fontFamily: "'DM Sans', sans-serif", color: C.darkNavy, background: C.bg, minHeight: "100vh" };
 const cardStyle = { background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "32px" };
 const inputStyle = { width: "100%", background: "#F8FAFD", border: `1.5px solid #DDE4EE`, borderRadius: 7, padding: "10px 13px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.darkNavy, outline: "none", boxSizing: "border-box", transition: "border-color 0.2s, background 0.2s" };
 const labelStyle = { display: "block", fontSize: 11, letterSpacing: "1px", textTransform: "uppercase", color: C.bodyGray, fontWeight: 500, marginBottom: 6, fontFamily: "'DM Sans', sans-serif" };
 const primaryBtn = { background: C.navy, color: C.white, border: "none", borderRadius: 8, padding: "14px 24px", fontSize: 14, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%", transition: "background 0.2s, color 0.2s" };
 const secondaryBtn = { background: "transparent", color: C.mutedGray, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", width: "100%", transition: "border-color 0.2s" };
-const disabledBtn = { ...primaryBtn, background: "#C5D0E0", cursor: "not-allowed" };
 
 /**
  * ============================================================================
@@ -243,7 +236,11 @@ function SavingsBlock({ perYear, fiveYear, fee }) {
         {perYear}<span style={{ fontSize: 17, letterSpacing: 0 }}> / year</span>
       </div>
       <div style={{ fontSize: 13.5, color: C.darkNavy, marginTop: 10, lineHeight: 1.6 }}>
-        <strong>{fiveYear}</strong> over five years &middot; your cost to file is <strong>${fee}</strong>
+        <strong>{fiveYear}</strong> over five years &middot; your kit is <strong>${fee}</strong>
+      </div>
+      {/* The condition, stated where the five-year figure is (verify-tx-form). */}
+      <div style={{ fontSize: 12, color: C.mutedGray, marginTop: 6, lineHeight: 1.5 }}>
+        Hold that reduction and the saving repeats each year; the five-year figure assumes the reduction holds rather than forecasting future values or rates.
       </div>
     </div>
   );
@@ -1162,9 +1159,7 @@ function NoParcelRecord({ property, account, detail, onBack }) {
  * ============================================================================
  * It protects the portal. The portal shows the status of an appeal that does not
  * exist yet, so the moment of need is three weeks away, not now. It is offered on
- * /success after the DR-486 signature, where the sale is closed and the friction
- * costs nothing — and never above that signature, because nothing mails until the
- * owner signs and no optional field belongs in front of a required one.
+ * /success after payment, where the sale is closed and the friction costs nothing.
  *
  * lib/noPassword.js covers what the order row carries in the meantime and why
  * "Forgot password?" works for a customer who never set one.
@@ -1505,7 +1500,7 @@ function StepAccount({ data, property = {}, onChange, onNext, onBack, vabFeeCent
           </div>
         )}
 
-        {/* NO PASSWORD FIELD. It is offered on /success after the signature — see
+        {/* NO PASSWORD FIELD. It is offered on /success after payment — see
             the header of this component and lib/noPassword.js. */}
         <button style={primaryBtn} onClick={go}>Continue →</button>
         {onBack && (
@@ -3245,7 +3240,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.lightBlue, color: C.navy, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>💡 Optional but strengthens your case</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 8 }}>Property issues</h2>
-        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 10, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Select any problems that apply. Each one will be cited as evidence in your dispute letter.</p>
+        <p style={{ fontSize: 14, color: C.bodyGray, marginBottom: 10, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Select any problems that apply. Each one will be cited as evidence in your appeal.</p>
         {/* Deliberately the loudest thing on the page. Cost to cure is what carries
             the 688,497 Florida homes whose comparable sales alone fall short of the
             Save Our Homes cap — an unticked box is money the owner does not get. */}
@@ -3309,7 +3304,7 @@ function StepIssues({ selectedIssues, onToggle, onNext, onBack, stateCode, notes
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
-          <button style={primaryBtn} onClick={onNext}>📄 {count > 0 ? `Save & generate my dispute letter (${count} issue${count !== 1 ? "s" : ""})` : "Skip & generate my dispute letter"}</button>
+          <button style={primaryBtn} onClick={onNext}>📄 {count > 0 ? `Save & continue (${count} issue${count !== 1 ? "s" : ""})` : "Skip & continue"}</button>
         </div>
       </div>
       <div className="mob-hide" style={{ position: "sticky", top: 20 }}>
@@ -3347,7 +3342,7 @@ const LOAD_STAGES = [
   { label: "Retrieving appraisal data", desc: "Searching county appraisal district records", ms: 2200 },
   { label: "Searching comparable sales", desc: "Scanning recent transactions near your property", ms: 3500 },
   { label: "Finding your appraisal district", desc: "Locating where to file your dispute", ms: 2000 },
-  { label: "Drafting your dispute letter", desc: "Building legal arguments with comp evidence", ms: 3000 },
+  { label: "Checking your case", desc: "Comparing your value with similar homes nearby", ms: 3000 },
 ];
 
 function LoadingScreen({ addr }) {
@@ -3381,7 +3376,7 @@ function LoadingScreen({ addr }) {
       </div>
       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 20, padding: "5px 14px", fontSize: 13, color: "#3D5275", fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>📍 {addr}</div>
       <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 12 }}>Building your case</h2>
-      <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6, marginBottom: 32, fontFamily: "'DM Sans', sans-serif" }}>We're pulling live data from county appraisal records, searching comparable sales, and drafting your dispute letter. This takes about 60 seconds.</p>
+      <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6, marginBottom: 32, fontFamily: "'DM Sans', sans-serif" }}>We're pulling live data from county appraisal records and comparing your home with similar homes nearby. This takes about 60 seconds.</p>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24, textAlign: "left" }}>
         {LOAD_STAGES.map((stage, i) => {
           const done = doneStages.includes(i); const active = i === activeStage;
@@ -3412,744 +3407,8 @@ function LoadingScreen({ addr }) {
   );
 }
 
-/**
- * Render the evidence text.
- *
- * The model returns Markdown - "# EVIDENCE AND ARGUMENT", "## 1. BASIS OF
- * PETITION", "**Present Cash Value (s 193.011(1))**" - and the preview printed it
- * raw inside a <pre>-style block, so the customer saw literal #, ## and ** on the
- * document they are about to swear to. It read like a broken export.
- *
- * Deliberately a tiny renderer rather than a Markdown dependency: this handles the
- * three constructs the evidence prompt actually produces, and anything it does not
- * recognise falls through as plain text rather than disappearing. Nothing here is
- * dangerouslySetInnerHTML - the model's output is never injected as markup.
- */
-function renderEvidence(text) {
-  if (!text) return null;
-
-  const inline = (line, keyBase) => {
-    // **bold** -> <strong>, leaving everything else untouched.
-    const parts = String(line).split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
-    return parts.map((part, i) =>
-      /^\*\*[^*]+\*\*$/.test(part)
-        ? <strong key={`${keyBase}-${i}`} style={{ color: C.darkNavy }}>{part.slice(2, -2)}</strong>
-        : <span key={`${keyBase}-${i}`}>{part}</span>
-    );
-  };
-
-  return String(text).split(/\n/).map((raw, i) => {
-    const line = raw.replace(/\s+$/, '');
-    if (!line.trim()) return <div key={i} style={{ height: 10 }} />;
-
-    const h2 = line.match(/^##\s+(.*)$/);
-    if (h2) {
-      return (
-        <div key={i} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: C.navy, marginTop: 16, marginBottom: 6 }}>
-          {h2[1]}
-        </div>
-      );
-    }
-    const h1 = line.match(/^#\s+(.*)$/);
-    if (h1) {
-      return (
-        <div key={i} style={{ fontFamily: "'DM Serif Display', serif", fontSize: 17, color: C.darkNavy, marginTop: i === 0 ? 0 : 20, marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #E8EDF4" }}>
-          {h1[1]}
-        </div>
-      );
-    }
-    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
-    if (bullet) {
-      return (
-        <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4 }}>
-          <span style={{ color: C.mutedGray }}>•</span>
-          <span>{inline(bullet[1], i)}</span>
-        </div>
-      );
-    }
-    return <p key={i} style={{ marginBottom: 8 }}>{inline(line, i)}</p>;
-  });
-}
-
-function DisputeLetter({ propData, letter, issues, onRestart, account, property, flSignature, txPreviewUrl }) {
-  // What the customer will ACTUALLY be charged: $89 plus the Florida county VAB
-  // filing fee. Every one of these labels used to read a hardcoded "$89" while a
-  // Hillsborough customer was charged $139 — including the checkbox attesting that
-  // "the $89 fee is non-refundable". That is a chargeback waiting to happen.
-  const SERVICE_FEE_CENTS = 8900;
-  const countyFeeCents = (flSignature && flSignature.vabFee) ? Number(flSignature.vabFee) : 0;
-  const totalChargeCents = SERVICE_FEE_CENTS + countyFeeCents;
-  const money = (cents) => `$${(cents / 100).toFixed(0)}`;
-  const totalChargeLabel = money(totalChargeCents);
-  const serviceFeeLabel = money(SERVICE_FEE_CENTS);
-  const countyFeeLabel = money(countyFeeCents);
-
-  // Refund terms.
-  //
-  // Sales open up to PRE_ORDER_DAYS (60) before a state's filing window, so a
-  // customer can pay in June for a petition we are not permitted to mail until
-  // late August. The old wording — "non-refundable once my dispute letter has
-  // been filed" — therefore promised an open-ended refund right for up to two
-  // months, and contradicted both the inline terms ("mailed") and /terms
-  // ("generated and dispatched"). Three different triggers in three places; in a
-  // dispute the reading most favourable to the customer governs, so we were
-  // effectively bound by the loosest one.
-  //
-  // The rule now matches what the system actually does: the document is prepared
-  // immediately on purchase, and preparation is the substance of the service. The
-  // county filing fee is treated separately on purpose — it is a pass-through we
-  // have not remitted until we mail, so we do not keep it.
-  const refundAgreementText = countyFeeCents > 0
-    ? `I understand my petition is prepared within 24 hours of purchase and that the ${serviceFeeLabel} service fee is non-refundable after that point. My ${countyFeeLabel} county filing fee is refunded in full if my petition has not yet been mailed. I agree to TaxAppeal's Terms of Service.`
-    : `I understand my protest is prepared within 24 hours of purchase and that the ${serviceFeeLabel} fee is non-refundable after that point. I agree to TaxAppeal's Terms of Service.`;
-
-  // ── Florida Part 3 signature ────────────────────────────────────────────────
-  // Captured HERE, on the review screen, because the owner attests "I have read
-  // this petition". Previously it was taken two screens earlier, before the
-  // petition had been generated at all.
-  const isFLFlow = (property?.state || '').trim().toUpperCase() === 'FL';
-  // NOTE: no signature is captured on this screen any more. Florida's DR-486
-  // Part 3 signature now happens on /success, after payment, against the complete
-  // unblurred petition. See lib/fulfillOrder.js for why.
-  const [agreements, setAgreements] = useState([false, false, false, false]);
-  const [checkingOut, setCheckingOut] = useState(false);
-
-  /**
-   * THE PARTNER COUPON FIELD.
-   *
-   * `perkInput` is exactly what the customer typed; `perkNormalized` is what we
-   * will send. normalizePerkCode is imported from lib/partnerPerk.js — the SAME
-   * function pages/api/checkout.js validates with — so the field cannot accept a
-   * shape the server will reject, or reject one it would have taken. Two
-   * normalisers would eventually disagree, and the failure would look like a
-   * broken coupon rather than like a bug.
-   *
-   * DELIBERATELY NO LIVE "IS THIS CODE REAL" LOOKUP. An endpoint that answered
-   * that would be an enumeration oracle for a credential worth $20, and it would
-   * also lie: it could say "valid" and then lose the reservation race at
-   * checkout, so the customer would be shown $69 and charged $89. Instead we
-   * validate the SHAPE here, which catches every typo, and Stripe's own payment
-   * page shows the real line item — "(partner coupon applied) $69.00" — before
-   * anyone pays. The customer sees the truth from the system that will charge
-   * them, not a promise from us.
-   */
-  const [perkInput, setPerkInput] = useState('');
-  const perkNormalized = normalizePerkCode(perkInput);
-  const perkLooksWrong = perkInput.trim().length > 0 && !perkNormalized;
-
-  /**
-   * OPERATOR PREVIEW UNLOCK — see pages/api/preview-unlock.js for the reasoning.
-   *
-   * Reading our own petition used to require either buying one or setting
-   * NEXT_PUBLIC_PREVIEW_UNBLURRED, which lifts the blur for every visitor and has
-   * to be remembered back off afterwards. Two settings of exactly that kind nearly
-   * outlived their purpose on 12 Aug. This one is per-browser and expires itself.
-   *
-   * STARTS FALSE AND STAYS FALSE UNTIL AFTER MOUNT, DELIBERATELY. Reading
-   * document.cookie during render would differ between server and client and
-   * produce a hydration mismatch; more importantly, the safe state is blurred, so
-   * the very first paint a customer sees can never be the unlocked one even for a
-   * frame. It fails closed on every path: no cookie, no JS, no hydration.
-   *
-   * The env var is kept for local development, where there is no admin to log in as.
-   */
-  const [previewUnlocked, setPreviewUnlocked] = useState(false);
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_PREVIEW_UNBLURRED === 'true') { setPreviewUnlocked(true); return; }
-    try {
-      setPreviewUnlocked(document.cookie.split('; ').some((c) => c === 'ta_preview_unlocked=1'));
-    } catch { /* no document, or cookies blocked — stay blurred */ }
-  }, []);
-  const pd = propData || {};
-  const stateCode = property.state.trim().toUpperCase();
-  const stateInfo = SUPPORTED_STATES[stateCode] || {};
-  const filingWindow = getFilingWindowStatus(stateCode, pd.county, { strict: true });
-  const requiresAuth = ["AR","AL"].includes(stateCode);
-  const allAgreed = agreements[0] && agreements[1] && agreements[2] && (!requiresAuth || agreements[3]);
-  const toggleAgreement = (i) => setAgreements(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
-
-  const agentAuthGranted = requiresAuth && agreements[3];
-  const doCheckout = async () => {
-    if (!allAgreed) return;
-    setCheckingOut(true);
-
-    // Resolved once, here, rather than inline at the payload — the same value has
-    // to reach the order row and both petition renders, and three inline copies of
-    // "unless they gave us one" is how they drift apart.
-    const ownerMail = resolveOwnerMailing(account, property);
-
-    // The petition is NOT regenerated with a signature here any more - there is no
-    // signature yet. propData.letterKey holds the unsigned preview, which is what
-    // /success shows the owner to read and sign. processOrder's
-    // refreshPetitionBeforeFiling rebuilds it with their signature at mail time.
-    const signedLetterKey = propData?.letterKey || '';
-
-    // Actual amount the customer is about to be charged: $89 base plus the
-    // Florida county VAB filing fee. This was hardcoded to 89, so Google Ads'
-    // Smart Bidding was learning from understated values in the launch market
-    // (FL orders are $104-$139).
-    const totalChargeDollars = totalChargeCents / 100;
-
-    // Google Ads / GA4 — begin_checkout conversion event
-    // Fires the moment the homeowner clicks `File my dispute · ${totalChargeLabel}" and agrees to terms.
-    // Set NEXT_PUBLIC_GADS_CHECKOUT_LABEL in your Vercel env to activate Google Ads conversion.
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'begin_checkout', {
-        currency: 'USD',
-        value: totalChargeDollars,
-        items: [{
-          item_id: 'property-tax-appeal',
-          item_name: 'Property Tax Appeal Filing',
-          item_category: stateCode,
-          price: totalChargeDollars,
-          quantity: 1,
-        }],
-      });
-      const gadsId = process.env.NEXT_PUBLIC_GADS_ID;
-      const checkoutLabel = process.env.NEXT_PUBLIC_GADS_CHECKOUT_LABEL;
-      if (gadsId && checkoutLabel) {
-        window.gtag('event', 'conversion', {
-          send_to: `${gadsId}/${checkoutLabel}`,
-          value: totalChargeDollars,
-          currency: 'USD',
-        });
-      }
-    }
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Which ad click, if any, brought them here. Omitted entirely when
-          // they did not arrive on one — see attributionPayload().
-          ...attributionPayload(),
-          email: account.email,
-          firstName: account.firstName,
-          lastName: account.lastName,
-          // NO `password`. The funnel stopped collecting one on 23 Aug 2026 — it is
-          // offered on /success after the signature instead. /api/checkout has always
-          // treated the field as optional (`if (password)` before it hashes), so this
-          // omission is the case that branch was written for, and save-order.js writes
-          // the lib/noPassword.js sentinel rather than a null.
-          //
-          // Sending `account.password` as an empty string would also have worked, and
-          // is worse: a field that is always "" travelling through Stripe metadata to
-          // a bcrypt branch is a live wire nobody can see is dead.
-          address: pd.rawAddress,
-          county: pd.county,
-          // Carried all the way to the cheque memo and to orders.account_number.
-          // Without it the Lob cheque reaches the county with nothing on it but the
-          // county's own name, and a clerk who separates the cheque from the petition
-          // (which is what mailrooms do) cannot tell which petition it paid for. It is
-          // also the fallback key the inbound decision parser matches on — see
-          // pages/api/webhooks/inbound-email.js.
-          parcelId: pd.parcelId || pd.apn || '',
-          assessedValue: pd.assessedValue,
-          targetReduction: pd.targetReduction,
-          savings: pd.savings,
-          /**
-           * The cautions this owner read before choosing to go ahead.
-           *
-           * Set by applyTxPacket from the packet response, so it records what
-           * was actually SHOWN rather than what we would recompute later — the
-           * roll can move between purchase and filing, and the thing that has to
-           * be defensible is what the customer saw on the screen. Empty on a
-           * clean packet and on every non-Texas order. Lands in
-           * orders.tx_cautions via checkout metadata and lib/fulfillOrder.js.
-           */
-          txCautions: pd.txCautions || [],
-          letter: null,
-          districtName: pd.appraisalDistrict?.districtName || null,
-          districtAddress: pd.appraisalDistrict?.mailingAddress || null,
-          districtCity: pd.appraisalDistrict?.city || null,
-          districtState: pd.appraisalDistrict?.state || null,
-          districtZip: pd.appraisalDistrict?.zip || null,
-          // The MAILING address, which is the property unless the owner said
-          // otherwise — see resolveOwnerMailing. `stateCode` below stays the
-          // PROPERTY's state: it selects the filing rules and the destination
-          // board, and an owner living out of state must not change either.
-          ownerStreet: ownerMail.street,
-          ownerCity: ownerMail.city,
-          ownerState: ownerMail.state,
-          ownerZip: ownerMail.zip,
-          stateCode: property.state ? property.state.trim().toUpperCase() : '',
-          // FL: the SIGNED petition (re-rendered after the owner read and signed it).
-          // Other states: the generated protest letter.
-          letterKey: signedLetterKey || pd.letterKey || null,
-          // Florida signs after payment on /success; finalize-order writes the
-          // Part 3 name and elections to the order row from there.
-          flSignatureName: '',
-          flSignatureTimestamp: '',
-          flAuthDate: '',
-          // Evidence the customer affirmatively confirmed their county, rather than
-          // us having inferred it. County sets the fee, the payee and which office
-          // receives the petition, so if it is ever disputed this is the record of
-          // who chose it. Stripe metadata is durable and auditable, which is why it
-          // rides here rather than only in our own table.
-          countyConfirmedAt: flSignature?.countyConfirmedAt || '',
-          countySource: flSignature?.countySource || '',
-          refCode: (() => {
-            if (typeof window === 'undefined') return '';
-            try {
-              const code = localStorage.getItem('taxappeal_ref');
-              const at = Number(localStorage.getItem('taxappeal_ref_at') || 0);
-              // 90-day attribution window; anything older is not this partner's referral.
-              if (!code || !at || (Date.now() - at) > 90 * 24 * 60 * 60 * 1000) return '';
-              return code.trim().toUpperCase();
-            } catch (e) { return ''; }
-          })(),
-          // Normalised, never raw. checkout.js normalises again — belt and
-          // braces, because this body is also reachable from anything else that
-          // learns to POST it.
-          perkCode: perkNormalized || '',
-          isPreOrder: !!(filingWindow && filingWindow.canPreOrder),
-          scheduledFileDate: (filingWindow && filingWindow.canPreOrder) ? filingWindow.openDate.toISOString() : '',
-        }),
-      });
-      const data = await res.json();
-      if (data.url) { window.location.href = data.url; }
-      else { throw new Error(data.error || 'Checkout failed'); }
-    } catch (e) {
-      alert('Payment error: ' + e.message);
-      setCheckingOut(false);
-    }
-  };
-
-  const lines = letter.split("\n");
-  const visibleLines = lines.slice(0, 30).join("\n");
-  const blurredLines = lines.slice(30).join("\n");
-
-  return (
-    <div className="page-grid-letter">
-      <div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#E6F4ED", color: C.green, borderRadius: 20, padding: "5px 12px", fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>✓ Your dispute letter is ready</div>
-        <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 6 }}>Your case is built.</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginBottom: 24 }}>📍 {pd.rawAddress} — {pd.county}</div>
-        <div style={{ background: C.darkNavy, borderRadius: 12, padding: 24, marginBottom: 24 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginBottom: 16 }}>CASE SUMMARY</div>
-          <div className="two-col-summary">
-            {[
-              // A TEXAS PACKET KNOWS ITS OWN REDUCTION — see applyTxPacket. The
-              // 20%-of-value fallbacks below are for the states where we hold no
-              // roll and must not be applied on top of real figures.
-              [pd.isTxPacket
-                ? (pd.reductionSought ? `$${Number(pd.reductionSought).toLocaleString()}` : "—")
-                : pd.assessedValue && pd.targetReduction ? `$${Number(pd.assessedValue - pd.targetReduction).toLocaleString()}` : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20).toLocaleString()}` : "—", "Estimated overvaluation"],
-              [pd.savings ? `$${pd.savings.toLocaleString()}` : pd.isTxPacket ? "—" : pd.assessedValue ? `$${Math.round(Number(pd.assessedValue) * 0.20 * 0.018).toLocaleString()}` : "—",
-                pd.isTxPacket ? "Estimated saving, every year" : "Potential annual savings"],
-              // WAS THE LITERAL STRING "4–5".
-              // It claimed four to five comparable sales on every petition,
-              // including ones where the comps engine supplied none — which is
-              // now the normal outcome whenever the subject's own sale refutes
-              // them. A count the customer reads before paying has to be the
-              // real count.
-              [String(pd.compCount ?? 0), (pd.compCount ?? 0) === 1 ? "Comparable sale cited" : "Comparable sales cited"],
-              [issues.length.toString(), "Issues cited in letter"],
-            ].map(([val, label]) => (
-              <div key={label}>
-                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.gold }}>{val}</div>
-                <div style={{ fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-            {/* WHY THERE ARE NO COMPARABLE SALES.
-                A zero in gold next to the price reads as something that failed
-                unless we say otherwise. It is also material to what the customer
-                is about to buy: a petition citing six verified sales and one
-                citing none are different products, and they should know which
-                one they are getting while they can still walk away.
-                The reason is specific, because "your neighbourhood rarely
-                transacts" and "nearby sales argue against you" are different
-                facts and only one of them is about them. */}
-            {(pd.compCount ?? 0) === 0 && (
-              <div style={{ background: "rgba(255,201,64,0.10)", border: "1px solid rgba(255,201,64,0.45)", borderRadius: 10, padding: "16px 18px", margin: "16px 0 4px", fontFamily: "'DM Sans', sans-serif" }}>
-                <div style={{ fontWeight: 700, color: C.gold, fontSize: 14, marginBottom: 6 }}>
-                  This petition does not cite comparable sales
-                </div>
-                <p style={{ fontSize: 13, color: "#C7D6EA", lineHeight: 1.7, margin: "0 0 10px" }}>
-                  {pd.compsReason === 'comps_do_not_support_reduction'
-                    ? <>Recent sales of similar homes near you support a value at or above your assessment. We are not citing them, because doing so would argue against your own case.</>
-                    : pd.compsReason === 'land_value_not_comparable'
-                    ? <>Most of your property&rsquo;s value is the land itself, and the nearby sales we hold are not comparable on that basis. Comparing a lot like yours to houses on ordinary lots would produce a figure we could not defend.</>
-                    : <>Too few homes of similar size and age near you sold in the assessment period for us to cite any. That is common for larger or older properties, and for neighbourhoods where houses change hands rarely.</>}
-                </p>
-                <p style={{ fontSize: 13, color: "#C7D6EA", lineHeight: 1.7, margin: 0 }}>
-                  <strong style={{ color: C.white }}>This does not mean your petition will fail.</strong>{' '}
-                  {pd.askRestsOn === 'evidence' && pd.cureTotal
-                    ? <>It rests on the condition of your property — {`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects, each priced from published construction cost data. Condition is a mandatory consideration under Fla. Stat. § 193.011(6), and it stands on its own without comparable sales.</>
-                    : <>It rests on two grounds: the condition of your property{pd.cureTotal ? `, with ${`$${Number(pd.cureTotal).toLocaleString()}`} of documented defects priced from published cost data` : ''}, and the fact that your county set this value by mass appraisal without ever inspecting your property. Both are recognised grounds under Fla. Stat. § 193.011.</>}
-                </p>
-              </div>
-            )}
-          {/*
-            WHY THE SAVING GETS ITS OWN LINE INSTEAD OF A TILE CAPTION.
-            It is the only number on this screen the customer is actually
-            buying, and as a bare tile it read as small print beside the
-            overvaluation. Two facts make it mean something and neither is a
-            claim about the outcome: a Texas protest is filed EVERY year, and
-            the fee is $89 against the figure above it.
-
-            NO MULTIPLIER IS PRINTED. "11x your fee" is the shape of claim the
-            Texas Tax Protest suit against Ownwell is about, and the saving is a
-            ceiling rather than a promise. Stating the fee and the estimate side
-            by side lets the reader do that arithmetic themselves, which is the
-            honest version of the same point.
-          */}
-          {pd.isTxPacket && pd.savings > 0 && (
-            <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 14, marginTop: 2, marginBottom: 12, fontSize: 13, color: "#C7D6E8", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65 }}>
-              That is <strong style={{ color: C.gold }}>${Number(pd.savings).toLocaleString()} a year</strong>, for an
-              $89 filing — and Texas lets you protest again every year the district overshoots.
-              Hold that reduction and it is about{' '}
-              <strong style={{ color: C.gold }}>${Number(pd.savings * 5).toLocaleString()} over five years</strong>.
-              <div style={{ fontSize: 11.5, color: "#5A7A9F", marginTop: 6 }}>
-                A ceiling, not a promise: estimated at a statewide rate if the board grants the full
-                reduction we ask for, before your homestead exemptions, so your own figure will be
-                lower. Next year&rsquo;s rates are not adopted until the autumn, and the five-year line
-                assumes the reduction holds rather than forecasting them.
-              </div>
-            </div>
-          )}
-          <div style={{ borderTop: `1px solid #1E2D45`, paddingTop: 12, fontSize: 12, color: "#5A7A9F", fontFamily: "'DM Sans', sans-serif" }}>
-            ⚖️ Drafted under {stateInfo.statute || "applicable state statutes"} · {pd.appraisalDistrict?.districtName || pd.county}
-          </div>
-        </div>
-        <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
-          <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              {/*
-                TEXAS HAS NO LETTER, SO IT MUST NOT PROMISE ONE.
-                This panel said "the rest of your letter is being prepared — you
-                will see all of it after checkout" on every Texas packet. That
-                could never come true: the 20 Sept decision made this route
-                return facts rather than a document, and the Texas filing IS
-                Form 50-132 plus the s 41.43(b)(3) grid. The panel now shows the
-                form itself.
-              */}
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>
-                {pd.isTxPacket ? "Your Form 50-132, as it will be filed" : "Dispute Letter Preview"}
-              </div>
-              <div style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>
-                {pd.isTxPacket
-                  ? "Page 1 of the Comptroller's own form, filled from your county's roll. You sign it after checkout."
-                  : isFLFlow
-                  ? "You'll see your complete petition after checkout, and sign it there."
-                  : "You'll see your complete letter after checkout, and sign it there."}
-              </div>
-            </div>
-            {/* Florida has no appraisal districts. A VAB petition goes to the county's
-                Clerk of the Value Adjustment Board, so labelling this box with the
-                Property Appraiser told the customer it was going somewhere it is not. */}
-            {!isFLFlow && pd.appraisalDistrict && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif" }}>{pd.appraisalDistrict.districtName}</div>}
-            {isFLFlow && pd.county && <div style={{ background: C.lightBlue, color: C.navy, fontSize: 11, padding: "3px 10px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>{String(pd.county).replace(/\s+County$/i, "")} County VAB</div>}
-          </div>
-          {/* Petition details.
-              The preview rendered the evidence argument only. A Florida customer
-              signs Part 3 under penalties of perjury attesting the facts are true,
-              so they have to be able to check the facts that identify the property:
-              their name, the address, the parcel number and the values. Those live
-              in Parts 1-2 of the DR-486 and were nowhere on this screen. */}
-          <div style={{ padding: "14px 16px", background: C.bg, borderBottom: `1px solid ${C.border}`, fontFamily: "'DM Sans', sans-serif" }}>
-            <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, color: C.mutedGray, fontWeight: 600, marginBottom: 10 }}>
-              {isFLFlow ? "Petition details — please check these are correct" : "Filing details — please check these are correct"}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 18px", fontSize: 12.5 }}>
-              {[
-                ["Property owner", `${account?.firstName || ""} ${account?.lastName || ""}`.trim() || "—"],
-                ["Property address", pd.rawAddress || `${property?.street || ""}, ${property?.city || ""} ${property?.zip || ""}`],
-                ["Parcel / folio number", pd.parcelId || pd.apn || "Not listed in county records"],
-                [isFLFlow ? "Value Adjustment Board" : "Filed with", isFLFlow ? `${String(pd.county || "").replace(/\s+County$/i, "")} County VAB` : (pd.appraisalDistrict?.districtName || pd.county || "—")],
-                ["Tax year", pd.taxYear || new Date().getFullYear()],
-                ["Current assessed value", pd.assessedValue ? `$${Number(pd.assessedValue).toLocaleString()}` : "—"],
-                ["Value we are requesting", pd.targetReduction ? `$${Number(pd.targetReduction).toLocaleString()}` : "—"],
-              ].map(([label, val]) => (
-                <div key={label}>
-                  <div style={{ color: C.mutedGray, fontSize: 11 }}>{label}</div>
-                  <div style={{ color: C.darkNavy, fontWeight: 500, wordBreak: "break-word" }}>{val}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ padding: "16px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, overflowX: "hidden" }}>{renderEvidence(visibleLines)}</div>
-          <div style={{ position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, rgba(255,255,255,0.97), transparent)`, zIndex: 2 }} />
-            {/* The blur is the paywall: the customer reads the opening of their
-                petition, pays, then reads and signs the whole thing.
-                An operator lifts it for their own browser via the Unlock
-                control on /admin, which sets an 8-hour cookie — see
-                pages/api/preview-unlock.js. NEXT_PUBLIC_PREVIEW_UNBLURRED still
-                works and is for local development only: it unblurs for EVERY
-                visitor and must never be set in production. */}
-            {pd.isTxPacket ? (
-              /*
-                NOT BLURRED, AND THAT IS THE DECISION. Page one is the form with
-                the owner's own name, account number and the district's values —
-                the proof the work is real, and the thing a blur would destroy.
-                The comps grid and the condition exhibit, which are the evidence
-                a homeowner cannot assemble alone, are NOT in this page one and
-                stay behind the paywall. The watermark is drawn into the PDF
-                server-side, so it survives printing and saving.
-              */
-              <div style={{ padding: "0 20px 20px", background: C.white }}>
-                {txPreviewUrl ? (
-                  /*
-                    #toolbar=0 SUPPRESSES CHROME'S OWN PDF CHROME. The save,
-                    download, print and overflow controls across the top of this
-                    frame are the browser's viewer, not ours. They are noise on a
-                    preview — the customer has not bought the document yet, and
-                    the controls invite them to take it. navpanes and scrollbar
-                    go with it so a one-page preview does not render a sidebar.
-
-                    These are the Adobe open-parameters that Chrome's built-in
-                    viewer honours. Firefox's pdf.js ignores them and will still
-                    show its own bar; that degrades to the status quo rather than
-                    breaking, which is why this is a URL fragment and not a
-                    rebuild of the preview as an image.
-                  */
-                  <iframe
-                    title="Form 50-132 preview"
-                    src={`${txPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                    style={{ width: "100%", height: 560, border: `1px solid ${C.border}`, borderRadius: 8, background: C.white }}
-                  />
-                ) : (
-                  <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: C.mutedGray, fontSize: 13, fontFamily: "'DM Sans', sans-serif", border: `1px dashed ${C.border}`, borderRadius: 8 }}>
-                    Filling your form&hellip;
-                  </div>
-                )}
-                <p style={{ fontSize: 11.5, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: "10px 2px 0" }}>
-                  Pages 2 and 3 — the comparable-property grid drawn from {pd.county || "your county"}&rsquo;s own certified roll{(issues && issues.length) ? ", and your property-condition statement" : ""} — are prepared with your filing.
-                </p>
-
-                {/*
-                  ==============================================================
-                  THE HEARING DISCLOSURE. Section 5 is filed BLANK by decision
-                  (1 Oct 2026), which means an in-person hearing may be
-                  scheduled and the owner is the one who must attend it or
-                  answer it. That is a defensible choice — most protests resolve
-                  at the informal conference — but only if they are told before
-                  they pay rather than when a notice lands.
-
-                  THE WORDING IS NOT THE ONE APPROVED ON 18 SEPT. That draft
-                  read "my protest will be dismissed and I may lose my right to
-                  appeal for this tax year", which is the overstatement already
-                  corrected on 7 Sept: § 41.45(e-1) entitles an owner who fails
-                  to appear to a NEW hearing on a written good-cause statement
-                  filed within four days. Dismissal is real ARB PRACTICE —
-                  Collin says so outright — but it is not what the Tax Code
-                  says, and this document is relied on by a homeowner.
-
-                  scripts/verify-tx-protest.mjs has enforced "never print the
-                  dismissal risk without the cure" since 7 Sept, but it reads the
-                  protest DOCUMENT. This sentence lives in a React page, so the
-                  rule is re-asserted over this file in verify-tx-form.mjs.
-                */}
-                {/*
-                  ORDER AND WEIGHT ARE BOTH DELIBERATE.
-
-                  It led with "if a hearing is scheduled, it is yours to attend"
-                  in an amber warning box, which made the rare case the headline
-                  and read as a caution about the product. The common case is
-                  that no hearing happens at all, so that goes first and the
-                  obligation follows it.
-
-                  Quiet styling, not amber: this is a standing condition of the
-                  filing, not a defect in it. It must still be legible and must
-                  still carry every element the guard checks — boards' practice
-                  rather than statute, the four-day § 41.45(e-1) cure beside the
-                  dismissal risk, and who receives the notice. Softening the
-                  LOOK is fine; softening the SUBSTANCE is the 18 Sept error.
-                */}
-                <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginTop: 14, fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                  <strong style={{ color: C.darkNavy, fontWeight: 600 }}>Most protests never reach a hearing.</strong>{' '}
-                  We request the informal conference with the appraisal office, which is where the
-                  majority are settled.
-                  <br /><br />
-                  If your appraisal district does set one, the hearing is yours to attend — in person, by
-                  phone or by video — or you can deliver a sworn affidavit with your evidence before it
-                  begins. Appraisal review boards generally dismiss a protest when the owner does neither,
-                  though Texas law lets you request a new hearing if you file a written statement showing
-                  good cause within four days of the missed hearing. TaxAppeal does not attend hearings,
-                  and your county sends the hearing notice to you, not to us.
-                </div>
-              </div>
-            ) : (
-              <div style={{ padding: "0 24px 20px", fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.85, color: C.darkNavy, background: C.white, ...(previewUnlocked ? {} : { filter: "blur(4px)", opacity: 0.6, userSelect: "none" }), whiteSpace: "normal" }}>{blurredLines ? renderEvidence(blurredLines) : ( "The rest of your letter is being prepared — you will see all of it after checkout.")}</div>
-            )}
-          </div>
-          {/* WHY THIS NOTICE IS PROMINENT.
-              The blur is the paywall, and a customer who does not understand it
-              reads it as a broken page rather than a deliberate boundary — they
-              wonder why the document is cut off, and abandon. It sat in 12px muted
-              grey under a blurred block, which is exactly where the eye does not
-              go. It now reads as a deliberate statement: gold left rule, its own
-              background, a heading line, and body text at the same size as the
-              petition itself. */}
-          <div style={{ background: C.amber, borderTop: `1px solid ${C.border}`, borderLeft: `4px solid ${C.gold}`, padding: "16px 20px", fontFamily: "'DM Sans', sans-serif" }}>
-            {previewUnlocked
-              ? <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.6 }}>
-                  🔓 <strong>Preview mode</strong> — the full petition is shown unblurred for review. Customers see this section hidden until checkout.
-                </div>
-              : <>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.darkNavy, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 17 }}>🔒</span>
-                    <span>This is a preview — the rest unlocks at checkout</span>
-                  </div>
-                  <div style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7 }}>
-                    Nothing is missing from your petition. Right after you pay, you will see the{' '}
-                    <strong style={{ color: C.darkNavy }}>complete document with nothing blurred</strong> — you read all of
-                    it, and you sign it yourself before anything is filed.
-                  </div>
-                </>}
-          </div>
-        </div>
-        <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
-          <div style={{ background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span>📋</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>Terms & Disclaimer — Please read before filing</span>
-          </div>
-          <div style={{ maxHeight: 160, overflowY: "auto", padding: "14px 16px", fontSize: 12, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7 }}>
-            <p><strong>1. No guarantee of outcome.</strong> Your appraisal district determines the result, not TaxAppeal.</p>
-            <p><strong>2. Not legal advice.</strong> TaxAppeal is a document preparation service only.</p>
-            <p><strong>3. Accuracy of information.</strong> You are responsible for reviewing the letter for accuracy.</p>
-            <p><strong>4. Filing deadlines.</strong> You are responsible for verifying that your county's protest window is still open.</p>
-            <p><strong>5. Refunds.</strong> Your protest or petition is prepared in the TaxAppeal system within 24 hours of purchase. The {serviceFeeLabel} service fee may be refunded in full if you request it within 24 hours of payment; after that it is non-refundable, because your document has been prepared.{countyFeeCents > 0 ? ` Your ${countyFeeLabel} county filing fee is separate: it is refunded in full at any time before your petition is mailed.` : ''}</p>
-            <p><strong>6. Service availability.</strong> TaxAppeal currently serves TX, GA, FL, AR, and AL.</p>
-          </div>
-        </div>
-        {/* NOTE: these MUST be template literals (backticks).
-            The third one used to be a double-quoted string containing
-            "${totalChargeLabel}", so it shipped to production with the literal
-            placeholder text in it — the single checkbox that constitutes the
-            customer's agreement to the price did not state a price. */}
-        {[
-          `I understand that TaxAppeal does not guarantee my appraisal district will lower my assessed value. The outcome is determined solely by my county.`,
-          `I confirm the property information I provided is accurate and I have reviewed the letter preview above.`,
-          refundAgreementText,
-        ].map((text, i) => (
-          <div key={i} onClick={() => toggleAgreement(i)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${agreements[i] ? C.navy : C.border}`, background: agreements[i] ? C.lightBlue : C.white, cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${agreements[i] ? C.navy : "#C5D0E0"}`, background: agreements[i] ? C.navy : C.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.white, fontWeight: 700, marginTop: 2 }}>{agreements[i] ? "✓" : ""}</div>
-            <span style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>{text}</span>
-          </div>
-        ))}
-        {requiresAuth && (
-          <div
-            onClick={() => toggleAgreement(3)}
-            style={{
-              display: "flex", alignItems: "flex-start", gap: 12,
-              padding: "12px 14px", borderRadius: 8, marginBottom: 10, cursor: "pointer",
-              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
-              background: agreements[3] ? C.lightBlue : "#FFF8E6",
-              transition: "all 0.15s"
-            }}
-          >
-            <div style={{
-              width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
-              border: "1.5px solid " + (agreements[3] ? C.navy : "#D4860A"),
-              background: agreements[3] ? C.navy : C.white,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, color: C.white, fontWeight: 700
-            }}>
-              {agreements[3] ? "✓" : ""}
-            </div>
-            <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.5 }}>
-              <strong style={{ color: "#7A5C10", display: "block", marginBottom: 3 }}>
-                {"Filing Authorization — Required for " + (stateInfo.name || "this state")}
-              </strong>
-              {"I authorize TaxAppeal USA to prepare and submit my property tax protest to the " + (stateInfo.board || "Board of Equalization") + " using the information I have provided, and to file it in my name as the property owner. This electronic authorization — recorded with my name, date, and IP address — will accompany my protest filing."}
-            </div>
-          </div>
-        )}
-        {/* The Florida Part 3 signature used to live here, under a preview whose
-            second half is deliberately blurred - so the owner attested, under
-            penalties of perjury, that they had "read this petition and the facts
-            stated in it are true" about a document this page was hiding from them,
-            including comparable sales they could not check.
-
-            It now happens on /success, after payment, on the complete unblurred
-            petition - the same post-payment flow TX/GA/AR/AL already used. Nothing
-            mails until it is signed. See lib/fulfillOrder.js. */}
-        {/* Partner coupon. Placed directly above the pay button because that is
-            where someone holding a code looks for it, and collapsed by default so
-            the 99% who have none are not prompted to go hunting for one. */}
-        <div style={{ marginTop: 18, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 12, fontFamily: "'DM Sans', sans-serif", color: C.mutedGray, marginBottom: 6 }}>
-            Have a partner coupon? (optional)
-          </label>
-          <input
-            type="text"
-            value={perkInput}
-            onChange={(e) => setPerkInput(e.target.value)}
-            placeholder="TAP-XXXX-XXXX"
-            autoComplete="off"
-            spellCheck={false}
-            aria-label="Partner coupon code"
-            style={{
-              width: "100%", boxSizing: "border-box", padding: "10px 14px",
-              fontSize: 14, fontFamily: "'DM Sans', sans-serif",
-              letterSpacing: perkInput ? "0.06em" : "normal",
-              textTransform: perkInput ? "uppercase" : "none",
-              border: `1px solid ${perkLooksWrong ? "#D97706" : perkNormalized ? "#A7DFC0" : C.border}`,
-              background: perkNormalized ? "#F0FBF4" : C.white,
-              borderRadius: 8, outline: "none",
-            }}
-          />
-          {perkLooksWrong && (
-            <p style={{ fontSize: 12, color: "#B45309", margin: "6px 0 0", fontFamily: "'DM Sans', sans-serif" }}>
-              That doesn&rsquo;t look like a coupon code. They look like <strong>TAP-K7M2-QW9F</strong> &mdash; eight letters and numbers. Leave it blank if you don&rsquo;t have one.
-            </p>
-          )}
-          {perkNormalized && (
-            <p style={{ fontSize: 12, color: "#0F5C40", margin: "6px 0 0", fontFamily: "'DM Sans', sans-serif" }}>
-              $20 off will be applied if this coupon is still available. You&rsquo;ll see the final amount on the payment page before you pay.
-            </p>
-          )}
-        </div>
-        <button style={allAgreed ? { ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 } : { ...disabledBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={allAgreed ? doCheckout : undefined} disabled={!allAgreed || checkingOut}>
-          <span>{!allAgreed ? "🔒" : checkingOut ? "⏳" : "📤"}</span>
-          <span>{!allAgreed ? "Agree to all terms to continue" : checkingOut ? "Redirecting to payment..." : `Continue to payment · ${totalChargeLabel} — you sign your petition next`}</span>
-        </button>
-        <div style={{ marginTop: 20, textAlign: "center" }}>
-          <button style={{ ...secondaryBtn, width: "auto", padding: "8px 20px", fontSize: 12 }} onClick={onRestart}>Start a new dispute</button>
-        </div>
-      </div>
-      <div className="mob-hide" style={{ position: "sticky", top: 20 }}>
-        <div style={{ ...cardStyle, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>Where to File</div>
-          {pd.appraisalDistrict ? (
-            <div style={{ fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, lineHeight: 1.8 }}>
-              <div style={{ fontWeight: 700, color: C.darkNavy, marginBottom: 4, fontSize: 14 }}>{pd.appraisalDistrict.districtName}</div>
-              <div>{pd.appraisalDistrict.mailingAddress}</div>
-              <div>{pd.appraisalDistrict.city}, {pd.appraisalDistrict.state} {pd.appraisalDistrict.zip}</div>
-              {pd.appraisalDistrict.phone && <div style={{ marginTop: 4 }}>📞 {pd.appraisalDistrict.phone}</div>}
-              <div style={{ marginTop: 10, background: C.amber, border: `1px solid #FFD97A`, borderRadius: 6, padding: "8px 10px", fontSize: 11, color: "#7A5C10" }}>📅 {pd.appraisalDistrict.filingDeadlineNote}</div>
-            </div>
-          ) : (
-            <div style={{ fontSize: 13, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif" }}>Search "{pd.county} appraisal district" to find the filing address.</div>
-          )}
-        </div>
-        <div style={{ ...cardStyle }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.navy, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", marginBottom: 12 }}>What Happens After You Pay</div>
-          {[["💳", `Secure ${totalChargeLabel} payment`, "One-time, no recurring charges"], ["📬", "We mail you the kit", isFLFlow ? "Form DR-486 filled in, your evidence, and a return envelope addressed to your county's Value Adjustment Board. A PDF copy is emailed the same day" : "Your form filled in, your evidence, and a return envelope addressed to your appraisal district. A PDF copy is emailed the same day"], ["✍️", "You sign it and mail it", isFLFlow ? "Sign Part 3 in ink, add your check for the county's filing fee, and mail it so the Board receives it by your deadline" : "Sign it in ink, add a stamp and mail it before your deadline"], ["⏳", "Await the decision", isFLFlow ? "Boards respond in 30–90 days" : "Districts respond in 30–90 days"]].map(([icon, t, d]) => (
-            <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 28, height: 28, background: C.navy, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.darkNavy, fontFamily: "'DM Sans', sans-serif" }}>{t}</div>
-                <div style={{ fontSize: 11, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{d}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function StepDispute({ formData, onRestart, onAddIssues }) {
   const [loading, setLoading] = useState(true);
-  const [propData, setPropData] = useState(null);
-  // Non-null when the county's own figures show an appeal cannot reduce this
-  // owner's tax. See the block in run() for why this stops the sale outright.
-  const [noSavings, setNoSavings] = useState(null);
   // Non-null when a Texas packet came back carrying cautions. The packet EXISTS
   // and is filable; this holds it while the owner reads what is weak about it
   // and decides. Never an error — see the branch in run() and the screen below.
@@ -4176,17 +3435,6 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
   // picker can pre-select it instead of making them search the list.
   const [txCountyRescue, setTxCountyRescue] = useState(null);
 
-  /**
-   * Move a Texas packet into propData and show it.
-   *
-   * Called from two places with the same object: straight through when there is
-   * nothing to caution about, and from the Proceed button when the owner has
-   * read the cautions and wants it anyway. One function so the two paths cannot
-   * drift into producing different orders.
-   *
-   * `pd` is passed on the straight-through path because run() is still holding
-   * the object it built; the Proceed path has no such object and updates state.
-   */
   /**
    * SEARCH A DIFFERENT DISTRICT'S ROLL — 15 Sept 2026.
    *
@@ -4297,22 +3545,7 @@ function StepDispute({ formData, onRestart, onAddIssues }) {
     })();
     return () => { gone = true; };
   }, [txReview]);
-  // Non-null when the owner's manual entry matches their capped assessed value
-  // rather than just value. Blocks the step until they pick which they meant.
-  const [valueConflict, setValueConflict] = useState(null);
-  const [letter, setLetter] = useState("");
   const [errMsg, setErrMsg] = useState("");
-  /**
-   * Whether the failure was ours-and-transient or the lookup genuinely not working.
-   *
-   * The heading on the error screen below was hardcoded "Lookup failed" for every
-   * error reachable here. When /api/generate-dr486 answers 503 VENDOR_UNAVAILABLE —
-   * the model API was briefly unreachable, nothing to do with the lookup, which had
-   * already succeeded — the customer read "Lookup failed" above a sentence saying
-   * their petition service was busy. Two different claims, one screen, and the one
-   * in the larger type was the wrong one.
-   */
-  const [errTransient, setErrTransient] = useState(false);
 
 /**
  * ERROR CODES ARE FOR US. SENTENCES ARE FOR THE CUSTOMER.
@@ -4353,554 +3586,101 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
   useEffect(() => { if (ran.current) return; ran.current = true; run(); }, []);
 
   const run = async () => {
-    setLoading(true); setErrMsg(""); setErrTransient(false); setLetter(""); setPropData(null);
-    // GEORGIA: the kit step owns everything from here (lookup, comps, the bill
-    // check, the county questions, checkout). No /api/lookup, no document here.
+    setLoading(true); setErrMsg("");
+    // GEORGIA and FLORIDA: the kit step owns everything from here (lookup,
+    // comps, the checks, checkout). No document is generated on this screen.
     if (String(property?.state || '').trim().toUpperCase() === 'GA') { setGaKit(true); setLoading(false); return; }
     if (String(property?.state || '').trim().toUpperCase() === 'FL') { setFlKit(true); setLoading(false); return; }
+    // Texas is the only other state sold, and only as a kit. Arkansas and
+    // Alabama never reach this step (UnsupportedState sends them to the
+    // waitlist); anything else stops here rather than falling through.
+    const isTX = stateCode === 'TX';
+    if (!isTX) {
+      setErrMsg("We are not preparing appeals for this state yet.");
+      setLoading(false);
+      return;
+    }
     const ownerMail = resolveOwnerMailing(account, property);
     try {
-      const res = await fetch("/api/lookup", {
+      /**
+       * ====================================================================
+       * TEXAS GETS FORM 50-132 AND THE § 41.43(b)(3) GRID, NOT PROSE.
+       * ====================================================================
+       * A grid of the district's own parcels, with their own account numbers,
+       * taken from the roll it certified, is evidence — and § 41.43(b)(3)
+       * requires the protest to be decided in the owner's favour unless the
+       * district rebuts exactly that median.
+       *
+       * pages/api/generate-50132.js re-reads the roll server-side and computes
+       * every figure. It takes no value from this client, deliberately — a
+       * browser cannot assert its own comparables.
+       *
+       * NO /api/lookup FIRST (17 Oct 2026). That call fed the deleted letter
+       * path; for Texas the only thing this branch read from it was taxYear,
+       * which lookup.js set to the current calendar year. Sent directly below.
+       */
+      const txRes = await fetch("/api/generate-50132", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ street: property.street, city: property.city, state: property.state, zip: property.zip, manualAssessedValue: property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null, manualSqft: property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null, manualYearBuilt: property.manualYearBuilt || null, manualBeds: property.manualBeds || null, manualBaths: property.manualBaths || null,
-          // The owner's selected defects, sent as LABELS not dollars. lib/dor/parcels.js
-          // prices them server-side against this parcel's improvement value per square
-          // foot, then hands the total to qualify() as cureDollars. Sending labels rather
-          // than an amount is deliberate: a client cannot assert its own cure figure to
-          // buy its way past the savings gate.
-          issues: issues || [], costOverrides: costOverrides || {} }),
+        body: JSON.stringify({
+          // The route resolves these from the address itself — see its header.
+          // Sending a client-held account number would put the field the whole
+          // petition hangs on in the browser's gift.
+          street: addr,
+          city: property.city || '',
+          zip: property.zip || '',
+          // THE COUNTY THE OWNER ALREADY SETTLED. Without it this route asks
+          // the geocoder again and discards a zip-centroid answer, which is
+          // how 640 Orchid Hill Ln reached the dispute step and died on
+          // "not_texas" after the customer had confirmed Denton at step 1.
+          county: property.county || undefined,
+          taxYear: new Date().getFullYear(),
+          owner: {
+            firstName: account.firstName,
+            lastName: account.lastName,
+            email: account.email,
+            phone: account.phone || '',
+            mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
+              .filter(Boolean).join(', '),
+          },
+          // Structured, for the kit order: the kit is mailed here (Kit model).
+          ownerAddress: { street: ownerMail.street || '', street2: ownerMail.street2 || '', city: ownerMail.city || '', state: ownerMail.state || '', zip: ownerMail.zip || '' },
+          issues: issues || [],
+          costOverrides: costOverrides || {},
+        }),
       });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `Lookup failed (${res.status}).`); }
-      const bdJson = await res.json();
-
-      // THE OWNER TYPED THEIR CAPPED VALUE INTO THE JUST-VALUE BOX.
-      //
-      // /api/lookup sets this when the manual entry matches the Save Our Homes
-      // capped figure and sits well below the roll's just value. Stop here rather
-      // than proceeding, because everything after this point treats the number as
-      // just value: the comps are selected against it, the requested value is
-      // derived from it, and the DR-486 is signed under penalty of perjury.
-      //
-      // We do NOT silently substitute the roll's figure. The owner is the one
-      // attesting, so they choose — but they choose knowing which line they read.
-      if (bdJson?.manualValueLooksCapped) {
-        const v = bdJson.manualValueLooksCapped;
-        setLoading(false);
-        setValueConflict(v);
-        return;
+      const txJson = await txRes.json();
+      if (!txRes.ok) {
+        const code = txJson?.error || '';
+        // Not a dead end when the owner can fix it by naming their county.
+        // retryTxWithCounty posts a cadId directly and bypasses the geocoder
+        // entirely, so it is the exact remedy for every code in this list.
+        if (COUNTY_FIXABLE.includes(code)) {
+          setErrMsg(friendlyTxError(code));
+          setTxCountyRescue(txJson?.suggestedCounty || null);
+          setTxPickCounty(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(friendlyTxError(code));
       }
 
-      // ── THE SAVINGS GATE ────────────────────────────────────────────────
-      //
-      // Florida taxes flow from ASSESSED value, which Save OurHomes caps
-      // (Fla. Stat. s 193.155). Reducing JUST value — which is all a VAB
-      // petition can do — only reaches the tax bill once it drops below that
-      // cap. Above it, winning changes nothing.
-      //
-      // Measured against the full 2026 roll: 29.99% of Florida residential
-      // parcels (2,522,194) need a cut of more than 35% before a single dollar
-      // moves, which nothing realistic delivers. The real Hillsborough parcel
-      // this was built against needs 24.5%, and a strong 25% comps result would
-      // save about $57 against a $104 filing cost.
-      //
-      // BUT SEE `rescuable` BELOW (7 Aug 2026). A further 688,497 parcels sit in
-      // the 25-35% band, where comparable sales alone fall short but a documented
-      // cost to cure does not. Those must be ASKED about condition, not refused —
-      // on this same parcel $63,900 of sourced cure turns $57 a year into $1,194.
-      //
-      // So we stop here. Not a warning, not a disclosure — the sale does not
-      // proceed. Taking $89 for an outcome that cannot occur is the thing this
-      // whole data pipeline exists to prevent, and a blocked sale is recoverable
-      // where a charged customer with no saving is not.
-      //
-      // `eligible` is only ever false when we hold county roll data for the
-      // parcel. A missing lookup leaves savings null and the funnel continues as
-      // before — we never refuse on absence of evidence.
-      if (bdJson?.savings && bdJson.savings.eligible === false) {
-        setNoSavings(bdJson.savings);
-        setLoading(false);
-        return;
-      }
-
-      const extracted = bdJson?.extractedData || {};
-      const manualAV = property.manualAssessedValue ? Number(String(property.manualAssessedValue).replace(/[^0-9.]/g, "")) : null;
-      const manualSqftNum = property.manualSqft ? Number(String(property.manualSqft).replace(/[^0-9.]/g, "")) : null;
-      const assessedValue = extracted.assessedValue || manualAV || null;
-      const marketValue = extracted.marketValue || null;
-      const annualTax = extracted.annualTax || null;
-      const county = bdJson?.resolvedCounty || `${property.city} County`;
-      const taxYear = extracted.taxYear || new Date().getFullYear().toString();
-      const beds = extracted.beds || (property.manualBeds ? Number(property.manualBeds) : null) || null;
-      const baths = extracted.baths || (property.manualBaths ? Number(property.manualBaths) : null) || null;
-      const sqft = extracted.sqft || manualSqftNum || null;
-      const yearBuilt = extracted.yearBuilt || property.manualYearBuilt || null;
-      const appraisalDistrict = bdJson?.appraisalDistrict || null;
-      const issueCount = issues ? issues.length : 0;
-      const overAssessedPct = assessedValue && marketValue && marketValue > 0 ? ((assessedValue - marketValue) / marketValue) * 100 : 0;
-
-      // The requested reduction is DERIVED, in one state-agnostic place, and comes
-      // back with the statutory grounds supporting it. It used to be
-      // 0.18-0.22 + Math.random(), which meant the number the owner signs for was
-      // drawn at random, the letter's claim that it reflected property-specific
-      // factors was untrue, and reloading changed the ask. See lib/valuation.js.
-      //
-      // The 18-22% band is unchanged and is applied as a hard clamp, so this never
-      // reduces the ask and never makes it conditional on finding comparable sales.
-      const valuation = deriveValuation({
-        stateCode,
-        assessedValue,
-        marketValue,
-        issues,
-        categoryOf: ISSUE_CATEGORY_INDEX,
-        // Cost to cure needs the property, not just the value: repairs scale with
-        // living area and with how the house is built. Florida gets both free
-        // from the roll; elsewhere sqft alone still scales the size component.
-        parcel: { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft },
-        costOverrides: costOverrides || {},
-        corrections: {
-          sqft: property.manualSqft || null,
-          countySqft: sqft || null,
-          beds: property.manualBeds || null,
-          countyBeds: beds || null,
-          baths: property.manualBaths || null,
-          countyBaths: baths || null,
-          yearBuilt: property.manualYearBuilt || null,
-          countyYearBuilt: yearBuilt || null,
-        },
-      });
-      const reductionPct = valuation.reductionPct;
-      const reductionPctDisplay = valuation.reductionPctDisplay;
-      const targetReduction = valuation.requestedValue;
-      // THE REAL MILLAGE, NOT 1.1%.
-      //
-      // The placeholder produced $1,303 on a Broward property whose eligibility
-      // screen had said $1,960 for the same reduction two steps earlier —
-      // Broward levies 19.86 mills, not 11. Two different savings figures for one
-      // property in one session is the kind of thing a customer notices and a
-      // magistrate asks about.
-      //
-      // qualify.js already computed its scenarios at the county's actual rate, so
-      // the effective rate is recovered from them rather than re-derived.
-      let effectiveRate = annualTax && assessedValue ? (annualTax / assessedValue) : 0.011;
-      //
-      // READ FROM bdJson.savings, NOT `savings`.
-      //
-      // `savings` in this scope is a NUMBER, declared three lines below, so the
-      // first version of this both used the wrong value and referenced it inside
-      // its own temporal dead zone — "Cannot access 'savings' before
-      // initialization", which reached the customer as "Lookup failed".
-      // The qualify object carrying the scenarios is bdJson.savings.
-      const gate = bdJson?.savings;
-      const likely = gate?.scenarios?.likely;
-      const likelyPct = gate?.scenarioPcts?.likely;
-      if (likely?.dollarsSaved && likelyPct && assessedValue) {
-        const implied = likely.dollarsSaved / (Number(assessedValue) * likelyPct);
-        // Sanity-bounded: Florida millage runs roughly 11 to 24 mills, so
-        // anything outside 0.3%-5% means the arithmetic upstream changed shape
-        // and the placeholder is the safer answer.
-        if (implied > 0.003 && implied < 0.05) effectiveRate = implied;
-      }
-      const savingsFromReduction = assessedValue ? Math.round((Number(assessedValue) * reductionPct) * effectiveRate) : null;
-      const savingsFromMarket = assessedValue && marketValue && assessedValue > marketValue ? Math.round((assessedValue - marketValue) * effectiveRate) : null;
-      const savings = savingsFromMarket || savingsFromReduction;
-      const stateInfo = SUPPORTED_STATES[stateCode] || {};
-      // parcelId WAS ABSENT, so the preview printed "Not listed in county
-      // records" for a parcel we had already resolved and shown on the
-      // eligibility screen two steps earlier. The folio number is how the Board
-      // identifies the property being petitioned.
-      //
-      // compCount is set later, once the comps call has actually returned.
-      // COMPUTED BEFORE pd, WHICH READS IT.
-      //
-      // This was declared below, next to the prompt that first used it, and pd
-      // then referenced `cure.total` inside its own temporal dead zone —
-      // "Cannot access 'cure' before initialization", which reached the customer
-      // as "Lookup failed". Identical in shape to the `savings` bug on 2 August:
-      // a value added to pd whose declaration sits further down the function.
-      //
-      // Neither verify-routes nor verify-render catches this, because both stop
-      // at the boundary of run(). That gap is item 1 of the open work.
-      const cure = totalCostToCure(issues, { jv: assessedValue, lnd_val: extracted.landValue ?? null, tot_lvg_area: sqft }, costOverrides || {});
-
-      const pd = { assessedValue, marketValue, annualTax, county, taxYear, savings, beds, baths, sqft, yearBuilt, rawAddress: addr, hasData: !!(assessedValue || marketValue), appraisalDistrict, targetReduction, reductionPctDisplay, parcelId: extracted.parcelId || extracted.apn || null, compCount: 0, compsReason: null, askRestsOn: valuation.askRestsOn, cureTotal: cure.total, valuationGrounds: valuation.grounds, valuationBasis: valuation.basisSummary };
-      setPropData(pd);
-      const fmt = (n) => n ? `$${Number(n).toLocaleString()}` : null;
-      const propDetails = [sqft ? `Square Footage: ${Number(sqft).toLocaleString()} sq ft` : null, yearBuilt ? `Year Built: ${yearBuilt}` : null, beds ? `Bedrooms: ${beds}` : null, baths ? `Bathrooms: ${baths}` : null, property.propType ? `Property Type: ${property.propType}` : null, sqft && assessedValue ? `Assessed Price Per Sq Ft: $${Math.round(Number(assessedValue) / Number(sqft))}` : null].filter(Boolean).join("\n");
-      // The defects block now carries what each repair costs and where the figure
-      // came from. A cited cost is arguable; a bare list of complaints is not.
-      // Incurable conditions are listed separately and explicitly at no cost, so
-      // the letter cannot imply we priced something we did not.
-
-      const curedLines = cure.priced.map(c =>
-        `• ${c.issue}\n    Remedy: ${c.scope}\n    Cost to cure: $${c.asked.toLocaleString()}${c.ownerSupplied ? " (owner's own contractor estimate)" : ` (source: ${c.source}, ${c.sourceYear})`}`
-      ).join("\n");
-      const narrativeLines = cure.narrative.map(n => `• ${n.issue} \u2014 ${n.narrative}`).join("\n");
-      const issuesBlock = issues && issues.length > 0
-        ? [
-            cure.priced.length ? `PROPERTY DEFECTS, PRICED AT COST TO CURE (cite each, with its cost and its source):\n${curedLines}\n\nTOTAL COST TO CURE: $${cure.total.toLocaleString()}` : "",
-            cure.narrative.length ? `CONDITIONS THAT CANNOT BE CURED BY EXPENDITURE (cite as support for the value argument, and state explicitly that NO cost to cure is claimed for them):\n${narrativeLines}` : "",
-            cure.disproportionate ? `NOTE: the total cost to cure is ${Math.round(cure.shareOfValue * 100)}% of the assessed value. Address this directly rather than leaving it unexplained.` : "",
-          ].filter(Boolean).join("\n\n")
-        : "No specific property issues reported beyond general market value discrepancy.";
-
-      // WHICH GROUND THE DEMAND RESTS ON. When the priced evidence comes to less
-      // than the floor, the ask is supported by the mass-appraisal ground and the
-      // letter must say so. Crediting $900,000 to a $121,900 air conditioner is
-      // the sentence that loses the petition.
-      const askBasis = valuation.askRestsOn === 'evidence'
-        ? `The requested reduction of ${reductionPctDisplay}% is supported by the grounds itemised above. Attribute it to them.`
-        : `IMPORTANT: the requested reduction of ${reductionPctDisplay}% is NOT derived from the repair costs above, which total ${fmt(cure.total) || "$0"}. It rests on the ground that the assessment was produced by mass appraisal without examination of this specific property. State that as the basis for the requested figure. Present the repair costs as additional supporting evidence of over-valuation, and do NOT claim the requested figure was calculated from them.`;
-      const districtBlock = appraisalDistrict ? `FILING DESTINATION:\n${appraisalDistrict.districtName}\n${appraisalDistrict.mailingAddress}\n${appraisalDistrict.city}, ${appraisalDistrict.state} ${appraisalDistrict.zip}\n${appraisalDistrict.phone ? "Phone: " + appraisalDistrict.phone : ""}\nProtest Deadline: ${appraisalDistrict.filingDeadlineNote || stateInfo.deadlineNote || "Check with district"}` : `FILE WITH: ${county} Appraisal District\nDeadline: ${stateInfo.deadlineNote || "Check with district"}`;
-      const arNote = stateCode === 'AR' ? '\n\nARKANSAS-SPECIFIC RULES:\n- Arkansas assesses property at 20% of market value. The appeal targets MARKET VALUE, not the 20% assessed figure.\n- Address to: Secretary, ' + county + ' County Board of Equalization\n- Cite Arkansas Code ss.26-27-317 (appeal rights) and ss.26-26-1901 (market value standard)\n- The Board meets in August - emphasize timely filing and postmark date\n- Do NOT mention ARB or appraisal districts - use "Board of Equalization" and "county assessor"' : '';
       /**
-       * ══════════════════════════════════════════════════════════════════════
-       * EVIDENCE BLOCKS — the model FORMATS these, it never SOURCES them.
-       * ══════════════════════════════════════════════════════════════════════
-       * Until 17 Aug 2026 requirement 7 below read:
+       * THE OWNER CONFIRMS THE PROPERTY, ALWAYS — 15 Sept 2026.
        *
-       *     "Section COMPARABLE SALES EVIDENCE: 4-5 recent sales from ZIP ..."
-       *
-       * Nothing supplied those sales. The model was being asked to produce five
-       * of them from nowhere, into a document the property owner signs in their
-       * own name. `pd.compCount` has been hardcoded to 0 this whole time, which
-       * was the visible symptom nobody read.
-       *
-       * In TEXAS it is worse than a gap. Texas is a NON-DISCLOSURE state: sale
-       * prices are not in public records at all, so every "recent sale" in a
-       * Texas letter was necessarily invented. And a fabricated APPRAISED value
-       * would be worse still than a fabricated sale price, because the district
-       * can look the account up in its own system and check it.
-       *
-       * The fix is not better wording. It is that the data must arrive as a
-       * BLOCK, exactly as `issuesBlock` already does for cost to cure — where
-       * requirement 6 has always said "Never state a cost that is not given
-       * above." Section 7 was the only section asking the model to source rather
-       * than format, and that asymmetry was the whole bug.
-       *
-       * These are empty today. That is deliberate and it is not a regression:
-       * an omitted section is correct, and an invented one never was. The Texas
-       * engine that fills this (lib/tx/comps.js -> findComps) returns the rows,
-       * the median per square foot, the stratum tier and the disclosures; wiring
-       * it in is the next change, and it plugs in here.
+       * The district is picked by the geocoder and used as an .eq() filter on
+       * the roll: a miss in a metro where street names repeat can return a real
+       * parcel belonging to somebody else. So every packet, clean or carrying
+       * cautions, stops on the review screen, which hands the buying decision
+       * to components/TxKitCheckout.js.
        */
-      const compsBlock = '';   // TODO(tx): populate from lib/tx/comps.js findComps()
-      const marketBlock = '';  // no sourced market statistics exist in this path
-
-      const prompt = `You are preparing a property tax protest letter that the property owner will read, sign, and submit in their own name. Output ONLY the letter — no preamble, no markdown, no explanation.\n\nPROPERTY OWNER: ${account.firstName} ${account.lastName}\nOWNER EMAIL: ${account.email}\nPROPERTY ADDRESS: ${addr}\nCOUNTY: ${county}\nSTATE: ${property.state.toUpperCase()}\nTAX YEAR: ${taxYear}\n\nSUBJECT PROPERTY CHARACTERISTICS:\n${propDetails || "See county records"}\nCurrent Assessed Value: ${fmt(assessedValue) || "See records"}\nEstimated Market Value: ${fmt(marketValue) || "N/A"}\nAnnual Tax Bill: ${fmt(annualTax) || "N/A"}\nRequested Reduction: ${reductionPctDisplay}% — from ${fmt(assessedValue)} to ${fmt(targetReduction)}\nJustification basis (cite these, do not invent others):\n${valuation.basisSummary}\n\n${issuesBlock}\n\n${compsBlock}${marketBlock}${askBasis}\n\n${districtBlock}\n\nOWNER NOTES: ${property.notes || "None."}${arNote}\n\nABSOLUTE RULES — THESE OVERRIDE EVERY NUMBERED REQUIREMENT BELOW:\nA. Every factual figure in this letter must come from the data above. If a figure is not given above, it does not belong in the letter. Do not estimate it, do not interpolate it, and do not supply a typical or representative value.\nB. Never state a sale price, sale date, or the value of any other specific property unless it appears in a block above.${property.state.toUpperCase() === 'TX' ? ' Texas is a NON-DISCLOSURE state: sale prices are not public records, so any sale price in this letter would be fabricated. State none.' : ''}\nC. If a requirement below asks for a section and no data for it was supplied above, OMIT that section entirely. An omitted section is correct. An invented one is a false statement in a document signed under the owner's name.\n\nLETTER REQUIREMENTS:\n1. Open with owner contact block: [Owner Full Name], [Owner Property Address], [Owner Email]\n2. Date: June 15, 2026\n3. Recipient address block\n4. RE: NOTICE OF PROTEST OF PROPERTY VALUATION\n5. Section SUBJECT PROPERTY DESCRIPTION: list every characteristic with exact numbers\n6. Section PROPERTY DEFECTS & CONDITIONS: cite each defect with its stated cost to cure and name the source of that cost. List non-curable conditions separately and state that no cost to cure is claimed for them. Never state a cost that is not given above.\n7. Section COMPARABLE PROPERTIES: only if a COMPARABLE PROPERTIES block appears above. If it does, reproduce it exactly — every row, every figure, and its source line — and state the median exactly as given. Do not add a row, remove a row, alter a number, or introduce any property not listed. If no such block appears above, OMIT this section entirely and make no claim anywhere in the letter about how this property compares with any other specific property.\n8. Section MARKET CONDITIONS: only if market figures are supplied above. If none are, OMIT this section. Do not state any market statistic, percentage, index, direction or trend that is not given above.\n9. Section LEGAL BASIS: cite ${stateInfo.statute || "applicable state statutes"}\n10. Demand ${reductionPctDisplay}% reduction from ${fmt(assessedValue)} to ${fmt(targetReduction)}, attributing it exactly as instructed in the paragraph above beginning "The requested reduction" or "IMPORTANT". Do NOT claim the figure derives from comparable properties, comparable sales, or market data unless a COMPARABLE PROPERTIES block was actually supplied above and reproduced in section 7.\n11. Professional closing with owner name, address, and email address. Below the owner signature block, on its own line, include exactly this sentence: "Please direct all correspondence and decisions regarding this protest to the property owner at the email address above, with a copy to: disputes@mail.taxappealusa.com (Document Preparation Service)."\n\nOutput ONLY the complete formal letter.`;
-      // Florida: use generate-dr486 (official DR-486; the OWNER signs Part 3 and
-    // Parts 4/5 are left N/A — TaxAppeal is never the representative)
-      // All other states: use generate-letter (free-form protest letter)
-      let claudeJson;
-      if (stateCode === 'FL') {
-        const flSig = formData.flSignature || {};
-
-        // Real comparable sales from the county's own sale data file. Fetched
-        // here rather than inside generate-dr486 so a comps failure can never
-        // block the petition — no comps means the petition argues methodology
-        // alone, exactly as it did before, and never invents any.
-        let flComps = null;
-        // Travels with the comps so the petition cites the source it actually has,
-        // rather than a source it assumes. See the admission test below.
-        let flCompsSource = null;
-        try {
-          const cRes = await fetch('/api/comps', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ street: property.street, city: property.city, state: 'FL', zip: property.zip }),
-          });
-          if (cRes.ok) {
-            const cJson = await cRes.json();
-            // Only a set that is BOTH sufficient and actually supports a
-            // reduction may reach the petition. Comps indicating a value above
-            // the county's would be evidence against our own customer.
-            /**
-             * PROVENANCE IS NOW PART OF THE ADMISSION TEST — added 11 Aug 2026.
-             *
-             * This accepted any sufficient comp set. The county path
-             * (pages/api/comps.js) returns `basis.source === 'county'`; the
-             * RentCast fallback returns no `basis` at all and no
-             * `supportsReduction` key either — so `undefined !== false` was true
-             * and vendor comps sailed through.
-             *
-             * That mattered because generate-dr486.js printed ONE hardcoded source
-             * line under whatever it was given: "qualified arms-length sales from
-             * the Florida Department of Revenue sale data file … drawn from the
-             * same appraiser neighborhood as the subject property." RentCast rows
-             * are neither, and they carry their own correct attribution
-             * ('...via RentCast') which nothing read. So a petition signed under
-             * penalty of perjury asserted a source for its evidence that was not
-             * the source.
-             *
-             * A Florida petition now cites county sale data or it cites nothing.
-             * Nothing is a supported outcome — the zero-comps explainer already
-             * exists on the preview and the petition argues methodology instead.
-             */
-            const compsAreCountySourced = cJson?.basis?.source === 'county';
-            if (cJson?.sufficient && cJson?.supportsReduction !== false && Array.isArray(cJson.comps) && compsAreCountySourced) {
-              flComps = cJson.comps;
-              flCompsSource = 'county';
-            } else if (cJson?.sufficient && Array.isArray(cJson.comps) && !compsAreCountySourced) {
-              console.warn('[apply] comps rejected — not county-sourced, so they cannot carry the DOR attribution');
-            }
-            // The count the summary card shows. Zero when the engine declined —
-            // including when the subject's own sale refuted the comps, which is
-            // the case the hardcoded "4–5" used to paper over.
-            pd.compCount = Array.isArray(flComps) ? flComps.length : 0;
-            // Why there are none, so the customer gets the actual reason rather
-            // than a bare zero next to the price.
-            pd.compsReason = pd.compCount === 0 ? (cJson?.reason || 'none') : null;
-          }
-        } catch (e) {
-          console.log('comps unavailable, filing on methodology alone:', e?.message);
-        }
-
-        const dr486Res = await fetch("/api/generate-dr486", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ownerFirstName: account.firstName,
-            ownerLastName: account.lastName,
-            ownerEmail: account.email,
-            ownerStreet: ownerMail.street,
-            ownerCity: ownerMail.city,
-            ownerState: ownerMail.state,
-            ownerZip: ownerMail.zip,
-            comps: flComps,
-            compsSource: flCompsSource,
-            // Which ground supports the ask, and how much of it the priced
-            // defects actually account for. Without these the petition described
-            // an 18% floor-based figure as "assessed value less cost to cure".
-            askRestsOn: valuation.askRestsOn,
-            costToCureTotal: cure.total,
-            propertyAddress: addr,
-            county,
-            assessedValue,
-            requestedValue: targetReduction,
-            valuationBasis: valuation.basisSummary,
-            valuationGrounds: valuation.grounds,
-            taxYear,
-            issues,
-            propertyDetails: propDetails,
-            notes: property.notes,
-            zip: property.zip,
-            // Preparer model: the OWNER signs Part 3. These are the owner's
-            // signature, not a representative authorization. See the header of
-            // pages/api/generate-dr486.js for why this distinction is load-bearing.
-            // PREVIEW: build the petition unsigned so the owner can read it before
-            // attesting that they have read it. The signature is captured on the
-            // review screen below and the document is re-rendered with it.
-            preview: true,
-            ownerPhone: account.phone || '',
-            parcelId: extracted.parcelId || extracted.apn || '',
-          }),
-        });
-        claudeJson = await dr486Res.json();
-        /**
-         * A 503 from this route means the model API was briefly unreachable or slow —
-         * see the header of pages/api/generate-dr486.js. The lookup already worked, so
-         * this is worth telling the customer plainly and worth them clicking Try Again
-         * for. Read from the STATUS, not from the message text, so the copy can change
-         * without silently changing what the screen claims.
-         */
-        if (dr486Res.status === 503) setErrTransient(true);
-        if (claudeJson.error) throw new Error(claudeJson.error);
-        // For FL: letter display shows evidence text; letterKey points to full DR-486 HTML
-        setLetter(claudeJson.evidenceText || '');
-        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
-        pd.isFL = true;
-        pd.evidenceText = claudeJson.evidenceText || '';
-        pd.dr486Preview = claudeJson.dr486Html || '';
-      } else if (stateCode === 'TX') {
-        /**
-         * ====================================================================
-         * TEXAS GETS FORM 50-132 AND THE § 41.43(b)(3) GRID, NOT PROSE.
-         * ====================================================================
-         * Until 7 Sept 2026 Texas fell into the `else` below and received
-         * generate-letter — a free-form letter written by a model. That was the
-         * right answer while we held no Texas roll. It stopped being the right
-         * answer the day El Paso loaded.
-         *
-         * The difference is not stylistic. A generated paragraph ABOUT
-         * comparables is argument; a grid of the district's own parcels, with
-         * their own account numbers, taken from the roll it certified, is
-         * evidence — and § 41.43(b)(3) requires the protest to be decided in
-         * the owner's favour unless the district rebuts exactly that median.
-         *
-         * pages/api/generate-50132.js needs only the account number and the
-         * CAD: it re-reads the roll server-side and computes every figure. It
-         * takes no value from this client, deliberately — a browser cannot
-         * assert its own comparables.
-         */
-        const txRes = await fetch("/api/generate-50132", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            // The route resolves these from the address itself — see its header.
-            // Sending a client-held account number would put the field the whole
-            // petition hangs on in the browser's gift.
-            street: addr,
-            city: property.city || '',
-            zip: property.zip || '',
-            // THE COUNTY THE OWNER ALREADY SETTLED. Without it this route asks
-            // the geocoder again and discards a zip-centroid answer, which is
-            // how 640 Orchid Hill Ln reached the dispute step and died on
-            // "not_texas" after the customer had confirmed Denton at step 1.
-            county: property.county || undefined,
-            taxYear: Number(taxYear) || undefined,
-            owner: {
-              firstName: account.firstName,
-              lastName: account.lastName,
-              email: account.email,
-              phone: account.phone || '',
-              mailing: [ownerMail.street, ownerMail.city, ownerMail.state, ownerMail.zip]
-                .filter(Boolean).join(', '),
-            },
-            // Structured, for the kit order: the kit is mailed here (Kit model).
-            ownerAddress: { street: ownerMail.street || '', street2: ownerMail.street2 || '', city: ownerMail.city || '', state: ownerMail.state || '', zip: ownerMail.zip || '' },
-            issues: issues || [],
-            costOverrides: costOverrides || {},
-          }),
-        });
-        const txJson = await txRes.json();
-        if (!txRes.ok) {
-          const code = txJson?.error || '';
-          // Not a dead end when the owner can fix it by naming their county.
-          // retryTxWithCounty posts a cadId directly and bypasses the geocoder
-          // entirely, so it is the exact remedy for every code in this list.
-          if (COUNTY_FIXABLE.includes(code)) {
-            setErrTransient(false);
-            setErrMsg(friendlyTxError(code));
-            setTxCountyRescue(txJson?.suggestedCounty || null);
-            setTxPickCounty(true);
-            setLoading(false);
-            return;
-          }
-          throw new Error(friendlyTxError(code));
-        }
-
-        /**
-         * CAUTIONS PAUSE THE FLOW. THEY NEVER END IT.
-         *
-         * This branch has been three different things in one day. It threw an
-         * Error, which rendered "Lookup failed" in red over a Try Again button
-         * for a deterministic result. Then it rendered a finding screen that was
-         * still a dead end. Now the packet is always built, and anything weak
-         * about it is shown to the owner as cautions, with the decision theirs.
-         *
-         * A clean packet has an empty cautions array and never stops here.
-         */
-        /**
-         * THE OWNER CONFIRMS THE PROPERTY, ALWAYS — 15 Sept 2026.
-         *
-         * This used to pause only when the packet carried cautions, so a CLEAN
-         * Texas packet went address -> payment with the matched property never
-         * shown. That is the one thing we most need them to check, because the
-         * district is picked by the geocoder and used as an .eq() filter on the
-         * roll: a miss in a metro where street names repeat can return a real
-         * parcel belonging to somebody else, and we would file a protest on it
-         * in their name.
-         *
-         * Cautions still render here when there are any. The screen is now a
-         * confirmation that sometimes carries warnings, rather than a warning
-         * screen that clean packets skip.
-         */
-        setTxReview(txJson);
-        setLoading(false);
-        return;
-      } else if (stateCode === 'GA') {
-        /**
-         * GEORGIA NO LONGER GENERATES A DOCUMENT HERE. 14 Oct 2026.
-         *
-         * This called /api/generate-pt311a, which rendered our own HTML page titled
-         * "Form PT-311A" with AI-written evidence: the same look-alike-form design
-         * that got Florida petitions rejected by the Hillsborough and Miami-Dade
-         * clerks in September. That route is deleted.
-         *
-         * Georgia is sold as a Kit (lib/kit/gaKit.js): the official DOR or county
-         * form, filled and flattened, mailed to the customer to sign. run() hands
-         * Georgia to components/GaKitStep.js at its first line, so this branch is
-         * unreachable; it stays as a guard so a Georgia order can never fall
-         * through to the generic letter below.
-         */
-        throw new Error("Georgia appeals open January 31, 2027 with our new ready-to-sign appeal kit. Join the waitlist and we will email you when your county opens.");
-      } else {
-        const claudeRes = await fetch("/api/generate-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr, county, assessedValue, zip: property.zip, state: property.state, letterInputs: { ownerName: `${account.firstName} ${account.lastName}`, ownerEmail: account.email, taxYear, propertyDetails: propDetails, marketValue, annualTax, targetReduction, reductionPctDisplay, issues, notes: property.notes, districtBlock, deadlineNote: stateInfo.deadlineNote, statute: stateInfo.statute } }) });
-        claudeJson = await claudeRes.json();
-        if (claudeJson.error) throw new Error(claudeJson.error);
-        if (!claudeJson.letter) throw new Error("Letter generation returned empty.");
-        setLetter(claudeJson.letter);
-        if (claudeJson.letterKey) pd.letterKey = claudeJson.letterKey;
-      }
+      setTxReview(txJson);
       setLoading(false);
     } catch (e) {
       setErrMsg(e.message || "Something went wrong. Please try again.");
       setLoading(false);
     }
   };
-
-  // Refused BEFORE the letter is generated and before any charge. Deliberately
-  // not styled as an error — nothing went wrong, and the customer is being told
-  // something genuinely useful that nobody else in this market will tell them.
-  if (noSavings) {
-    const fmtUsd = (n) => (n || n === 0 ? `$${Number(n).toLocaleString()}` : '—');
-    return (
-      <div style={{ maxWidth: 620, margin: "60px auto", padding: "0 24px" }}>
-        <div style={cardStyle}>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, color: C.darkNavy, marginBottom: 12 }}>
-            {noSavings.rescuable
-              ? 'On comparable sales alone, an appeal wouldn’t be worth filing'
-              : 'An appeal wouldn’t lower your tax bill'}
-          </h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.65, color: C.bodyGray, marginBottom: 18 }}>
-            {noSavings.message}
-          </p>
-          <div style={{ background: "#FFF8E6", border: "1px solid #F0DFB0", borderRadius: 8, padding: 16, marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
-              <span>Market (just) value</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.jv)}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
-              <span>Your assessment is capped at</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.breakEven)}</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontFamily: "'DM Sans', sans-serif", padding: "5px 0", color: C.bodyGray }}>
-              <span>Capped below market by</span><strong style={{ color: C.darkNavy }}>{fmtUsd(noSavings.differential)}</strong>
-            </div>
-          </div>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.mutedGray, marginBottom: 20 }}>
-            You haven&rsquo;t been charged. Check these figures against your TRIM notice — they come
-            straight from your county&rsquo;s own records and should match exactly. This can change:
-            buying or selling resets the cap, and a falling market brings your market value back
-            toward the capped figure.
-          </p>
-
-          {/* RESCUABLE — the required reduction is within reach of a documented
-              condition case, so this is a QUESTION, not a refusal. Measured against
-              the 2026 roll, 688,497 Florida homes sit in this band and every one of
-              them used to be told flatly that an appeal could not help. The primary
-              action has to be "tell us about the condition", not "go away". */}
-          {noSavings.rescuable && onAddIssues && (
-            <div style={{ background: "#EEF6FF", border: "1px solid #C7DEF7", borderRadius: 8, padding: 16, marginBottom: 18 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.65, color: C.bodyGray, marginBottom: 12 }}>
-                <strong>This answer assumes your home is in average condition.</strong> Cost to cure —
-                what it would take to put right a failed roof, a dead air conditioner, an original
-                kitchen, active damage — reduces what your property is worth <em>on top of</em> what
-                comparable sales show. On this property that can be the difference between an appeal
-                being pointless and being worth filing.
-              </p>
-              <button
-                style={{ ...primaryBtn, width: "auto", padding: "11px 22px" }}
-                onClick={onAddIssues}
-              >
-                Tell us what&rsquo;s wrong with the property →
-              </button>
-            </div>
-          )}
-
-          <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Check a different property</button>
-        </div>
-      </div>
-    );
-  }
 
   /**
    * TEXAS REVIEW — what is weak about this packet, before any money changes hands.
@@ -5251,7 +4031,7 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
       <div style={{ maxWidth: 520, margin: "80px auto", padding: "0 24px" }}>
         <div style={{ ...cardStyle, textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 8 }}>{errTransient ? "One moment needed" : "Lookup failed"}</h2>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 8 }}>Lookup failed</h2>
           <div style={{ background: "#FEE8E7", border: "1px solid #F5C6C0", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: C.red, fontFamily: "'DM Sans', sans-serif", marginBottom: 20, textAlign: "left" }}>{errMsg}</div>
           <button style={primaryBtn} onClick={() => { ran.current = false; run(); ran.current = true; }}>Try Again</button>
           <div style={{ marginTop: 12 }}><button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onRestart}>← Start over</button></div>
@@ -5260,73 +4040,9 @@ const COUNTY_FIXABLE = Object.freeze(['not_texas', 'county_unresolved', 'no_parc
     );
   }
 
-  /*
-    THE VALUE THE OWNER TYPED LOOKS LIKE THEIR CAPPED ASSESSED VALUE.
-
-    Not an error screen and not a refusal — a fork. A Florida TRIM notice prints
-    Just, Assessed and Taxable; only Just is what a DR-486 disputes, and the line
-    headed "Assessed Value" is the Save Our Homes capped figure. An owner who reads
-    their own notice correctly and types the number under that heading produces a
-    petition asking the Board to cut a figure that appears on no just-value line.
-
-    Both numbers are shown with their source named, because the whole failure was
-    that two different numbers looked interchangeable. Choosing the roll clears the
-    override and re-runs; keeping their own figure is allowed, because they are the
-    one signing and there are legitimate reasons the roll is wrong — but it is now
-    a decision rather than an accident.
-  */
-  if (valueConflict) {
-    const money = (n) => `$${Number(n).toLocaleString()}`;
-    return (
-      <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 40, marginBottom: 16, textAlign: "center" }}>🧾</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: C.darkNavy, marginBottom: 10, textAlign: "center" }}>Which value did you mean?</h2>
-          <p style={{ fontSize: 14, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-            {/* Says "at or below", not "matches". The trigger is at-or-below the cap, so the
-                typed figure is often the Assessed or Taxable line from LAST year's column of a
-                two-year TRIM notice rather than an exact match on this year's. Claiming a match
-                on a number the customer can see is different would read as a bug. */}
-            You entered <strong>{money(valueConflict.typed)}</strong>. That is at or below the <strong>Assessed Value</strong> your county has on file — your <em>Save Our Homes capped</em> figure, which is not what a petition disputes.
-          </p>
-          <p style={{ fontSize: 14, color: C.bodyGray, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: 18 }}>
-            A VAB petition disputes <strong>Just (Market) Value</strong>, which your county reports as <strong>{money(valueConflict.justValue)}</strong>. Those are different lines on your TRIM notice and only the second one is what the Board rules on.
-          </p>
-          <div style={{ background: "#F0F7FF", border: "1px solid #C5D9F0", borderRadius: 8, padding: "12px 16px", marginBottom: 22, fontSize: 13, color: "#1B4D8E", fontFamily: "'DM Sans', sans-serif" }}>
-            <div style={{ marginBottom: 4 }}><strong>Just (market) value</strong> — county roll: {money(valueConflict.justValue)}</div>
-            <div><strong>Assessed value</strong> — after the Save Our Homes cap: {money(valueConflict.cappedAssessedValue)}</div>
-          </div>
-          <button
-            style={primaryBtn}
-            onClick={() => {
-              formData.property.manualAssessedValue = "";
-              setValueConflict(null);
-              ran.current = false; run(); ran.current = true;
-            }}
-          >
-            Use the county's just value — {money(valueConflict.justValue)}
-          </button>
-          <div style={{ marginTop: 12 }}>
-            <button
-              style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }}
-              onClick={() => { setValueConflict(null); setLoading(false); onRestart(); }}
-            >
-              ← Go back and re-enter it
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) return <LoadingScreen addr={addr} />;
-  // flSignature MUST be forwarded. Without it DisputeLetter sends empty
-  // flSignatureName to /api/checkout, which means /api/send-letter rejects the
-  // order with "Protest has not been signed by the owner" AFTER the customer has
-  // already paid — no petition mailed, no check mailed, no confirmation email,
-  // and save-order still writes dispute_status 'filed'. This omission broke 100%
-  // of Florida orders.
-  return <DisputeLetter txPreviewUrl={txPreviewUrl} propData={propData} letter={letter} issues={issues} onRestart={onRestart} account={account} property={property} flSignature={formData.flSignature} />;
+  // Loading, or (unreachable) a run that set nothing: every outcome of run()
+  // sets a kit screen, the Texas review, the county rescue or errMsg above.
+  return <LoadingScreen addr={addr} />;
 }
 
 /**
@@ -5456,8 +4172,6 @@ function ApplyFunnel() {
    * applyResolvedCounty for why this replaced the hand-filing path.
    */
   const [flCountyBlocked, setFlCountyBlocked] = useState(null);
-  const [flFeeData, setFlFeeData] = useState(null);
-  const [flSignature, setFlSignature] = useState(null);
   /**
    * Set when the Florida cap check sent the owner to the condition step rather
    * than refusing them. Two jobs:
@@ -5661,7 +4375,6 @@ function ApplyFunnel() {
     }
 
     setProperty(p => ({ ...p, county }));
-    setFlFeeData({ ...feeInfo, county, countySource: source });
     setFlCountyError(null);
     setFlCountyBlocked(null);
     // Straight to the kit check (16 Oct 2026): nothing is signed online any more.
@@ -5796,7 +4509,7 @@ function ApplyFunnel() {
     setStep("property");
     setAccount({ firstName: "", lastName: "", email: "" });
     setProperty({ street: "", city: "", state: "", zip: "", email: "", propType: "", yearBuilt: "", notes: "", manualAssessedValue: "", manualSqft: "", manualYearBuilt: "", manualBeds: "", manualBaths: "" });
-    setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null); setFlFeeData(null); setFlSignature(null);
+    setIssues([]); setCostOverrides({}); setNotes(""); setUnsupportedState(null); setClosedWindow(null);
     // The /check handoff is per-property. Starting over means the roll's county
     // and the rescue loop belong to a property this funnel is no longer about —
     // carrying either forward would price the next petition off the last one.
@@ -6096,7 +4809,7 @@ function ApplyFunnel() {
             */
             clearHandoff(); setStep("property"); window.scrollTo(0,0);
           }} stateCode={property.state.trim().toUpperCase()} notes={notes} onNotesChange={setNotes} />}
-          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides, flSignature }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
+          {step === "dispute" && <StepDispute formData={{ account, property: { ...property, notes }, issues, costOverrides }} onRestart={restart} onAddIssues={() => { setStep("issues"); window.scrollTo(0, 0); }} />}
         </>
       )}
     </div>
@@ -6111,7 +4824,7 @@ function ApplyFunnel() {
  *
  * Not mounting the funnel matters beyond hiding a button. ApplyFunnel calls
  * /api/autocomplete on keystrokes, /api/lookup (BatchData + Google + Anthropic),
- * and /api/generate-dr486 or /api/generate-letter — all before checkout, all
+ * and the kit checks (/api/comps, /api/generate-50132) — all before checkout, all
  * billed. Hiding only the pay button would have kept every one of those calls
  * running for visitors who now have nothing to buy.
  *

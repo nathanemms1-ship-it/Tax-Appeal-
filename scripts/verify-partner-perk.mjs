@@ -153,10 +153,29 @@ t('checkout sends the reservation key to the webhook', /perkKey:\s*perkApplied\s
 // Everything above can pass while the customer has no way to enter a code. The
 // backend was complete for a day before the field existed, and nothing failed —
 // it just quietly never discounted anything.
-const applySrc = read('pages/apply.js');
-t('the funnel sends perkCode to /api/checkout', /perkCode:\s*perkNormalized/.test(applySrc));
-t('the funnel normalises with the SAME function the server uses',
-  /import \{ normalizePerkCode \} from '\.\.\/lib\/partnerPerk'/.test(applySrc));
+//
+// RE-POINTED 17 Oct 2026. The field and the send lived in apply.js's letter
+// checkout, which was deleted. The field is now components/PartnerCodeField.js,
+// rendered by each of the three kit checkouts, and each kit sends the code.
+// INJECTION: send `perkCode: perkInput` raw from any kit, or drop the
+// PartnerCodeField render from one -> FAILS naming it.
+const fieldSrc = read('components/PartnerCodeField.js');
+t('the coupon field normalises with the SAME function the server uses',
+  /import \{ normalizePerkCode \} from '\.\.\/lib\/partnerPerk'/.test(fieldSrc));
+for (const [file, tag] of [
+  ['components/GaKitStep.js', 'GaKitStep'],
+  ['components/FlKitStep.js', 'FlKitStep'],
+  ['components/TxKitCheckout.js', 'TxKitCheckout'],
+]) {
+  const kit = read(file);
+  t(`${tag} sends perkCode to /api/checkout`,
+    /perkCode:\s*normalizePerkCode\(perkInput\)\s*\|\|\s*''/.test(kit.slice(kit.indexOf("fetch('/api/checkout'"))));
+  t(`${tag} normalises with the SAME function the server uses`,
+    /import \{ normalizePerkCode \} from '\.\.\/lib\/partnerPerk'/.test(kit));
+  t(`${tag} renders the coupon field bound to what it sends`,
+    /<PartnerCodeField value=\{perkInput\} onChange=\{setPerkInput\} \/>/.test(kit) &&
+    /import PartnerCodeField from '\.\/PartnerCodeField'/.test(kit));
+}
 t('checkout reads perkCode off the request body', /\bperkCode,/.test(checkoutSrc));
 
 // The migration must create the order-side columns settlement depends on.

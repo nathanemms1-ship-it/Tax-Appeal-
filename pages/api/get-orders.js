@@ -19,11 +19,9 @@ const ADMIN_FIELDS = [
   'assessed_value', 'market_value', 'target_reduction', 'reduction_pct',
   'tx_cautions',
   'estimated_savings', 'actual_savings',
-  'district_name', 'district_address', 'district_city', 'district_state', 'district_zip',
   'lob_letter_id', 'lob_tracking_number', 'lob_status',
   'amount_paid', 'payment_status', 'stripe_session_id',
   'dispute_status', 'outcome', 'outcome_reported_at',
-  'scheduled_file_date',
 ].join(', ');
 
 export default async function handler(req, res) {

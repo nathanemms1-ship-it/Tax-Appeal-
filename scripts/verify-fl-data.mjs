@@ -165,10 +165,11 @@ for (const [variant, expected] of [
     // reached Stripe. A contract describing a control that does not exist is worse
     // than one that promises nothing.
     'pages/api/checkout.js',
-    'lib/fulfillOrder.js',
-    'lib/healthChecks.js',
-    'pages/api/send-letter.js',
-    'pages/api/cron/process-queued-orders.js',
+    // 17 Oct 2026: lib/fulfillOrder.js, lib/healthChecks.js, send-letter.js and
+    // cron/process-queued-orders.js left this list BY DESIGN. They gated the
+    // letter pipeline (mail-at-the-window); kits are gated once, before money,
+    // by checkout (above, strict) and by checkout's flSellability, and at send
+    // time by dispatchKit's deliveryMode (verify-kit-dispatch / verify-fl-kit).
     'pages/api/cron/notify-waitlist.js',
   ];
   const { readFileSync } = await import('node:fs');
@@ -195,6 +196,12 @@ for (const [variant, expected] of [
   // loose; the ones that decide whether we take the money must be strict. Assert
   // the counts rather than the line numbers, which move.
   //
+  // 4/3 -> 3/2 on 17 Oct 2026. The strict call that left was the review-screen
+  // gate in the deleted letter checkout (StepDispute, `pd.county`). The three
+  // live ones: DeadlinePopup (loose, copy only), StepProperty's sale gate
+  // (strict) and the /check verdict effect (strict). Kits are refused at
+  // /api/checkout, which is in MONEY_GATES above.
+  //
   // 3/2 -> 4/3 on 23 Aug 2026. The fourth is the verdict effect in ApplyFunnel,
   // which re-runs the window gate for a customer arriving from /check with their
   // county already resolved from the DOR roll. That customer does not pass through
@@ -216,8 +223,17 @@ for (const [variant, expected] of [
     const src = readFileSync(new URL('../pages/apply.js', import.meta.url), 'utf8');
     const all = [...src.matchAll(CALL)].filter(m => !m[1].includes('//'));
     const strict = all.filter(c => /strict\s*:\s*true/.test(c[1]));
-    if (all.length !== 4 || strict.length !== 3) {
-      errors.push(`pages/apply.js: expected 4 getFilingWindowStatus calls of which 3 strict (the sale gate, the review screen, and the /check verdict effect), found ${all.length} of which ${strict.length} strict`);
+    if (all.length !== 3 || strict.length !== 2) {
+      errors.push(`pages/apply.js: expected 3 getFilingWindowStatus calls of which 2 strict (the sale gate and the /check verdict effect), found ${all.length} of which ${strict.length} strict`);
+    }
+    // Named, not only counted: the two strict ones must be the two that decide.
+    // INJECTION: loosen either -> the count above FAILS; replace one with a
+    // different strict call -> this FAILS.
+    if (!/getFilingWindowStatus\(sc, countyName, \{ strict: true \}\)/.test(src)) {
+      errors.push('pages/apply.js: the StepProperty sale gate getFilingWindowStatus(sc, countyName, { strict: true }) is gone');
+    }
+    if (!/getFilingWindowStatus\('FL', county, \{ strict: true \}\)/.test(src)) {
+      errors.push("pages/apply.js: the /check verdict-effect gate getFilingWindowStatus('FL', county, { strict: true }) is gone");
     }
   }
 
@@ -294,6 +310,11 @@ for (const [variant, expected] of [
   //    customer and the document they swore to ran on different numbers.
   //
   //    Three parts, and the defect returns if any one of them is removed.
+  //
+  //    17 Oct 2026: the apply.js READ and BLOCK checks were removed. They guarded
+  //    the letter checkout's typed-value path; the FL kit (components/FlKitStep.js
+  //    -> /api/fl-kit-quote) takes the Just value from the roll, not a typed
+  //    figure. lookup.js still computes and returns the flag, so its side stays.
   {
     const files = {
       'pages/api/lookup.js': [
@@ -302,8 +323,6 @@ for (const [variant, expected] of [
         [/typed <= cappedAssessedValue \* 1\.015/, 'the capped-value test is no longer at-or-below the cap. A band centred on this year\'s capped figure misses last year\'s Assessed column (~3% lower on a homestead), which is the misread a two-column TRIM notice invites most'],
       ],
       'pages/apply.js': [
-        [/if \(bdJson\?\.manualValueLooksCapped\)/, 'apply.js no longer READS manualValueLooksCapped — the funnel proceeds on a capped figure'],
-        [/setValueConflict\(v\)/, 'apply.js no longer BLOCKS on the conflict'],
         [/isFL \? "Just \(Market\) Value" : "Assessed Value"/, 'the FL manual-override field is labelled "Assessed Value" again — that label is what invites the wrong number'],
       ],
     };

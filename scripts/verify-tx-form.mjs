@@ -345,15 +345,28 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
    * cannot see it, and the wording approved on 18 Sept contained exactly the
    * error it exists to prevent.
    */
-  const txDisclosure = /dismiss/i.test(applySrc) && /TaxAppeal does not attend\s+hearings/.test(applySrc);
+  /*
+    RE-POINTED 17 Oct 2026: the disclosure moved from the deleted letter screen
+    in apply.js to components/TxKitCheckout.js (HearingNote), which is where the
+    Texas kit is actually bought. Read the two COMBINED so the rule holds
+    wherever the sentence lives, and additionally require that HearingNote is
+    rendered, not merely defined.
+    INJECTION: delete the four-day sentence from HearingNote -> FAILS; drop
+    both <HearingNote /> renders -> FAILS.
+  */
+  const kitSrc = readFileSync(path.join(root, 'components/TxKitCheckout.js'), 'utf8');
+  const funnelSrc = `${applySrc}\n${kitSrc}`;
+  const txDisclosure = /dismiss/i.test(funnelSrc) && /TaxAppeal does not attend\s+hearings/.test(funnelSrc);
   t('the funnel states the hearing disclosure at all', txDisclosure);
+  t('...on the screen where the Texas kit is bought (HearingNote is rendered)',
+    /function HearingNote\(/.test(kitSrc) && /<HearingNote \/>/.test(kitSrc));
   if (txDisclosure) {
-    t('it never claims the Tax Code dismisses — it says boards generally do',
-      /boards generally dismiss/i.test(applySrc) && !/your protest will be dismissed and/i.test(applySrc));
+    t('it never claims the Tax Code dismisses — it says boards generally dismiss',
+      /boards generally\s+dismiss/i.test(funnelSrc) && !/your protest will be dismissed and/i.test(funnelSrc));
     t('the four-day § 41.45(e-1) cure is stated beside the dismissal risk',
-      /good cause within four days/i.test(applySrc));
+      /good cause within four days/i.test(funnelSrc));
     t('it says who receives the hearing notice',
-      /sends the hearing notice to you, not to us/i.test(applySrc));
+      /sends the hearing notice to you, not to us/i.test(funnelSrc));
   }
 }
 
@@ -513,8 +526,22 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
     /d\.estimateBasis === 'parcel'/.test(applyCode));
   t('the five-year figure is arithmetic on the quoted saving',
     /d\.estimatedSaving \* 5/.test(applyCode));
-  t('it is stated as a condition, not a forecast',
-    /Hold that reduction/.test(apply) && /assumes the reduction holds/.test(apply));
+  /*
+    RE-POINTED 17 Oct 2026 — AND FAILING ON PURPOSE. This read the whole of
+    apply.js, and the only place the condition was ever stated ("Hold that
+    reduction ... assumes the reduction holds rather than forecasting them")
+    was the pd.isTxPacket block of the deleted letter screen. The two live
+    screens that print the five-year figure — StepTexasCheck and the TX kit
+    review in StepDispute (both via SavingsBlock) — never carried it. Pointed
+    at the live screens so the gap is visible rather than satisfied by text no
+    customer can reach. Not loosened: see the report of 17 Oct 2026.
+  */
+  {
+    const slice = (from) => { const i = apply.indexOf(from); return i < 0 ? '' : apply.slice(i, apply.indexOf('\nfunction ', i + 1)); };
+    const liveFiveYear = `${slice('function SavingsBlock(')}\n${slice('function StepTexasCheck(')}\n${slice('function StepDispute(')}`;
+    t('it is stated as a condition, not a forecast',
+      /Hold that reduction/.test(liveFiveYear) && /assumes the reduction holds/.test(liveFiveYear));
+  }
   t('the exemption caveat is stated where the figure is shown',
     /does not\s+subtract your homestead exemptions/.test(apply.replace(/\s+/g, ' ')));
 
@@ -684,14 +711,26 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   // The ceiling is stated in WORDS beside the figure rather than as a response
   // flag: it would always be true, and verify-tx-dispatch asserts every field
   // the response sends is actually read by something.
+  // 17 Oct 2026: the literal is now the TX review's "treat it as a ceiling, not
+  // a promise." — matched case-insensitively, same intent.
   t('the ceiling is stated where the figure is shown, not shipped as a dead flag',
-    /A ceiling, not a promise/.test(apply) && !/estimateIsUpperBound/.test(api));
+    /ceiling, not a promise/i.test(apply) && !/estimateIsUpperBound/.test(api));
   t('the screen takes the packet figure, not the generic one',
     /savings: review\.estimatedSaving/.test(readFileSync(new URL('../components/TxKitCheckout.js', import.meta.url), 'utf8')));
 
   // A real packet must never fall back to "20% of value at an assumed rate".
-  t('a Texas packet with no figure shows a dash, never an invented number',
-    /pd\.isTxPacket \? "—"/.test(apply));
+  // RE-POINTED 17 Oct 2026 from the deleted `pd.isTxPacket ? "—"` summary to the
+  // live TX review: the saving (and its ceiling note) render only when the
+  // packet carries one, so nothing falls through to a generic guess.
+  // INJECTION: render SavingsBlock unconditionally on the review -> FAILS.
+  {
+    const rv = applyCode.slice(applyCode.indexOf('if (txReview) {'), applyCode.indexOf('if (errMsg) {'));
+    t('a Texas packet with no figure shows no saving, never an invented number',
+      rv.length > 0
+      && /\{txReview\.estimatedSaving > 0 && \(\s*<SavingsBlock perYear=\{fmtUsd\(txReview\.estimatedSaving\)\}/.test(rv)
+      && (rv.match(/<SavingsBlock/g) || []).length === 1
+      && !/PLAUSIBLE_REDUCTION_PCT|\* 0\.2\b/.test(rv));
+  }
 
   // The arithmetic the guard exists to protect, run on the Brookdale numbers.
   const market = 732970, requested = 599337;
@@ -704,7 +743,7 @@ console.log(`  a filled sample is at ${path.join(tmp, 'sample.pdf')} — open it
   t('no "x your fee" multiplier is printed next to the saving',
     !/\d+\s*x\s+your\s+fee/i.test(applyCode) && !/times your fee/i.test(applyCode));
   t('the saving is still labelled a ceiling where it is shown',
-    /A ceiling, not a promise/.test(apply));
+    /txReview\.estimatedSaving > 0 && \(\s*<div style=\{dNote\}>[\s\S]{0,400}ceiling, not a promise/i.test(apply));
 }
 
 if (failures.length) {

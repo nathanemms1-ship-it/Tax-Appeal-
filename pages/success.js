@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import SignatureStep from '../components/SignatureStep';
 
 import { C } from "../lib/theme";
 import LogoMark from '../components/LogoMark';
@@ -29,85 +28,17 @@ export default function Success() {
   const { session_id } = router.query;
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
-  const [signed, setSigned] = useState(false);
-  const [mailStatus, setMailStatus] = useState(null);
-  const [trackingNumber, setTrackingNumber] = useState(null);
-  const [lobPreviewUrl, setLobPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
 
-  // Hands the post-payment signature (TX/GA/AR/AL) to the server. FL signs DR-486
-  // Part 3 before payment, so it never calls this.
-  // for TX/GA/AR/AL it carries the owner's post-payment e-signature.
   /**
-   * The browser no longer fulfills anything.
+   * NOTHING IS SIGNED OR MAILED FROM THIS PAGE. 17 Oct 2026.
    *
-   * The Stripe webhook (pages/api/webhooks/stripe.js) creates the order row and,
-   * for Florida, mails the petition — server-side, on Stripe's delivery guarantee
-   * rather than on this tab staying open. All this function does now is hand over
-   * the post-payment signature for TX/GA/AR/AL and report the outcome.
-   *
-   * What used to live here: /api/save-order with a client-built body, then
-   * /api/send-letter with a client-supplied check amount, payee, and mailing
-   * address, then /api/send-email. Every reload re-ran the whole chain and cut a
-   * second real check; closing the tab mid-chain lost the order entirely.
+   * Every order is a kit (lib/kit/dispatchKit.js): the Stripe webhook
+   * (pages/api/webhooks/stripe.js) creates the order and dispatches the kit to
+   * the CUSTOMER, who signs it in ink and mails it. The old on-screen signature
+   * step and its hand-off to /api/finalize-order went with the generated
+   * letter. This page only verifies the payment and confirms the order.
    */
-  async function runMail(data, sig) {
-    setMailStatus('sending');
-    try {
-      const res = await fetch('/api/finalize-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: session_id,
-          signatureImage: sig ? sig.image : null,
-          typedName: sig ? sig.typedName : null,
-          // Florida: DR-486 Part 3 name plus the owner's own two elections.
-          flSignatureName: sig ? sig.flSignatureName : undefined,
-          flWillNotAttend: sig ? sig.flWillNotAttend : undefined,
-          flAuthorizeConfidential: sig ? sig.flAuthorizeConfidential : undefined,
-        }),
-      });
-      const out = await res.json();
-      if (!res.ok || !out.success) {
-        setMailStatus('error');
-        // Signature may not have been recorded — stay on the signing screen so the
-        // owner can retry rather than being shown a confirmation for something that
-        // did not happen.
-        return false;
-      }
-      const status = out.result && out.result.status;
-      if (status === 'filed') {
-        setMailStatus('sent');
-        if (out.result.trackingNumber) setTrackingNumber(out.result.trackingNumber);
-      } else if (status === 'queued') {
-        setMailStatus('queued');
-      } else {
-        setMailStatus('manual');
-      }
-      return true;
-    } catch (e) {
-      console.error('finalize-order failed:', e);
-      setMailStatus('error');
-      return false;
-    }
-  }
-
-  // Fired by SignatureStep once the owner signs.
-  //
-  // setSigned(true) IS THE FIX. `signed` was declared at the top of this component
-  // and never set anywhere in the file, so needsSignature stayed true forever and
-  // SignatureStep re-rendered permanently. The owner paid, signed, watched the button
-  // do nothing, and had no confirmation their petition existed — while server-side
-  // everything had in fact succeeded. Reproduced twice, 5 and 6 Aug 2026.
-  //
-  // Advance only on success: a failed finalize-order may mean the signature was not
-  // recorded, and showing a confirmation screen for that would be worse than the bug.
-  async function handleSigned(sig) {
-    if (!session) return;
-    const ok = await runMail(session, sig);
-    if (ok) setSigned(true);
-  }
-
   useEffect(() => {
     if (!session_id) return;
     fetch(`/api/verify-payment?session_id=${session_id}`)
@@ -151,24 +82,6 @@ export default function Success() {
             });
           }
         }
-
-        // A kit is mailed to the customer by the webhook; there is nothing to
-        // sign here and no dispatch status to show.
-        if (data.isKit) return;
-
-        const canMail = data.districtName && data.districtAddress && data.letter && data.ownerStreet;
-        if (!canMail) { setMailStatus('manual'); return; }
-
-
-        // TX/GA/AR/AL wait for the on-screen signature step (handleSigned → runMail).
-        // Florida signs Part 3 BEFORE payment, so there is no post-payment
-        // signature to submit. The Stripe webhook has already created the order and
-        // mailed the petition. Calling finalize-order here always returned 400
-        // ("A signature is required") and showed the customer a failure banner for
-        // an order that actually succeeded.
-        // Florida used to be marked sent/queued here because it had signed before
-        // payment and the webhook mailed immediately. It now waits for the signature
-        // below, exactly like TX/GA/AR/AL, so nothing is set here for any state.
       })
       .catch(() => {
         setError('Could not verify payment. Please contact customerservice@taxappealusa.com');
@@ -176,93 +89,12 @@ export default function Success() {
       });
   }, [session_id]);
 
-  /**
-   * DECLARED HERE, NOT NEXT TO `steps`, AND THAT PLACEMENT IS LOad-BEARING.
-   *
-   * getMailStatusBadge() reads isFlorida and is CALLED a few lines below, which is above
-   * where the timeline strings live. Declaring `const isFlorida` down there put a read
-   * before the declaration in the same scope — a temporal dead zone crash on every
-   * Florida success page. That is the third time this exact class of bug has shipped
-   * in this codebase (savings, cure), which is why scripts/verify-tdz.mjs exists.
-   * Run it before pushing.
-   */
-  const isFlorida = session?.stateCode === 'FL';
-  // County without a doubled suffix — orders.county is stored as "Broward County".
-  const sessionCounty = String(session?.county || '').replace(/\s+County\s*$/i, '').trim() || 'your county';
-
-  const getMailStatusBadge = () => {
-    switch (mailStatus) {
-      case 'sending': return { icon: '⏳', text: isFlorida ? 'Recording your signature...' : 'Sending your protest...', color: C.bodyGray, bg: C.bg };
-      case 'sent':    return { icon: '📬', text: isFlorida ? 'Signature recorded' : 'Letter dispatched!', color: C.green, bg: '#E6F4ED' };
-      case 'error':   return { icon: '⚠️', text: 'Letter will be dispatched manually within 1 business day', color: '#7A5C10', bg: C.amber };
-      case 'manual':  return { icon: '📋', text: 'Letter queued for manual dispatch within 1 business day', color: '#7A5C10', bg: C.amber };
-      // runMail sets 'queued' (it mirrors ORDER_STATUS.QUEUED). This case read only
-      // 'reserved', so the badge came back null and a pre-order customer saw no
-      // confirmation at all. Both accepted; 'queued' is the one actually emitted.
-      case 'queued':
-      case 'reserved': return { icon: '🎟️', text: session?.scheduledFileDate ? `Reserved — files ${new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} when your window opens` : 'Reserved — files as soon as your filing window opens', color: C.navy, bg: C.lightBlue };
-      default: return null;
-    }
-  };
-
-  const badge = getMailStatusBadge();
-
-  const scheduledDateLabel = session?.scheduledFileDate ? new Date(session.scheduledFileDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'your filing window opening';
-
-  /**
-   * FLORIDA IS FIRST CLASS, NOT CERTIFIED.
-   *
-   * A Florida filing leaves as a Lob CHECK — the county VAB filing fee — with the
-   * petition as its attachment (pages/api/send-letter.js). Lob's check product only
-   * offers usps_first_class; certified is not available on it, which is why the code
-   * already sends FL as mail_type: 'usps_first_class'. This timeline claimed
-   * "certified mail with return receipt" to every customer including Florida, four
-   * inches below the signature screen where we had just corrected exactly that claim.
-   *
-   * The vocabulary is wrong for Florida too, not only the mail class: a Florida
-   * filing is a PETITION to the VALUE ADJUSTMENT BOARD, not a protest to an
-   * APPRAISAL DISTRICT (that is the Texas term). Both are fixed together, because
-   * a customer who reads "appraisal district" on their receipt has been told their
-   * petition went somewhere that does not exist in their state.
-   */
-  const mailLine = isFlorida ? 'USPS First Class mail' : 'tracked USPS mail';
-  const doc = isFlorida ? 'petition' : 'protest';
-  const recipient = isFlorida ? 'Value Adjustment Board' : 'appraisal district';
-  const Doc = doc.charAt(0).toUpperCase() + doc.slice(1);
-
-  const steps = session?.isPreOrder ? [
-    { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
-    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc} — it is prepared and held in your name.`, done: true },
-    { icon: '🎟️', title: 'Reserved — first in line', desc: `Your filing window opens ${scheduledDateLabel}. Your ${doc} is held until then and goes out via ${mailLine} the moment it opens.`, done: false, active: true },
-    { icon: '🧾', title: 'Tracking receipt', desc: 'Your USPS tracking number will be emailed to you once it is dispatched.', done: false },
-    { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days after filing.`, done: false },
-  ] : [
-    { icon: '✓', title: 'Payment confirmed', desc: 'Your payment has been processed successfully.', done: true },
-    { icon: '✍️', title: `${Doc} reviewed & signed`, desc: `You reviewed and signed your ${doc}, in your name.`, done: true },
-    { icon: '📬', title: isFlorida ? 'Next steps' : 'Mail dispatch', desc: isFlorida ? 'We will email you about each next step.' : mailStatus === 'sent' ? `Your signed ${doc} has been dispatched via ${mailLine}.${trackingNumber ? ' Tracking: ' + trackingNumber : ''}` : `Your ${doc} will be mailed via ${mailLine} within 1 business day.`, done: mailStatus === 'sent', active: mailStatus === 'sending' },
-    { icon: '🧾', title: 'Tracking receipt', desc: trackingNumber ? `USPS tracking number: ${trackingNumber}` : 'Your USPS tracking number will be emailed to you once dispatched.', done: !!trackingNumber },
-    { icon: '⏳', title: `Await ${isFlorida ? 'Board' : 'district'} response`, desc: `The ${recipient} responds directly to you, typically within 30–90 days.`, done: false },
-  ];
-
-  // Florida is no longer excluded. It used to sign Part 3 before payment, on the
-  // review screen where half the petition is blurred - attesting under penalties of
-  // perjury to having read a document the page was hiding. Florida now signs here,
-  // on the complete petition, like every other state.
-  //
-  // Florida also has no appraisal "district": its petition goes to the Clerk of the
-  // Value Adjustment Board, so districtName/ownerStreet are not the right gate.
-  const needsSignature = session && !signed && (
-    session.isFL
-      ? !!session.letter
-      : !!(session.letter && session.districtName && session.ownerStreet)
-  );
-
   return (
     <>
       <Head>
         <title>TaxAppeal — Your order</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        {/* This page renders the customer's order, property address and petition.
+        {/* This page renders the customer's order and property address.
             robots.txt Disallow only stops crawling, not indexing of a URL that is
             linked from elsewhere - noindex is what actually keeps it out of results. */}
         <meta name="robots" content="noindex, nofollow" />
@@ -273,7 +105,6 @@ export default function Success() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkNavy}; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
       ` }} />
 
       {/* Nav */}
@@ -302,140 +133,22 @@ export default function Success() {
             <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy, fontSize: 14 }}>Contact us at customerservice@taxappealusa.com</a>
           </div>
         ) : session?.isKit ? (
-          // GA and TX kits (15 Oct 2026): mailed to the customer, signed in ink.
+          // GA, TX and FL kits: mailed or emailed to the customer, signed in ink.
           <KitSuccess session={session} sessionId={session_id} />
-        ) : needsSignature ? (
-          // TX/GA/AR/AL: review + sign. Nothing mails until this completes.
-          <SignatureStep
-            letter={session.letter}
-            ownerName={session.customerName}
-            propertyAddress={session.address}
-            sending={mailStatus === 'sending'}
-            onSigned={handleSigned}
-            isFL={!!session.isFL}
-            // For Florida the letterKey holds the rendered DR-486 HTML, so
-            // session.letter IS the petition. Other states store plain text.
-            petitionHtml={session.isFL ? session.letter : null}
-          />
         ) : (
-          <>
-            <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <div style={{ width: 72, height: 72, background: "#E6F4ED", border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
-              <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, color: C.darkNavy, marginBottom: 10 }}>{session?.isPreOrder ? 'You are reserved — first in line!' : isFlorida ? 'Your order is confirmed' : 'Your protest is on its way!'}</h1>
-              <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6 }}>
-                Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. {session?.isPreOrder ? ('Your property tax protest is prepared and reserved — it will be filed as soon as your filing window opens on ' + scheduledDateLabel + '.') : (session?.stateCode === 'FL' ? 'Your order is confirmed, and we will email you about each next step.' : 'Your property tax protest is being sent via tracked USPS mail.')}
-              </p>
-            </div>
-
-            {badge && (
-              <div style={{ background: badge.bg, border: `1px solid ${badge.color}30`, borderRadius: 8, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20, flexShrink: 0, animation: mailStatus === 'sending' ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>{badge.icon}</span>
-                <div style={{ fontSize: 14, fontWeight: 500, color: badge.color, fontFamily: "'DM Sans', sans-serif" }}>{badge.text}</div>
-              </div>
-            )}
-
-            <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 14, fontWeight: 500 }}>Order Summary</div>
-              {[
-                ["Property", session?.address],
-                ["County", session?.county],
-                ["Filed with", session?.districtName],
-                session?.assessedValue ? ["Current assessed value", `$${Number(session.assessedValue).toLocaleString()}`] : null,
-                session?.targetReduction ? ["Reduction requested", `Down to $${Number(session.targetReduction).toLocaleString()}`] : null,
-                session?.savings ? ["Potential annual savings", `$${Number(session.savings).toLocaleString()}`] : null,
-              ].filter(Boolean).map(([label, value]) => value ? (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: 14, gap: 16 }}>
-                  <span style={{ color: C.bodyGray, flexShrink: 0 }}>{label}</span>
-                  <span style={{ color: C.darkNavy, fontWeight: 500, textAlign: "right" }}>{value}</span>
-                </div>
-              ) : null)}
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", fontSize: 15 }}>
-                <span style={{ fontWeight: 500, color: C.darkNavy }}>Amount paid</span>
-                <span style={{ fontWeight: 700, color: C.darkNavy }}>${(((session && session.amountPaid) || 8900)/100).toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1px", color: C.mutedGray, marginBottom: 16, fontWeight: 500 }}>What Happens Next</div>
-              {steps.map((step, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: i < steps.length - 1 ? 16 : 0, paddingBottom: i < steps.length - 1 ? 16 : 0, borderBottom: i < steps.length - 1 ? `1px solid ${C.border}` : "none", opacity: step.done || step.active ? 1 : 0.5 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: step.done ? C.navy : step.active ? C.lightBlue : C.bg, border: `1.5px solid ${step.done ? C.navy : step.active ? C.navy : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, animation: step.active ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>
-                    {step.done ? <span style={{ color: C.white }}>✓</span> : step.icon}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.darkNavy, marginBottom: 3 }}>{step.title}</div>
-                    <div style={{ fontSize: 12, color: C.bodyGray, lineHeight: 1.5 }}>{step.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ background: C.amber, border: "1px solid #FFD97A", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#7A5C10", marginBottom: 6 }}>📧 Confirmation email sent</div>
-              <div style={{ fontSize: 13, color: "#7A5C10", lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>A confirmation has been sent to <strong>{session?.email}</strong>. We will email you again with tracking once your protest is filed on {scheduledDateLabel}.</> : <>A confirmation has been sent to <strong>{session?.email}</strong>. Your tracking number will follow once your letter has been dispatched.</>}
-              </div>
-            </div>
-
-            {/*
-              THE PASSWORD, AND THIS IS NOW THE ONLY PLACE IT IS ASKED FOR.
-
-              It used to be the first field in the funnel — name, email, password,
-              before a stranger had been told one thing about their property. What it
-              protects is the portal, and the portal shows the status of an appeal
-              that did not exist at the point the question was being asked.
-
-              BELOW THE SIGNATURE, NEVER ABOVE IT. Everything in this branch renders
-              only once `signed` is true. Nothing mails until the owner signs, and no
-              optional field belongs in front of a required one. The version of that
-              mistake this page has already made — a signature button that appeared to
-              do nothing while the server had in fact succeeded — is why the ordering
-              is worth writing down rather than assuming.
-
-              Optional, and it says so. A customer who skips it still gets in through
-              "Forgot password?", which looks them up by their ORDER rather than by a
-              hash they do not have.
-            */}
-            <SetPasswordCard sessionId={session_id} email={session?.email} isPreOrder={!!session?.isPreOrder} />
-
-            <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>⚖️ Important</div>
-              <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6 }}>
-                {session?.isPreOrder ? <>We will mail your protest the moment your filing window opens on {scheduledDateLabel}. You do not need to do anything else — we will email you as soon as it is dispatched, with tracking.</> : <>{isFlorida
-                      /* FLORIDA GETS A HEARING WHETHER OR NOT THE OWNER ATTENDS.
-                         The old copy said "if they schedule a hearing, you can attend
-                         yourself or hire a licensed representative" — which reads as
-                         though a hearing were a contingency. It is not. Under Fla.
-                         Admin. Code R. 12D-9.001 the petitioner has a right to prior
-                         notice of the hearing date, so the Board schedules one and
-                         posts a notice for every petition. Ticking "I will not attend
-                         but would like my evidence considered" on the DR-486 does not
-                         prevent that; it means the Board weighs the enclosed evidence
-                         without the owner present.
-                         Saying nothing would be worse than the old wording: an
-                         official hearing notice would arrive in the post and the owner
-                         would think something had gone wrong. */
-                      ? <>The {sessionCounty} Value Adjustment Board will schedule a hearing and mail you a notice of the date — that happens for every petition and is not a sign of a problem. Because you elected not to attend, the Board considers your enclosed evidence without you, and there is nothing you need to do. You may attend if you change your mind. TaxAppeal does not attend or represent you. Forward the Board&rsquo;s decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>
-                      : <>Your appraisal district will contact you directly with their decision — typically within 30&ndash;90 days. TaxAppeal does not attend or represent you at any hearing. Forward any decision to <strong>disputes@mail.taxappealusa.com</strong> and we will help you understand it.</>}</>}
-              </div>
-            </div>
-
-            <div style={{ background: C.lightBlue, border: `1px solid #C5D3E8`, borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>🔐 Your Appeal Portal</div>
-              <div style={{ fontSize: 13, color: C.bodyGray, lineHeight: 1.6, marginBottom: 12 }}>
-                Track your appeal status, view your letter, and see your decision when it arrives — all in one place.
-              </div>
-              <a href="/portal" style={{ display: "inline-block", background: C.navy, color: C.white, textDecoration: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 500 }}>
-                Go to My Portal →
-              </a>
-            </div>
-
-            <div style={{ textAlign: "center", fontSize: 13, color: C.mutedGray, lineHeight: 1.8 }}>
+          // A paid session that is not a kit should not exist any more. Say
+          // nothing we cannot stand behind: the payment is confirmed and a
+          // person will follow up.
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <div style={{ width: 72, height: 72, background: C.lightBlue, border: `2px solid ${C.green}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px" }}>✓</div>
+            <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, color: C.darkNavy, marginBottom: 10 }}>Your order is confirmed</h1>
+            <p style={{ fontSize: 16, color: C.bodyGray, lineHeight: 1.6, marginBottom: 20 }}>
+              Thank you{session?.customerName ? `, ${session.customerName.split(' ')[0]}` : ''}. We&rsquo;ll email you{session?.email ? <> at <strong>{session.email}</strong></> : null} about your order shortly.
+            </p>
+            <div style={{ fontSize: 13, color: C.mutedGray, lineHeight: 1.8 }}>
               Questions? Email <a href="mailto:customerservice@taxappealusa.com" style={{ color: C.navy }}>customerservice@taxappealusa.com</a>
-              <br />
-              <a href="/" style={{ color: C.navy }}>← Back to TaxAppeal</a>
             </div>
-          </>
+          </div>
         )}
       </div>
     </>

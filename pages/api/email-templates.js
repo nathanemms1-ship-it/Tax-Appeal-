@@ -10,34 +10,6 @@ import { BUSINESS_NAME, LEGAL_ENTITY, BUSINESS_ADDRESS, BUSINESS_ADDRESS_LINES }
 // pages/api/email-templates.js
 
 /**
- * Dates reach this file from two places with two shapes: Stripe metadata (a plain
- * ISO string) and Postgres timestamptz, which serialises its offset as "+00" rather
- * than "+00:00". `new Date('2026-08-24T05:00:00+00')` is Invalid Date in Node, and an
- * unguarded toLocaleDateString on that renders the words "Invalid Date" into a
- * customer's receipt where the filing date should be. Normalise, then verify.
- */
-function formatDate(value) {
-  if (!value) return null;
-  const normalised = String(value).trim()
-    .replace(' ', 'T')
-    .replace(/([+-]\d{2})$/, '$1:00');
-  const d = new Date(normalised);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-/**
- * "Broward County" + " County" = "Broward County County".
- *
- * orders.county is stored WITH the suffix, and this file appended another one, so
- * every Florida receipt read "the Broward County County Value Adjustment Board".
- * Cosmetic, but it is among the first things a paying customer reads.
- */
-function cleanCounty(county) {
-  return String(county || '').replace(/\s+County\s*$/i, '').trim();
-}
-
-/**
  * WHAT THE RECEIPT IS ALLOWED TO CLAIM, GIVEN WHERE THE ORDER ACTUALLY IS.
  *
  * This fixes a false statement, not a wording preference. The template hardcoded
@@ -46,100 +18,13 @@ function cleanCounty(county) {
  * destructured it — the same silent parameter drop that lost `stateCode` a day
  * earlier, in the same pair of files.
  *
- * The consequence: a Florida pre-order is `queued` until the county window opens on
- * 24 August, and the buyer was told it had already been filed and was in the post.
- * Florida's deadline is satisfied by physical RECEIPT, so a customer who believes it
- * is filed has no reason to chase it — and if anything goes wrong, they find out
- * after the window has shut.
- *
  * Default case is deliberately conservative: an unrecognised status must never
  * render as "filed".
  */
-function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) {
-  const when = formatDate(scheduledFileDate);
-
+function claimFor(status) {
   switch (String(status || '')) {
-    case 'filed':
-      return {
-        subject: '✅ Your Property Tax Dispute Has Been Filed — TaxAppeal USA',
-        banner: '#1a7a4a',
-        heading: 'Your Dispute Has Been Filed',
-        subheading: `Your ${docWord} is on its way to the ${authority}`,
-        intro: `Your property tax ${docWord} has been prepared and dispatched via ${mailClass} to the ${authority}. Here is a summary of your filing.`,
-      };
-
-    case 'queued':
-      return {
-        subject: '✅ Your Property Tax Petition Is Reserved — TaxAppeal USA',
-        banner: '#1B2A4A',
-        heading: 'Your Petition Is Prepared and Reserved',
-        subheading: when
-          ? `It will be filed when the window opens on ${when}`
-          : 'It will be filed as soon as the filing window opens',
-        intro: `Your property tax ${docWord} is complete, signed, and held ready. The ${authority} does not accept filings yet${when ? ` — the window opens on ${when}` : ''}. We will send it by ${mailClass} on the first day we can, well ahead of your deadline, and email you the moment it goes out. There is nothing further for you to do.`,
-      };
-
     /**
-     * ========================================================================
-     * SENT AT PAYMENT. IT IS A RECEIPT, NOT A CHASE. Reworded 25 Aug 2026.
-     * ========================================================================
-     * This read "One Step Left — Your Signature" / "needs your signature before
-     * we can file it", and it is sent by lib/fulfillOrder.js from the Stripe
-     * webhook — in the same instant the customer is redirected to /success,
-     * which IS the signing page.
-     *
-     * So it landed in the inbox of someone already looking at the thing it told
-     * them to go and do, phrased as though they had failed to do it. On 25 Aug
-     * the first paying customer had it sitting in her inbox reading "one step
-     * left" AFTER she had signed, while her portal said the order needed
-     * attention. She could not tell which was true, and wrote in to ask.
-     *
-     * The chase now lives in 'signature_reminder' below, sent by
-     * pages/api/cron/signature-reminder.js only to people who genuinely have not
-     * signed ten minutes later.
-     *
-     * NO ctaLabel HERE, DELIBERATELY. The first version of this fix kept a "Sign
-     * my petition" button on the receipt "in case they closed the tab" — which is
-     * the same nudge at the same wrong moment, only quieter, and it is redundant:
-     * the person who closed the tab is exactly who the ten-minute reminder exists
-     * for. The customer signs on the confirmation page they are already looking
-     * at. This email is a RECORD OF PAYMENT and asks for nothing.
-     */
-    case 'awaiting_signature':
-      return {
-        subject: '✅ Payment received — TaxAppeal USA',
-        banner: '#1B2A4A',
-        heading: 'Payment Received',
-        subheading: `Your ${docWord} is prepared and your filing is under way`,
-        intro: `Thank you — your payment is in and your ${docWord} is written and ready. You sign it on the confirmation page in your browser, which takes about a minute and completes your filing. This email is just your record of the payment; there is nothing you need to do here.`,
-      };
-
-    /**
-     * ========================================================================
-     * SENT BY THE CRON, TEN MINUTES LATER, ONLY IF STILL UNSIGNED.
-     * ========================================================================
-     * This is the email the one above used to pretend to be. By the time it goes
-     * out, "you have not signed yet" is a fact rather than a race with the
-     * customer's own browser.
-     *
-     * It carries a working link, which the old version did not: that one said
-     * "use the link from your confirmation page, or reply to this email and we
-     * will resend it" — to a person whose defining characteristic is that they no
-     * longer have that page. The one email whose entire job was "go and sign" had
-     * nothing in it to click.
-     */
-    case 'signature_reminder':
-      return {
-        subject: '✍️ Your property tax petition is still waiting for your signature',
-        banner: '#8a6d1f',
-        heading: 'Still Waiting On Your Signature',
-        subheading: `We have your payment — we cannot file your ${docWord} until you sign it`,
-        intro: `Your ${docWord} is written and ready to go, but it has not been signed yet, and by law it has to be signed by you before it can be filed. It takes about a minute and there is nothing to print. If something is stopping you, reply to this email and a person will help.`,
-        ctaLabel: `Sign my ${docWord} now`,
-      };
-
-    /**
-     * KIT ORDERS (Georgia from 2027; Kit model decided 10 Oct 2026). We mail the
+     * KIT ORDERS (GA, TX, FL; Kit model decided 10 Oct 2026). We mail the
      * CUSTOMER a ready-to-sign kit and email the PDF; we never file. These two
      * receipts must not say "filed", "certified" or "we mail it to the county".
      */
@@ -176,8 +61,8 @@ function claimFor(status, { docWord, authority, mailClass, scheduledFileDate }) 
         subject: '✅ We received your property tax order — TaxAppeal USA',
         banner: '#1B2A4A',
         heading: 'We Have Your Order',
-        subheading: `We are preparing your ${docWord} for the ${authority}`,
-        intro: `Your payment is received and your ${docWord} is being prepared for the ${authority}. We will email you as soon as it is filed. If anything needs your attention we will contact you directly.`,
+        subheading: 'We will email you with the next step',
+        intro: 'Your payment is received. We will email you with the next step. If anything needs your attention we will contact you directly.',
       };
   }
 }
@@ -190,38 +75,20 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   }
   if (isFL && orderStatus === 'kit_queued') return '✅ Payment received — your petition kit is being printed — TaxAppeal USA';
   if (isFL && orderStatus === 'kit_pdf') return '✅ Payment received — your petition kit is on its way to your inbox — TaxAppeal USA';
-  return claimFor(orderStatus, {
-    docWord: isFL ? 'petition' : 'letter',
-    authority: '',
-    mailClass: '',
-    scheduledFileDate: null,
-  }).subject;
+  return claimFor(orderStatus).subject;
 }
 
-export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, sessionId, letter, amountPaid = 8900, stateCode, orderStatus, vabFee, scheduledFileDate, signingUrl = null, noticeUrl = null }) {
+export function confirmationEmailTemplate({ firstName, lastName, address, county, trackingNumber, lobId, amountPaid = 8900, stateCode, orderStatus, noticeUrl = null }) {
   const fullName = `${firstName} ${lastName}`;
-  // The one button a receipt may carry: the signing link, or (pre-sale) the notice link.
-  const ctaUrl = orderStatus === 'awaiting_notice' ? noticeUrl : signingUrl;
+  // The one button a receipt may carry: (pre-sale) the notice link.
+  const ctaUrl = orderStatus === 'awaiting_notice' ? noticeUrl : null;
   const year = new Date().getFullYear();
 
-  /**
-   * stateCode WAS BEING DROPPED HERE — fixed 5 Aug 2026.
-   *
-   * lib/fulfillOrder.js:101 passes stateCode and pages/api/send-email.js:79 forwards
-   * it, but this signature never destructured it, so the parameter arrived and fell
-   * on the floor. Every Florida buyer's receipt therefore said "your certified letter
-   * is on its way to the county appraisal district" — wrong twice over. Florida mails
-   * FIRST CLASS on a Lob cheque (usps_first_class, no extra_service — see
-   * pages/api/send-letter.js), and Florida has no appraisal district: a petition goes
-   * to the Clerk of the Value Adjustment Board.
-   */
+  // stateCode decides the Texas and Florida wording below. It was once dropped
+  // here (fixed 5 Aug 2026), so every receipt read as the default state.
   const isFL = String(stateCode || '').toUpperCase() === 'FL';
-  const mailClass = isFL ? 'tracked USPS First Class mail' : 'USPS certified mail';
-  const co = cleanCounty(county);
-  const authority = isFL ? `${co} County Value Adjustment Board` : `${co} Appraisal District`;
-  const docWord  = isFL ? 'petition' : 'letter';
 
-  const claimBase = claimFor(orderStatus, { docWord, authority, mailClass, scheduledFileDate });
+  const claimBase = claimFor(orderStatus);
   /*
    * A TEXAS reservation (16 Oct 2026) is finished by our roll load, not by the
    * customer: there is no notice to enter, so no button, and the wording says so.
@@ -250,18 +117,6 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
     }
     : claimBase;
 
-  /**
-   * "What happens next" has to follow the same truth as the banner. It previously
-   * opened with "Your petition arrives at the ... (3-7 business days)" on every
-   * receipt, including pre-orders that will not be mailed for weeks — and it said
-   * "The district reviews your protest" to Florida customers, who have no appraisal
-   * district; a Florida petition is heard by the Value Adjustment Board.
-   */
-  const reviewer = isFL ? 'The Value Adjustment Board' : 'The appraisal district';
-  const filedOn = formatDate(scheduledFileDate);
-
-  // 'signature_reminder' is the same point in the journey as 'awaiting_signature' —
-  // unsigned — so it gets the same four steps. Added with the cron on 25 Aug.
   const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice' || orderStatus === 'kit_pdf';
   const steps = isKit && isFL
     ? [
@@ -287,36 +142,12 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
         'The county reviews your appeal and writes to you; forward us anything it sends',
         'If the county does not lower your value, next year\'s kit is free',
       ]
-    : (orderStatus === 'awaiting_signature' || orderStatus === 'signature_reminder')
-    ? [
-        `You sign your ${docWord} online — nothing to print`,
-        `We mail it by ${mailClass} to the ${authority}`,
-        `${reviewer} reviews your ${docWord} (typically 30-90 days)`,
-        'Log in to your portal anytime to update your dispute outcome',
-      ]
-    : orderStatus === 'queued'
-      ? [
-          filedOn
-            ? `We mail your ${docWord} on ${filedOn}, the first day it can be filed`
-            : `We mail your ${docWord} on the first day it can be filed`,
-          `It usually reaches the ${authority} within 7 to 14 days of mailing, and we email you when it goes out`,
-          `${reviewer} reviews your ${docWord} (typically 30-90 days)`,
-          'Log in to your portal anytime to update your dispute outcome',
-        ]
-      : [
-          `Your ${docWord} arrives at the ${authority} (usually 7-14 days)`,
-          `${reviewer} reviews your ${docWord} (typically 30-90 days)`,
-          'You may receive a written decision by mail or email — watch for it',
-          'Log in to your portal anytime to update your dispute outcome',
-        ];
+    : [
+        'We review your order and email you with the next step',
+        'If anything needs your attention we will contact you directly',
+      ];
 
-  // Fee presentation. Labelling the whole charge "Filing Fee Paid" was wrong and
-  // cut against the product's own promise: the $89 is our flat service fee and the
-  // county filing fee is a separate amount we pay on the customer's behalf. Showing
-  // $114.00 as "Filing Fee Paid" implies the county received all of it.
   const totalCents = Number(amountPaid) || 8900;
-  const feeCents = Number(vabFee) || 0;
-  const serviceCents = feeCents > 0 && feeCents < totalCents ? totalCents - feeCents : null;
   const money = (c) => `$${(c / 100).toFixed(2)}`;
 
   return `<!DOCTYPE html>
@@ -357,15 +188,6 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
               </p>
 
               ${claim.ctaLabel && ctaUrl ? `
-              <!--
-                THE BUTTON THAT WAS NOT THERE. 25 Aug 2026.
-                Both signature emails told the customer to sign and gave them
-                nothing to click — "use the link from your confirmation page, or
-                reply to this email and we will resend it", sent to someone whose
-                whole problem is that the page is gone. /success?session_id=... IS
-                the signing page and /api/verify-payment authenticates on that id,
-                so the link was always constructible; it simply was not built.
-              -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
                 <tr>
                   <td align="center">
@@ -412,15 +234,7 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
                       <tr>
                         <td style="font-size:13px;color:#666;padding:5px 0;">Total Paid</td>
                         <td style="font-size:13px;color:#1a7a4a;font-weight:700;text-align:right;">${money(totalCents)}</td>
-                      </tr>${serviceCents ? `
-                      <tr>
-                        <td style="font-size:12px;color:#888;padding:2px 0 0 0;">&nbsp;&nbsp;TaxAppeal service fee</td>
-                        <td style="font-size:12px;color:#888;text-align:right;padding:2px 0 0 0;">${money(serviceCents)}</td>
                       </tr>
-                      <tr>
-                        <td style="font-size:12px;color:#888;padding:2px 0 0 0;">&nbsp;&nbsp;${h(co)} County filing fee (we pay this for you)</td>
-                        <td style="font-size:12px;color:#888;text-align:right;padding:2px 0 0 0;">${money(feeCents)}</td>
-                      </tr>` : ''}
                     </table>
                   </td>
                 </tr>
@@ -497,154 +311,4 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
   </table>
 </body>
 </html>`;
-}
-
-export function deliveryEmailTemplate({ firstName, trackingNumber, address, county, stateCode }) {
-  const year = new Date().getFullYear();
-  // Same Florida split as confirmationEmailTemplate — FL goes to the Value
-  // Adjustment Board by tracked First Class mail, not to an appraisal district by
-  // certified mail. Florida has no appraisal district to review anything.
-  const isFL = String(stateCode || '').toUpperCase() === 'FL';
-  const authority = isFL ? `${county} County Value Adjustment Board` : `${county} Appraisal District`;
-  const reviewer  = isFL ? 'Value Adjustment Board' : 'district';
-  const docWord   = isFL ? 'petition' : 'protest letter';
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><title>Your Dispute Letter Has Been Delivered</title></head>
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <tr>
-            <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
-              <div style="font-size:22px;font-weight:700;color:#C9A84C;">TaxAppeal USA</div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
-              <div style="font-size:18px;font-weight:700;color:#ffffff;">📬 Letter Delivered to the County</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:36px 40px;">
-              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${h(firstName)},</p>
-              <p style="font-size:15px;color:#444;line-height:1.6;">
-                Your property tax ${h(docWord)} for <strong>${h(address)}</strong> has been successfully delivered to the <strong>${h(authority)}</strong> via trackable USPS mail.
-              </p>
-              <p style="font-size:15px;color:#444;line-height:1.6;">
-                The ${h(reviewer)} will review your ${h(docWord)} and send their decision — typically within 30–90 days. Watch your mail and email for a notice from them.
-              </p>
-              ${trackingNumber ? `<p style="font-size:13px;color:#888;">USPS Tracking: <strong>${h(trackingNumber)}</strong></p>` : ''}
-              <p style="font-size:14px;color:#444;">
-                Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
-              <div style="font-size:12px;color:#999;">
-                TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
-                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
-                ${LEGAL_ENTITY}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
-              </div>
-              <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-// Called by pages/api/lob-webhook.js when Lob reports a certified-mail delivery.
-// The webhook destructures { subject, html, text } from the return value, so this
-// function MUST return an object with those three keys (not a raw HTML string like
-// the two templates above). Field names here match the webhook's call exactly:
-//   deliveryConfirmationEmail({ customerName, address, districtName, deliveredDate, trackingNumber })
-export function deliveryConfirmationEmail({ customerName, address, districtName, deliveredDate, trackingNumber }) {
-  const year = new Date().getFullYear();
-  const name = customerName || 'there';
-  const district = districtName || 'the County Appraisal District';
-  const deliveredLine = deliveredDate ? ` on <strong>${deliveredDate}</strong>` : '';
-
-  const subject = '📬 Your Dispute Letter Has Been Delivered';
-
-  const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Your Dispute Letter Has Been Delivered</title></head>
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <tr>
-            <td style="background:#1B2A4A;padding:32px 40px;text-align:center;">
-              <div style="font-size:22px;font-weight:700;color:#C9A84C;">TaxAppeal USA</div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:4px;">Property Tax Protest Service</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#1a7a4a;padding:20px 40px;text-align:center;">
-              <div style="font-size:18px;font-weight:700;color:#ffffff;">📬 Letter Delivered to the County</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:36px 40px;">
-              <p style="font-size:15px;color:#444;line-height:1.6;">Hi ${name},</p>
-              <p style="font-size:15px;color:#444;line-height:1.6;">
-                Good news — your property tax protest letter${address ? ` for <strong>${h(address)}</strong>` : ''} has been successfully delivered to <strong>${h(district)}</strong> via trackable USPS mail${deliveredLine}.
-              </p>
-              <p style="font-size:15px;color:#444;line-height:1.6;">
-                The district will review your protest and send their decision — typically within 30–90 days. Watch your mail and email for a notice from the appraisal district.
-              </p>
-              ${trackingNumber ? `
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
-                <tr>
-                  <td align="center" style="padding:14px;background:#1B2A4A;border-radius:6px;">
-                    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}" style="color:#C9A84C;font-size:14px;font-weight:700;text-decoration:none;">
-                      📦 View USPS Delivery Confirmation →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              <p style="font-size:13px;color:#888;">USPS Tracking: <strong>${h(trackingNumber)}</strong></p>` : ''}
-              <p style="font-size:14px;color:#444;">
-                Questions? Email us at <a href="mailto:customerservice@taxappealusa.com" style="color:#C9A84C;font-weight:600;">customerservice@taxappealusa.com</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#f0f2f7;padding:20px 40px;text-align:center;border-top:1px solid #e5e8ef;">
-              <div style="font-size:12px;color:#999;">
-                TaxAppeal USA · <a href="https://taxappealusa.com" style="color:#1B2A4A;">taxappealusa.com</a><br/>
-                <a href="mailto:customerservice@taxappealusa.com" style="color:#1B2A4A;">customerservice@taxappealusa.com</a><br/>
-                ${LEGAL_ENTITY}, ${BUSINESS_ADDRESS_LINES[0]}, ${BUSINESS_ADDRESS_LINES[1]}
-              </div>
-              <div style="font-size:11px;color:#bbb;margin-top:8px;">© ${year} TaxAppeal USA. All rights reserved.</div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-  const text = `Hi ${name},
-
-Good news — your property tax protest letter${address ? ` for ${address}` : ''} has been successfully delivered to ${district} via trackable USPS mail${deliveredDate ? ` on ${deliveredDate}` : ''}.
-
-The district will review your protest and send their decision — typically within 30-90 days. Watch your mail and email for a notice from the appraisal district.
-${trackingNumber ? `\nUSPS Tracking: ${trackingNumber}\nTrack: https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber)}\n` : ''}
-Questions? Email us at customerservice@taxappealusa.com
-
-${LEGAL_ENTITY}, ${BUSINESS_ADDRESS}
-
-© ${year} TaxAppeal USA`;
-
-  return { subject, html, text };
 }

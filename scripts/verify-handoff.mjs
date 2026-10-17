@@ -182,13 +182,9 @@ const apply = readFileSync('pages/apply.js', 'utf8');
       new RegExp(`${field}: ${from.replace('.', '\\.')}`).test(kitUi));
   }
   t('TX: what is printed comes from the kitKey', /kitKey: review\.kitKey/.test(kitUi));
-  t('TX: the overvaluation uses the packet\'s own reduction',
-    /pd\.isTxPacket[\s\S]{0,120}pd\.reductionSought/.test(apply));
-  // The literal moved from "Not yet known" to an em dash on 1 Oct when the
-  // packet started carrying a real figure; what must not change is that a TX
-  // packet never falls through to the 20%-of-value guess below it.
-  t('TX: no invented saving is printed on a Texas packet',
-    /pd\.isTxPacket \? "—"/.test(apply));
+  // The pd.isTxPacket summary (DisputeLetter) was deleted on 17 Oct 2026 with
+  // the letter pipeline; the live TX review screen's saving guard is asserted in
+  // verify-tx-form.mjs (txReview.estimatedSaving > 0 &&).
 }
 
 
@@ -246,14 +242,24 @@ const apply = readFileSync('pages/apply.js', 'utf8');
   // assumption, so it reads "A ceiling, not a promise." The INTENT is
   // unchanged and the assertion is stricter than it was: the figure, the
   // caveat, and the exemption disclosure must all be inside the component.
+  //
+  // 17 Oct: the literal moved again, to "treat it as a ceiling, not a promise."
+  // SCOPED to the component body now (StepTexasCheck up to the next top-level
+  // function) — the unbounded [\s\S]*? could otherwise be satisfied by the
+  // same sentence on the StepDispute review screen, ~2,000 lines further down.
+  //
+  // INJECTION: delete the ceiling sentence from StepTexasCheck -> FAILS, even
+  // though StepDispute still carries it.
+  const txCheckStart = apply.indexOf('function StepTexasCheck(');
+  const txCheckBody = txCheckStart < 0 ? '' : apply.slice(txCheckStart, apply.indexOf('\nfunction ', txCheckStart + 1));
   t('TX: no saving is shown on the verdict screen without the ceiling caveat',
-    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?A ceiling, not a promise/.test(apply));
+    /estimatedSaving[\s\S]*?ceiling, not a promise/i.test(txCheckBody));
   t('TX: the verdict screen discloses that exemptions are not subtracted',
-    /function StepTexasCheck\([\s\S]*?estimatedSaving[\s\S]*?subtract your homestead exemptions/.test(apply));
+    /estimatedSaving[\s\S]*?subtract your homestead exemptions/.test(txCheckBody));
   // A figure this size must be the parcel's own. The district rate was 2.9x low
   // on 108 Brookdale Dr and invented $441 a year on 1457 Forestglen Dr.
   t('TX: the verdict figure is gated on a parcel-derived basis',
-    /function StepTexasCheck\([\s\S]*?d\.estimateBasis === 'parcel'/.test(apply));
+    /d\.estimateBasis === 'parcel'/.test(txCheckBody));
 }
 
 
@@ -543,7 +549,6 @@ t('the sign-in exit is offered on the first screen only, not above checkout (SOU
  *
  * Proven by reintroducing each:
  *   drop the strip from checkout's line-item name        -> 1 fail
- *   drop it from the cheque memo                          -> 1 fail
  *   stop returning the cure from /api/check               -> 1 fail
  *   recompute the cure in the browser instead             -> 1 fail
  *   route eligible+defects straight to `account`          -> 1 fail
@@ -552,7 +557,6 @@ t('the sign-in exit is offered on the first screen only, not above checkout (SOU
  *   pass the click event to onAddIssues again             -> 1 fail
  */
 const checkoutSrc = readFileSync('pages/api/checkout.js', 'utf8');
-const sendLetter = readFileSync('pages/api/send-letter.js', 'utf8');
 const parcels = readFileSync('lib/dor/parcels.js', 'utf8');
 
 // A live test purchase was billed for a "Broward County County VAB Filing Fee".
@@ -561,8 +565,7 @@ const parcels = readFileSync('lib/dor/parcels.js', 'utf8');
 t('checkout strips the county suffix before appending it (SOURCE READ)',
   /countyLabel = String\(county \|\| ''\)\.replace\(\/\\s\+County\$\/i, ''\)/.test(checkoutSrc) &&
   !/name: `\$\{county\} County VAB/.test(checkoutSrc));
-t('the cheque memo strips it too (SOURCE READ)',
-  !/return `\$\{county\} County VAB Filing Fee`/.test(sendLetter));
+// (The cheque-memo twin of this check went with send-letter.js on 17 Oct 2026.)
 
 // The number shown must be the number the arithmetic used. The browser holds the
 // issue labels but not the NAL row, so a second pricing there is a different sum.
@@ -803,16 +806,25 @@ t('portal login tests whether the hash is USABLE, not merely present — the `!`
       || /password_hash:\s*null\b/.test(src);
     t(`${p.replace(/^.*?\//, '')} does not default password_hash to an untested null (SOURCE READ)`, !bad);
   }
-  t('the sweep sees pages/api/save-order.js, which writes the column in shorthand (SOURCE READ)',
-    writers.some(([p]) => p.endsWith('pages/api/save-order.js')));
+  // save-order.js (the shorthand writer) was deleted on 17 Oct 2026. The
+  // shorthand recogniser is kept and proven on a literal, so a future shorthand
+  // writer is still found; the sweep is then required to see the live insert.
+  t('the sweep recognises the shorthand spelling of a write (SOURCE READ)',
+    /^\s*password_hash,\s*$/m.test('    password_hash,\n'));
+  t('the sweep sees lib/fulfillOrder.js, the insert every paid order goes through (SOURCE READ)',
+    writers.some(([p]) => p.endsWith('lib/fulfillOrder.js')));
   const live = writers.find(([p]) => p.endsWith('lib/fulfillOrder.js'));
   t('lib/fulfillOrder.js — the insert that actually runs — writes the sentinel (SOURCE READ)',
     !!live && /password_hash: m\.passwordHash \|\| NO_PASSWORD_SENTINEL/.test(live[1]));
 }
 
-const saveOrder = readFileSync('pages/api/save-order.js', 'utf8');
-t('save-order writes the no-password sentinel rather than a null of unknown legality (SOURCE READ)',
-  /let password_hash = NO_PASSWORD_SENTINEL;/.test(saveOrder));
+// Re-pointed 17 Oct 2026 from save-order.js (deleted) to the live insert: the
+// sentinel must be the shared one from lib/noPassword.js, not a local literal
+// that could drift from what hasUsablePassword() refuses.
+const fulfilSrc = readFileSync('lib/fulfillOrder.js', 'utf8');
+t('fulfillOrder writes the shared no-password sentinel rather than a null of unknown legality (SOURCE READ)',
+  /import \{ NO_PASSWORD_SENTINEL \} from '\.\/noPassword'/.test(fulfilSrc) &&
+  /password_hash: m\.passwordHash \|\| NO_PASSWORD_SENTINEL/.test(fulfilSrc));
 
 /**
  * /api/portal/set-password — the only write a customer can reach without being

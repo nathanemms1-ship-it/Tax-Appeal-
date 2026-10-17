@@ -266,219 +266,60 @@ t('a camelCase parcel throws rather than quietly becoming a blank filing',
   typeof camelThrew === 'string');
 t('and the error names the fix', /\.row/.test(camelThrew || ''));
 
-// ── 3. WHAT THE DOCUMENT ACTUALLY SAYS ───────────────────────────────────────
+// ── 3. WHAT THE PACKET CARRIES ───────────────────────────────────────────────
 /**
- * SECTION 5, AND THE TWO ERRORS NATHAN FOUND BY READING IT. 7 Sept 2026.
+ * 17 Oct 2026: lib/tx/protestHtml.js — the HTML look-alike of Form 50-132 — was
+ * deleted (the Texas kit fills the comptroller's own PDF, lib/tx/fill50132.js,
+ * asserted in verify-tx-form.mjs and verify-tx-kit.mjs). About 110 assertions
+ * here read that HTML: Section 5's hearing copy, the grid page, Exhibit C, the
+ * Form 50-283 wording. They went with it.
  *
- * The first draft said "we have deliberately left it blank" and, four lines
- * above, "Tick one before you sign." A bare imperative next to its own
- * contradiction, with no statement of what blank actually MEANS. His question
- * was the right one: what happens if it is filed unticked?
- *
- * Nothing. § 41.44(d) makes a notice sufficient if it identifies the owner,
- * identifies the property and indicates dissatisfaction -- the hearing box is
- * not part of sufficiency, and the notice "need not be on an official form" at
- * all. § 41.45(a) then requires the board to schedule a hearing regardless.
- *
- * The second error was worse because it was a legal claim, not a UX one: the
- * draft said non-appearance means "your protest is dismissed and you may lose
- * your right to appeal for this tax year." Dismissal is real ARB practice --
- * Collin ARB states it outright -- but § 41.45(e-1) entitles an owner who misses
- * a hearing to a NEW hearing on a written statement of good cause filed within
- * four days. Printing the consequence without the cure overstates it on a
- * document a homeowner relies on.
- *
- * These assertions exist so neither comes back.
+ * What stays is what buildProtest PUTS ON THE PACKET, because that is what the
+ * kit is printed from. Each block below is a packet-level re-point of a render
+ * assertion that used to sit here; the render half is gone.
  */
-const { renderProtestHtml } = await import('../lib/tx/protestHtml.js');
 
 /**
- * NO COMPARABLES MEANS NO EVIDENCE PAGE.
+ * NO COMPARABLES MEANS NO EVIDENCE PAGE — hasGrid is what says so.
  *
- * Caught by injection, not by writing: removing the `hasGrid` conditional passed
- * every assertion in this file, because nothing looked at whether the grid page
- * appeared. An empty table under the heading "UNEQUAL APPRAISAL — COMPARABLE
- * PROPERTY ANALYSIS" and the § 41.43(b)(3) recital reads to a board like a
- * filing that lost its exhibit, which is worse than a filing that never claimed
- * to have one. The NOTICE is still valid on its own under § 41.44(d).
- *
- * INJECTION: render renderGrid unconditionally -> FAILS.
+ * INJECTION: hardcode hasGrid: true in buildProtest -> FAILS.
  */
-{
-  const bare = renderProtestHtml(refusals.get('no comparables'));
-  t('a packet with no comparables prints no evidence page',
-    !bare.includes('UNEQUAL APPRAISAL') && !bare.includes('41.43(b)(3)'));
-  t('but still prints a complete notice of protest',
-    bare.includes('NOTICE OF PROTEST') && bare.includes('SECTION 6'));
-  t('and hasGrid says so on the packet',
-    refusals.get('no comparables').hasGrid === false);
-
-  // The normal case must still carry it, or the assertion above is satisfied by
-  // a renderer that never draws a grid at all.
-  t('a packet with comparables still prints the evidence page',
-    renderProtestHtml(ok).includes('UNEQUAL APPRAISAL') && ok.hasGrid === true);
-}
-
-/**
- * SECTION 4 IS EMPTY ON THE PAGE, not merely null in the object.
- *
- * INJECTION: `const askable = opinion;` in buildProtest -> FAILS.
- */
-{
-  const r = refusals.get('nothing to ask for');
-  const doc = renderProtestHtml(r);
-  const s4 = doc.slice(doc.indexOf('SECTION 4'), doc.indexOf('SECTION 5'));
-  t('the opinion-of-value box renders empty when there is nothing to ask',
-    /<div class="fv"><b><\/b><\/div>/.test(s4));
-  t('and the page explains why it is blank, citing § 41.44(d)',
-    /left blank on purpose/i.test(s4) && s4.includes('41.44(d)'));
-  t('and no dollar figure appears in Section 4 at all',
-    !/\$[0-9]/.test(s4));
-}
+t('a packet with no comparables says hasGrid false',
+  refusals.get('no comparables').hasGrid === false);
+t('a packet with comparables says hasGrid true', ok.hasGrid === true);
 
 /**
  * A CAUTION IS FOR THE OWNER, NEVER FOR THE BOARD.
  *
- * These sentences say what is weak about the case. Printing them on the filed
- * document would hand the appraisal district our own rebuttal, in writing,
- * stapled to the protest.
+ * Re-pointed from "no caution text reaches the filed document": the filed
+ * document is printed from form50132, the grid and the condition exhibit, so no
+ * caution message may be carried inside any of them.
  *
- * INJECTION: render packet.cautions anywhere in protestHtml -> FAILS.
+ * INJECTION: copy cautions into form50132 (or a caution message into the grid
+ * disclosure) in buildProtest -> FAILS.
  */
-for (const [label, r] of refusals) {
-  const doc = renderProtestHtml(r);
-  t(`${label}: no caution text reaches the filed document`,
-    (r.cautions || []).every((c) => !doc.includes(c.message)));
+for (const [label, r] of [...refusals, ['happy path', ok]]) {
+  const filed = JSON.stringify({ f: r.form50132, g: r.grid, c: r.conditionExhibit });
+  t(`${label}: no caution text is carried on what gets filed`,
+    (r.cautions || []).every((c) => !filed.includes(c.message)));
 }
-const html = renderProtestHtml(ok);
-
-t('the document never orders the owner to tick a box it also leaves blank',
-  !/Tick one before you sign/i.test(html));
-t('it says plainly that leaving the hearing box blank does not affect the filing',
-  /leaving it blank does not affect your filing/i.test(html));
-t('it cites the sufficiency rule that makes that true (§ 41.44(d))',
-  /41\.44\(d\)/.test(html));
-t('it says a hearing is scheduled regardless (§ 41.45(a))', /41\.45\(a\)/.test(html));
-t('it tells the owner they can still request telephone or video later',
-  /41\.45\(b-1\)/.test(html) && /10 days before/i.test(html));
 
 /**
- * INJECTION: delete the § 41.45(e-1) sentence -> FAILS. A document may state the
- * dismissal risk only if it also states the cure.
- */
-const saysDismissed = /dismiss/i.test(html);
-t('the dismissal warning is never printed without the four-day cure beside it',
-  !saysDismissed || (/41\.45\(e-1\)/.test(html) && /four days/i.test(html)));
-t('and dismissal is attributed to boards\' practice, not claimed as statute',
-  !saysDismissed || /appraisal review\s+boards dismiss/i.test(html));
-
-/**
- * THE REASSURANCE IN SECTION 5, AND THE TWO CLAIMS IT MUST NOT MAKE. 7 Sept 2026.
+ * THE PER-DISTRICT FACT IS CARRIED ONLY WHERE WE HOLD IT.
  *
- * Nathan asked for a line telling the owner they probably will not have to
- * attend anything. He is right that they probably will not. The two phrasings
- * proposed would each have printed something false on a filed document:
- *
- *   "decided without any type of formal or informal hearing" — EPCAD 2023:
- *   41,154 protests filed, 16,656 resolved AT THE INFORMAL, 9,116 reached the
- *   ARB. The informal is the largest single place a protest is resolved, and it
- *   is the box we tick two lines above. The claim would contradict our own form.
- *
- *   "if by chance the county asks for one" — § 41.45(a) says the board SHALL
- *   schedule a hearing on the filing of a protest. Not discretionary, not rare.
- *   The paragraph directly below already says so, so this would contradict that
- *   too. What is rare is the hearing HAPPENING, because the informal resolves it.
- *
- * INJECTION: reinstate either phrase -> the matching assertion FAILS.
- */
-t('the document never claims protests are decided without an informal review',
-  !/without any (?:type of )?(?:formal or )?informal/i.test(html));
-t('it never frames the hearing as something the county might or might not ask for',
-  !/if (?:by chance )?the (?:county|district) (?:asks|requests)/i.test(html));
-t('it does say most protests resolve before a formal hearing, which the numbers support',
-  /resolved with the appraisal district before a formal hearing/i.test(html));
-t('and it points at the informal as the reason, rather than at our own results',
-  /that is what the informal review above is for/i.test(html));
-/**
- * Scoped to the reassurance paragraph, not the whole document — the first
- * version of this assertion failed on `width:100%` in the stylesheet and on
- * "within 10% of the subject's living area" in the comps methodology note. Both
- * are legitimate; the thing being kept out is an OUTCOME statistic. The model
- * decision drops percentages from anything customer-facing, because a stat in
- * that position becomes a marketing claim — which is what Texas Tax Protest is
- * suing Ownwell over.
- */
-const reassurance = (html.match(/You most likely will not have to attend[\s\S]*?<\/div>/) || [''])[0];
-t('the reassurance paragraph was found at all (the extractor still matches)',
-  reassurance.length > 200);
-t('it quotes no success rate, share or percentage',
-  !/\d{1,3}\s?%/.test(reassurance) && !/vast majority/i.test(reassurance)
-  && !/\b(?:one|1) in \d/i.test(reassurance));
-
-/**
- * THE PER-DISTRICT FACT IS PRINTED ONLY WHERE WE HOLD IT.
- *
- * El Paso's informal is conducted entirely by email — EPCAD's own portal says
- * you cannot meet an appraiser in person. That is worth telling a homeowner.
- * Harris runs iSettle, Tarrant an automated valuation tool; printing El Paso's
- * sentence for them would tell someone to expect an email that never comes.
+ * El Paso's informal is conducted entirely by email; Harris runs iSettle, Tarrant
+ * an automated valuation tool. Carrying El Paso's note for them would tell
+ * someone to expect an email that never comes.
  *
  * INJECTION: change INFORMAL_CHANNEL[cadId] to a default string -> FAILS.
  */
-t('El Paso’s email-only informal is stated on an El Paso filing',
-  /handled entirely by email/i.test(html));
+t('El Paso’s email-only informal is carried on an El Paso packet',
+  /email/i.test(ok.form50132.informalChannel || ''));
 {
   const other = buildProtest({ parcel: { ...subject, cad_id: 999 },
     comps: goodComps, taxYear: 2026, owner: { firstName: 'A', lastName: 'B' } });
-  t('a district we hold no informal-practice note for prints none',
+  t('a district we hold no informal-practice note for carries none',
     other.filable === true && other.form50132.informalChannel === null);
-}
-
-/**
- * THE INFORMAL REVIEW AND THE ARB HEARING ARE DIFFERENT PROCEEDINGS. 7 Sept 2026.
- *
- * Nathan read the rendered page: the top of Section 5 says El Paso's review is
- * by email and you cannot meet an appraiser in person, and the bottom said
- * "blank means the hearing is set as an in-person hearing." Both statements were
- * true — of DIFFERENT proceedings — and the copy used "hearing" for both, so on
- * the page it read as a flat contradiction.
- *
- * The informal review comes first and is where most protests settle. The formal
- * ARB hearing is a separate, later step. The document now says so before it says
- * anything about an in-person default.
- *
- * INJECTION: delete the "separate, later step" sentence -> FAILS.
- */
-t('the document distinguishes the ARB hearing from the informal review',
-  /separate, later step from the informal review/i.test(html));
-t('the in-person default is stated as conditional on the hearing going ahead',
-  !/Blank means the hearing is set as an in-person hearing/i.test(html)
-  && /if the ARB\s+hearing does go ahead, it is an in-person hearing/i.test(html));
-
-/**
- * AND THE RENDERER NAMES NO DISTRICT.
- *
- * Fixing the contradiction above, the first attempt wrote "in El Paso by email"
- * into the shared renderer — which would print El Paso's practice on a Harris
- * filing. That is the defect INFORMAL_CHANNEL exists to prevent, reintroduced in
- * the act of fixing something else. Per-district facts are data; this file is
- * prose that must hold for every district.
- *
- * INJECTION: put a county name back in the template -> FAILS.
- */
-{
-  const { readFileSync } = await import('node:fs');
-  // Comments stripped first: the file's own header cites Travis's 15-minute
-  // hearing allotment as the reason for the layout, which is documentation, not
-  // something the document prints. Scanning raw source flagged it on the first
-  // run — a guard that fires on its own rationale trains people to ignore it.
-  const tmpl = readFileSync(new URL('../lib/tx/protestHtml.js', import.meta.url), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const named = ['El Paso', 'Harris', 'Dallas', 'Tarrant', 'Travis', 'Bexar',
-    'Jefferson', 'Kaufman', 'Nueces', 'Taylor', 'Wichita']
-    .filter((c) => new RegExp(`\\b${c}\\b`).test(tmpl));
-  t(`the shared renderer hardcodes no district${named.length ? ` — found: ${named.join(', ')}` : ''}`,
-    named.length === 0);
 }
 
 // ── 4. CONDITION, AND THE ADAPTER THAT NEARLY WASN'T ─────────────────────────
@@ -682,237 +523,68 @@ t('a West South Central citation would clear the flag',
     'https://www.jlconline.com/cost-vs-value/2025/west-south-central/' }]) === false);
 
 /**
- * ============================================================================
- * THE GRID ASSERTIONS WERE READING THE DATA, NOT THE PAGE. 7 Sept 2026.
- * ============================================================================
- *
- * Found by injection sweep: emptying the statute out of the rendered grid —
- * `<div class="statute">${e(g.statute)}</div>` -> `<div class="statute"></div>`
- * — left all 68 assertions passing, because they tested `ok.grid.statute`, the
- * DATA the renderer is handed, and never what it printed.
- *
- * The statute block is, per the research pass, the single highest-leverage
- * element in the document: the Comptroller's ARB Manual gives boards almost no
- * guidance on (b)(3), so the page has to teach the test while making the
- * argument. It was the least guarded thing in the file.
- *
- * Section 5's assertions read the rendered HTML from the start. The grid's did
- * not. Same file, two standards, and the weaker one was on the page that
- * carries the argument. Everything a panel actually reads is asserted against
- * the RENDER below.
- */
-{
-  const grid = (html.match(/UNEQUAL APPRAISAL[\s\S]*?(?=<div class="page|<\/body>)/) || [''])[0];
-  t('the grid page was found in the render (the extractor still matches)', grid.length > 400);
-  t('the § 41.43(b)(3) test is PRINTED on the grid page, not merely available to it',
-    /41\.43\(b\)\(3\)/.test(grid) && /median appraised value/i.test(grid));
-  t('the burden being the district’s is printed there too', /41\.43\(a\)/.test(grid));
-  t('the median row is printed with the comp count',
-    new RegExp(`MEDIAN of ${ok.grid.compCount} comparable`).test(grid));
-  t('the median per-square-foot figure reaches the page',
-    grid.includes(String(ok.grid.medianAppraisedPerSqft)));
-  /**
-   * SCOPED TO THE ASK BLOCK, NOT THE PAGE.
-   *
-   * `grid.includes(requestedValue)` passed with the ask block emptied, because
-   * on a packet with no condition case the requested value EQUALS
-   * indicatedAppraised — which the median row already prints. The assertion was
-   * satisfied by a different number that happened to be the same. Same
-   * degeneracy as the fixture whose two grounds agreed.
-   */
-  // Bounded by the block that follows it, not by a closing tag: the ask block
-  // nests three divs, so a lazy </div></div> match stopped before the figure.
-  const ask = (grid.match(/<div class="ask">[\s\S]*?<div class="foot">/) || [''])[0];
-  t('the ask block was found on the grid page', ask.length > 80);
-  t('the value requested is printed IN the ask block',
-    ask.includes(ok.requestedValue.toLocaleString()));
-  t('and the reduction sought is stated beside it',
-    ask.includes(ok.reductionSought.toLocaleString()));
-  t('the capped share of the comp set is disclosed on the page, not just computed',
-    /assessment cap/i.test(grid));
-  t('the subject is identified as the subject', /— <b>subject<\/b>/.test(grid));
-}
-
-/**
- * And the same standard for Exhibit C: a priced repair with no visible source is
- * the fabricated-comparable defect. lib/costToCure.js's rule is "EVERY DOLLAR
- * FIGURE CARRIES A SOURCE", and it is the owner who defends it in the room.
- */
-{
-  const withHtml = renderProtestHtml(withIssues);
-  const ex = (withHtml.match(/PROPERTY CONDITION[\s\S]*$/) || [''])[0];
-  t('the condition exhibit was found in the render', ex.length > 400);
-  t('the market-value ground is named on the exhibit', /41\.41\(a\)\(1\)/.test(ex));
-  t('the total cost to cure is printed',
-    ex.includes(withIssues.conditionExhibit.cureDollars.toLocaleString()));
-  t('every priced line shows its source on the page',
-    withIssues.conditionExhibit.priced.every((x) => ex.includes(x.source)));
-  t('and the packet states plainly that nobody inspected the property',
-    /No inspection of the property was performed/i.test(ex));
-}
-
-/**
  * THE FILED ADDRESS CARRIES THE STATE.
  *
  * A county roll has no state column because it does not need one; a document
  * filed with an appraisal district does. Section 2 printed "EL PASO, 79907"
- * until it was read on the page — and nothing asserted it afterwards.
+ * until it was read on the page. (The render half of this check went with
+ * protestHtml.js; fill50132 prints form50132.propertyAddress as-is.)
  *
  * INJECTION: drop 'TX' from propertyAddress in protest.js -> FAILS.
  */
 t('the property address on the form carries the state',
-  /,\s*TX\s+\d{5}/.test(ok.form50132.propertyAddress)
-  && html.includes(ok.form50132.propertyAddress));
+  /,\s*TX\s+\d{5}/.test(ok.form50132.propertyAddress));
 
 /**
- * THE NARRATIVE FIELDS ARE ARRAYS AND THE RENDERER MUST KNOW IT.
- *
- * comps.js returns describeAdjustments() and disclosureFor() as string[].
- * protestHtml interpolated them straight into a template literal, which runs
- * String() over the array and comma-joins with no space:
- *
- *   "...code for this property.,All comparables share the subject's..."
- *
- * The preview script hid this for the whole build because its fixture passed a
- * single hand-written sentence, so the array path was never rendered once. The
- * assertion below feeds the REAL producers' output through the REAL renderer,
- * which is the only shape that would have caught it.
- *
- * INJECTION: change sentences(g.adjustments) back to e(g.adjustments) -> FAILS.
+ * THE NARRATIVE FIELDS ARE ARRAYS. comps.js returns describeAdjustments() and
+ * disclosureFor() as string[]; the render checks that consumed them (comma
+ * jamming, the "Before you sign" block) went with protestHtml.js. The producers'
+ * shape is still asserted, because every consumer depends on it.
  */
 {
   const { describeAdjustments, disclosureFor, STRATA, COUNTY_TIER } =
     await import('../lib/tx/comps.js');
-
   const nb = STRATA.find((x) => x.level === 'neighborhood');
   const adj = describeAdjustments(nb, { size: 0.1, age: 15, land: 0.1 }, 6);
   t('describeAdjustments returns a list, not a sentence', Array.isArray(adj) && adj.length > 1);
-
-  const rendered = renderProtestHtml({
-    ...ok,
-    grid: { ...ok.grid, adjustments: adj, disclosure: [] },
-  });
-  t('every adjustment sentence reaches the page',
-    adj.every((line) => rendered.includes(line)));
-  t('and no two of them are jammed together by a comma',
-    !/[a-z%)]\.,[A-Z]/.test(rendered));
-
-  // The disclosure is a warning to the OWNER about a weak comp set. It was
-  // being printed inside the "How these comparables were selected" footer,
-  // where it reads as methodology rather than as a caution.
   const weak = disclosureFor(COUNTY_TIER, { size: 0.25, age: 40, land: 0.25 },
     { basis: 'clean', cappedCompShare: 0 }, 5);
-  t('a last-resort comp tier produces an owner warning', weak.length > 0);
-
-  const warned = renderProtestHtml({ ...ok, grid: { ...ok.grid, disclosure: weak } });
-  t('the warning reaches the page in full',
-    weak.every((line) => warned.includes(line)));
-  // indexOf returns -1 when absent and -1 is less than every real offset, so
-  // an ordering assertion alone PASSES when the block is deleted outright.
-  // That is the bug this pair of assertions exists to catch, so prove the
-  // block is present before comparing where it sits.
-  const atWarn = warned.indexOf('Before you sign');
-  const atFoot = warned.indexOf('How these comparables were selected');
-  t('the warning gets its own block, not a footnote clause', atWarn > 0 && atFoot > 0);
-  t('and that block sits above the selection footnote', atWarn > 0 && atWarn < atFoot);
-  t('and a clean comp set prints no warning block',
-    !renderProtestHtml({ ...ok, grid: { ...ok.grid, disclosure: [] } }).includes('Before you sign'));
+  t('a last-resort comp tier produces an owner warning', Array.isArray(weak) && weak.length > 0);
 }
 
 /**
- * SECTION 4 MUST CITE EVERY EXHIBIT ITS NUMBER RESTS ON.
- *
- * opinionOfValue floors the market indication by the cost to cure, so the
- * moment an owner reports a defect the Section 4 figure drops BELOW the median
- * the grid page shows. Section 4 said "supported by the comparable-property
- * analysis on the following page" unconditionally, which then pointed a board
- * member at a page carrying a different, higher number — a credibility problem
- * on the first turn of the packet, and a false sentence on its own terms.
- *
- * INJECTION: make the Section 4 citation unconditional again -> FAILS.
+ * SECTION 4 IS NOT MOVED BY THE CURE. (Its render half — which exhibit Section 4
+ * cites — went with protestHtml.js.)
  */
-{
-  const cured = renderProtestHtml(withIssues);
-  t('the Section 4 number is not moved by the cure',
-    withIssues.conditionExhibit.cureDollars > 0
-    && withIssues.form50132.opinionOfValue === ok.form50132.opinionOfValue);
-  t('so Section 4 cites the condition exhibit as well as the comps',
-    /property-condition\s+exhibit on the following pages/.test(cured));
-  t('and with no defects reported it cites the comps page alone',
-    /comparable-property analysis on the following page/.test(html)
-    && !/property-condition\s+exhibit/.test(html));
-}
+t('the Section 4 number is not moved by the cure',
+  withIssues.conditionExhibit.cureDollars > 0
+  && withIssues.form50132.opinionOfValue === ok.form50132.opinionOfValue);
 
 /**
- * SECTION 5 MUST NOT INVENT A MANDATORY FORM.
+ * NOTHING THE PACKET CARRIES NAMES THE BUSINESS.
  *
- * The copy said each remote option "requires a notarised Form 50-283 affidavit"
- * in four places. Tax Code § 41.45(k) says the opposite: an owner is NOT
- * required to use the comptroller's affidavit form. Printing "required" next to
- * a form number on a document the owner signs sends them looking for paperwork
- * they do not need, and it is the hearing election we deliberately leave blank —
- * so this copy is the only thing they have to go on months later.
+ * Nathan's call, 7 Sept 2026: the owner protests pro se, so what the district
+ * receives carries no business name and no business contact. Re-pointed from
+ * the rendered HTML to the packet fields the kit prints from. (Cost-guide
+ * source URLs in the condition exhibit are citations, not contact details, so
+ * the probe is names and email addresses.)
  *
- * INJECTION: restore "requires a notarised Form 50-283 affidavit" -> FAILS.
+ * INJECTION: put "TaxAppeal" or a contact email into any form50132 field -> FAILS.
  */
 {
-  // The first version of this read /notaris?zed/, which matches "notarized" and
-  // "notariszed" but NOT "notarised" — the exact spelling being removed. It also
-  // had no \s+ for the line break the phrase wraps on. Both were proven by
-  // injection; only the spelling guard fired, and that was luck.
-  t('Section 5 does not present Form 50-283 as mandatory',
-    !/requires?\s+a\s+notari[sz]ed\s+Form\s+50-283/i.test(html)
-    && !/Form 50-283 affidavit/i.test(html));
-  t('and says plainly that the comptroller form is optional',
-    /not<\/b>? ?required to use the comptroller’s Form 50-283/i.test(html)
-    && html.includes('41.45(k)'));
-  t('while still stating the affidavit must be sworn and timely',
-    html.includes('41.45(i)') && /before the hearing begins/i.test(html));
-}
-
-/**
- * NOTHING ON THE FILED DOCUMENT NAMES THE BUSINESS.
- *
- * Nathan's call, 7 Sept 2026: the owner protests pro se, so the packet the
- * appraisal district receives must carry no business name, no business email,
- * no business address and no branding. A document that disclaims agency in our
- * own name still puts our name on the district's file.
- *
- * The disclaiming SUBSTANCE stays — it protects the owner — but stated
- * impersonally: no agent is appointed, no one else may act, no inspection was
- * performed. Rendered across all three pages, with and without an exhibit.
- *
- * INJECTION: put "TaxAppeal" or a contact address back in any note -> FAILS.
- */
-{
-  const pages = [html, renderProtestHtml(withIssues)];
-  for (const doc of pages) {
-    const hits = doc.match(/taxappeal|tax appeal usa|@[a-z0-9.-]+\.(com|net|org)|www\.|https?:\/\//gi);
-    t('the filed document names no business and carries no contact',
-      !hits, hits && [...new Set(hits)].join(', '));
+  const BIZ = /taxappeal|tax appeal usa|@[a-z0-9.-]+\.(com|net|org)/gi;
+  for (const [label, p] of [['plain packet', ok], ['packet with an exhibit', withIssues]]) {
+    const filed = JSON.stringify({ f: { ...p.form50132, ownerEmail: '' }, g: p.grid, c: p.conditionExhibit });
+    const hits = filed.match(BIZ);
+    t(`the ${label} names no business and carries no contact`, !hits, hits && [...new Set(hits)].join(', '));
   }
-
-  // Prove the probe can actually see a name — otherwise the assertion above is
-  // just a regex that never matches anything, which is how the last four blind
-  // guards read too.
   t('and that check would catch one if it were there',
-    /taxappeal|@[a-z0-9.-]+\.(com|net|org)/i.test(
-      html.replace('This form is not filed until you sign it.',
-        'Prepared by TaxAppeal USA — customerservice@taxappealusa.com.')));
-
-  // The substance the name used to carry must survive its removal.
-  t('the packet still says no agent appointment exists',
-    /No Form 50-162 appointment of agent has been filed/i.test(html));
-  t('and still says no one else may act on the protest',
-    /no one other than you is authorized to act/i.test(html));
-  t('and the exhibit still discloses that nobody inspected the property',
-    /No inspection of the property was performed/i.test(renderProtestHtml(withIssues)));
+    /taxappeal|@[a-z0-9.-]+\.(com|net|org)/i.test(JSON.stringify({ x: 'Prepared by TaxAppeal USA — customerservice@taxappealusa.com.' })));
 }
 
 /**
  * This is a Texas filing. British spellings in owner- and board-facing copy
- * read as boilerplate lifted from somewhere else, and "authorised" in Section 6
- * misquotes the comptroller's own Form 50-132 wording.
+ * read as boilerplate lifted from somewhere else.
  *
  * INJECTION: restore "neighbourhood" in describeAdjustments -> FAILS.
  */
@@ -920,7 +592,7 @@ t('the property address on the form carries the state',
   const { describeAdjustments, disclosureFor, STRATA, COUNTY_TIER } =
     await import('../lib/tx/comps.js');
   const facing = [
-    html,
+    JSON.stringify({ f: ok.form50132, g: ok.grid, c: withIssues.conditionExhibit }),
     ...STRATA.flatMap((x) => describeAdjustments(x, { size: 0.1, age: 15, land: 0.1 }, 6)),
     ...describeAdjustments(COUNTY_TIER, { size: 0.2, age: 40, land: 0.25 }, 5),
     ...disclosureFor(COUNTY_TIER, { size: 0.25, age: 40, land: 0.25 },

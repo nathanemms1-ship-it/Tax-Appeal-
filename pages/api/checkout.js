@@ -1,6 +1,5 @@
 import Stripe from 'stripe';
 import { normalizeAttribution } from '../../lib/attribution';
-import bcrypt from 'bcryptjs';
 import { getFlVabFee } from '../../lib/flCountyFees';
 import { isFlCountySupported } from '../../lib/flVabAddresses';
 import { enforceRateLimit } from '../../lib/rateLimit';
@@ -36,26 +35,17 @@ if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allo
   if (await enforceRateLimit(req, res, 'checkout', 10, 60)) return;
 
 const {
-email, firstName, lastName, password,
+email, firstName, lastName,
 address, county, parcelId, assessedValue, targetReduction, savings,
-letter, letterKey,
 // Georgia kit orders: the key of the server-held kit order written by
 // /api/ga-kit-quote. Nothing printed on the kit comes from this request body.
 kitKey,
 // Which cautions the Texas review screen showed before this customer chose to
 // go ahead. See the tx_cautions block below.
 txCautions,
-districtName, districtAddress, districtCity, districtState, districtZip,
 ownerStreet, ownerCity, ownerState, ownerZip,
   gclid, utm,
 stateCode,
-flSignatureName,
-flSignatureTimestamp,
-flAuthDate,
-agentAuthGranted,
-agentAuthTimestamp,
-isPreOrder,
-scheduledFileDate,
 refCode,
 perkCode,
 } = req.body;
@@ -113,6 +103,18 @@ if (!windowStatus || (!windowStatus.canFile && !windowStatus.canPreOrder)) {
   });
 }
 
+/*
+ * ONLY KIT STATES ARE SOLD. GA, TX and FL are sold as kits mailed to the
+ * customer (lib/kit/dispatchKit.js). Every other state is waitlist only, so
+ * nothing else may reach Stripe.
+ */
+if (!['GA', 'TX', 'FL'].includes((stateCode || '').trim().toUpperCase())) {
+  return res.status(409).json({
+    error: `We are not taking orders for ${stateCode || 'that state'} yet. Leave your email and we will write when we open there.`,
+    code: 'STATE_NOT_OPEN',
+  });
+}
+
 /**
  * ==========================================================================
  * AND THE COUNTY MUST BE ONE WE CAN ACTUALLY FILE IN
@@ -127,8 +129,8 @@ if (!windowStatus || (!windowStatus.canFile && !windowStatus.canPreOrder)) {
  * with no verified VAB address (Dixie, Franklin, Gadsden, Gilchrist, Madison,
  * Union) and for Levy, whose fee is still a guess.
  *
- * Both gates already existed — in pages/api/send-letter.js, which refuses AFTER
- * the card has been charged, and in apply.js, which diverts to
+ * Both gates already existed — in the old mail route, which refused AFTER
+ * the card had been charged, and in apply.js, which diverts to
  * FloridaCountyUnavailable before checkout. Same shape as the filing-window bug
  * directly above: the funnel gates, the browser can be bypassed, and the route
  * that takes the money did not check.
@@ -137,8 +139,8 @@ if (!windowStatus || (!windowStatus.canFile && !windowStatus.canPreOrder)) {
  * order rather than take your money. Nothing is charged." This is the code that
  * makes that sentence true.
  *
- * Deliberately the same two conditions send-letter uses, in the same order. If
- * these ever drift apart, checkout sells what dispatch will refuse to mail.
+ * The kit's county address comes from the same tables, so if these ever drift
+ * apart, checkout sells a kit addressed to a county we have not confirmed.
  */
 if ((stateCode || '').trim().toUpperCase() === 'FL') {
   const feeCheck = getFlVabFee(county);
@@ -209,15 +211,9 @@ if (isKit) {
 }
 
 try {
-let passwordHash = '';
-if (password) {
-passwordHash = await bcrypt.hash(password, 10);
-}
-
 // Florida is a kit (16 Oct 2026): the county's filing fee is paid BY THE OWNER,
 // to the county, with a check in the kit. It is never charged here.
 const vabFee = 0;
-const vabPayableTo = '';
 
 /*
   MOVED UP from below `lineItems`, because the service line needs it too. 24 Aug.
@@ -235,7 +231,7 @@ const countyPhrase = countyLabel ? `${countyLabel} County` : 'your county';
 
   (a) "VAB petition" is Florida vocabulary. A Texas customer's Stripe page — and
       the descriptor on their card statement — named a body that does not exist in
-      Texas. send-letter.js and success.js were both audited for exactly this
+      Texas. The old mail route and success.js were both audited for exactly this
       class of error; the checkout line was missed.
   (b) "& Prepared and" is a broken concatenation: two fragments joined by an
       ampersand, in two different tenses.
@@ -341,19 +337,7 @@ unit_amount: SERVICE_PRICE_CENTS,
 },
 quantity: 1,
 },
-] : [
-{
-price_data: {
-currency: 'usd',
-product_data: {
-name: 'TaxAppeal USA — Property tax protest preparation',
-description: `We prepare your property tax protest for ${address}. You sign it — we do not represent you.`,
-},
-unit_amount: 8900,
-},
-quantity: 1,
-},
-];
+] : [];
 // The Florida VAB fee line was removed with the kit (16 Oct 2026): the owner pays the county directly.
 
 /**
@@ -417,10 +401,9 @@ line_items: finalLineItems,
 metadata: {
 customerName: `${firstName} ${lastName}`,
 email,
-passwordHash,
 address,
 county,
-// Carried through to the Lob cheque memo and to orders.account_number. 60 chars
+// Carried through to orders.account_number. 60 chars
 // matches LIMITS.parcelId. Stripe allows 50 metadata keys and 500 chars per
 // value; this is key 27, so there is room.
 parcelId: String(parcelId || '').trim().slice(0, 60),
@@ -441,30 +424,18 @@ targetReduction: targetReduction ? String(targetReduction) : '',
  */
 txCautions: Array.isArray(txCautions) ? txCautions.join(',').slice(0, 400) : '',
 savings: savings ? String(savings) : '',
-districtName: districtName || '',
-districtAddress: districtAddress || '',
-districtCity: districtCity || '',
-districtState: districtState || '',
-districtZip: districtZip || '',
 ownerStreet: ownerStreet || '',
 ownerCity: ownerCity || '',
 ownerState: ownerState || '',
 ownerZip: ownerZip || '',
-letterKey: letterKey || '',
 kitKey: isKit ? kitKey : '',
 kitPresale: isKit && kitOrder?.presale === true ? 'true' : '',
 kitDelivery: isKit ? kitDelivery : '',
 stateCode: stateCode || '',
 vabFee: vabFee ? String(vabFee) : '0',
-vabPayableTo: vabPayableTo || '',
-flSignatureName: flSignatureName || '',
-flSignatureTimestamp: flSignatureTimestamp || '',
-flAuthDate: flAuthDate || '',
-agentAuthGranted: agentAuthGranted ? 'true' : 'false',
-agentAuthTimestamp: agentAuthTimestamp || '',
 // refCode was sent by apply.js but never destructured or stored, so
 // orders.ref_code was always NULL and the entire $20 payout block in
-// save-order.js was dead code. No partner could ever be paid.
+// referral code was dead code. No partner could ever be paid.
 // Normalize to the canonical uppercase form. Previously `?ref=jane-smith` and
 // `?ref=JANE-SMITH` produced different ref_code values: the lowercase one matched
 // no partner, so Jane saw 0 referrals and was never paid, while the payout sheet
@@ -486,8 +457,6 @@ refCode: String(refCode || '').trim().toUpperCase().slice(0, 64),
       perkCode: perkApplied || '',
       perkKey: perkApplied ? perkKey : '',
       perkDiscountCents: perkApplied ? String(PERK_AMOUNT_CENTS) : '',
-isPreOrder: isPreOrder ? 'true' : 'false',
-scheduledFileDate: scheduledFileDate || '',
 },
 success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
 cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/apply`,

@@ -223,9 +223,9 @@ const ratio = (a, b) => {
     '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'Helvetica',
     'Arial', 'Georgia', 'Times New Roman', 'Times', 'Courier New', 'SFMono-Regular',
     'Menlo', 'Monaco', 'Consolas', 'Roboto', 'Liberation Mono', 'Apple Color Emoji',
-    // components/SignatureStep.js renders the typed name in a script face.
-    // Ships with Windows and macOS, falls back to `cursive`, never loaded.
-    'Brush Script MT',
+    // 'Brush Script MT' was allowed here for components/SignatureStep.js, deleted
+    // 17 Oct 2026 with the e-sign flow; nothing renders it now, so it is no
+    // longer exempt.
   ]);
   const themeImport = (theme.match(/family=([^&'")]+)/g) || []).map((m) => m.slice(7).split(':')[0].replace(/\+/g, ' '));
 

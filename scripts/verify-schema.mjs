@@ -90,7 +90,13 @@ for (const file of sourceFiles(root)) {
 }
 
 // ── The check itself ──────────────────────────────────────────────────────────
-t('the extractor found a plausible number of columns', found.size >= 40, `found ${found.size}`);
+// FLOOR LOWERED 17 Oct 2026, 40 -> 32. The letter/e-sign pipeline was deleted
+// (save-order, finalize-order, send-letter, processOrder, signature-reminder,
+// fulfillOrder's attemptMail/fulfillAfterSignature) and with it every writer of
+// the signature, letter and Lob-letter columns. The live extractor finds 36; the
+// floor sits a few under that so a genuinely broken extractor (which finds a
+// handful, not 34) still fails, without tripping on one column being retired.
+t('the extractor found a plausible number of columns', found.size >= 32, `found ${found.size}`);
 
 // Sanity: the three that actually broke things must all be detected. If the
 // extractor stops seeing these, it has regressed and is no longer protecting anything.

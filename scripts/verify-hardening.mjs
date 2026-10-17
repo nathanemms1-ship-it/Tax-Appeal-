@@ -19,7 +19,7 @@
  */
 
 import { escapeHtml, escapeLike } from '../lib/escape.js';
-import { validateVendorInput, cap, LIMITS } from '../lib/inputLimits.js';
+import { cap } from '../lib/inputLimits.js';
 import { DAILY_BUDGET, MONTHLY_BUDGET } from '../lib/spendGuard.js';
 
 let pass = 0;
@@ -45,34 +45,9 @@ t('escapeLike neutralises the _ wildcard', escapeLike('_') === '\\_');
 t('escapeLike neutralises a backslash', escapeLike('\\') === '\\\\');
 t('escapeLike leaves a real address alone', escapeLike('123 Main') === '123 Main');
 
-// ── Input limits: the cost payloads ───────────────────────────────────────────
-t('rejects oversize notes', validateVendorInput({ notes: 'x'.repeat(LIMITS.notes + 1) }).ok === false);
-t('accepts notes at exactly the limit', validateVendorInput({ notes: 'x'.repeat(LIMITS.notes) }).ok === true);
-t('rejects too many issues', validateVendorInput({ issues: Array(LIMITS.issueCount + 1).fill('x') }).ok === false);
-t('rejects a single oversize issue', validateVendorInput({ issues: ['x'.repeat(LIMITS.issueItem + 1)] }).ok === false);
-t('rejects a non-array issues field', validateVendorInput({ issues: 'not an array' }).ok === false);
-t('names the offending field in the error', /notes/.test(validateVendorInput({ notes: 'x'.repeat(9999) }).error));
-
-// Identifiers TRUNCATE rather than reject: anything past the cap there is malformed,
-// not meaningful, and rejecting would fail a purchase over a stray paste.
-t('truncates a long address rather than rejecting', validateVendorInput({ propertyAddress: 'x'.repeat(500) }).clean.propertyAddress.length === LIMITS.address);
-
-t('passes real input through unchanged', (() => {
-  const r = validateVendorInput({
-    propertyAddress: '742 Evergreen Ter', county: 'Duval',
-    notes: 'Roof leaks in two rooms.', issues: ['Cracked slab'],
-  });
-  return r.ok && r.clean.propertyAddress === '742 Evergreen Ter' && r.clean.county === 'Duval';
-})());
-
-// The clean object must be a superset of the body — the routes destructure fields
-// this helper has never heard of (preview, valuationBasis, flWillNotAttend, ...) and
-// dropping them silently would break the petition flow without any error.
-t('preserves body fields the helper does not know about', (() => {
-  const r = validateVendorInput({ preview: true, taxYear: '2026', valuationBasis: 'market' });
-  return r.clean.preview === true && r.clean.taxYear === '2026' && r.clean.valuationBasis === 'market';
-})());
-
+// ── Input limits ──────────────────────────────────────────────────────────────
+// validateVendorInput was deleted with the letter pipeline (generate-letter /
+// generate-dr486 were its only callers); cap() is still used by live routes.
 t('cap is a no-op under the limit', cap('abc', 10) === 'abc');
 t('cap leaves null alone', cap(null, 10) === null);
 t('cap coerces a number to a string', cap(12345, 3) === '123');
