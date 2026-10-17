@@ -16,6 +16,7 @@ import { C } from '../lib/theme';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import PartnerCodeField from './PartnerCodeField';
 import FreeKitField from './FreeKitField';
+import NoticePhoto from './NoticePhoto';
 
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, bg: C.bg, bad: C.red, btn: C.navy, off: C.mutedGray, white: C.white };
 const box = { border: `1px solid ${K.line}`, borderRadius: 10, padding: 16, margin: '14px 0', background: K.white };
@@ -123,6 +124,7 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
       </p>
 
       <div style={box}>
+        <NoticePhoto state="FL" taxYear={taxYear} label="Take a photo of your TRIM notice instead" onRead={(f) => { if (f.trimDeadline) setTrimDeadline(f.trimDeadline); }} />
         <label style={label} htmlFor="fl-deadline">Petition deadline on your TRIM notice</label>
         <input id="fl-deadline" type="date" style={input} value={trimDeadline} onChange={(e) => setTrimDeadline(e.target.value)} />
         <p style={help}>Your TRIM notice (the &ldquo;Notice of Proposed Property Taxes&rdquo;) prints the last day to file a petition with the Value Adjustment Board. Florida counts a petition when the board receives it, so we use this date to decide whether to mail your kit or email it.</p>

@@ -13,6 +13,7 @@ import { C } from '../lib/theme';
 import { normalizePerkCode } from '../lib/partnerPerk';
 import PartnerCodeField from './PartnerCodeField';
 import FreeKitField from './FreeKitField';
+import NoticePhoto from './NoticePhoto';
 
 // The site palette (lib/theme.js), named for what this step uses it for.
 const K = { ink: C.darkNavy, muted: C.mutedGray, line: C.cardLine, good: C.green, warn: C.navy, bg: C.bg, bad: C.red, btn: C.navy, off: C.mutedGray, white: C.white };
@@ -179,6 +180,11 @@ export default function GaKitStep({ property, account, ownerMail, attribution = 
 
       {arrived === true && (
       <div style={box}>
+        <NoticePhoto state="GA" taxYear={taxYear} onRead={(f) => {
+          if (f.noticeValue) setNoticeValue(Number(f.noticeValue).toLocaleString('en-US'));
+          if (f.noticeDate) setNoticeDate(f.noticeDate);
+          if (f.parcelId && !parcelId) setParcelId(f.parcelId);
+        }} />
         <label style={label} htmlFor="ga-nv">Value on your {taxYear} assessment notice</label>
         <input id="ga-nv" style={input} inputMode="numeric" placeholder="e.g. 452,000" value={noticeValue} onChange={(e) => setNoticeValue(e.target.value)} />
         <div style={help}>Use the <b>current year fair market value</b> (the 100% value), not the 40% assessed value.</div>

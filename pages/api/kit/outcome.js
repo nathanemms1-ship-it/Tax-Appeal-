@@ -20,12 +20,12 @@ import { enforceRateLimit } from '../../../lib/rateLimit';
 import { getSupabaseAdmin } from '../supabase';
 import { alertOps } from '../../../lib/alertOps';
 import { checkOutcomeToken, outcomePatch, guaranteeEmail, outcomeUrl, OUTCOMES, ASKABLE } from '../../../lib/kit/outcome';
+import { cleanUploadFile, UPLOAD_TYPES } from '../../../lib/uploadFile';
 import { G, readLetter, decideFromLetter, applyDecision, codeEmail, PROOF_COPY } from '../../../lib/kit/guarantee';
 
 export const config = { api: { bodyParser: { sizeLimit: '4.4mb' } } };
 const DECIDED = ['approved', 'partial', 'denied'];
-export const PROOF_TYPES = Object.freeze({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' });
-export const MAX_PROOF_BYTES = 3 * 1024 * 1024;
+export const PROOF_TYPES = UPLOAD_TYPES;
 export const PROOF_BUCKET = 'decision-letters';
 
 async function sendMail(to, mail) {
@@ -35,24 +35,8 @@ async function sendMail(to, mail) {
   } catch (e) { console.error('[kit/outcome] email failed:', e?.message); }
 }
 
-/** The uploaded file, checked. Returns { mediaType, base64, bytes } or an error code. */
-export function cleanProofFile(file) {
-  const mediaType = String(file?.type || '').toLowerCase();
-  if (!PROOF_TYPES[mediaType]) return { error: 'type' };
-  const base64 = String(file?.data || '').replace(/^data:[^,]*,/, '');
-  if (!/^[A-Za-z0-9+/=\s]+$/.test(base64)) return { error: 'type' };
-  const bytes = Buffer.from(base64, 'base64');
-  if (bytes.length < 1000) return { error: 'empty' };
-  if (bytes.length > MAX_PROOF_BYTES) return { error: 'size' };
-  // The bytes must be what the type says: a renamed file is not read.
-  const magic = bytes.subarray(0, 4).toString('hex');
-  const ok = (mediaType === 'application/pdf' && bytes.subarray(0, 4).toString() === '%PDF')
-    || (mediaType === 'image/jpeg' && magic.startsWith('ffd8'))
-    || (mediaType === 'image/png' && magic === '89504e47')
-    || (mediaType === 'image/webp' && bytes.subarray(8, 12).toString() === 'WEBP');
-  if (!ok) return { error: 'type' };
-  return { mediaType, base64: bytes.toString('base64'), bytes };
-}
+/** The uploaded file, checked (lib/uploadFile.js). Kept under this name for verify-guarantee. */
+export const cleanProofFile = cleanUploadFile;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

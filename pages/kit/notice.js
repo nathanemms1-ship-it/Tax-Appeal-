@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { C, FONTS } from '../../lib/theme';
 import { SERVICE_PRICE_DOLLARS } from '../../lib/pricing';
+import NoticePhoto from '../../components/NoticePhoto';
 
 const wrap = { maxWidth: 560, margin: '0 auto', padding: '40px 18px 60px', fontFamily: FONTS.body, color: C.darkNavy };
 const card = { background: C.white, border: `1px solid ${C.cardLine}`, borderRadius: 12, padding: 22, margin: '16px 0' };
@@ -108,6 +109,11 @@ export default function KitNotice() {
             <div style={card}>
               <p style={p}>Enter what is printed on your {view.taxYear || ''} Notice of Assessment. We check your case again on these figures. If an appeal still lowers your bill, we mail your kit. If it doesn&rsquo;t, we refund you in full.</p>
 
+              <NoticePhoto state="GA" taxYear={Number(view.taxYear) || new Date().getFullYear()} onRead={(f) => {
+                if (f.noticeValue) setNoticeValue(Number(f.noticeValue).toLocaleString('en-US'));
+                if (f.noticeDate) setNoticeDate(f.noticeDate);
+                if (f.parcelId && !parcelId) setParcelId(f.parcelId);
+              }} />
               <label style={label} htmlFor="nv">Current year fair market value</label>
               <input id="nv" style={input} inputMode="numeric" placeholder="e.g. 452,000" value={noticeValue} onChange={(e) => setNoticeValue(e.target.value)} />
               <div style={help}>The 100% value, not the 40% assessed value.</div>

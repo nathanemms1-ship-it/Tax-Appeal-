@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { C, FONTS } from '../lib/theme';
+import { prepareUpload } from '../lib/uploadClient';
 
 const wrap = { maxWidth: 560, margin: '0 auto', padding: '40px 18px 60px', fontFamily: FONTS.body, color: C.darkNavy };
 const card = { background: C.white, border: `1px solid ${C.cardLine}`, borderRadius: 12, padding: 22, margin: '16px 0' };
@@ -24,26 +25,6 @@ const CHOICES = [
   ['waiting', 'I have not heard yet, or my hearing has not happened'],
   ['not_sent', 'I did not send it in the end'],
 ];
-
-/** A phone photo is often 5-10 MB: shrink it to a readable JPEG before upload. PDFs go as they are. */
-async function prepareFile(file) {
-  const asBase64 = (blob) => new Promise((ok, bad) => { const r = new window.FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = bad; r.readAsDataURL(blob); });
-  if (file.type === 'application/pdf') {
-    if (file.size > 3 * 1024 * 1024) throw new Error('That PDF is too large. Please upload one under 3 MB, or a photo of the letter.');
-    return { type: 'application/pdf', data: await asBase64(file) };
-  }
-  if (!/^image\//.test(file.type)) throw new Error('Please choose a photo or a PDF of the letter.');
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('We could not open that photo. Please try another, or a PDF.')); i.src = url; });
-    const scale = Math.min(1, 2000 / Math.max(img.width, img.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
-    return { type: 'image/jpeg', data: await asBase64(blob) };
-  } finally { URL.revokeObjectURL(url); }
-}
 
 export default function Outcome() {
   const router = useRouter();
@@ -77,7 +58,7 @@ export default function Outcome() {
     if (!file) return;
     setBusy(true); setErr(''); setProofMsg('');
     try {
-      const prepared = await prepareFile(file);
+      const prepared = await prepareUpload(file);
       const r = await fetch('/api/kit/outcome', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ o, t, action: 'proof', file: prepared }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || 'We could not upload that. Please try again.');
