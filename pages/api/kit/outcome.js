@@ -21,6 +21,7 @@ import { getSupabaseAdmin } from '../supabase';
 import { alertOps } from '../../../lib/alertOps';
 import { checkOutcomeToken, outcomePatch, guaranteeEmail, outcomeUrl, OUTCOMES, ASKABLE } from '../../../lib/kit/outcome';
 import { cleanUploadFile, UPLOAD_TYPES } from '../../../lib/uploadFile';
+import { cleanHearing, hearingSheetPdf, hearingEmail } from '../../../lib/kit/hearing';
 import { G, readLetter, decideFromLetter, applyDecision, codeEmail, PROOF_COPY } from '../../../lib/kit/guarantee';
 
 export const config = { api: { bodyParser: { sizeLimit: '4.4mb' } } };
@@ -28,10 +29,10 @@ const DECIDED = ['approved', 'partial', 'denied'];
 export const PROOF_TYPES = UPLOAD_TYPES;
 export const PROOF_BUCKET = 'decision-letters';
 
-async function sendMail(to, mail) {
+async function sendMail(to, mail, attachments = null) {
   if (!process.env.RESEND_API_KEY || !to) return;
   try {
-    await new Resend(process.env.RESEND_API_KEY).emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [to], subject: mail.subject, text: mail.text });
+    await new Resend(process.env.RESEND_API_KEY).emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [to], subject: mail.subject, text: mail.text, ...(attachments ? { attachments } : {}) });
   } catch (e) { console.error('[kit/outcome] email failed:', e?.message); }
 }
 
@@ -55,9 +56,29 @@ export default async function handler(req, res) {
     state: row.state_code, status, address: kk.property?.address || null, taxYear: kk.taxYear || null,
     answer: kk.after?.outcome?.answer || null,
     guarantee: kk.after?.guarantee ? { status: kk.after.guarantee.status, reason: kk.after.guarantee.reason, freeKitYear: kk.after.guarantee.freeKitYear || null } : null,
+    hearing: kk.after?.hearing ? { date: kk.after.hearing.date, time: kk.after.hearing.time, kind: kk.after.hearing.kind } : null,
   });
   const view = viewOf(k, row.dispute_status);
   if (b.action === 'load') return res.status(200).json(view);
+
+  // ── A hearing date (the hearing help pack, lib/kit/hearing.js) ─────────────
+  if (b.action === 'hearing') {
+    if (!ASKABLE.includes(row.dispute_status) || row.payment_status !== 'paid') return res.status(409).json({ ...view, error: 'There is nothing to record for this order. Questions: customerservice@taxappealusa.com.' });
+    const h = cleanHearing(b);
+    if (h.error) return res.status(400).json({ ...view, error: 'Please enter the date on your hearing notice (today or later).' });
+    const now = new Date();
+    // A changed date is a new hearing: the reminder and follow-up start again.
+    const hearing = { ...h, enteredAt: now.toISOString(), prepSentAt: now.toISOString(), remindedAt: null, followedAt: null };
+    const kk = { ...k, after: { ...(k.after || {}), hearing } };
+    const { error: hErr } = await supabase.from('orders').update({ kit_order: kk }).eq('id', row.id).eq('dispute_status', row.dispute_status);
+    if (hErr) return res.status(500).json({ ...view, error: 'We could not save that. Please try again.' });
+    const r2 = { ...row, kit_order: kk };
+    try {
+      const pdf = await hearingSheetPdf(r2);
+      await sendMail(row.customer_email, hearingEmail(r2, 'entered', outcomeUrl(row.id)), [{ filename: 'Your-hearing.pdf', content: Buffer.from(pdf) }]);
+    } catch (e) { console.error('[kit/outcome] hearing sheet failed:', e?.message); }
+    return res.status(200).json({ ...viewOf(kk, row.dispute_status), hearingSaved: true });
+  }
 
   // ── The decision letter ────────────────────────────────────────────────────
   if (b.action === 'proof') {

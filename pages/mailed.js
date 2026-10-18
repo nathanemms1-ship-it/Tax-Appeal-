@@ -95,6 +95,7 @@ export default function Mailed() {
               {st === 'TX' ? ', with an informal conference or hearing date' : st === 'FL' ? ', first to confirm your petition and later with a hearing date' : ''}. Open their mail the day it arrives:
               some letters have short deadlines of their own.
             </p>
+            {view.nextLink && <p style={p}><b>Got a hearing date?</b> <a href={view.nextLink}>Tell us here</a> and we will email you a one-page sheet for the day. The same page is where you tell us the decision.</p>}
             <p style={p}>Email a photo of anything they send to <a href="mailto:customerservice@taxappealusa.com">customerservice@taxappealusa.com</a> and we will tell you your options. If the value is not lowered, next year&rsquo;s kit is free.</p>
           </div>
         )}

@@ -12,6 +12,7 @@
 import { enforceRateLimit } from '../../../lib/rateLimit';
 import { getSupabaseAdmin } from '../supabase';
 import { checkSentToken, OUT_WITH_CUSTOMER, AFTER_STATUS } from '../../../lib/kit/afterMailing';
+import { outcomeUrl } from '../../../lib/kit/outcome';
 
 export const config = { api: { bodyParser: { sizeLimit: '4kb' } } };
 
@@ -40,6 +41,8 @@ export default async function handler(req, res) {
   const view = {
     state: row.state_code, status: row.dispute_status, address: k.property?.address || null,
     county: k.property?.county || null, deadline: k.after?.deadline || null, sentOn: k.after?.sentOn || null,
+    // The private page for a hearing date and, later, the decision (lib/kit/outcome.js).
+    nextLink: outcomeUrl(row.id),
   };
   if (b.action === 'load') return res.status(200).json(view);
   if (row.dispute_status === AFTER_STATUS.SENT) return res.status(200).json({ ...view, done: true });

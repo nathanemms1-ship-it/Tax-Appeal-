@@ -35,6 +35,12 @@ export default function Outcome() {
   const [answer, setAnswer] = useState('');
   const [newValue, setNewValue] = useState('');
   const [proofMsg, setProofMsg] = useState('');
+  // The hearing help pack (lib/kit/hearing.js).
+  const [hDate, setHDate] = useState('');
+  const [hTime, setHTime] = useState('');
+  const [hKind, setHKind] = useState('hearing');
+  const [hMsg, setHMsg] = useState('');
+  const [hOpen, setHOpen] = useState(false);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -50,6 +56,18 @@ export default function Outcome() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || 'We could not save that. Please try again.');
       setView(j);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  const saveHearing = async () => {
+    setBusy(true); setErr(''); setHMsg('');
+    try {
+      const r = await fetch('/api/kit/outcome', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ o, t, action: 'hearing', date: hDate, time: hTime, kind: hKind }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'We could not save that. Please try again.');
+      setView((v) => ({ ...v, hearing: j.hearing })); setHOpen(false);
+      setHMsg('Saved. We have emailed you a one-page sheet for the day, and we will remind you two days before.');
     } catch (e) { setErr(e.message); }
     setBusy(false);
   };
@@ -124,6 +142,28 @@ export default function Outcome() {
               <p style={{ ...p, fontWeight: 700 }}>Thank you, we have recorded it.</p>
             )}
             {proofMsg && g?.status === 'needs_proof' && <p style={{ ...p, color: C.red }}>{proofMsg}</p>}
+          </div>
+        )}
+        {view && !['approved', 'partial', 'denied'].includes(view.status) && (
+          <div style={card}>
+            <p style={{ ...p, fontWeight: 700 }}>Got a hearing or meeting date?</p>
+            {view.hearing && !hOpen ? (
+              <p style={p}>
+                Yours is on <b>{new Date(`${view.hearing.date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</b>{view.hearing.time ? ` at ${view.hearing.time}` : ''}.{' '}
+                <button type="button" onClick={() => setHOpen(true)} style={{ background: 'none', border: 0, padding: 0, color: C.navy, textDecoration: 'underline', cursor: 'pointer', fontSize: 15 }}>Change it</button>
+              </p>
+            ) : (<>
+              <p style={p}>Tell us the date on the notice and we email you a one-page sheet: your case in one minute, what to bring, and the rules for your state. We remind you two days before.</p>
+              <select value={hKind} onChange={(e) => setHKind(e.target.value)} style={{ ...input, marginBottom: 8 }}>
+                <option value="hearing">A hearing before the board</option>
+                <option value="informal">An informal conference or meeting with the appraiser</option>
+              </select>
+              <input type="date" value={hDate} onChange={(e) => setHDate(e.target.value)} style={{ ...input, marginBottom: 8 }} aria-label="Hearing date" />
+              <input type="time" value={hTime} onChange={(e) => setHTime(e.target.value)} style={input} aria-label="Hearing time (optional)" />
+              <button style={btn} disabled={busy || !hDate} onClick={saveHearing}>{busy ? 'Saving\u2026' : 'Send me the sheet'}</button>
+            </>)}
+            {hMsg && <p style={{ ...p, marginTop: 10, color: C.green }}>{hMsg}</p>}
+            <p style={muted}>We do not attend hearings or represent you; the sheet helps you present your own case.</p>
           </div>
         )}
         <p style={muted}>Have their letter? Email a photo of it to customerservice@taxappealusa.com and we will read it for you.</p>

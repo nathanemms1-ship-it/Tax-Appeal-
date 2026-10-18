@@ -23,6 +23,7 @@ import { buildProtest } from '../../../lib/tx/protest';
 import { reminderDue, reminderEmail as kitReminderEmail, sentUrl, OUT_WITH_CUSTOMER } from '../../../lib/kit/afterMailing';
 import { askDue, askEmail, outcomeUrl, ASKABLE } from '../../../lib/kit/outcome';
 import { G as GUARANTEE, seasonEmail } from '../../../lib/kit/guarantee';
+import { hearingDue, hearingEmail, hearingSheetPdf } from '../../../lib/kit/hearing';
 
 export const REMIND_EVERY_DAYS = 7;
 export const LATE_ALERT_DAYS = 10;
@@ -182,6 +183,31 @@ async function outcomePass(supabase, resend, now) {
   return { checked: (rows || []).length, asked };
 }
 
+/*
+ * THE HEARING HELP PACK (17 Oct 2026, lib/kit/hearing.js): a reminder with the
+ * sheet two days before, and "how did it go?" (the outcome link) the day after.
+ */
+async function hearingPass(supabase, resend, now) {
+  const { data: rows, error } = await supabase.from('orders').select('id, state_code, customer_name, customer_email, dispute_status, payment_status, kit_order')
+    .not('kit_order->after->hearing->>date', 'is', null).eq('payment_status', 'paid').limit(500);
+  if (error) return { error: error.message };
+  let sent = 0;
+  for (const row of rows || []) {
+    const stage = hearingDue(row, now);
+    if (!stage || !resend || !row.customer_email) continue;
+    const k = row.kit_order;
+    try {
+      const mail = hearingEmail(row, stage, outcomeUrl(row.id));
+      const attachments = stage === 'reminder' ? [{ filename: 'Your-hearing.pdf', content: Buffer.from(await hearingSheetPdf(row)) }] : undefined;
+      await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [row.customer_email], subject: mail.subject, text: mail.text, ...(attachments ? { attachments } : {}) });
+    } catch (e) { console.error(`[hearing] email failed for order ${row.id}:`, e?.message); continue; }
+    const hearing = { ...k.after.hearing, [stage === 'reminder' ? 'remindedAt' : 'followedAt']: now.toISOString() };
+    await supabase.from('orders').update({ kit_order: { ...k, after: { ...k.after, hearing } } }).eq('id', row.id).eq('dispute_status', row.dispute_status);
+    sent++;
+  }
+  return { checked: (rows || []).length, sent };
+}
+
 /** Pure: should this proved free kit get its "ready to use" email today? */
 export function seasonEmailDue(row, ws, now = new Date()) {
   const g = row?.kit_order?.after?.guarantee;
@@ -255,5 +281,6 @@ export default async function handler(req, res) {
   const afterMailing = await afterMailingPass(supabase, resend, now);
   const outcomes = await outcomePass(supabase, resend, now);
   const freeKits = await freeKitSeasonPass(supabase, resend, now);
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes, freeKits });
+  const hearings = await hearingPass(supabase, resend, now);
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes, freeKits, hearings });
 }
