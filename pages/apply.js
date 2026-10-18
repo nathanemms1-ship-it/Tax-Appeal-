@@ -992,7 +992,7 @@ function FloridaCountyUnavailable({ county, reason, onBack, account, property })
           {reason === "fee" ? (
             <>Before we prepare petitions in a county we confirm its Value Adjustment Board filing fee for the current
             tax year directly with that county, because your kit includes the check you write for it. Many boards set the fee at an organising meeting in late
-            August, and {countyName} County has not published its 2026 figure yet.</>
+            August, and {countyName} County has not published this year&rsquo;s figure yet.</>
           ) : (
             <>Before we prepare petitions in a county we confirm two things directly with that county&rsquo;s Value
             Adjustment Board: the exact address your signed petition and filing-fee check must be delivered to

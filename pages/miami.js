@@ -51,20 +51,26 @@ export async function getStaticProps() {
    */
   const { getFlVabAddress } = await import('../lib/flVabAddresses');
   const w = FILING_WINDOWS.FL;
-  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  // The season this page is about (lib/season.js, 18 Oct 2026), never a typed year.
+  const { seasonYear, seasonDates, flSeasonDeadline } = await import('../lib/season');
+  const SY = seasonYear('FL');
+  const at = (m, d) => new Date(Date.UTC(SY, m - 1, d));
   const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return {
     props: {
       windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
       windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
       trimOpen: pretty(at(w.openMonth, w.openDay)),
-      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+      // Miami-Dade County's own date when our table holds it for this season; the statewide
+      // 18 Sept was never this county's deadline.
+      trimDeadline: flSeasonDeadline('Miami-Dade').text,
+      preOrderISO: seasonDates('FL').preOrderISO,
       vab: getFlVabAddress('Miami-Dade'),
     },
   };
 }
 
-export default function Miami({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline, vab }) {
+export default function Miami({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline, vab, preOrderISO }) {
 const router = useRouter();
 const [openFaq, setOpenFaq] = useState(null);
 const go = () => router.push('/apply');
@@ -100,7 +106,7 @@ body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}
 ` }} />
 
 {(() => {
-  const preOrderOpen = new Date('2026-06-12');
+  const preOrderOpen = new Date(preOrderISO);
   const windowOpen = new Date(windowOpenISO);
   const windowClose = new Date(windowCloseISO);
   const today = new Date();

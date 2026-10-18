@@ -12,7 +12,7 @@ const FONT="@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Displ
  * how the fee answer and the fee card came to disagree with each other on the same
  * page.
  */
-const buildFaqs=({trimOpen,trimDeadline,vabFee,allIn,payableTo})=>[["What is the Orlando property tax appeal deadline?",`Twenty-five days from the mailing date of your TRIM notice. Orange County TRIM notices are expected around ${trimOpen}, which puts the 2026 deadline at ${trimDeadline}. Florida requires physical receipt by the VAB — a postmark alone is not sufficient.`],["What is a TRIM notice?",`Your Truth in Millage (TRIM) notice is Orange County's annual statement of your proposed property assessment and estimated taxes, mailed around ${trimOpen}.`],["Is there a filing fee for Orlando property tax appeals?",`Yes. Orange County charges a $${vabFee} VAB petition fee, payable to ${payableTo}. You pay it to the county, with a cheque you put in the envelope we send you. It is not part of our $89 fee.`],["How does it work?","We check first whether a petition will actually lower your tax bill, after caps and exemptions. If it won't, we tell you and don't sell you one. If it will, we mail you a ready-to-sign kit for $89: Form DR-486 filled in, your evidence, a checklist and an envelope addressed to the Orange County Value Adjustment Board. A PDF copy of the full kit is also emailed to you the same day."],["Do you file the petition for me?","No. We prepare it and mail it to you; you sign it and mail it. It takes about five minutes. We do not file your petition, represent you, or attend the hearing, and the Value Adjustment Board writes to you directly. Forward us anything it sends and we'll help you understand it."],["Does Florida have two-way review risk?","No. Florida's VAB can only reduce or maintain your assessment — it cannot raise it."],["Does TaxAppeal serve Orlando and Orange County?","Yes. TaxAppeal serves all Orange County properties including Orlando, Winter Park, Kissimmee, and Lake Buena Vista."]];
+const buildFaqs=({trimOpen,trimDeadline,vabFee,allIn,payableTo})=>[["What is the Orlando property tax appeal deadline?",`Twenty-five days from the mailing date of your TRIM notice. Orange County TRIM notices are expected around ${trimOpen}, and your deadline is ${trimDeadline}. Florida requires physical receipt by the VAB — a postmark alone is not sufficient.`],["What is a TRIM notice?",`Your Truth in Millage (TRIM) notice is Orange County's annual statement of your proposed property assessment and estimated taxes, mailed around ${trimOpen}.`],["Is there a filing fee for Orlando property tax appeals?",`Yes. Orange County charges a $${vabFee} VAB petition fee, payable to ${payableTo}. You pay it to the county, with a cheque you put in the envelope we send you. It is not part of our $89 fee.`],["How does it work?","We check first whether a petition will actually lower your tax bill, after caps and exemptions. If it won't, we tell you and don't sell you one. If it will, we mail you a ready-to-sign kit for $89: Form DR-486 filled in, your evidence, a checklist and an envelope addressed to the Orange County Value Adjustment Board. A PDF copy of the full kit is also emailed to you the same day."],["Do you file the petition for me?","No. We prepare it and mail it to you; you sign it and mail it. It takes about five minutes. We do not file your petition, represent you, or attend the hearing, and the Value Adjustment Board writes to you directly. Forward us anything it sends and we'll help you understand it."],["Does Florida have two-way review risk?","No. Florida's VAB can only reduce or maintain your assessment — it cannot raise it."],["Does TaxAppeal serve Orlando and Orange County?","Yes. TaxAppeal serves all Orange County properties including Orlando, Winter Park, Kissimmee, and Lake Buena Vista."]];
 /**
  * EVERY NUMBER AND DATE ON THIS PAGE IS DERIVED. Rewritten 11 Aug 2026.
  *
@@ -46,7 +46,10 @@ export async function getStaticProps() {
   const COUNTY = 'Orange';
   const fee = getFlVabFee(COUNTY);
   const w = FILING_WINDOWS.FL;
-  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  // The season this page is about (lib/season.js, 18 Oct 2026), never a typed year.
+  const { seasonYear, seasonDates, flSeasonDeadline } = await import('../lib/season');
+  const SY = seasonYear('FL');
+  const at = (m, d) => new Date(Date.UTC(SY, m - 1, d));
   const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
   return {
@@ -57,7 +60,10 @@ export async function getStaticProps() {
       windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
       windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
       trimOpen: pretty(at(w.openMonth, w.openDay)),
-      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+      // Orange County's own date when our table holds it for this season; the statewide
+      // 18 Sept was never this county's deadline.
+      trimDeadline: flSeasonDeadline('Orange').text,
+      preOrderISO: seasonDates('FL').preOrderISO,
       // The receipt buffer the dispatch cron actually enforces. The page used to
       // promise "7-10 days early to ensure timely receipt" while lib/filingWindows.js
       // had already raised minDays to 12 BECAUSE a live Lob cheque reported its own
@@ -67,12 +73,12 @@ export async function getStaticProps() {
   };
 }
 
-export default function Orlando({ vabFee, allIn, payableTo, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, minDays }){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');const faqs=buildFaqs({trimOpen,trimDeadline,vabFee,allIn,payableTo});return(<><Head><title>Orlando Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Orlando Florida property taxes for $89 flat. We check first, then mail you a ready-to-sign Orange County VAB petition kit. You sign and mail it." /><link rel="canonical" href="https://www.taxappealusa.com/orlando" key="canonical" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Orange County',href:'/counties/orange-county-fl'},{name:'Orlando'}],'https://www.taxappealusa.com/orlando'))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Orlando Property Tax Appeal Kit","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Orlando"},"description":"A check of whether a VAB petition will lower your bill, then a ready-to-sign Form DR-486 kit with evidence and a return envelope addressed to the Orange County Value Adjustment Board, mailed to Orlando homeowners.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} /></Head>
+export default function Orlando({ vabFee, allIn, payableTo, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, minDays, preOrderISO }){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');const faqs=buildFaqs({trimOpen,trimDeadline,vabFee,allIn,payableTo});return(<><Head><title>Orlando Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Orlando Florida property taxes for $89 flat. We check first, then mail you a ready-to-sign Orange County VAB petition kit. You sign and mail it." /><link rel="canonical" href="https://www.taxappealusa.com/orlando" key="canonical" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Orange County',href:'/counties/orange-county-fl'},{name:'Orlando'}],'https://www.taxappealusa.com/orlando'))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Service","name":"Orlando Property Tax Appeal Kit","provider":{"@type":"Organization","name":"TaxAppeal USA"},"areaServed":{"@type":"City","name":"Orlando"},"description":"A check of whether a VAB petition will lower your bill, then a ready-to-sign Form DR-486 kit with evidence and a return envelope addressed to the Orange County Value Adjustment Board, mailed to Orlando homeowners.","offers":{"@type":"Offer","price":"89.00","priceCurrency":"USD"}})}} /></Head>
 {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
 <style dangerouslySetInnerHTML={{ __html: `${FONT} *{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn-p{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:15px;font-weight:500;cursor:pointer;transition:background 0.2s;}.btn-p:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:28px!important;}.g2{grid-template-columns:1fr!important;}}` }} />
 
 {(() => {
-  const preOrderOpen = new Date('2026-06-12');
+  const preOrderOpen = new Date(preOrderISO);
   const windowOpen = new Date(windowOpenISO);
   const windowClose = new Date(windowCloseISO);
   const today = new Date();

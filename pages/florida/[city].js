@@ -38,11 +38,13 @@ export async function getStaticProps({ params }) {
    * Both now derive from FILING_WINDOWS.FL — the same table apply.js gates on — so
    * the page cannot advertise a window the product will not honour.
    */
-  const { FILING_WINDOWS, flPetitionDeadline } = await import('../../lib/filingWindows');
   const { counties } = await import('../../lib/countyData');
-  const w = FILING_WINDOWS.FL;
-  const fmt = (m, d) => new Date(2026, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const fmtDate = (d) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  // The season this page is about (lib/season.js, 18 Oct 2026): our own open and
+  // reservation dates for that year, and the county's deadline only when our table
+  // holds it for that year.
+  const { seasonDates, flSeasonDeadline } = await import('../../lib/season');
+  const season = seasonDates('FL');
+  const dl = flSeasonDeadline(city.county);
 
   /**
    * THE CLOSE DATE IS PER COUNTY. THE OPEN DATE IS NOT.
@@ -55,7 +57,6 @@ export async function getStaticProps({ params }) {
    * county's own date — 7 September in Hillsborough, 8th in Duval, 4th in Indian
    * River. The fix the comment describes was only ever half applied.
    */
-  const cityDeadline = flPetitionDeadline(city.county, 2026);
 
   const countySlug = counties.find((c) => c.code === 'FL' && c.name === city.county)?.slug || null;
 
@@ -96,17 +97,21 @@ export async function getStaticProps({ params }) {
     props: {
       city,
       countySlug,
-      windowOpenISO: new Date(Date.UTC(2026, w.openMonth - 1, w.openDay)).toISOString().slice(0, 10),
-      windowCloseISO: new Date(Date.UTC(2026, cityDeadline.getMonth(), cityDeadline.getDate())).toISOString().slice(0, 10),
-      trimOpen: fmt(w.openMonth, w.openDay),
-      trimDeadline: fmtDate(cityDeadline),
+      seasonYear: season.year,
+      preOrderISO: season.preOrderISO,
+      windowOpenISO: season.openISO,
+      // No known date: the banner's open window ends on the statewide last day.
+      windowCloseISO: dl.iso || season.hard.toISOString().slice(0, 10),
+      trimOpen: season.openText,
+      trimDeadline: dl.text,
+      deadlineSentence: dl.sentence,
       feeConfirmed,
       feeLabel: feeConfirmed ? formatVabFee(fee.vabFee) : null,
     },
   };
 }
 
-export default function FloridaCityPage({ city, countySlug, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, feeConfirmed, feeLabel }) {
+export default function FloridaCityPage({ city, countySlug, seasonYear, preOrderISO, windowOpenISO, windowCloseISO, trimOpen, trimDeadline, deadlineSentence, feeConfirmed, feeLabel }) {
   const formattedValue = city.medianHomeValue.toLocaleString();
   const formattedSavings = city.avgSavings.toLocaleString();
   const countyHref = countySlug ? `/counties/${countySlug}` : '/florida';
@@ -143,7 +148,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
     },
     {
       q: `When is the property tax appeal deadline in ${city.name}?`,
-      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically falling around September 18 — for ${city.county} County in 2026 it is ${trimDeadline}. Florida counts a petition when the VAB RECEIVES it, not when it is postmarked, so mail your signed kit the day it arrives or hand-deliver it. Close to the deadline we email the kit as a PDF so you can print, sign and deliver it the same day.`,
+      a: `Florida TRIM notices are mailed in mid-August each year. The VAB petition deadline is 25 days after your notice is mailed, typically in September. ${deadlineSentence} Florida counts a petition when the VAB RECEIVES it, not when it is postmarked, so mail your signed kit the day it arrives or hand-deliver it. Close to the deadline we email the kit as a PDF so you can print, sign and deliver it the same day.`,
     },
     {
       q: `How much can I save on property taxes in ${city.name}?`,
@@ -208,7 +213,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
       </Head>
 
       {(() => {
-        const preOrderOpen = new Date('2026-06-12');
+        const preOrderOpen = new Date(preOrderISO);
         // Derived from FILING_WINDOWS.FL in getStaticProps, not typed in here. The
         // literals this replaces said the window opened 11 Aug — thirteen days before
         // the funnel will actually file. See the note in getStaticProps.
@@ -278,7 +283,7 @@ export default function FloridaCityPage({ city, countySlug, windowOpenISO, windo
               in lib/flCountyFees.js — no edit here. */}
           {!feeConfirmed && (
             <div style={{ maxWidth: "680px", margin: "0 auto 30px", background: "#FFF8E6", border: "1.5px solid #E5C76B", borderRadius: 10, padding: "16px 20px", textAlign: "left", fontSize: 15, lineHeight: 1.6, color: "#1B2A4A" }}>
-              <strong>{city.county} County has not set its 2026 filing fee yet.</strong> The Value
+              <strong>{city.county} County has not set its {seasonYear} filing fee yet.</strong> The Value
               Adjustment Board usually sets it in late August. Your kit has to tell you what to
               put on the cheque, so we are not accepting {city.county} County orders today — start
               below and we will email you the moment the fee is confirmed, in time to mail your

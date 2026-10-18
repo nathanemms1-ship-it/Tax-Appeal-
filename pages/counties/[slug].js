@@ -27,6 +27,15 @@ import { currentTaxYear, deadlineShort } from '../../lib/tx/protestDeadline';
 const TX_TAX_YEAR = currentTaxYear();
 const TX_DEADLINE = deadlineShort(TX_TAX_YEAR);
 
+/* EVERY OTHER STATE, 18 OCT 2026 (lib/season.js). The literals above were the
+   outstanding half of this note: Georgia printed "2026 Deadline: April 1" on 159
+   pages — April 1 was never Georgia's appeal deadline, which is 45 days from each
+   owner's own notice — and Florida, Arkansas and Alabama stayed on 2026 after
+   their seasons closed. Each state's year now rolls the day after its last
+   filing date, the same rule for all of them. */
+import { seasonYear, seasonDates, flSeasonDeadline, GA_DEADLINE } from '../../lib/season';
+const SEASON = { GA: seasonDates('GA'), FL: seasonDates('FL'), AR: seasonDates('AR'), AL: seasonDates('AL') };
+
 // Renders only for Texas counties whose certified roll we actually hold, and
 // returns null for every other page. See the file header: pages follow data.
 import CountyRollFacts from '../../components/CountyRollFacts';
@@ -37,19 +46,19 @@ import { C } from "../../lib/theme";
 
 const stateTerms = {
   TX: { verb: "protest", noun: "protest", aNoun: "a protest", deadline: TX_DEADLINE, process: "Appraisal Review Board (ARB) hearing", form: "Form 50-132", year: String(TX_TAX_YEAR) },
-  GA: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "April 1", process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: "2026" },
-  FL: { verb: "petition", noun: "petition", aNoun: "a petition", deadline: "25 days after TRIM notice (September)", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: "2026" },
-  AR: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: "2026" },
-  AL: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: "2026" },
+  GA: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: GA_DEADLINE, process: "Board of Equalization (BOE) hearing", form: "Form PT-311A", year: String(SEASON.GA.year) },
+  FL: { verb: "petition", noun: "petition", aNoun: "a petition", deadline: "25 days after your TRIM notice is mailed", process: "Value Adjustment Board (VAB) petition", form: "Form DR-486", year: String(SEASON.FL.year) },
+  AR: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "Board of Equalization deadline", process: "County Board of Equalization hearing", form: "a written appeal to the County Board of Equalization", year: String(SEASON.AR.year) },
+  AL: { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "30 days after your valuation notice", process: "Board of Equalization hearing", form: "a written protest to the Board of Equalization", year: String(SEASON.AL.year) },
 };
 
 // Fallback so any state code (including future launches) always renders and never breaks the build.
-const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: "2026" };
+const DEFAULT_TERMS = { verb: "appeal", noun: "appeal", aNoun: "an appeal", deadline: "your county deadline", process: "Board of Equalization hearing", form: "a property tax appeal petition", year: String(seasonYear(null)) };
 const termsFor = (county) => stateTerms[county.code] || DEFAULT_TERMS;
 
 /* countyData.js stores `deadline: "May 15"` on all 254 Texas records — no year, and
    wrong from 2027 on. Read through this, never off the record directly. */
-const deadlineFor = (county) => (county.code === 'TX' ? TX_DEADLINE : county.deadline);
+const deadlineFor = (county) => (county.code === 'TX' ? TX_DEADLINE : county.code === 'GA' ? GA_DEADLINE : county.deadline);
 
 /**
  * ARKANSAS AND ALABAMA COUNTY PAGES WERE SELLING A STATE THE FUNNEL REFUSES.
@@ -73,6 +82,16 @@ const deadlineFor = (county) => (county.code === 'TX' ? TX_DEADLINE : county.dea
  * could take money we cannot honour.
  */
 const saleStatusFor = (county) => stateSaleStatus(county.code);
+
+/* Between seasons, say when the next one opens and when reservations start.
+   Both are our own dates (lib/season.js), so they hold for any year; the
+   county's own deadline is never projected here. */
+const seasonNote = (county) => {
+  const s = SEASON[county.code];
+  if (!s || !s.open || Date.now() >= s.open.getTime()) return null;
+  const notices = county.code === "FL" ? "TRIM notices go out in August" : county.code === "GA" ? "assessment notices go out from April" : "notices go out";
+  return `The ${s.year} season: ${notices}. You can check your home and reserve your kit from ${s.preOrderText}; we check again on the new values and refund you in full if the case is gone.`;
+};
 
 const stateNames = { TX: "Texas", GA: "Georgia", FL: "Florida", AR: "Arkansas", AL: "Alabama" };
 
@@ -109,14 +128,14 @@ const directAnswer = (county, fl) => {
   const t = termsFor(county);
   if (county.code === "FL") {
     const fee = fl ? ` The ${county.name} County VAB filing fee is ${fl.feeText}, payable to ${fl.feePayableTo}; you pay it to the county with a cheque in the envelope.` : "";
-    const due = fl ? ` For the 2026 tax year that deadline is ${fl.deadlineText}.` : "";
+    const due = fl ? ` ${fl.deadlineSentence}` : "";
     const receipt = fl?.receiptRequired
       ? ` ${county.name} County does not accept a postmark as proof of timely filing — the petition must be physically received by the deadline.`
       : " Florida counts the petition when it is received, not when it is postmarked.";
-    return `To appeal your ${county.name} County property taxes in 2026, send a Value Adjustment Board petition (${t.form}) to the ${filingTargetFor(county, fl)} within 25 days of your TRIM notice.${due}${receipt} Include evidence of overassessment such as recent comparable values.${fee} Petitions are authorized under ${county.statute}. TaxAppeal USA checks first whether a petition will actually lower your tax bill, after Save Our Homes and other caps. If it will, we mail you a ready-to-sign DR-486 kit for $89: you sign it, add the fee cheque and mail it. We do not file your petition, represent you or appear before the Board.`;
+    return `To appeal your ${county.name} County property taxes in ${t.year}, send a Value Adjustment Board petition (${t.form}) to the ${filingTargetFor(county, fl)} within 25 days of your TRIM notice.${due}${receipt} Include evidence of overassessment such as recent comparable values.${fee} Petitions are authorized under ${county.statute}. TaxAppeal USA checks first whether a petition will actually lower your tax bill, after Save Our Homes and other caps. If it will, we mail you a ready-to-sign DR-486 kit for $89: you sign it, add the fee cheque and mail it. We do not file your petition, represent you or appear before the Board.`;
   }
   if (county.code === "GA") {
-    return `To appeal your ${county.name} County property taxes in 2026, send a property tax appeal (${t.form} or the county's own form) to the ${county.district} within 45 days of your annual assessment notice. Support your appeal with recent sales of similar homes showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA checks first whether an appeal will actually lower your tax bill. If it will, we mail you a ready-to-sign appeal kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
+    return `To appeal your ${county.name} County property taxes in ${t.year}, send a property tax appeal (${t.form} or the county's own form) to the ${county.district} within 45 days of the date on your annual assessment notice. Georgia counties mail notices between April and June, so the date differs by county and by home. Support your appeal with recent sales of similar homes showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA checks first whether an appeal will actually lower your tax bill. If it will, we mail you a ready-to-sign appeal kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
   }
   if (county.code === "TX") {
     return `To protest your ${county.name} County property taxes in ${t.year}, send a Notice of Protest (${t.form}) to the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include evidence that your home is valued above market or above similar homes. Protests are authorized under ${county.statute}. TaxAppeal USA checks first whether a protest will actually lower your tax bill. If it will, we mail you a ready-to-sign protest kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
@@ -172,8 +191,12 @@ const faqs = (county, fl) => {
     {
       q: `What is the deadline to ${t.verb} property taxes in ${county.name} County, ${county.state}?`,
       a: county.code === "FL" && fl
-        ? `Florida gives you 25 days from the date your TRIM notice is mailed. For the 2026 tax year the ${county.name} County deadline is ${fl.deadlineText}, and the checklist in your kit is written to that date. ${fl.receiptRequired ? `${county.name} County does not accept a postmark as proof of filing — your petition must be physically received by then, so mail it the day your kit arrives or hand-deliver it.` : "Florida counts the petition when it is received, not when it is postmarked, so mail it the day your kit arrives or hand-deliver it."} Petitions are authorized under ${county.statute}.`
-        : `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)} (or 30 days after your assessment notice, whichever is later). Under ${county.statute}, your ${t.verb} must be in before this date or you lose the right to challenge your assessment for the year.`,
+        ? `Florida gives you 25 days from the date your TRIM notice is mailed. ${fl.deadlineSentence} The checklist in your kit is written to your county's date. ${fl.receiptRequired ? `${county.name} County does not accept a postmark as proof of filing — your petition must be physically received by then, so mail it the day your kit arrives or hand-deliver it.` : "Florida counts the petition when it is received, not when it is postmarked, so mail it the day your kit arrives or hand-deliver it."} Petitions are authorized under ${county.statute}.`
+        : county.code === "GA"
+          ? `In Georgia the deadline is 45 days from the date printed on your annual notice of assessment, so it differs by county and by home. ${county.name} County mails its ${t.year} notices in spring; the date is on yours, and the checklist in your kit is written to it. Under ${county.statute}, an appeal filed late loses the right to challenge your assessment for the year.`
+          : county.code === "TX"
+          ? `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)} (or 30 days after your appraisal notice was delivered, whichever is later). Under ${county.statute}, your ${t.verb} must be in before this date or you lose the right to challenge your assessment for the year.`
+          : `The ${county.name} County property tax ${t.verb} deadline is ${deadlineFor(county)}. Under ${county.statute}, your ${t.verb} must be in before this date or you lose the right to challenge your assessment for the year.`,
     },
     {
       q: `How does TaxAppeal USA handle my ${county.name} County ${t.verb}?`,
@@ -232,7 +255,7 @@ const faqs = (county, fl) => {
   ];
 };
 
-export default function CountyPage({ county, fl, contentRevised }) {
+export default function CountyPage({ county, fl, contentRevised, note = null }) {
   if (!county) return <div style={{ padding: 40, color: C.text }}>County not found.</div>;
 
   const t = termsFor(county);
@@ -267,7 +290,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
      page each spring. Ours recomputes. */
   const title = `${county.name} County, ${county.state} Property Tax ${action} ${t.year} | TaxAppeal USA`;
   const description = county.code === "FL" && fl
-    ? `${county.name} County, Florida VAB petition 2026 — deadline ${fl.deadlineText}. We check first, then mail you a ready-to-sign DR-486 kit for $89. You pay the ${fl.feeText} county fee.`
+    ? `${county.name} County, Florida VAB petition ${t.year} — deadline ${fl.deadlineKnown ? fl.deadlineText : "25 days after your TRIM notice"}. We check first, then mail you a ready-to-sign DR-486 kit for $89. You pay the ${fl.feeText} county fee.`
     : svc.selling
       ? `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. We check first, then mail you a ready-to-sign ${t.noun} kit for $89 flat.`
       : `How to ${t.verb} your ${county.name} County, ${county.state} property taxes — the deadline, the ${county.district} and the evidence. Our ${svc.name} appeal kit opens for the ${svc.servingFrom} season.`;
@@ -418,7 +441,7 @@ export default function CountyPage({ county, fl, contentRevised }) {
         <div style={{ background: `linear-gradient(160deg, ${C.navy} 0%, ${C.navyLight} 100%)`, color: C.white, padding: "60px 32px 56px", textAlign: "center" }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
             <div style={{ display: "inline-block", background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.4)", borderRadius: 20, padding: "5px 16px", fontSize: 12, color: C.gold, fontFamily: "Arial,sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
-              {county.state} · {county.name} County · {county.code === "FL" && fl ? `2026 Deadline: ${fl.deadlineText}` : county.code === "FL" ? "2026 TRIM Appeal" : `${t.year} Deadline: ${deadlineFor(county)}`}
+              {county.state} · {county.name} County · {county.code === "FL" && fl ? `${t.year} Deadline: ${fl.deadlineShort}` : county.code === "FL" ? `${t.year} TRIM Appeal` : `${t.year} Deadline: ${deadlineFor(county)}`}
             </div>
             <h1 style={{ fontSize: "clamp(28px,5vw,46px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 18px" }}>
               {county.name} County Property Tax {action} {t.year}
@@ -741,6 +764,9 @@ export default function CountyPage({ county, fl, contentRevised }) {
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 36, lineHeight: 1.7 }}>
               Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. Enter your address and we&apos;ll check whether {t.aNoun} would actually lower your tax bill before you pay anything. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one.
             </p>
+            {svc.selling && note && (
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.8)", fontFamily: "Arial,sans-serif", margin: "-16px 0 30px", lineHeight: 1.6 }}>{note}</p>
+            )}
             <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
               Check My {action} — $89 Kit →
             </Link>
@@ -768,8 +794,8 @@ export default function CountyPage({ county, fl, contentRevised }) {
                 {county.name} County cities we cover
               </h2>
               <p style={{ fontSize: 14, color: C.muted, fontFamily: "Arial,sans-serif", marginBottom: 20, lineHeight: 1.7 }}>
-                Every one of these petitions goes to the {county.name} County Value Adjustment Board on the
-                same {fl.deadlineText} deadline, with the same {fl.feeText} county filing fee.
+                Every one of these petitions goes to the {county.name} County Value Adjustment Board, on the
+                same county deadline{fl.deadlineKnown ? ` (${fl.deadlineText})` : ""} and with the same {fl.feeText} county filing fee.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 18px" }}>
                 {fl.cities.map((c) => (
@@ -844,7 +870,6 @@ function floridaFacts(county) {
     const { getFlVabAddress, flCountyRequiresReceipt } = await import("../../lib/flVabAddresses");
     const { millageForCounty } = await import("../../lib/dor/millage");
     const { countyNoFromName } = await import("../../lib/dor/coverage");
-    const { flPetitionDeadline } = await import("../../lib/filingWindows");
     const { floridaCities } = await import("../../lib/floridaCities");
 
     const fee = getFlVabFee(county.name);
@@ -872,9 +897,11 @@ function floridaFacts(county) {
      * published on 131 city pages and 6 metro pages, and it is build-checked. Only
      * the cliff is per-county, because only the cliff can cost someone their appeal.
      */
-    const deadlineDate = flPetitionDeadline(county.name, 2026);
-    const deadlineText = deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    const deadlineShort = deadlineDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    // The season's own date when our table holds it, otherwise how it is set (lib/season.js).
+    const { flSeasonDeadline } = await import("../../lib/season");
+    const dl = flSeasonDeadline(county.name);
+    const deadlineText = dl.text;
+    const deadlineShort = dl.short;
 
     const feeDollars = fee.vabFee / 100;
     const total = m ? m.school + m.nonSchool : null;
@@ -910,6 +937,8 @@ function floridaFacts(county) {
         : null,
       deadlineText,
       deadlineShort,
+      deadlineKnown: dl.known,
+      deadlineSentence: dl.sentence,
       // floridaCities.county holds the bare county name ("Miami-Dade"), which matches
       // countyData.name exactly — verified across all 131 cities, 32 counties, no misses.
       cities: floridaCities
@@ -931,5 +960,6 @@ export async function getStaticProps({ params }) {
   // how a page starts stating things the product cannot back.
   const fl = county.code === "FL" ? await floridaFacts(county) : null;
 
-  return { props: { county, fl, contentRevised: COUNTY_CONTENT_REVISED } };
+  // Decided at build, like every other date here, so the server and browser render the same text.
+  return { props: { county, fl, contentRevised: COUNTY_CONTENT_REVISED, note: seasonNote(county) } };
 }

@@ -1598,7 +1598,7 @@ const t2 = (label, ok, detail) => {
       if (/\$\d+ in total/.test(text)) {
         inventedTotal.push(`/florida/${city.slug} (${city.county}) quotes a total for a county whose fee is unconfirmed`);
       }
-      if (!text.includes('has not set its 2026 filing fee')) {
+      if (!/has not set its \d{4} filing fee/.test(text)) {
         missingNotice.push(`/florida/${city.slug} (${city.county})`);
       }
     }

@@ -26,24 +26,30 @@ const faqs=[["What is the Jacksonville property tax appeal deadline?","25 days f
 export async function getStaticProps() {
   const { FILING_WINDOWS } = await import('../lib/filingWindows');
   const w = FILING_WINDOWS.FL;
-  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  // The season this page is about (lib/season.js, 18 Oct 2026), never a typed year.
+  const { seasonYear, seasonDates, flSeasonDeadline } = await import('../lib/season');
+  const SY = seasonYear('FL');
+  const at = (m, d) => new Date(Date.UTC(SY, m - 1, d));
   const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return {
     props: {
       windowOpenISO: at(w.openMonth, w.openDay).toISOString().slice(0, 10),
       windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
       trimOpen: pretty(at(w.openMonth, w.openDay)),
-      trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+      // Duval County's own date when our table holds it for this season; the statewide
+      // 18 Sept was never this county's deadline.
+      trimDeadline: flSeasonDeadline('Duval').text,
+      preOrderISO: seasonDates('FL').preOrderISO,
     },
   };
 }
 
-export default function Jacksonville({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline }){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');return(<><Head><title>Jacksonville Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Jacksonville Florida property taxes for $89 flat. We check first, then mail you a ready-to-sign Duval County VAB petition kit. You sign and mail it." /><link rel="canonical" href="https://www.taxappealusa.com/jacksonville" key="canonical" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Duval County',href:'/counties/duval-county-fl'},{name:'Jacksonville'}],'https://www.taxappealusa.com/jacksonville'))}} /></Head>
+export default function Jacksonville({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline, preOrderISO }){const router=useRouter();const [openFaq,setOpenFaq]=useState(null);const go=()=>router.push('/apply');return(<><Head><title>Jacksonville Florida Property Tax Appeal | $89 Flat | TaxAppeal USA</title><meta name="description" content="Appeal your Jacksonville Florida property taxes for $89 flat. We check first, then mail you a ready-to-sign Duval County VAB petition kit. You sign and mail it." /><link rel="canonical" href="https://www.taxappealusa.com/jacksonville" key="canonical" /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbSchema([{name:'Home',href:'/'},{name:'Florida',href:'/florida'},{name:'Duval County',href:'/counties/duval-county-fl'},{name:'Jacksonville'}],'https://www.taxappealusa.com/jacksonville'))}} /></Head>
 {/* dangerouslySetInnerHTML, not a text child: React escapes ' & > in text and the client does not, so the two differ and hydration re-renders the whole root. See pages/apply.js. */}
 <style dangerouslySetInnerHTML={{ __html: `${FONT} *{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;background:${C.bg};color:${C.darkNavy};}.btn-p{background:${C.navy};color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:15px;font-weight:500;cursor:pointer;transition:background 0.2s;}.btn-p:hover{background:${C.gold};color:${C.darkNavy};}@media(max-width:768px){.hs{grid-template-columns:1fr 1fr!important;}.ht{font-size:28px!important;}.g2{grid-template-columns:1fr!important;}}` }} />
 
 {(() => {
-  const preOrderOpen = new Date('2026-06-12');
+  const preOrderOpen = new Date(preOrderISO);
   const windowOpen = new Date(windowOpenISO);
   const windowClose = new Date(windowCloseISO);
   const today = new Date();

@@ -69,7 +69,10 @@ const counties = ALL_COUNTIES.filter(c => c.code === 'FL');
 export async function getStaticProps() {
   const { FILING_WINDOWS } = await import('../lib/filingWindows');
   const w = FILING_WINDOWS.FL;
-  const at = (m, d) => new Date(Date.UTC(2026, m - 1, d));
+  // The season this page is about (lib/season.js, 18 Oct 2026), never a typed year.
+  const { seasonYear, seasonDates, flSeasonDeadline } = await import('../lib/season');
+  const SY = seasonYear('FL');
+  const at = (m, d) => new Date(Date.UTC(SY, m - 1, d));
   const pretty = (dt) => dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return {
     props: {
@@ -77,11 +80,12 @@ export async function getStaticProps() {
       windowCloseISO: at(w.closeMonth, w.closeDay).toISOString().slice(0, 10),
       trimOpen: pretty(at(w.openMonth, w.openDay)),
       trimDeadline: pretty(at(w.hardMonth, w.hardDay)),
+      preOrderISO: seasonDates('FL').preOrderISO,
     },
   };
 }
 
-export default function Florida({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline }) {
+export default function Florida({ windowOpenISO, windowCloseISO, trimOpen, trimDeadline, preOrderISO }) {
 const router = useRouter();
 const [openFaq, setOpenFaq] = useState(null);
 
@@ -174,7 +178,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${C.bg}; color: ${C.darkN
    * not in a strip of copy above a button that still reads "File My Florida
    * Appeal".
    */
-  const preOrderOpen = new Date('2026-06-12');
+  const preOrderOpen = new Date(preOrderISO);
   const windowOpen = new Date(windowOpenISO);
   const windowClose = new Date(windowCloseISO);
   const today = new Date();
@@ -327,7 +331,7 @@ Check My Florida Appeal — $89 Kit →
 <section style={{ padding: "56px 40px", background: C.bg }}>
 <div style={{ maxWidth: 900, margin: "0 auto" }}>
 <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 30, textAlign: "center", marginBottom: 12 }}>Florida Counties</h2>
-<p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Miami to Jacksonville, Tampa to Orlando. Open your county for its Value Adjustment Board address, filing fee and 2026 deadline.</p>
+<p style={{ fontSize: 15, color: C.bodyGray, textAlign: "center", marginBottom: 36 }}>From Miami to Jacksonville, Tampa to Orlando. Open your county for its Value Adjustment Board address, filing fee and deadline.</p>
 <div className="counties-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
 {counties.map(c => (
 <a key={c.slug} href={`/counties/${c.slug}`} style={{ fontSize: 12, color: C.bodyGray, padding: "6px 4px", display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>

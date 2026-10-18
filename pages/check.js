@@ -1216,11 +1216,11 @@ export default function CheckPage() {
                       ) : win.canPreOrder ? (
                         <>
                           <strong style={{ color: C.gold }}>{checkedCounty} County opens {fmtDay(win.openDate)} and closes {fmtDay(win.lastOrderDate)}.</strong>{' '}
-                          Order now and we prepare your kit today and mail it to you, so you can sign it and get it to the Value Adjustment Board as soon as the window opens.
+                          Reserve your kit now. When your county&rsquo;s new values are out we check your petition again: we mail your kit once your TRIM notice gives the deadline, or refund you in full if the case is gone.
                         </>
                       ) : (
                         <>
-                          <strong style={{ color: C.gold }}>{checkedCounty} County has closed for 2026.</strong>{' '}
+                          <strong style={{ color: C.gold }}>{checkedCounty} County has closed for this season.</strong>{' '}
                           Nothing can be filed there until it reopens {fmtDay(win.openDate)}.
                         </>
                       )}
@@ -1502,7 +1502,7 @@ export default function CheckPage() {
                           </>
                         ) : (
                           <>
-                            {checkedCounty ? `${checkedCounty} County has closed for 2026` : 'Your county has closed for 2026'} — so
+                            {checkedCounty ? `${checkedCounty} County has closed for this season` : 'Your county has closed for this season'} — so
                             there is nothing that can be filed yet. Leave your email and we will tell you the day
                             it reopens, and pick this up with you then.
                           </>
