@@ -7,6 +7,9 @@
  * complete kit order is stored in Redis under a random kitKey (7 days).
  * Checkout takes ONLY the kitKey and re-validates the stored order: the browser
  * never supplies the values printed on the petition.
+ *
+ * `presale: true` (18 Oct 2026) asks for a reservation instead: the case on the
+ * latest roll we hold, for the season ahead, no deadline (lib/kit/flPresale.js).
  */
 import crypto from 'crypto';
 import { Redis } from '@upstash/redis';
@@ -17,6 +20,7 @@ import { millageForCounty } from '../../lib/dor/millage';
 import { LOADED_COUNTIES } from '../../lib/dor/coverage';
 import { totalCostToCure } from '../../lib/costToCure';
 import { quoteFlKit, FL_QUOTE } from '../../lib/kit/flQuote';
+import { quoteFlPresale } from '../../lib/kit/flPresale';
 
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
 export const KIT_KEY_TTL_SECONDS = 7 * 24 * 3600;
@@ -43,6 +47,8 @@ export function cleanFlQuoteInput(b = {}) {
     taxYear: Number(b.taxYear) || null,
     trimDeadline: /^\d{4}-\d{2}-\d{2}$/.test(String(b.trimDeadline || '')) ? b.trimDeadline : null,
     willNotAttend: b.willNotAttend === true,
+    // A reservation (lib/kit/flPresale.js): no TRIM notice yet, so no deadline.
+    presale: b.presale === true,
     issues: Array.isArray(b.issues) ? b.issues.filter((x) => typeof x === 'string').slice(0, 20).map((x) => x.slice(0, 80)) : [],
     costOverrides: b.costOverrides && typeof b.costOverrides === 'object' ? Object.fromEntries(Object.entries(b.costOverrides).slice(0, 20).map(([k, v]) => [String(k).slice(0, 80), String(v).slice(0, 12)])) : {},
   };
@@ -56,10 +62,11 @@ export default async function handler(req, res) {
   const input = cleanFlQuoteInput(req.body || {});
   if (!input.property.street || !input.property.zip) return res.status(400).json({ error: 'Property address is required.' });
   try {
-    const quote = await quoteFlKit(input, {
+    const deps = {
       findParcel, findComps, millageForCounty, totalCostToCure,
       countyName: (coNo) => LOADED_COUNTIES[Number(coNo)] || null,
-    });
+    };
+    const quote = input.presale ? await quoteFlPresale(input, deps) : await quoteFlKit(input, deps);
     let kitKey = null;
     if (quote.decision === FL_QUOTE.CASE && quote.sellable) {
       if (!redis) return res.status(200).json({ ...stripKit(quote), sellable: false, notSellableReason: 'kit_store_unavailable', kitKey: null });

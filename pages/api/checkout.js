@@ -12,6 +12,7 @@ import { Redis } from '@upstash/redis';
 import { gaSellability, gaPresaleSellability } from '../../lib/kit/gaQuote';
 import { txSellability } from '../../lib/kit/txQuote';
 import { txPresaleSellability } from '../../lib/kit/txPresale';
+import { flPresaleSellability } from '../../lib/kit/flPresale';
 import { flSellability } from '../../lib/kit/flQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
 import { findFreeKit, claimFreeKit, releaseFreeKit } from '../../lib/kit/freeKit';
@@ -174,8 +175,8 @@ if ((stateCode || '').trim().toUpperCase() === 'FL') {
 // A Georgia pre-sale (16 Oct 2026) is checked by its own gate: no notice value
 // exists yet, so the full gate would refuse it. It is finished, or refunded,
 // when the notice arrives (lib/kit/presale.js).
-// Florida (16 Oct 2026): no pre-sale yet, so a stored presale order is refused outright.
-const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: (o) => (o?.presale === true ? txPresaleSellability(o) : txSellability(o)), FL: (o) => (o?.presale === true ? { ok: false, reason: 'not_a_presale' } : flSellability(o)) };
+// Florida (18 Oct 2026): a reservation has its own gate too (lib/kit/flPresale.js).
+const KIT_SELLABILITY = { GA: (o) => (o?.presale === true ? gaPresaleSellability(o) : gaSellability(o)), TX: (o) => (o?.presale === true ? txPresaleSellability(o) : txSellability(o)), FL: (o) => (o?.presale === true ? flPresaleSellability(o) : flSellability(o)) };
 const kitState = (stateCode || '').trim().toUpperCase();
 const isKitGA = kitState === 'GA';
 const isKitTX = kitState === 'TX';
@@ -200,7 +201,9 @@ if (isKit) {
   if (!sell.ok) {
     console.warn(`[checkout] refusing ${kitState} kit:`, sell.reason);
     return res.status(409).json({
-      error: sell.reason === 'deadline_too_close'
+      error: sell.reason === 'season_moved'
+        ? 'The season has moved on since your check. Please run it again.'
+        : sell.reason === 'deadline_too_close'
         ? 'Your deadline is too close for us to get your kit to you in time, so we will not take your money for it.'
         : sell.needs
         ? 'Please answer the remaining question about your county\'s appeal form first.'
@@ -209,7 +212,7 @@ if (isKit) {
         : sell.noCase
           ? `Our check found a ${kitDoc} would not lower your tax bill by more than it costs, so we will not sell you one.`
           : `We cannot take orders for ${kitOrder.property?.county || 'that'} County yet. We will not take your money until we can send a kit we stand behind.`,
-      code: sell.reason === 'deadline_too_close' ? 'KIT_TOO_LATE' : sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
+      code: sell.reason === 'season_moved' ? 'KIT_CHECK_EXPIRED' : sell.reason === 'deadline_too_close' ? 'KIT_TOO_LATE' : sell.needs ? 'KIT_NEEDS_ANSWER' : sell.noCase ? 'KIT_NO_CASE' : 'KIT_COUNTY_NOT_OPEN',
     });
   }
   kitDelivery = sell.delivery === 'pdf' ? 'pdf' : 'mail';
@@ -325,6 +328,18 @@ currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Texas protest kit, mailed to you',
 description: `Your completed, ready-to-sign protest for ${kitOrder.property.address}: the Comptroller's Form 50-132 filled in, the comparable-properties evidence from the district's own roll, and a return envelope addressed to the ${countyLabel || kitOrder.property.county} appraisal district — mailed to you, with a PDF copy of the full kit emailed to you today. You sign and mail it; we do not file your protest or represent you.`,
+},
+unit_amount: SERVICE_PRICE_CENTS,
+},
+quantity: 1,
+},
+] : isKitFL && kitOrder.presale === true ? [
+{
+price_data: {
+currency: 'usd',
+product_data: {
+name: 'TaxAppeal USA — Florida petition kit, reserved',
+description: `Reserved for ${kitOrder.property.address}, tax year ${kitOrder.taxYear}. When the county's ${kitOrder.taxYear} values are out, we check your petition again. If it still lowers your bill, we mail you Form DR-486 filled in, the evidence and a return envelope addressed to the Value Adjustment Board, and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed. The county's filing fee is paid by you to the county and is not part of this charge. You sign and send it; we do not file your petition or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },

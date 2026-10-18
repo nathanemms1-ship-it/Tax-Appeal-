@@ -174,7 +174,7 @@ t('the reservation line item promises the refund and never says we file', /Georg
 const fulfil = read('lib/fulfillOrder.js');
 // INJECTION: queue a pre-sale as kit_queued -> FAILS (dispatch would try to build a kit with no value).
 t('a paid reservation waits as awaiting_notice and is not dispatched', /kitOrder && kitOrder\.presale !== true \? KIT_STATUS\.QUEUED : KIT_STATUS\.AWAITING_NOTICE/.test(fulfil) && /if \(isKit && kitOrder && kitOrder\.presale !== true\) \{/.test(fulfil));
-t('its receipt carries the notice link, and only its receipt does', /noticeUrl: disputeStatus === KIT_STATUS\.AWAITING_NOTICE && stateCode === 'GA' \? noticeUrl\(order\.id\) : null/.test(fulfil));
+t('its receipt carries the notice link; only a Florida reservation gets a link too (the deadline page)', /noticeUrl: disputeStatus === KIT_STATUS\.AWAITING_NOTICE && stateCode === 'GA' \? noticeUrl\(order\.id\) : disputeStatus === KIT_STATUS\.AWAITING_NOTICE && stateCode === 'FL' \? trimUrl\(order\.id\) : null/.test(fulfil));
 const fakeDb = { from() { const q2 = { update() { return q2; }, eq() { return Promise.resolve({ error: null }); } }; return q2; } };
 r = await dispatchKit({ id: 'ord_p1', state_code: 'GA', payment_status: 'paid', dispute_status: 'awaiting_notice', kit_order: q.kitOrder, owner_street: '1 Main St', owner_city: 'Lawrenceville', owner_state: 'GA', owner_zip: '30044', customer_name: 'Pat Owner' }, { supabase: fakeDb, lobFetch: async () => { throw new Error('Lob must not be called'); } });
 t('dispatch never builds a kit from a reservation', r.status === KIT_STATUS.AWAITING_NOTICE);

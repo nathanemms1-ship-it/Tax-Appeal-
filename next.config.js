@@ -79,6 +79,8 @@ const nextConfig = {
       '/api/cron/process-queued-orders': ['./forms/tx/**', './forms/fl/**'],
       '/api/process-order-now': ['./forms/tx/**', './forms/fl/**'],
       '/api/cron/notice-reminder': ['./forms/tx/**', './forms/fl/**'],
+      // A Florida reservation is finished when its deadline is entered (18 Oct 2026).
+      '/api/kit/trim': ['./forms/fl/**'],
     },
   },
 

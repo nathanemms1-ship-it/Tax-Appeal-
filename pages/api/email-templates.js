@@ -74,6 +74,7 @@ export function confirmationSubject({ stateCode, orderStatus }) {
   if (orderStatus === 'awaiting_notice' && String(stateCode || '').toUpperCase() === 'TX') {
     return '✅ Payment received — your protest kit is reserved — TaxAppeal USA';
   }
+  if (isFL && orderStatus === 'awaiting_notice') return '✅ Payment received — your petition kit is reserved — TaxAppeal USA';
   if (isFL && orderStatus === 'kit_queued') return '✅ Payment received — your petition kit is being printed — TaxAppeal USA';
   if (isFL && orderStatus === 'kit_pdf') return '✅ Payment received — your petition kit is on its way to your inbox — TaxAppeal USA';
   return claimFor(orderStatus).subject;
@@ -103,6 +104,20 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
       intro: 'Thank you — your payment is in. When your appraisal district publishes this year\'s values (usually in April), we check your protest again on them, automatically; you do not need to do anything. If a protest still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
       ctaLabel: null,
     }
+    : isFL && orderStatus === 'awaiting_notice'
+    ? {
+      /*
+       * A FLORIDA reservation (18 Oct 2026, lib/kit/flPresale.js): we re-check on
+       * the county's new values ourselves; the customer gives us one date, the
+       * petition deadline on their TRIM notice, through the button.
+       */
+      ...claimBase,
+      subject: '✅ Payment received — your petition kit is reserved — TaxAppeal USA',
+      heading: 'You Are Reserved',
+      subheading: 'We check again on your county\'s new values',
+      intro: 'Thank you — your payment is in. When your county\'s new values are out (usually in July), we check your petition again on them, automatically. If a petition still lowers your bill, we need one date from you: the petition deadline printed on your TRIM notice, which arrives in August. Keep this email: the button below is your private link for entering it, and we email you a reminder too. Then we print your completed kit and mail it to you. If a petition no longer lowers your bill, we refund you in full before anything is mailed.',
+      ctaLabel: 'Enter my petition deadline when my TRIM notice arrives',
+    }
     : isFL && orderStatus === 'kit_queued'
     ? {
       ...claimBase,
@@ -119,7 +134,14 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
     : claimBase;
 
   const isKit = orderStatus === 'kit_queued' || orderStatus === 'awaiting_notice' || orderStatus === 'kit_pdf';
-  const steps = isKit && isFL
+  const steps = isKit && isFL && orderStatus === 'awaiting_notice'
+    ? [
+        'Your county publishes its new values and we re-check your petition automatically',
+        'Your TRIM notice arrives in August: you enter the petition deadline printed on it',
+        'We mail you your completed kit, and email you a PDF copy, or refund you in full',
+        'You sign Part 3 of the DR-486, add a check for the county\'s filing fee and get it to the Value Adjustment Board by the deadline',
+      ]
+    : isKit && isFL
     ? [
         orderStatus === 'kit_pdf'
           ? 'Your kit arrives by email in a few minutes as a PDF: print it on plain paper'

@@ -221,6 +221,11 @@ function KitSuccess({ session, sessionId }) {
       ? `Print it on plain paper, sign Part 3 in ink, add your check for the county's filing fee, and mail it to ${where} at the address shown in the kit so it is received by your deadline, or hand-deliver it. Florida counts the day it arrives, not the postmark.`
       : `Print it on plain paper, sign the form in ink and mail it in any envelope to ${where}, at the address shown in the kit. A post office counter postmark is safest.` },
     { title: `${body} writes to you`, desc: 'Forward us anything it sends and we will help you understand it.' },
+  ] : presale && isFL ? [
+    { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
+    { title: 'Your county publishes this year\'s values', desc: 'Usually in July. We check your petition again on them automatically.' },
+    { title: 'Your TRIM notice arrives', desc: 'In August. Enter the petition deadline printed on it from the link in your receipt email; we remind you too.' },
+    { title: 'We mail your kit, or refund you', desc: 'If a petition still lowers your bill, we print and mail your kit and email you a PDF copy. If it no longer does, we refund you in full before anything is mailed.' },
   ] : presale && isTX ? [
     { title: 'Reserved', desc: 'Your payment has been processed and your kit is reserved.', done: true },
     { title: 'Your district publishes this year\'s values', desc: 'Usually in April. You don\'t need to do anything.' },
@@ -249,6 +254,8 @@ function KitSuccess({ session, sessionId }) {
             ? (isFL
               ? `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it, add your check for the county's filing fee, and mail it to ${where} so it is received by the deadline printed on it, or hand-deliver it.`
               : `Thank you${first}. Your deadline is close, so we are emailing you the completed, ready-to-sign ${word} as a PDF in the next few minutes. Print it, sign it and mail it to ${where} before the postmark deadline printed on it.`)
+            : presale && isFL
+            ? `Thank you${first}. When your county's new values are out, we check your petition again automatically. Then we need one date from your TRIM notice, the petition deadline: we mail your kit, or refund you in full.`
             : presale && isTX
             ? `Thank you${first}. When your appraisal district publishes this year's values, we check your protest again automatically: we mail your kit, or refund you in full.`
             : presale

@@ -117,14 +117,14 @@ t('a real kit is refused in a county with no confirmed address', (await code(() 
 
 // ── 6. WIRING ───────────────────────────────────────────────────────────────
 const checkout = read('pages/api/checkout.js');
-t('checkout gates Florida on the stored kit order', /FL: \(o\) => \(o\?\.presale === true \? \{ ok: false, reason: 'not_a_presale' \} : flSellability\(o\)\)/.test(checkout) && /const isKitFL = kitState === 'FL'/.test(checkout));
+t('checkout gates Florida on the stored kit order', /FL: \(o\) => \(o\?\.presale === true \? flPresaleSellability\(o\) : flSellability\(o\)\)/.test(checkout) && /const isKitFL = kitState === 'FL'/.test(checkout));
 // INJECTION: restore the VAB fee line item -> FAILS. The owner pays the county, not us.
 t('checkout never charges the county fee', !/VAB Filing Fee/.test(checkout) && !/unit_amount: vabFee/.test(checkout) && /const vabFee = 0;/.test(checkout));
 t('the Florida line items are the kit at the $89 constant and say the fee is the owner\'s', /Florida petition kit, mailed to you/.test(checkout) && /Florida petition kit, PDF by email/.test(checkout) && /The county fee is paid by you to the county and is not part of this charge/.test(checkout));
 const dispatch = read('lib/kit/dispatchKit.js');
 t('Florida is dispatched by the DR-486 builder', /FL: buildFlKit/.test(dispatch) && /deliveryMode\(kit\.deadline, now, order\.state\)/.test(dispatch));
 const cfg = read('next.config.js');
-t('every route that dispatches kits bundles the blank DR-486', ['/api/webhooks/stripe', '/api/cron/process-queued-orders', '/api/process-order-now', '/api/cron/notice-reminder'].every((r) => new RegExp(`'${r}': \\[[^\\]]*'\\./forms/fl/\\*\\*'`).test(cfg)));
+t('every route that dispatches kits bundles the blank DR-486', ['/api/webhooks/stripe', '/api/cron/process-queued-orders', '/api/process-order-now', '/api/cron/notice-reminder', '/api/kit/trim'].every((r) => new RegExp(`'${r}': \\[[^\\]]*'\\./forms/fl/\\*\\*'`).test(cfg)));
 const apply = read('pages/apply.js');
 t('the funnel buys Florida through FlKitStep', /import FlKitStep from '\.\.\/components\/FlKitStep'/.test(apply) && /toUpperCase\(\) === 'FL'\) \{ setFlKit\(true\)/.test(apply) && /<FlKitStep/.test(apply));
 // INJECTION: send applyResolvedCounty back to 'florida-fee' -> FAILS (the online signature step is gone).

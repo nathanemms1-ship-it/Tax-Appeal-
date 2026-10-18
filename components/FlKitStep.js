@@ -9,6 +9,12 @@
  * the answer is yes AND the county is open offers the $89 kit. The county's
  * filing fee is shown as the owner's own cost, paid by them to the county.
  * Checkout receives the server's kitKey, never the values themselves.
+ *
+ * RESERVATIONS (18 Oct 2026, lib/kit/flPresale.js). Before the TRIM notice
+ * (most of the year) the owner can reserve instead: the same check on the
+ * latest values we hold, then we re-check on the new values and they give us
+ * the deadline when the notice comes. Offered when they say the notice has not
+ * come, and whenever the ordinary check finds this year's values not out yet.
  */
 import { useState } from 'react';
 import { SERVICE_PRICE_DOLLARS } from '../lib/pricing';
@@ -39,7 +45,9 @@ export const FL_NO_CASE_COPY = {
   land_value_not_comparable: "Most of your property's value is in the land, so sales of nearby homes aren't fair evidence for it. We won't sell you a kit for that.",
   subject_has_no_living_area: "The county's roll shows no living area for this home, so we can't compare it with similar homes. Email customerservice@taxappealusa.com and we'll take a look.",
   not_residential: 'This property is not residential on the county roll. We only prepare petitions for homes.',
-  roll_not_this_year: "This year's values for your county aren't in our records yet, so we can't check your petition today. Please try again in a few days.",
+  roll_not_this_year: "This year's values for your county aren't out yet, so a petition can't be filed today. You can reserve your kit now instead: see below.",
+  trim_already_out: "Your county has already mailed this year's TRIM notices, so a reservation isn't available. Untick the box and enter the petition deadline from your notice. If you can't find it, your property appraiser's office can tell you the date.",
+  roll_out_of_date: "We don't hold your county's latest values yet, so we can't check a petition today. Please try again in a few days.",
   no_parcel: "We couldn't find this address on the county roll. Go back and check the address, or email customerservice@taxappealusa.com.",
   ambiguous: 'Several properties share this address. Go back and add your unit number.',
   insufficient_comparables: "There aren't enough recent qualified sales near you to build strong evidence, so we won't sell you a kit this year.",
@@ -59,17 +67,20 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
   // Next year's free kit (lib/kit/guarantee.js): shown by FreeKitField, decided again at checkout.
   const [freeCode, setFreeCode] = useState('');
   const [freeKit, setFreeKit] = useState(false);
-  const ready = /^\d{4}-\d{2}-\d{2}$/.test(trimDeadline) && typeof attend === 'boolean';
+  // No TRIM notice yet: reserve instead (no deadline needed).
+  const [noNotice, setNoNotice] = useState(false);
+  const ready = (noNotice || /^\d{4}-\d{2}-\d{2}$/.test(trimDeadline)) && typeof attend === 'boolean';
 
-  const runCheck = async () => {
-    setBusy(true); setErr(''); setQuote(null);
+  const runCheck = async (presale = noNotice) => {
+    setBusy(true); setErr(''); setQuote(null); setAgreed(false);
     try {
       const r = await fetch('/api/fl-kit-quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           property: { street: property.street, city: property.city, zip: property.zip },
           owner: { name: `${account.firstName} ${account.lastName}`.trim(), street: ownerMail.street, street2: ownerMail.street2 || '', city: ownerMail.city, state: ownerMail.state, zip: ownerMail.zip, phone: account.mobile || '', email: account.email },
-          taxYear, trimDeadline, willNotAttend: attend === false, issues, costOverrides,
+          taxYear, trimDeadline: presale ? null : trimDeadline, willNotAttend: attend === false, issues, costOverrides,
+          ...(presale ? { presale: true } : {}),
         }),
       });
       const j = await r.json();
@@ -125,15 +136,21 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
 
       <div style={box}>
         <NoticePhoto state="FL" taxYear={taxYear} label="Take a photo of your TRIM notice instead" onRead={(f) => { if (f.trimDeadline) setTrimDeadline(f.trimDeadline); }} />
-        <label style={label} htmlFor="fl-deadline">Petition deadline on your TRIM notice</label>
-        <input id="fl-deadline" type="date" style={input} value={trimDeadline} onChange={(e) => setTrimDeadline(e.target.value)} />
-        <p style={help}>Your TRIM notice (the &ldquo;Notice of Proposed Property Taxes&rdquo;) prints the last day to file a petition with the Value Adjustment Board. Florida counts a petition when the board receives it, so we use this date to decide whether to mail your kit or email it.</p>
+        {!noNotice && (<>
+          <label style={label} htmlFor="fl-deadline">Petition deadline on your TRIM notice</label>
+          <input id="fl-deadline" type="date" style={input} value={trimDeadline} onChange={(e) => setTrimDeadline(e.target.value)} />
+          <p style={help}>Your TRIM notice (the &ldquo;Notice of Proposed Property Taxes&rdquo;) prints the last day to file a petition with the Value Adjustment Board. Florida counts a petition when the board receives it, so we use this date to decide whether to mail your kit or email it.</p>
+        </>)}
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.6, color: K.ink, cursor: 'pointer', marginTop: 10 }}>
+          <input type="checkbox" checked={noNotice} onChange={(e) => { setNoNotice(e.target.checked); setQuote(null); }} style={{ marginTop: 4 }} />
+          <span>I don&rsquo;t have this year&rsquo;s TRIM notice yet. Check my home on the latest values and let me reserve a kit.</span>
+        </label>
 
         <label style={label}>Will you attend the hearing?</label>
         <div style={{ display: 'flex', gap: 10 }}>{choice(true, 'Yes, I plan to attend')}{choice(false, 'No, consider my evidence without me')}</div>
         <p style={help}>Hearings are short (about 15 minutes) and many counties offer phone or video. If you won&rsquo;t attend, the form says so and your kit includes the second copy of your evidence the board then requires.</p>
 
-        <button style={!ready || busy ? btnOff : btn} disabled={!ready || busy} onClick={runCheck}>{busy && !quote ? 'Checking…' : 'Check my petition'}</button>
+        <button style={!ready || busy ? btnOff : btn} disabled={!ready || busy} onClick={() => runCheck()}>{busy && !quote ? 'Checking…' : noNotice ? 'Check my home' : 'Check my petition'}</button>
         {err && !quote && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
       </div>
 
@@ -141,7 +158,43 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
         <div style={box}>
           <p style={{ fontWeight: 700, margin: '0 0 8px' }}>We won&rsquo;t sell you a petition for this home this year</p>
           <p style={body}>{FL_NO_CASE_COPY[quote.reason] || "Our check doesn't support a petition for this home, so we won't sell you one."}</p>
+          {quote.presale && !['no_parcel', 'ambiguous', 'roll_out_of_date', 'trim_already_out'].includes(quote.reason) && (
+            <p style={body}>That is on the latest values we hold ({quote.screenYear}). If your {quote.taxYear} TRIM notice comes in higher, check again then: it may show a case.</p>
+          )}
+          {quote.reason === 'roll_not_this_year' && !quote.presale && (
+            <button style={busy ? btnOff : btn} disabled={busy} onClick={() => { setNoNotice(true); runCheck(true); }}>{busy ? 'Checking…' : 'Check my home for a reservation'}</button>
+          )}
           <p style={{ ...body, color: K.muted, fontSize: 13.5 }}>We check before you pay, so you never buy a petition that won&rsquo;t lower your bill.</p>
+        </div>
+      )}
+
+      {quote && quote.presale && quote.decision === 'case' && quote.sellable && (
+        <div style={box}>
+          <p style={{ fontWeight: 700, margin: '0 0 8px', fontSize: 16 }}>Reserve your {quote.taxYear} petition kit — ${SERVICE_PRICE_DOLLARS}</p>
+          <p style={body}>
+            On the latest values we hold ({quote.screenYear}), the county&rsquo;s just value is {money(quote.justValue)} and sales of similar homes indicate {money(quote.indicatedValue)}.
+            A petition asking for {money(quote.requestedValue)} would lower your yearly tax bill by about {money(quote.yearlySaving)}.
+          </p>
+          <p style={body}>Here is what happens:</p>
+          <ol style={{ ...body, paddingLeft: 20 }}>
+            <li>When your county&rsquo;s {quote.taxYear} values are out (usually in July), we check your petition again on them, automatically.</li>
+            <li>If it still lowers your bill, we need one date from you: the petition deadline on your TRIM notice, which arrives in August. We email you a private link to enter it.</li>
+            <li>We mail you Form DR-486 filled in, your evidence and a return envelope addressed to the Value Adjustment Board, and email you a PDF copy of the full kit.</li>
+          </ol>
+          <p style={body}><b>If a petition no longer lowers your bill on the new values, we refund you in full</b> before anything is mailed.</p>
+          <p style={body}>
+            <b>The county&rsquo;s filing fee{feeDollars != null ? ` (${money(feeDollars)})` : ''} is paid by you</b>, to the county, with a check you put in the envelope. It is not part of our fee.
+          </p>
+          <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.6, color: K.ink, cursor: 'pointer' }}>
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 4 }} />
+            <span>I understand TaxAppeal USA prepares my petition and sends it to me. I sign it, pay the county&rsquo;s filing fee and get it to the Value Adjustment Board myself; TaxAppeal USA does not file it, pay the fee, represent me or appear for me.</span>
+          </label>
+          <PartnerCodeField value={perkInput} onChange={setPerkInput} />
+          <button style={!agreed || busy ? btnOff : btn} disabled={!agreed || busy} onClick={checkout}>
+            {busy ? 'Opening checkout…' : `Reserve my petition kit — $${SERVICE_PRICE_DOLLARS}`}
+          </button>
+          {err && <p style={{ ...body, color: K.bad, marginTop: 10 }}>{err}</p>}
+          <p style={{ ...body, color: K.muted, fontSize: 13, marginTop: 10 }}>If the board doesn&rsquo;t lower your value, next year&rsquo;s kit is free.</p>
         </div>
       )}
 
@@ -149,7 +202,9 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
         <div style={box}>
           <p style={{ fontWeight: 700, margin: '0 0 8px' }}>Your petition has a case.</p>
           <p style={body}>
-            {quote.notSellableReason === 'deadline_too_close'
+            {quote.notSellableReason === 'season_moved'
+              ? 'Please run the check again: the season has moved on.'
+              : quote.notSellableReason === 'deadline_too_close'
               ? 'But your deadline is too close for us to get a kit to you in time, so we will not take your money for it.'
               : quote.notSellableReason === 'need_deadline'
               ? 'Please check the deadline you entered: it should be the petition deadline printed on this year’s TRIM notice.'
@@ -160,7 +215,7 @@ export default function FlKitStep({ property, account, ownerMail, issues = [], c
         </div>
       )}
 
-      {quote && quote.decision === 'case' && quote.sellable && (
+      {quote && !quote.presale && quote.decision === 'case' && quote.sellable && (
         <div style={box}>
           <p style={{ fontWeight: 700, margin: '0 0 8px', fontSize: 16 }}>
             {quote.delivery === 'pdf' ? `Your petition kit, as a PDF — $${SERVICE_PRICE_DOLLARS}` : `Your petition kit, mailed to you — $${SERVICE_PRICE_DOLLARS}`}

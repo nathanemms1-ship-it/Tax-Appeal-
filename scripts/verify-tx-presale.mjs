@@ -113,7 +113,7 @@ t('both states refund idempotently per order and claim conditionally (one implem
 const checkout = read('pages/api/checkout.js');
 t('checkout runs the pre-sale gate on a stored Texas reservation', /TX: \(o\) => \(o\?\.presale === true \? txPresaleSellability\(o\) : txSellability\(o\)\)/.test(checkout));
 t('the reservation line item promises the refund and never says we file', /Texas protest kit, reserved/.test(checkout) && /we refund you in full before anything is mailed\. You sign and mail it; we do not file your protest/.test(checkout));
-t('a Texas reservation gets no notice link (nothing for the customer to enter)', /AWAITING_NOTICE && stateCode === 'GA' \? noticeUrl\(order\.id\) : null/.test(read('lib/fulfillOrder.js')));
+t('a Texas reservation gets no notice link (nothing for the customer to enter)', /AWAITING_NOTICE && stateCode === 'GA' \? noticeUrl\(order\.id\) : disputeStatus === KIT_STATUS\.AWAITING_NOTICE && stateCode === 'FL' \? trimUrl\(order\.id\) : null/.test(read('lib/fulfillOrder.js')));
 const rec = confirmationEmailTemplate({ firstName: 'Jane', lastName: 'Doe', address: '1 A St', county: 'El Paso', stateCode: 'TX', orderStatus: 'awaiting_notice', noticeUrl: 'https://x/kit/notice?o=1&t=abc' });
 t('the Texas reservation receipt says we re-check automatically, with no button', /publishes this year&#39;s values|publishes this year's values/.test(rec) && !/kit\/notice/.test(rec) && !/Enter my notice/.test(rec));
 t('...under its own subject', /protest kit is reserved/.test(confirmationSubject({ stateCode: 'TX', orderStatus: 'awaiting_notice' })) && /notice arrives/.test(confirmationSubject({ stateCode: 'GA', orderStatus: 'awaiting_notice' })));

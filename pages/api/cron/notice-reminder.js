@@ -15,7 +15,9 @@ import { requireCronSecret } from '../../../lib/webhookAuth';
 import { getFilingWindowStatus } from '../../../lib/filingWindows';
 import { alertOps } from '../../../lib/alertOps';
 import { KIT_STATUS, KIT_ROW_COLUMNS } from '../../../lib/kit/dispatchKit';
-import { noticeUrl } from '../../../lib/kit/noticeLink';
+import { noticeUrl, trimUrl } from '../../../lib/kit/noticeLink';
+import { processFlPresale, flRollPlan, flTrimAskEmail } from '../../../lib/kit/flPresale';
+import { flPresaleRunDeps, rollChecker } from '../../../lib/kit/flPresaleRun';
 import { processTxPresale } from '../../../lib/kit/txPresale';
 import { presaleDeps } from '../../../lib/kit/presaleDeps';
 import { findComps } from '../../../lib/tx/comps';
@@ -128,6 +130,70 @@ async function txRollPass(supabase, now) {
     }
   }
   return { checked: (rows || []).length, processed, lateAlerts };
+}
+
+/*
+ * FLORIDA RESERVATIONS (18 Oct 2026, lib/kit/flPresale.js). Two things finish
+ * one: this year's roll for the county (we load it; the case is rebuilt, or
+ * refunded) and the petition deadline (our county table, or the customer at
+ * /kit/trim). Once the case holds and TRIM notices are out we ask weekly for
+ * the deadline; ops are paged once if the roll is not loaded by 1 August or no
+ * deadline is in by 5 September.
+ */
+async function flRollPass(supabase, resend, now) {
+  const { data: rows, error } = await supabase.from('orders').select(`${KIT_ROW_COLUMNS}, stripe_session_id`)
+    .eq('dispute_status', KIT_STATUS.AWAITING_NOTICE).eq('payment_status', 'paid').eq('state_code', 'FL').limit(500);
+  if (error) return { error: error.message };
+  const rollLoaded = rollChecker(supabase);
+  let processed = 0; let asked = 0; let lateAlerts = 0;
+  for (const row of rows || []) {
+    const k = row.kit_order || {};
+    if (k.presale !== true) continue;
+    let loaded = false;
+    try { loaded = k.rollResult?.decision === 'case' ? true : await rollLoaded(k.property?.coNo, k.taxYear); } catch (e) { continue; }
+    let plan = flRollPlan(row, loaded, now);
+    let current = row;
+    if (plan.process) {
+      try {
+        const r = await processFlPresale(row, { ...flPresaleRunDeps(row, { supabase, alertOps, rollLoaded }), now });
+        processed++;
+        // Confirmed today but still no deadline: re-plan on the saved row, so the ask can go today.
+        if (r.status !== KIT_STATUS.AWAITING_NOTICE) continue;
+        const { data: fresh } = await supabase.from('orders').select(`${KIT_ROW_COLUMNS}, stripe_session_id`).eq('id', row.id).maybeSingle();
+        if (!fresh) continue;
+        current = fresh;
+        plan = flRollPlan(fresh, true, now);
+      } catch (e) {
+        await alertOps('FL pre-sale pass threw', `order=${row.id}\n${e?.message}`, { force: true });
+        continue;
+      }
+    }
+    if (!plan.ask && !plan.alert) continue;
+    const kk = { ...(current.kit_order || {}) };
+    if (plan.ask && resend && current.customer_email) {
+      const link = trimUrl(current.id);
+      if (link) {
+        try {
+          const mail = flTrimAskEmail(current, link);
+          await resend.emails.send({ from: 'TaxAppeal USA <customerservice@taxappealusa.com>', reply_to: 'customerservice@taxappealusa.com', to: [current.customer_email], subject: mail.subject, text: mail.text });
+          kk.trimAskedAt = now.toISOString();
+          kk.trimAsks = (Number(kk.trimAsks) || 0) + 1;
+          asked++;
+        } catch (e) { console.error(`[notice-reminder] FL ask failed for order ${current.id}:`, e?.message); }
+      }
+    }
+    if (plan.alert === 'roll') {
+      await alertOps('FL pre-sale: county roll not loaded yet', `order=${current.id} co_no=${kk.property?.coNo} ${kk.property?.county || ''} year=${kk.taxYear}\nLoad this county's ${kk.taxYear} DOR roll, or refund.`, { force: true });
+      kk.rollLateAlertAt = now.toISOString();
+      lateAlerts++;
+    } else if (plan.alert === 'deadline') {
+      await alertOps('FL pre-sale: no petition deadline entered yet', `order=${current.id} ${kk.property?.county || ''} year=${kk.taxYear}\nCall the customer for the date on their TRIM notice, or add the county to FL_COUNTY_DATES.`, { force: true });
+      kk.trimLateAlertAt = now.toISOString();
+      lateAlerts++;
+    }
+    await supabase.from('orders').update({ kit_order: kk }).eq('id', current.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
+  }
+  return { checked: (rows || []).length, processed, asked, lateAlerts };
 }
 
 /*
@@ -278,9 +344,10 @@ export default async function handler(req, res) {
     await supabase.from('orders').update({ kit_order: k }).eq('id', row.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
   }
   const tx = await txRollPass(supabase, now);
+  const fl = await flRollPass(supabase, resend, now);
   const afterMailing = await afterMailingPass(supabase, resend, now);
   const outcomes = await outcomePass(supabase, resend, now);
   const freeKits = await freeKitSeasonPass(supabase, resend, now);
   const hearings = await hearingPass(supabase, resend, now);
-  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, afterMailing, outcomes, freeKits, hearings });
+  return res.status(200).json({ checked: (rows || []).length, reminded, alerted, tx, fl, afterMailing, outcomes, freeKits, hearings });
 }
