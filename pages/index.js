@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { STATS, OUTCOME_DISCLAIMER } from '../lib/stats';
 import { sellingStates, pendingStates, nameList, stateSaleStatus } from '../lib/stateService';
-import { homeAnnouncement } from '../lib/filingWindows';
+import { homeAnnouncement, PRE_ORDER_DAYS } from '../lib/filingWindows';
 
 /**
  * THE HOMEPAGE CLAIMED FIVE STATES AND THE FUNNEL SELLS THREE.
@@ -540,7 +540,9 @@ export default function Landing() {
           }
           // CLOSED. Say so. /check is not gated by the season, and it is the
           // one thing a visitor can actually do today, so that is the ask.
-          return <>Filing season is closed. {names} reopen{a.states.length > 1 ? '' : 's'} <strong>{when(a.date)}</strong> — you can still check your property free.</>;
+          // Reservations open PRE_ORDER_DAYS before the season (lib/filingWindows.js).
+          const reserve = new Date(new Date(a.date).getTime() - PRE_ORDER_DAYS * 86400000).toISOString();
+          return <>Filing season is closed. {names} reopen{a.states.length > 1 ? '' : 's'} <strong>{when(a.date)}</strong>; you can reserve your kit from <strong>{when(reserve)}</strong>.</>;
         })()}
       </div>
 

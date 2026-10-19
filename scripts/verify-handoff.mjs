@@ -333,8 +333,8 @@ t('the verdict effect exists at all (SOURCE READ)', effectBody.length > 0 && eff
 
 t('the verdict effect re-runs the filing-window gate with strict:true (SOURCE READ)',
   /getFilingWindowStatus\(\s*'FL'\s*,\s*county\s*,\s*\{\s*strict:\s*true\s*\}\s*\)/.test(effectBody));
-t('the verdict effect refuses when neither canFile nor canPreOrder (SOURCE READ)',
-  /!ws\.canFile\s*&&\s*!ws\.canPreOrder/.test(effectBody));
+t('the verdict effect refuses when the season cannot sell (SOURCE READ)',
+  /!ws\.canSell\b/.test(effectBody));
 /**
  * BOTH COUNTY GATES MUST BE TESTED IN AN `if`, NOT MERELY MENTIONED.
  *
@@ -957,10 +957,13 @@ t('a real pbkdf2 salt:hash IS usable', hasUsablePassword('deadbeef:cafebabe'));
   t('too close to the deadline with an unresolved county does NOT refuse in FL or GA',
     windowBlocksEntry('FL', null, tooClose) === false
     && windowBlocksEntry('GA', null, tooClose) === false);
-  t('...but does once the county is known',
-    windowBlocksEntry('FL', 'Broward', tooClose) === true);
-  t('...and always does in TX, whose deadline is statewide',
-    windowBlocksEntry('TX', null, tooClose) === true);
+  // 19 Oct 2026: an open season never refuses at the door. The kit decides the
+  // last days from the customer's real deadline (lib/kit/delivery.js: a PDF to
+  // the last 2-3 days), which the 12-day Florida minDays used to cut off.
+  t('...nor once the county is known: the kit decides the last days',
+    windowBlocksEntry('FL', 'Broward', tooClose) === false);
+  t('...and not in TX either',
+    windowBlocksEntry('TX', null, tooClose) === false);
 
   t('an open window is never a refusal',
     windowBlocksEntry('TX', null, { canFile: true }) === false

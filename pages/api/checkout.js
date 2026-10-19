@@ -91,7 +91,7 @@ freeCode,
  * body, and refusing is the only safe answer on a route that charges a card.
  */
 const windowStatus = getFilingWindowStatus((stateCode || '').trim().toUpperCase(), county, { strict: true });
-if (!windowStatus || (!windowStatus.canFile && !windowStatus.canPreOrder)) {
+if (!windowStatus || !windowStatus.canSell) {
   const sc = (stateCode || '').trim().toUpperCase();
   const where = county ? `${county} County` : (stateCode || 'that state');
   const isReceiptState = sc === 'FL';

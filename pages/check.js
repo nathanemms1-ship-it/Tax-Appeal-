@@ -468,7 +468,7 @@ export default function CheckPage() {
    * missing data is the more expensive of the two mistakes.
    */
   const countyFilable = d?.countyFilable !== false;
-  const windowOpen = !win || win.canFile || win.canPreOrder;
+  const windowOpen = !win || win.canSell;
   const canOrder = windowOpen && countyFilable;
 
   /**
@@ -598,7 +598,7 @@ export default function CheckPage() {
             concept that needs a definition below the box.
           */}
           <h1 style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.85rem, 6.4vw, 2.5rem)', lineHeight: 1.14, margin: '0 0 14px', textWrap: 'balance' }}>
-            Is your Florida tax bill too high?
+            Is your property tax bill too high?
           </h1>
 
           <p style={{ fontSize: 'clamp(16px, 4.2vw, 18px)', lineHeight: 1.55, color: C.body, margin: '0 0 20px' }}>
@@ -807,12 +807,12 @@ export default function CheckPage() {
               <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>
                 {d.reason === 'not_covered'
                   ? `We don${'\u2019'}t cover ${d.county ? `${d.county} County` : 'that county'} yet`
-                  : 'Your filing window is closed right now'}
+                  : 'Your state\u2019s season is closed right now'}
               </h2>
               <p style={{ color: C.body, lineHeight: 1.6, margin: '0 0 16px' }}>{d.message}</p>
               {emailState === 'done' ? (
                 <p style={{ color: C.green, fontWeight: 600, margin: 0 }}>
-                  Done. We&rsquo;ll email you when your window opens.
+                  Done. We&rsquo;ll email you the day reservations open.
                 </p>
               ) : (
                 <form onSubmit={joinList} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -1038,7 +1038,7 @@ export default function CheckPage() {
                   </p>
                   <p style={{ fontSize: 13, color: C.muted, margin: '0 0 12px', lineHeight: 1.5 }}>
                     Tell us where the property is and we&rsquo;ll email you when your state&rsquo;s
-                    filing window opens — or when we can look this one up.
+                    season opens — or when we can look this one up.
                   </p>
                   <form onSubmit={(e) => joinList(e, 'fl_no_parcel_record')} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <input
@@ -1221,7 +1221,7 @@ export default function CheckPage() {
                       ) : (
                         <>
                           <strong style={{ color: C.gold }}>{checkedCounty} County has closed for this season.</strong>{' '}
-                          Nothing can be filed there until it reopens {fmtDay(win.openDate)}.
+                          It reopens {fmtDay(win.openDate)}, and you can reserve your kit from {fmtDay(win.preOrderOpenDate)}.
                         </>
                       )}
                     </p>
@@ -1368,8 +1368,8 @@ export default function CheckPage() {
                           </>
                         ) : (
                           <>
-                            Your assessment is worth challenging — it just cannot be filed until the
-                            window reopens. Leave your email and we will tell you the day it does,
+                            Your assessment is worth challenging — the season is just closed right now.
+                            Leave your email and we will tell you the day reservations open,
                             with time to spare before the deadline. Nothing else.
                           </>
                         )}
@@ -1502,9 +1502,9 @@ export default function CheckPage() {
                           </>
                         ) : (
                           <>
-                            {checkedCounty ? `${checkedCounty} County has closed for this season` : 'Your county has closed for this season'} — so
-                            there is nothing that can be filed yet. Leave your email and we will tell you the day
-                            it reopens, and pick this up with you then.
+                            {checkedCounty ? `${checkedCounty} County has closed for this season` : 'Your county has closed for this season'}, so
+                            we can&rsquo;t sell a kit today. Leave your email and we will tell you the day
+                            reservations open, and pick this up with you then.
                           </>
                         )}
                       </p>

@@ -56,6 +56,8 @@ export default function KitTrim() {
       <Head>
         <title>Your petition deadline — TaxAppeal USA</title>
         <meta name="robots" content="noindex, nofollow" />
+        {/* No browser-default 8px body margin: it framed these pages in a white border on phones. */}
+        <style dangerouslySetInnerHTML={{ __html: "body{margin:0}" }} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       <div style={{ background: C.bg, minHeight: '100vh' }}>

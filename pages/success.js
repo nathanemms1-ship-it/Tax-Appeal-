@@ -118,7 +118,7 @@ export default function Success() {
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </div>
-        <a href="mailto:customerservice@taxappealusa.com" style={{ fontSize: 13, color: C.navy, textDecoration: "none" }}>customerservice@taxappealusa.com</a>
+        <a href="mailto:customerservice@taxappealusa.com" style={{ fontSize: 13, color: C.navy, textDecoration: "none", overflowWrap: "anywhere", minWidth: 0, textAlign: "right" }}>customerservice@taxappealusa.com</a>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>

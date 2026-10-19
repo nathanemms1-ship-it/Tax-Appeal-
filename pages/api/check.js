@@ -386,7 +386,7 @@ export default async function handler(req, res) {
           found: false,
           reason: 'outside_coverage',
           state: place.state,
-          message: 'Your state\'s filing window is closed right now — there is nothing that can be filed until it reopens. Tell us your state and we\'ll email you the moment it does, with time to spare before the deadline.',
+          message: 'Your state\'s season is closed right now, so we can\'t sell a kit today. Tell us your state and we\'ll email you the day reservations open, with time to spare before the deadline.',
         });
       }
     }
@@ -466,7 +466,7 @@ export default async function handler(req, res) {
         //
         // Same outcome, same email capture, and the reason given is a fact about
         // their county rather than a shortcoming of ours.
-        message: 'Your state\'s filing window is closed right now — there is nothing that can be filed until it reopens. Tell us your state and we\'ll email you the moment it does, with time to spare before the deadline.',
+        message: 'Your state\'s season is closed right now, so we can\'t sell a kit today. Tell us your state and we\'ll email you the day reservations open, with time to spare before the deadline.',
       });
     }
 

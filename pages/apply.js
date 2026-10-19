@@ -272,8 +272,8 @@ function DPill({ text, tone }) {
 function AnnouncementBar() {
   return (
     <div className="announcement-bar-inner" style={{ background: C.navy, color: C.white, textAlign: "center", padding: "10px 20px", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
-      In as little as 4 minutes, you could be on your way to saving thousands on your tax bill —{" "}
-      <strong style={{ color: C.gold }}>we handle the paperwork.</strong>
+      We check whether an appeal will lower your tax bill before you pay —{" "}
+      <strong style={{ color: C.gold }}>then we fill in the paperwork and mail it to you to sign.</strong>
     </div>
   );
 }
@@ -541,7 +541,7 @@ function DeadlinePopup({ stateCode, onClose }) {
           {urgent ? `Only ${daysLeft} Days Left to File!` : `Filing Season is Open — ${daysLeft} Days Remaining`}
         </h2>
         <p style={{ fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: C.bodyGray, textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
-          {urgent ? `The ${state.name} filing window closes in ${daysLeft} days. Don't leave money on the table — file now.` : `The ${state.name} filing window is open. Most homeowners who file save hundreds or thousands per year. Now is the perfect time to dispute.`}
+          {urgent ? `The ${state.name} season closes in ${daysLeft} days. Check your home now: we tell you whether an appeal will lower your bill before you pay.` : `The ${state.name} season is open. We check whether an appeal will lower your bill before you pay.`}
         </p>
         <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 24 }}>
           {[["State", state.name], ["Filing Body", state.board], ["Deadline", state.deadlineNote], ["Important", state.filingNote], ["Filing Window", `${daysLeft} days remaining`]].map(([k, v]) => (
@@ -626,30 +626,30 @@ function FilingWindowClosed({ stateCode, windowStatus, onBack, account, property
       <div style={{ ...cardStyle, maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>{isTooClose ? "⏰" : "📅"}</div>
         <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: C.darkNavy, marginBottom: 10 }}>
-          {isTooClose ? `${state.name} Filing Deadline Too Close` : `${state.name} Filing Season Opens Soon`}
+          {isTooClose ? `${state.name} Deadline Too Close` : `${state.name} Season Opens Soon`}
         </h2>
         {isTooClose ? (
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
-            The {state.name} filing deadline is in {windowStatus.daysUntilHard} days{windowStatus.receiptRequired ? " and Florida requires RECEIPT by the deadline (not just postmark)" : ""}. To protect you from a missed deadline, we cannot accept new filings this close to the cutoff.
+            The {state.name} filing deadline is in {windowStatus.daysUntilHard} days{windowStatus.receiptRequired ? " and Florida requires RECEIPT by the deadline (not just postmark)" : ""}. There is not enough time left to get a kit to you, so we will not sell you one.
           </p>
         ) : (
           <p style={{ fontSize: 14, color: C.bodyGray, lineHeight: 1.7, marginBottom: 24, fontFamily: "'DM Sans', sans-serif" }}>
-            The {state.name} filing window is closed right now, so there is nothing that can be filed today.{datesCertain
-              ? <> We start taking pre-orders in <strong style={{ color: C.navy, fontSize: 20 }}>{daysToPreOrder} days</strong>{preOrderOn ? ` on ${preOrderOn}` : ""}, and {state.name} filing opens{opensOn ? ` on ${opensOn}` : " after that"}.</>
-              : <> Pre-orders open about two months before your county starts accepting protests.</>} We have your address and your email — we will write to you the moment it opens. Nothing to do until then.
+            The {state.name} season is closed right now, so we can&rsquo;t sell a kit today.{datesCertain
+              ? <> You can check your home and reserve your kit in <strong style={{ color: C.navy, fontSize: 20 }}>{daysToPreOrder} days</strong>{preOrderOn ? `, on ${preOrderOn}` : ""}, and the {state.name} season opens{opensOn ? ` on ${opensOn}` : " after that"}.</>
+              : <> Reservations open about two months before your county&rsquo;s season starts.</>} We have your address and your email, and we will write to you the day reservations open. Nothing to do until then.
           </p>
         )}
         {(isTooClose || datesCertain) && (
         <div style={{ background: C.darkNavy, borderRadius: 12, padding: "24px", marginBottom: 24, display: "inline-block", width: "100%" }}>
           <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 52, color: C.gold, marginBottom: 4 }}>{isTooClose ? windowStatus.daysUntilHard : daysToPreOrder}</div>
-          <div style={{ fontSize: 14, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until pre-orders open"}</div>
+          <div style={{ fontSize: 14, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif" }}>{isTooClose ? "days until deadline" : "days until reservations open"}</div>
           <div style={{ fontSize: 12, color: C.mutedGray, fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>{state.deadlineNote}</div>
         </div>
         )}
         <LeadCapture
           payload={capturePayload}
           street={property?.street}
-          promise={`the day the ${state.name} filing window opens. No action needed on your end.`}
+          promise={`the day ${state.name} reservations open. No action needed on your end.`}
         />
         <div style={{ marginTop: 16 }}>
           <button style={{ ...secondaryBtn, width: "auto", padding: "10px 22px" }} onClick={onBack}>← Back</button>
@@ -1686,7 +1686,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
           </div>
           <Field label="Email address" id="prop-email" type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder="you@example.com" />
           <div style={{ fontSize: 11, color: C.bodyGray, marginTop: -8, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}>
-            Where your filing goes — and, if your state&apos;s window is closed today, where we write the moment pre-orders open.
+            Where we send your kit details — and, if your state&apos;s season is closed today, where we write the day reservations open.
           </div>
           {/*
             ======================================================================
@@ -1782,7 +1782,7 @@ function StepProperty({ data, onChange, onNext, onBack, onUnsupportedState, onCl
             {onBack && (
               <button style={{ ...secondaryBtn, width: "auto", padding: "14px 24px" }} onClick={onBack}>← Back</button>
             )}
-            <button style={{ ...primaryBtn }} onClick={go} disabled={checking}>{checking ? "Checking filing window..." : "🔍 Look up my property & continue"}</button>
+            <button style={{ ...primaryBtn }} onClick={go} disabled={checking}>{checking ? "Checking your county..." : "🔍 Look up my property & continue"}</button>
           </div>
         </div>
         <div className="mob-hide">
@@ -4456,7 +4456,7 @@ function ApplyFunnel() {
     if (!county) return;
 
     const ws = getFilingWindowStatus('FL', county, { strict: true });
-    if (!ws || (!ws.canFile && !ws.canPreOrder)) {
+    if (!ws || !ws.canSell) {
       setProperty(p => ({ ...p, state: p.state || 'FL', county }));
       setClosedWindow({ stateCode: 'FL', windowStatus: ws });
       return;

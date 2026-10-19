@@ -71,6 +71,8 @@ export default function Mailed() {
       <Head>
         <title>Tell us your kit is sent | TaxAppeal USA</title>
         <meta name="robots" content="noindex" />
+        {/* No browser-default 8px body margin: it framed these pages in a white border on phones. */}
+        <style dangerouslySetInnerHTML={{ __html: "body{margin:0}" }} />
       </Head>
       <div style={wrap}>
         <h1 style={{ fontFamily: FONTS.display, fontSize: 30, margin: '0 0 6px' }}>Tell us your kit is sent</h1>
