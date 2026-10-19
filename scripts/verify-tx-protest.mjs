@@ -728,7 +728,7 @@ t('the Section 4 number is not moved by the cure',
 
   t('and comps.js takes it from ./rollYear, not ./parcels — which would pull Supabase '
     + 'into three scripts that run without a database',
-    /from '\.\/rollYear'/.test(compsSrc) && !/from '\.\/parcels'/.test(compsSrc));
+    /from '\.\/rollYear(\.js)?'/.test(compsSrc) && !/from '\.\/parcels'/.test(compsSrc));
 
   t('lib/tx/rollYear.js imports nothing, so comps.js stays runnable with no database',
     !/^\s*import\s/m.test(read('lib/tx/rollYear.js')));
