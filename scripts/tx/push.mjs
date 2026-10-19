@@ -331,7 +331,13 @@ try {
     let grand = 0;
     for (const f of files) {
       const head = readFileSync(f, 'utf8').split('\n', 2);
-      const cad = Number(head[1].split(',')[0].replace(/"/g, ''));
+      const firstRow = head[1].split(',').map((x) => x.replace(/"/g, ''));
+      const cad = Number(firstRow[0]);
+      // The tax year is the third column of every tx_parcels CSV. Read it so a
+      // reload clears THIS YEAR only (19 Oct 2026): an in-season 2027 overlay
+      // (scripts/tx/overlay-values.mjs) must never delete the 2026 roll beside it.
+      const year = Number(firstRow[2]);
+      if (!(year >= 2000 && year <= 2100)) { console.error(`✗ ${basename(f)}: cannot read the tax year from its first row`); process.exit(1); }
       // Each file declares its own columns. A PACS export has 23, Dallas has 24
       // (condition_code). Validated against ALLOWED_COLS before anything moves.
       const fileCols = colsFromHeader(basename(f), head[0]);
@@ -340,15 +346,15 @@ try {
       // a re-run replace rather than collide — and a collision mid-COPY would
       // roll the whole county back with a message about a duplicate key that
       // tells you nothing about which county it was.
-      const del = await client.query('delete from tx_parcels where cad_id = $1', [cad]);
-      if (del.rowCount) console.log(`  cleared ${del.rowCount.toLocaleString()} existing rows for cad_id ${cad}`);
+      const del = await client.query('delete from tx_parcels where cad_id = $1 and tax_year = $2', [cad, year]);
+      if (del.rowCount) console.log(`  cleared ${del.rowCount.toLocaleString()} existing ${year} rows for cad_id ${cad}`);
 
       process.stdout.write(`  ${basename(f).padEnd(30)} `);
       const stream = client.query(copyFrom(
         `COPY tx_parcels (${fileCols.join(',')}) FROM STDIN WITH (FORMAT csv, HEADER true)`));
       await pipeline(createReadStream(f), stream);
-      const { rows } = await client.query('select count(*)::int n from tx_parcels where cad_id=$1', [cad]);
-      console.log(`${rows[0].n.toLocaleString().padStart(9)} rows`);
+      const { rows } = await client.query('select count(*)::int n from tx_parcels where cad_id=$1 and tax_year=$2', [cad, year]);
+      console.log(`${rows[0].n.toLocaleString().padStart(9)} rows (${year})`);
       grand += rows[0].n;
     }
     console.log(`\n  ${grand.toLocaleString()} rows in tx_parcels`);

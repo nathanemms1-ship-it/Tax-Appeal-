@@ -32,7 +32,9 @@
     "FILENAME STABILITY. Only El Paso and Grayson use paths that do not change",
     "between rolls, so only those two can be polled on a schedule by URL. Everywhere",
     "else the filename embeds a date or supplement number and the listing page must",
-    "be re-parsed each run."
+    "be re-parsed each run.",
+    "",
+    "`in_season` (19 Oct 2026): did the district publish THIS year's values in a bulk file before the 15 May protest deadline in 2026? A district that only publishes its July certified roll cannot be served in season (we do not attend hearings, so the kit is the whole case). `load_with` names the overlay for districts whose in-season file lacks neighborhood codes. See TX_In_Season_Data_33_Districts_2026-10-19.md."
   ],
   "catalogued_at": "2026-08-15",
   "districts_reviewed": 45,
@@ -73,7 +75,25 @@
         "ears_2024": "https://traviscad.org/wp-content/largefiles/227EARS082824%20%282%29.zip",
         "ears_2023": "https://traviscad.org/wp-content/largefiles/227EARS082923%20%282%29.zip"
       },
-      "notes": "Best-documented large district, and the ONLY one publishing raw EARS. Its public posting of EARS is the precedent cited in our request to the Comptroller. Also publishes JSON, which is the cheapest possible parser validation target. RE-READ 17 Sept 2026: the page carries THREE files this entry did not have - the 2026 EARS submission (26 Aug), a 2026 SUPPLEMENTAL roll export (Supp 334) and a supplemental JSON (Supp 2, 29 Aug). LOAD THE CERTIFIED SUPP 0, NOT THE SUPPLEMENT: the certified roll is the legal snapshot the protest is against, and El Paso taught the same lesson in reverse - its header reads \"As of Supplement\" and is fresher than the July certification, so the two districts are NOT directly comparable without saying which snapshot each came from. Layout is 8.0.33, already in VALIDATED_EXPORT_VERSIONS via Tarrant, and load.mjs selects residential by stateCategory()==='A' rather than a per-district class list - so this district should need NO new code. NOT REACHABLE from the agent sandbox: traviscad.org is denied at the egress gateway in both the cloud container and the device VM (403 on CONNECT), so the zip has to be downloaded on the Mac. UPDATE 3 Oct 2026: traviscad.org now answers from the device VM, and the certified Supp 0 (557,228,168 bytes, sha256 62d0d1cd22b03f31db8d3986160eb181c5d00044df98a303fce9e17a44e9aa02) was downloaded there. LOADED 3 Oct 2026. Two things were new: (1) the zip uses the LEGACY SHORT MEMBER NAMES - PROP.TXT, IMP_DET.TXT, LAND_DET.TXT, APPR_HDR.TXT - with the identical 8.0.0.33 record lengths (9922/622/199), handled by LEGACY_MEMBER in load.mjs; (2) the dwelling is coded by storey (1ST 1st Floor, 2ND 2nd Floor, 3RD, 1/2 Half Floor), which no pattern matched, while 095 HVAC RESIDENTIAL matched RESID and was the only living area - fixed in lib/tx/pacs.js. situs_city is blank on ~44% of rows (28,134 of a 50,000-row sample carried one); situs_zip is populated on every residential row sampled."
+      "notes": "Best-documented large district, and the ONLY one publishing raw EARS. Its public posting of EARS is the precedent cited in our request to the Comptroller. Also publishes JSON, which is the cheapest possible parser validation target. RE-READ 17 Sept 2026: the page carries THREE files this entry did not have - the 2026 EARS submission (26 Aug), a 2026 SUPPLEMENTAL roll export (Supp 334) and a supplemental JSON (Supp 2, 29 Aug). LOAD THE CERTIFIED SUPP 0, NOT THE SUPPLEMENT: the certified roll is the legal snapshot the protest is against, and El Paso taught the same lesson in reverse - its header reads \"As of Supplement\" and is fresher than the July certification, so the two districts are NOT directly comparable without saying which snapshot each came from. Layout is 8.0.33, already in VALIDATED_EXPORT_VERSIONS via Tarrant, and load.mjs selects residential by stateCategory()==='A' rather than a per-district class list - so this district should need NO new code. NOT REACHABLE from the agent sandbox: traviscad.org is denied at the egress gateway in both the cloud container and the device VM (403 on CONNECT), so the zip has to be downloaded on the Mac. UPDATE 3 Oct 2026: traviscad.org now answers from the device VM, and the certified Supp 0 (557,228,168 bytes, sha256 62d0d1cd22b03f31db8d3986160eb181c5d00044df98a303fce9e17a44e9aa02) was downloaded there. LOADED 3 Oct 2026. Two things were new: (1) the zip uses the LEGACY SHORT MEMBER NAMES - PROP.TXT, IMP_DET.TXT, LAND_DET.TXT, APPR_HDR.TXT - with the identical 8.0.0.33 record lengths (9922/622/199), handled by LEGACY_MEMBER in load.mjs; (2) the dwelling is coded by storey (1ST 1st Floor, 2ND 2nd Floor, 3RD, 1/2 Half Floor), which no pattern matched, while 095 HVAC RESIDENTIAL matched RESID and was the only living area - fixed in lib/tx/pacs.js. situs_city is blank on ~44% of rows (28,134 of a 50,000-row sample carried one); situs_zip is populated on every residential row sampled.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-18",
+        "pattern_2025": null,
+        "access": "unknown",
+        "load_with": null,
+        "evidence": [
+          "https://traviscad.org/publicinformation/",
+          "https://traviscad.org/wp-content/largefiles/2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip"
+        ],
+        "notes": "traviscad.org returned 403 to every request from this sandbox (page, largefiles index, wp-json) and the Wayback Machine was unreachable, so nothing could be checked live. The district record (page re-read 17 Sept 2026) lists only certified Supp 0 (07/18/2026), supplemental exports and EARS, with no preliminary export. That fits the brief's 'no', but it is not confirmed for April-May 2026."
+      }
     },
     {
       "county": "El Paso",
@@ -95,7 +115,27 @@
         "schemas": "https://propertysearch.blob.core.windows.net/abepublicfiles/Schemas.txt"
       },
       "notes": "Best-organised of the 45. Stable paths mean this one CAN be polled on a schedule. Separate 2027 staging files already exist on the blob store. Layout is 8.0.34, one version ahead of most — validate the parser against both.",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": "APPRAISAL_ROLL.zip (rolling 'current' export per tx_districts.json); not verified",
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": null,
+        "pattern_2025": null,
+        "access": "browser only",
+        "load_with": null,
+        "evidence": [
+          "https://epcad.org/OpenGovernment",
+          "https://export.epcad.org/datasets/APPRAISAL_ROLL.zip",
+          "https://export.epcad.org/datasets/2026_EPCAD_Certified_Totals.pdf",
+          "https://archive.org/wayback/available?url=epcad.org/OpenGovernment&timestamp=20260415"
+        ],
+        "notes": "epcad.org and every zip on export.epcad.org return a Cloudflare 'Just a moment' challenge (403) to non-browser fetches, including names that don't exist, so I couldn't read file names or dates. Only PDFs come through: the 2026 Certified Totals PDF was last-modified 2026-08-13. The nearest Wayback snapshot of the data page is 16 Feb 2026, none from Apr-May, and web.archive.org itself is unreachable from here. Needs a human in a browser."
+      }
     },
     {
       "county": "Nueces",
@@ -113,7 +153,25 @@
         "certified_2025": "https://nuecescad.net/wp-content/uploads/2025/09/2025-Certified-Public-Export.zip"
       },
       "notes": "LOADED 16 Aug: 209,481 read -> 115,001 residential. Export header says 8.0.0.34 while the layout Nueces publishes is 8.0.33. Living area = MA \"MAIN AREA\".",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-08",
+        "pattern_2025": "Only the certified export (uploaded 2025/09). Preliminary exports were published for 2021 (dated 07/07/2021), 2022 and 2023 and are still listed, but none for 2024, 2025 or 2026.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://nuecescad.net/downloads-reports/",
+          "https://nuecescad.net/wp-content/uploads/2026/10/Certified-Public-Export-2026.zip"
+        ],
+        "notes": "The page keeps historical preliminary exports, so a missing 2026 one points to none being published. The 2021 preliminary export was dated July in any case. The certified 2026 file was first seen at /2026/08/ and re-posted at /2026/10/."
+      }
     },
     {
       "county": "Bell",
@@ -133,7 +191,25 @@
       "notes": "NOT PACS. Bell publishes an 'Appraisal Export Layout 8.0.33.xlsx' on its data page, but the actual export is 12 tab-delimited .tab files — externalnal, externalbld, externalland, externalsale, externalexemptions and others — most carrying a header row. Confirmed by opening the archive. The published layout document describes a format this district does not ship. Second district found doing this; treat every published layout as a hint, not a contract.",
       "verified_format_at": "2026-08-16",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 with the new scripts/tx/load-tab.mjs from 2026-Bell-County-Certified-Export-1.zip (152,646,234 bytes, members dated 29 Jul 2026). externalnal.tab carries heated area, year built, NBHD CD, subdivision and all value stages per account. 113,656 residential rows, 108,555 A1. Cap arithmetic (APPRAISED - HMS CAP - CB CAP = ASSESSED) misses by >$5 on 12 rows. No situs ZIP in the export."
+      "loaded_note": "LOADED 3 Oct 2026 with the new scripts/tx/load-tab.mjs from 2026-Bell-County-Certified-Export-1.zip (152,646,234 bytes, members dated 29 Jul 2026). externalnal.tab carries heated area, year built, NBHD CD, subdivision and all value stages per account. 113,656 residential rows, 108,555 A1. Cap arithmetic (APPRAISED - HMS CAP - CB CAP = ASSESSED) misses by >$5 on 12 rows. No situs ZIP in the export.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": "BellCAD-Preliminary-20260716.rar (only preliminary file now listed)",
+        "url": "https://bellcad.org/wp-content/uploads/2019/06/BellCAD-Preliminary-20260716.rar",
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": null,
+        "pattern_2025": "2025 certified export posted at /uploads/2025/07/ (2025-Bell-County-Certified-Export.7z); no 2025 preliminary file is listed.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://bellcad.org/data-portal/",
+          "https://bellcad.org/wp-content/uploads/2019/06/BellCAD-Preliminary-20260716.rar"
+        ],
+        "notes": "The page has a standing 'Preliminary Data as of file date' section (Excel and tab-delimited), but its current file is dated 2026-07-16 (Last-Modified 16 Jul 2026, 89 MB), which is too late. Bell overwrites files in a fixed /2019/06/ path, so any April–May version leaves no trace; Wayback was unreachable."
+      }
     },
     {
       "county": "Cameron",
@@ -153,7 +229,27 @@
         "gis_parcels": "https://www.cameroncad.org/cad/exports/GIS/parcels_public.zip"
       },
       "notes": "Best-structured offering in the state: full export, JSON, a simplified one-row-per-account file, and GIS parcels with appraisal attributes already joined. Terms state the data is 'considered in the public domain and is distributed without warranty of any kind'. Full export unzips to ~6.8 GB. LOADED 3 Oct 2026 from the certified export (200,873,408 bytes, sha256 2ec31d46e01cb54fa80c2993bf804900b06e9799490c7aeeabaf094e101e1b07), layout 8.0.0.33, standard member names, no code changes. 129,391 residential rows. Single-family class is A (not A1), same as Tarrant - pass --class=A to sellable.mjs. situs_zip is filled on only ~38% of homes; situs_city on ~91%. 45.6% capped either way, the highest of any loaded district, but neighbourhood dispersion 17.5 is also the highest, and the measured median reduction (11.1%) is the largest in the state.",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-23",
+        "pattern_2025": "Prodigy Reports list shows a 2025 Preliminary Totals PDF dated 30 Apr 2025 (and 24 Jun 2025); no bulk preliminary export found for 2025.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.cameroncad.org/Pages/Data",
+          "https://prod-container.trueprodigyapi.com/public/reportcategory/Preliminary%20Totals/search",
+          "https://www.cameroncad.org/cad/exports/GIS/parcels_public.zip",
+          "http://web.archive.org/web/20260516172914/https://www.cameroncad.org/Pages/Data"
+        ],
+        "notes": "The data page today lists only the 2026 certified exports (23/29 Jul) and a GIS parcel export, and the 2026 data in Prodigy Reports is totals PDFs only (prelim totals 28 Apr 2026). Lead: parcels_public.zip (last-modified 2026-09-17) is a rolling file whose DBF already has pYear 2027 plus stateCd and class, but no neighborhood code. If it was refreshed in April 2026 it would have carried 2026 working values, but that is not shown. A Wayback snapshot from 16 May 2026 exists but web.archive.org is unreachable from here, so a human should open it."
+      }
     },
     {
       "county": "Hays",
@@ -176,7 +272,25 @@
       "notes": "FIRST PILOT. The CSV property data export is self-describing — the header row names the fields — so it validates the schema without any layout guesswork. Also publishes ARB protest DECISIONS, which is the outcomes data we want for the expected-reduction model outside Harris.",
       "checked_note": "4 Oct 2026: hayscad.com answers 403 to every non-browser request (Cloudflare), including the 2026 Orion certified URL above. Same Orion export family as Fort Bend - scripts/tx/load-fbcad.mjs is the template - but the files need a browser download.",
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs from two browser downloads (Cloudflare blocks curl): the 2026 Orion certified export (19,445,548 bytes) for values, and 2026-PROPERTY-DATA-EXPORT-FILES-AS-OF-8-26-2026.zip for NbhdCode, LegalLocationCode and described segments. Hays publishes a CAD entity row. 85,937 residential rows, class A (not A1). Ag-use homesites carry their productivity reduction as AgMktValue - AgUseValue with AgLoss 0 - 1,357 rows; both Orion loaders now read it."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs from two browser downloads (Cloudflare blocks curl): the 2026 Orion certified export (19,445,548 bytes) for values, and 2026-PROPERTY-DATA-EXPORT-FILES-AS-OF-8-26-2026.zip for NbhdCode, LegalLocationCode and described segments. Hays publishes a CAD entity row. 85,937 residential rows, class A (not A1). Ag-use homesites carry their productivity reduction as AgMktValue - AgUseValue with AgLoss 0 - 1,357 rows; both Orion loaders now read it.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-18",
+        "pattern_2025": null,
+        "access": "unknown",
+        "load_with": null,
+        "evidence": [
+          "https://hayscad.com/data-downloads/",
+          "https://www.haysfreepress.com/article/26285,hays-county-appraisal-district-releases-2026-preliminary-appraised-values"
+        ],
+        "notes": "The data page returns 403 behind a Cloudflare challenge to both curl and WebFetch, and Wayback was unreachable, so the page could not be checked. Notices were mailed about 2026-04-01, and the press release (15 Apr) mentions no bulk download. The certified Orion export is from 2026-07-18, per its filename."
+      }
     },
     {
       "county": "Harris",
@@ -201,7 +315,28 @@
       },
       "notes": "RESOLVED 8 Sept 2026. Free, unauthenticated, direct URLs; 2027 404s so 2026 is current. ASCII TAB-DELIMITED with header rows per HCAD Import_Instructions — third-party repos calling it fixed-width describe older vintages. Bespoke schema, 13-digit acct, needs its own parser. Fields: heat_ar, date_erected, land_val, tot_mkt_val, tot_appr_val, Neighborhood_Code, state_class, qa_cd. NO condition code and NO explicit cap-loss field — a Cap_acct flag exists and cap loss is PROBABLY market minus appraised, but HCAD publishes no definition, so verify empirically before relying on it. UNIQUELY ships arb_protest_real.txt and arb_hearings_real.txt: real per-account protest and hearing OUTCOMES, which nobody else publishes. Refresh cadence in-season is UNKNOWN and is the open question that decides whether Harris works during Apr-May.",
       "resolved_at": "2026-09-08",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "CAMA/2026 Real Property set (Real_acct_owner.zip, Real_building_land.zip), labelled 'Preliminary Values' until certification",
+        "url": "https://download.hcad.org/data/CAMA/2026/Real_acct_owner.zip",
+        "first_seen_2026": "2026-04",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": null,
+        "pattern_2025": "HCAD's standing published timeline (not year-specific): Jan values pending; April 'Preliminary Values - Real'; May 'Preliminary Values - ARB Hearings'; May-Aug preliminary values updated weekly; mid-August certified.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://hcad.org/hcad-online-services/pdata/",
+          "https://hcad.org/pdata/pdata-property-downloads.html",
+          "https://hcad.org/actions/hcad-pdata/default/get-certification-flag?t=2026",
+          "https://hcad.org/actions/hcad-pdata/default/get-certification-flag?t=2027",
+          "https://download.hcad.org/data/CAMA/2026/Real_acct_owner.zip"
+        ],
+        "notes": "HCAD's own Public Data page states 'April: Preliminary Values - Real' and 'May thru August: Preliminary Values are updated Weekly'; the download page shows a per-year flag (2026 certflg=Y, 2027 certflg=N = 'Preliminary Values', lastUpdated Oct 18 2026). The April 2026 date comes from the published schedule, not an observed 2026 posting: files are overwritten in place (Last-Modified 2026-10-18) and the Wayback Machine was unreachable, so the actual 2026 first-post date is unverified."
+      }
     },
     {
       "county": "Galveston",
@@ -218,7 +353,25 @@
         "roll_2025_supp11": "https://galvestoncad.org/wp-content/uploads/2026/07/2025_AS_OF_SUPP11_APPRAISAL_W_OWNER_EXP3408.zip",
         "roll_2024_supp23": "https://galvestoncad.org/wp-content/uploads/2026/07/2024_AS_OF_SUPP23_APPRAISAL_W_OWNER_EXP3411.zip"
       },
-      "notes": "Deepest history of any district — certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql."
+      "notes": "Deepest history of any district — certified and preliminary rolls back to 2017, at supplement granularity. Useful for the year-over-year cap verification described in schema.sql.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": null,
+        "pattern_2025": "Only 'as of Supp N' appraisal exports, replaced over time (2025 Supp11 at 2026/07, Supp12 at 2026/08, Supp13 at 2026/10); no 2025 preliminary listed now.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://galvestoncad.org/current-and-historical-supplement-roll-export-data/",
+          "https://galvestoncad.org/wp-content/uploads/2026/10/2026_as_of_Supp1_Web_Export_w_Owner.zip"
+        ],
+        "notes": "The page lists no preliminary or certified (Supp 0) 2026 file. The first 2026 file is 'as of Supp 1', uploaded 2026/10. Older exports are replaced rather than kept, so a spring preliminary file could have been removed; Wayback was unreachable. PACS 8.0.34 layout (June 2026)."
+      }
     },
     {
       "county": "Jefferson",
@@ -235,7 +388,26 @@
         "certified_2025": "https://jcad.org/wp-content/uploads/2025/10/2025-CERTIFIED_2025_0_PUBLIC.zip"
       },
       "notes": "LOADED 16 Aug from the 2026 file: 154,028 read -> 80,553 residential. THE 2025 FILE IS LAYOUT 8.0.0.30 AND IS CORRECTLY REFUSED by the version guard — do not \"fix\" that by widening the accepted set without diffing the offsets first. Living area = HSE \"HOUSE\" plus SEC \"SECOND STORY\".",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-PRELIM-AS-OF-2026-05-12.zip",
+        "url": "https://jcad.org/wp-content/uploads/2026/05/2026-PRELIM-AS-OF-2026-05-12.zip",
+        "first_seen_2026": "2026-05",
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-20",
+        "pattern_2025": "Certified 7/21/2025 then supplements (7/22/2025, 8/04/2025 ...); no 2025 preliminary link remains on the page.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://jcad.org/data-download/",
+          "https://jcad.org/wp-content/uploads/2026/05/2026-PRELIM-TOTALS-AS-OF-2026-05-12.pdf",
+          "https://jcad.org/wp-content/uploads/2026/06/JCAD-2026-Prelim-Totals-6-25.pdf"
+        ],
+        "notes": "The 'Certified 7/20/2026' link still carries data-id=.../uploads/2026/05/2026-PRELIM-AS-OF-2026-05-12.zip, so a May preliminary export was published and later swapped out; it now returns 404. Data as of 12 May, uploaded in May 2026, but the exact upload day (before or after May 15) is unconfirmed. Neighborhood and class codes are likely, since it is the same PACS public export family, but were not verified."
+      }
     },
     {
       "county": "Brazos",
@@ -269,7 +441,27 @@
         "preliminary_2026": "https://kaufman-cad.org/wp-content/uploads/2026/05/2026-Preliminary-Full-Roll-Export.zip"
       },
       "loaded": true,
-      "notes": "LOADED 16 Aug: 108,592 read -> 65,012 residential. Living area = LA \"LIVING AREA\". 11 ragged records, well under threshold."
+      "notes": "LOADED 16 Aug: 108,592 read -> 65,012 residential. Living area = LA \"LIVING AREA\". 11 ragged records, well under threshold.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "Preliminary-Real-Property-Export-2026.zip (then 2026-Preliminary-Real-Roll-w-Improvement-Export.zip 04-21, 2026-Preliminary-Full-Roll-Export.zip 05-28)",
+        "url": "https://kaufman-cad.org/wp-content/uploads/2026/04/Preliminary-Real-Property-Export-2026.zip",
+        "first_seen_2026": "2026-04-17",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-17",
+        "pattern_2025": "Only 2025-Preliminary-ALL-Property-Data-Export.zip found, uploaded 2025-05-20 (after May 15). 2024: 05-20; 2023: real roll 04-17 then full 05-23.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://kaufman-cad.org/wp-json/wp/v2/media?search=preliminary&per_page=50&_fields=date,source_url",
+          "https://kaufman-cad.org/wp-content/uploads/2026/04/Preliminary-Real-Property-Export-2026.zip",
+          "https://kaufman-cad.org/wp-content/uploads/2026/04/2026-Preliminary-Real-Roll-w-Improvement-Export.zip",
+          "https://kaufman-cad.org/public-info/"
+        ],
+        "notes": "PACS 8.0.33 export; header reads 'PRELIMINARY REAL PROPERTY 2026', dated 04/17/2026. The 04-17 zip lacks improvement/land detail files; the 04-21 one adds them. April files are no longer linked on /public-info/ but still resolve."
+      }
     },
     {
       "county": "Wichita",
@@ -286,7 +478,26 @@
         "certified_real_2026": "https://wadtx.com/wp-content/uploads/2026/07/2026-CERTIFIED-REAL-ROLL.zip"
       },
       "notes": "LOADED 16 Aug: 60,174 read -> 42,249 residential. Data is 8.0.0.34 despite the published layout being 8.0.25. Living area = LV \"LIVING AREA\", not MA — this district is why the living-area matcher works on descriptions rather than codes.",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-REAL-PRELIM.zip (PACS export dated 2026-03-30: APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, STATE_CODE etc.)",
+        "url": "https://wadtx.com/wp-content/uploads/2026/03/2026-REAL-PRELIM.zip",
+        "first_seen_2026": "2026-03-30",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-17",
+        "pattern_2025": "2025-PRLIM-ROLL.zip uploaded 2025-04-24 (plus BPP prelim 2025-04-28, mineral prelim 2025-06-05); certified real roll 2025-07-22.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://wadtx.com/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00&mime_type=application/zip",
+          "https://wadtx.com/wp-content/uploads/2026/03/2026-REAL-PRELIM.zip",
+          "https://wadtx.com/reports/"
+        ],
+        "notes": "File is no longer linked on /reports/ (only certified rolls and mineral notices are), but it is still in the WordPress media library and downloads directly (30.7 MB, Last-Modified 2026-03-31). Zip directory shows a full PACS 8.0.x set; personal-property prelims also followed on 04-29 and 05-06."
+      }
     },
     {
       "county": "Taylor",
@@ -303,7 +514,26 @@
         "certified_2026": "https://taylor-cad.org/wp-content/uploads/2026/07/TaylorCAD_2026_Certified_Appr_Roll_as_of_Certification_31Jul26.zip"
       },
       "loaded": true,
-      "notes": "LOADED 16 Aug: 86,008 read -> 45,638 residential. Living area = MA \"MAIN AREA\"."
+      "notes": "LOADED 16 Aug: 86,008 read -> 45,638 residential. Living area = MA \"MAIN AREA\".",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-31",
+        "pattern_2025": "No 2025 appraisal-data zip uploads in the WP media library (only course-material zips).",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://taylor-cad.org/data-downloads/",
+          "https://taylor-cad.org/wp-json/wp/v2/media?search=export&per_page=40&after=2025-01-01T00:00:00&_fields=date,source_url",
+          "https://taylor-cad.org/wp-json/wp/v2/media?search=roll&per_page=40&after=2025-01-01T00:00:00&_fields=date,source_url"
+        ],
+        "notes": "Only certified (31 Jul 2026), adjusted certified and collection files are published; the earliest 2026 appraisal-data upload is an export layout file dated 4 Jun 2026. No preliminary file found."
+      }
     },
     {
       "county": "Grayson",
@@ -322,7 +552,27 @@
       },
       "notes": "Stable path — pollable on a schedule. Layout ships inside the zip.",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 from GCAD_Export.zip (89,837,548 bytes, header dated 17 Jul 2026 - the certification-time export, refreshed in place at a stable URL, so re-check the header date before any reload), layout 8.0.0.34. 52,062 residential rows, 46,504 A1. 11.9% have no living area, mostly no improvement-detail rows in the export. MH MOBILE HOME APPENDAGES was counted as living area (APPENDAGE now excluded)."
+      "loaded_note": "LOADED 3 Oct 2026 from GCAD_Export.zip (89,837,548 bytes, header dated 17 Jul 2026 - the certification-time export, refreshed in place at a stable URL, so re-check the header date before any reload), layout 8.0.0.34. 52,062 residential rows, 46,504 A1. 11.9% have no living area, mostly no improvement-detail rows in the export. MH MOBILE HOME APPENDAGES was counted as living area (APPENDAGE now excluded).",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "Preliminary_Export.zip (2026 Preliminary 5-3-2026, PACS 8.0.33)",
+        "url": "https://maps.graysonappraisal.org/export/Preliminary_Export.zip",
+        "first_seen_2026": "2026-05-04",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": null,
+        "pattern_2025": "A 2025 copy archived to wp-content/uploads/2026/01/Preliminary_Export.zip holds a 2025 Preliminary export dated 2025-06-09 (after May 15); earlier 2025 versions unknown.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://graysonappraisal.org/public-information/",
+          "https://maps.graysonappraisal.org/export/Preliminary_Export.zip",
+          "https://graysonappraisal.org/wp-content/uploads/2026/01/Preliminary_Export.zip",
+          "https://graysonappraisal.org/wp-json/wp/v2/media?search=preliminary&per_page=50&_fields=date,source_url"
+        ],
+        "notes": "Stable path overwritten in place: current Last-Modified 4 May 2026, header year 2026, so an earlier April version may have existed (Wayback unreachable). Certified date unknown; GCAD_Export.zip is a rolling export (now 2026-10-14) and a 2026 certified top-taxpayer PDF was posted 2026-09-01."
+      }
     },
     {
       "county": "Angelina",
@@ -339,7 +589,27 @@
         "certified_2026": "https://www.angelinacad.org/media-records/2026_Certified_Roll_Export.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 29,433 residential rows, 24,018 A1. SM8/SM9 MH COVER was counted as living area via MH - COVER now excluded."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 29,433 residential rows, 24,018 A1. SM8/SM9 MH COVER was counted as living area via MH - COVER now excluded.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": "2026 Preliminary Roll Export (06/26/26) = 2026-06-26_001415_APPRAISAL_INFO.zip (after deadline); 2026_PreliminaryTotals.zip (2026-05-01) is totals PDFs only",
+        "url": "https://www.angelinacad.org/media-records/2026-06-26_001415_APPRAISAL_INFO.zip",
+        "first_seen_2026": "2026-06-26",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-29",
+        "pattern_2025": "2025_PreliminaryRollExport.zip (export dated 2025-04-14, Last-Modified 2025-04-17), which would have been in season; certified 2025-07-31.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.angelinacad.org/open-records",
+          "https://www.angelinacad.org/media-records/2026_PreliminaryTotals.zip",
+          "https://www.angelinacad.org/media-records/2026-06-26_001415_APPRAISAL_INFO.zip",
+          "https://www.angelinacad.org/media-records/2025_PreliminaryRollExport.zip"
+        ],
+        "notes": "In 2026 the only property-level preliminary export listed is dated June 26, after the May 15 deadline. The 2025 April export is still listed, so the district appears to have skipped or delayed it in 2026. The Wayback Machine was unreachable, so an April 2026 file that was later removed can't be ruled out."
+      }
     },
     {
       "county": "Guadalupe",
@@ -355,7 +625,26 @@
         "certified_2026": "https://guadalupead.org/wp-content/uploads/2026/07/2026-GCO-Certified-Appraisal-Roll-Supp-0.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 from 2026-GCO-Certified-Appraisal-Roll-Supp-0.zip (73,167,463 bytes), layout 8.0.0.34, members under a subfolder, no code changes. 67,654 residential rows, 61,140 A1. 9.1% have no living area, almost all because the export carries no improvement-detail rows for them. BH BOAT HOUSE was matching HOUSE (BOAT now excluded)."
+      "loaded_note": "LOADED 3 Oct 2026 from 2026-GCO-Certified-Appraisal-Roll-Supp-0.zip (73,167,463 bytes), layout 8.0.0.34, members under a subfolder, no code changes. 67,654 residential rows, 61,140 A1. 9.1% have no living area, almost all because the export carries no improvement-detail rows for them. BH BOAT HOUSE was matching HOUSE (BOAT now excluded).",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-28",
+        "pattern_2025": "No 2025 preliminary or 2025 zip uploads in the WP media library; 2025 certified Supp 0/1 re-uploaded 2026-06-17.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://guadalupead.org/certified-appraisal-roll/",
+          "https://guadalupead.org/wp-json/wp/v2/media?search=roll&per_page=40&after=2025-01-01T00:00:00&_fields=date,source_url",
+          "https://guadalupead.org/wp-content/uploads/2026/04/April-2026-For-Immediate-Release-Notice-Mailing.pdf"
+        ],
+        "notes": "Only certified rolls and supplements (PACS) are published; media-library searches for prelim/export/notice/data show no 2026 preliminary file. Notices mailed April 2026 per press release."
+      }
     },
     {
       "county": "Johnson",
@@ -373,7 +662,27 @@
       },
       "notes": "Certified filename is an opaque batch number — the listing page must be parsed, the URL cannot be constructed.",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-tab.mjs. NOT PACS despite the catalogue: BATCH_896.all_.zip (45,043,599 bytes, 10 Aug 2026) is the same external*.tab set as Bell. Account key is ACCOUNT (R-prefixed); GEO ACCOUNT NUM matches the acreage file strap. 60,014 residential rows, 49,151 A1. 574 repeated accounts dropped as identical; 4 repeat with different values (first kept, logged). Cap arithmetic held on every row. No situs ZIP in the export."
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-tab.mjs. NOT PACS despite the catalogue: BATCH_896.all_.zip (45,043,599 bytes, 10 Aug 2026) is the same external*.tab set as Bell. Account key is ACCOUNT (R-prefixed); GEO ACCOUNT NUM matches the acreage file strap. 60,014 residential rows, 49,151 A1. 574 repeated accounts dropped as identical; 4 repeat with different values (first kept, logged). Cap arithmetic held on every row. No situs ZIP in the export.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "JCAD-2026-Preliminary-Data-2026-03-31.zip (refreshed 2026-04-06 and 2026-04-27; later 2026-Preliminary-Data-06-16-26)",
+        "url": "https://johnsoncad.com/wp-content/uploads/2026/03/JCAD-2026-Preliminary-Data-2026-03-31.zip",
+        "first_seen_2026": "2026-03-31",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-08-10",
+        "pattern_2025": "2025-Preliminary-Data-04-15-2025.zip uploaded 2025-04-15, then 2025-Preliminary-Data-Roll.zip 2025-06-11 (WP media library).",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://johnsoncad.com/wp-json/wp/v2/media?search=preliminary&per_page=50&_fields=date,source_url",
+          "https://johnsoncad.com/wp-content/uploads/2026/03/JCAD-2026-Preliminary-Data-2026-03-31.zip",
+          "https://johnsoncad.com/wp-content/uploads/2026/04/JCAD-2026-Preliminary-Data-2026-04-27.zip",
+          "https://johnsoncad.com/downloads/"
+        ],
+        "notes": "The March/April prelim zips still resolve (42 MB, Last-Modified 31 Mar / 27 Apr 2026) but are no longer linked on /downloads/ (only the 16 Jun one is). Same tab-delimited layout as certified: externalnal.tab has NBHD CD and BUILDING PTD / LAND PTD (state class)."
+      }
     },
     {
       "county": "Victoria",
@@ -389,7 +698,25 @@
         "certified_2026": "https://victoriacad.org/wp-content/uploads/2026/07/VCAD-2026-CERTIFIED-ROLL-1.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 28,120 residential rows, 25,351 A1. The dwelling is described by storey count alone (MA_1 \"1 STORY\") - now an anchored include in lib/tx/pacs.js."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 28,120 residential rows, 25,351 A1. The dwelling is described by storey count alone (MA_1 \"1 STORY\") - now an anchored include in lib/tx/pacs.js.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-27",
+        "pattern_2025": "Same: only mineral notices (2025-06-02) and certified rolls (2025-07-29); no real-property preliminary export.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://victoriacad.org/downloads/",
+          "https://victoriacad.org/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00"
+        ],
+        "notes": "The WordPress media library for 2025 to 2026 has no preliminary or notice export for real property, only certified rolls (July) and mineral notices. The certified roll is PACS."
+      }
     },
     {
       "county": "Midland",
@@ -437,7 +764,28 @@
       },
       "notes": "The certified and preliminary rolls sit behind pCloud share links rather than plain HTTP, so they cannot be curl'd directly. Historic data back to 1998.",
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (no code changes beyond the OFP exclude). The certified roll is NOT the Protax zip on the page: it is 2026-07-23_2026_BRAZORIA_COUNTY_CERTIFIED.zip (200,129,942 bytes, sha256 bf43b1d6bc8daea2d562d7d4e09c751d38657a7ffd22a8ca6a22c5c47cf7fe30) in the pCloud folder \"(A) CURRENT CERTIFIED ROLL\", share code kZYMUV7ZD6GgiyP3moR0gLKHGc1l5Qd0c9xV. pCloud resolves without a browser: api.pcloud.com/showpublink?code=<code> lists fileids, getpublinkdownload?code=<code>&fileid=<id> returns the host and path. Standard PACS 8.0.0.34. 121,523 residential rows, 112,995 A1. The ProTax_*.txt zip is headerless pipe-delimited with only a 2012 improvements layout - not used."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (no code changes beyond the OFP exclude). The certified roll is NOT the Protax zip on the page: it is 2026-07-23_2026_BRAZORIA_COUNTY_CERTIFIED.zip (200,129,942 bytes, sha256 bf43b1d6bc8daea2d562d7d4e09c751d38657a7ffd22a8ca6a22c5c47cf7fe30) in the pCloud folder \"(A) CURRENT CERTIFIED ROLL\", share code kZYMUV7ZD6GgiyP3moR0gLKHGc1l5Qd0c9xV. pCloud resolves without a browser: api.pcloud.com/showpublink?code=<code> lists fileids, getpublinkdownload?code=<code>&fileid=<id> returns the host and path. Standard PACS 8.0.0.34. 121,523 residential rows, 112,995 A1. The ProTax_*.txt zip is headerless pipe-delimited with only a 2012 improvements layout - not used.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": "2026_BRAZORIA_COUNTY _PRELIM_ALL.zip (pCloud folder '2026 Preliminary (Real, Mobile Home, & Minerals)')",
+        "url": "https://u.pcloud.link/publink/show?code=XZozEI5Z1PGl0VyK0YktEOohtankuS3KPWYV",
+        "first_seen_2026": "2026-06-01",
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-23",
+        "pattern_2025": "pCloud archive holds 2025 certified roll dated 2025-07-25 plus JUNE_27_2025 PROPERTY.xlsx / OWNER.xlsx; no 2025 preliminary file survives.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://brazoriacad.org/public-gis-and-property-data-downloads/",
+          "https://api.pcloud.com/showpublink?code=XZozEI5Z1PGl0VyK0YktEOohtankuS3KPWYV",
+          "https://api.pcloud.com/showpublink?code=kZYMUV7ZD6GgiyP3moR0gLKHGc1l5Qd0c9xV",
+          "https://brazoriacad.org/wp-content/uploads/2026/05/2026-PRELIM-TOTALS-TIRZ.zip",
+          "https://brazoriacad.org/wp-content/uploads/2026/05/Notices-05.26.2026.xlsx"
+        ],
+        "notes": "The only preliminary roll file now in the share is 172 MB, created 2026-06-01, after May 15. The page says the link is refreshed 'as new notice exports are run' and is labelled 'as June 2026', so earlier versions may have existed but cannot be proven (Wayback was unreachable). Prelim TIRZ totals were posted 2026-05-06 and a 30 MB 'Notice Date' xlsx on 2026-05-26 (contents not checked). pCloud's public API gives the file dates without a login."
+      }
     },
     {
       "county": "Collin",
@@ -456,7 +804,30 @@
       },
       "notes": "Lite export is a zipped MS Access .mdb — needs mdbtools to read on macOS/Linux. Collin also self-publishes a 502k-row property slice to data.texas.gov (5tkr-3759) with nbhdCode and marketAreaCode but NOT values, and its protest data as xmrt-bxjr. Data described as public domain. 18 Sept 2026: data.texas.gov also carries a PRELIMINARY Collin dataset (nne4-8riu) alongside the certified years - the only in-season dataset found on any district so far. NOT VERIFIED: data.texas.gov is denied at the agent egress gateway and the Socrata pages are JS-rendered, so its schema is unread. Given 5tkr-3759 carries no values, assume this one does not either until the Socrata metadata endpoint api/views/nne4-8riu.json is read.",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-collin.mjs from AppraisalData-Public-2026.csv (396,554,129 bytes, dataDate 28 Sept 2026) in the same public folder - a flat one-row-per-property CSV, so no .mdb reader was needed. NO certified snapshot is published: this is certification plus supplements; 15,859 class-A rows still marked Preliminary were excluded. 8,304 undivided-interest shares merged into 4,092 properties. 344,247 class-A rows (Collin uses A, not A1 - pass --class=A to sellable.mjs). The folder also carries ApprNotices.csv (April notice values) and ARBProtests.csv - worth a look for in-season data."
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-collin.mjs from AppraisalData-Public-2026.csv (396,554,129 bytes, dataDate 28 Sept 2026) in the same public folder - a flat one-row-per-property CSV, so no .mdb reader was needed. NO certified snapshot is published: this is certification plus supplements; 15,859 class-A rows still marked Preliminary were excluded. 8,304 undivided-interest shares merged into 4,092 properties. 344,247 class-A rows (Collin uses A, not A1 - pass --class=A to sellable.mjs). The folder also carries ApprNotices.csv (April notice values) and ARBProtests.csv - worth a look for in-season data.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "data.texas.gov dataset 'Collin CAD Appraisal Data - Preliminary' (nne4-8riu), plus 'Collin CAD Appraisal Notices' (t37e-qpsx)",
+        "url": "https://data.texas.gov/resource/nne4-8riu.json",
+        "first_seen_2026": "2026-04",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-08-13",
+        "pattern_2025": "The Preliminary dataset was published 2025-02-19 and is updated daily. The notices dataset holds 2025 notices dated 2025-04-15 with a 2025-05-15 protest deadline. The 2025 certified dataset (vffy-snc6) was created 2025-09-02.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://collincad.org/open-data-portal/",
+          "https://data.texas.gov/api/views/nne4-8riu.json",
+          "https://data.texas.gov/resource/nne4-8riu.json?$select=propyear,count(*)&$group=propyear",
+          "https://data.texas.gov/api/views/t37e-qpsx.json",
+          "https://data.texas.gov/resource/t37e-qpsx.json?$select=noticeyear,min(noticedate),max(noticedate),count(*)&$group=noticeyear",
+          "https://data.texas.gov/api/catalog/v1?q=Collin%20CAD%20Appraisal%20Data",
+          "https://data.texas.gov/resource/5tkr-3759.json?$select=propcategorycode,count(*),count(currvalmarket),count(nbhdcode)&$group=propcategorycode"
+        ],
+        "notes": "The Preliminary dataset (Update Frequency: Daily) has columns nbhdcode, marketareacode, propcategorycode (state category, e.g. 'A'), imprvclasscd, and noticeval*/currval*/prevval* values. It now holds propyear 2027 (508,692 rows) with no values yet, which confirms it rolls to the upcoming year. The 2026 notice rows are dated from 2026-04-15, so 2026 notice values were in season. Its exact April 2026 contents were not observed. Correction to tx_districts.json: 5tkr-3759 (2026 certified) DOES carry values (364,403 category-A rows, all with currvalmarket, nearly all with nbhdcode), and data.texas.gov is now reachable."
+      }
     },
     {
       "county": "Williamson",
@@ -477,7 +848,29 @@
       "files": {},
       "notes": "Four published layout PDFs — the best documentation after HCAD. Data files route through a Socrata browse portal (data.wcad.org) rather than direct links, so the file URLs are not captured. Disclaimer is as-is with no commercial restriction.",
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-wcad.mjs. data.wcad.org is a Socrata portal; each table downloads as CSV from /api/views/<id>/rows.csv?accessType=DOWNLOAD. Used: ai3c-c9pf Property - Certified (values, nbhd, living area, situs; Tax Year 2026), cvyp-ab5t Property Characteristics (StateCode, YearBuild), nbn7-h4pp Exemptions. DO NOT USE Asmt - Certified (yeqp-u7bx) or Final Values - Certified (2a8c-uwfx) for 2026 values - they return the 2025 figure. 225,276 residential rows, 207,822 A1; 83,545 properties with no characteristics row (no state class) not loaded. Cap loss is market minus assessed, one figure, booked by exemption. Also on the portal: Property - Preliminary, Final Values - Preliminary, Appeals, Sales - in-season data worth a look."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-wcad.mjs. data.wcad.org is a Socrata portal; each table downloads as CSV from /api/views/<id>/rows.csv?accessType=DOWNLOAD. Used: ai3c-c9pf Property - Certified (values, nbhd, living area, situs; Tax Year 2026), cvyp-ab5t Property Characteristics (StateCode, YearBuild), nbn7-h4pp Exemptions. DO NOT USE Asmt - Certified (yeqp-u7bx) or Final Values - Certified (2a8c-uwfx) for 2026 values - they return the 2025 figure. 225,276 residential rows, 207,822 A1; 83,545 properties with no characteristics row (no state class) not loaded. Cap loss is market minus assessed, one figure, booked by exemption. Also on the portal: Property - Preliminary, Final Values - Preliminary, Appeals, Sales - in-season data worth a look.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "Socrata 'Preliminary' datasets on data.wcad.org: Property - Preliminary (553d-hn26), Final Values - Preliminary (w6ik-bzmf), Improvement Real Property - Preliminary (nncq-auvt), Imp Seg Real Property - Preliminary, etc.",
+        "url": "https://data.wcad.org/browse?q=preliminary&sortBy=relevance",
+        "first_seen_2026": "2026-04",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-31",
+        "pattern_2025": "Same datasets have existed since Dec 2020 and are re-used each year; dataset description says 'updated weekly beginning April 1st'. No 2025-specific dates found.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.wcad.org/data-downloads/",
+          "https://data.wcad.org/api/catalog/v1?domains=data.wcad.org&limit=200",
+          "https://data.wcad.org/api/views/w6ik-bzmf.json",
+          "https://data.wcad.org/api/views/553d-hn26.json",
+          "https://data.wcad.org/api/views/nncq-auvt.json",
+          "https://documents.wcad.org/DataDownloads/DailyUpdatedTables.pdf"
+        ],
+        "notes": "The 'Final Values - Preliminary' description says 'This dataset is updated weekly beginning April 1st.' The April 2026 date comes from that description; I did not see an April snapshot (Socrata keeps only the latest load, now tax_year 2026, datadate 2026-07-25, 323,111 rows). 'Property - Preliminary' has neighborhoodcode/neighborhooddesc; 'Improvement Real Property - Preliminary' has fsptb (state class). Free Socrata API/CSV, no login."
+      }
     },
     {
       "county": "Fort Bend",
@@ -497,7 +890,29 @@
       "notes": "STALE — the newest file on the page is the 2024 certified export. No 2025 or 2026. This is a live gap for a Houston-metro county of 850k people and warrants a phone call, not a scraper. No published layout either.",
       "loaded": true,
       "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-fbcad.mjs. NOT STALE: 2026 files are on /certified-and-supplements-reports/, not /data-files/. Used 2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip (wp-content/uploads/2026/08/, 58,776,333 bytes) and WebsiteResidentialSegs.zip (2026/07/). No neighbourhood code in anything published; abs_subdv_cd is the PropertyNumber subdivision-section prefix. Values from the G01 (county) entity row - there is no CAD entity. 289,885 residential rows, 279,917 A1. Supplements 1-3 for 2026 are also on that page.",
-      "stale_note_superseded": true
+      "stale_note_superseded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "Property-Data-3-27-2026-Redacted.zip, then Property-Data-Export-Redacted.zip (20 Apr) and May4_PropertyDataExport-Redacted.zip (4 May): Property/Land/Improvement/Segment/Sales/Owner CSVs. Also the Orion '2026 Preliminary Export' zips (27 Mar, 21 Apr, 3 May, 18 May), which have state codes but no neighborhood code",
+        "url": "https://www.fbcad.org/wp-content/uploads/2026/04/Property-Data-Export-Redacted.zip",
+        "first_seen_2026": "2026-03-27",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-15",
+        "pattern_2025": "Same pattern in 2025: Property-Data-Export 31 Mar 2025, Orion 2025 Preliminary Export 1 Apr, 23 Apr and 6 May 2025, Property Data Export 2 May and 17 May, more through June. Certified export uploaded 18 Jul 2025.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.fbcad.org/certified-and-supplements-reports/",
+          "https://www.fbcad.org/wp-json/wp/v2/media?search=Preliminary&per_page=100",
+          "https://www.fbcad.org/wp-content/uploads/2026/03/Property-Data-3-27-2026-Redacted.zip",
+          "https://www.fbcad.org/wp-content/uploads/2026/04/Property-Data-Export-Redacted.zip",
+          "https://www.fbcad.org/wp-content/uploads/2026/04/2026_04_21_0828-Orion-2026-Preliminary-Export-Redacted.zip",
+          "https://www.fbcad.org/wp-content/uploads/2026/07/2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip"
+        ],
+        "notes": "The live data page is /certified-and-supplements-reports/ ('PCS Data'). The old /data-files/ page in tx_districts.json stopped updating in Jan 2025, which is why it looked stale. The page describes these as 'Preliminary 2026 ... all values in our system as of a given date'. I read the Property Data Export headers by range request (CurrMarketValue, NbhdCode, NbhdDesc; StateCode on the Land and Improvement files). The Orion export (TaxYear 2026, SupplementNumber PRE) has StateCodeLand/StateCodeImp but no neighborhood field, according to its bundled layout. Not checked: whether CurrMarketValue in the 3/27 file equals the noticed value."
+      }
     },
     {
       "county": "Dallas",
@@ -515,7 +930,26 @@
       },
       "notes": "RESOLVED 8 Sept 2026. The 15 Aug entry said \"unknown format / likely paid\" and BOTH were wrong: it is free, no registration, no published licence or redistribution restriction. NOT PACS — in-house CAMA called MARS on SQL Server. Use the comma-delimited relational set, not the fixed roll: the fixed roll has no year built, no neighborhood code and no class code. CSV set carries NBHD_CD, SPTD_CD, BLDG_CLASS_DESC, TOT_LIVING_AREA_SF, YR_BUILT and CAPPED_HS_AMT (a real explicit cap-loss field, better than Harris). Residential condition absent; DESIRABILITY_RATING is the only proxy. Dictionary ships inside the zip. Also publishes MAIL1/2/3 notice-value files, which is what makes the April window workable.",
       "resolved_at": "2026-09-08",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "MAIL1_APPRAISAL_NOTICE_DATA_2026.zip (member MAIL1_APPRAISAL_NOTICE_DATA_2026.csv; also MAIL2 BPP and MAIL3 later mailing)",
+        "url": "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5Cdcad.org%5Cweb%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CMAIL1_APPRAISAL_NOTICE_DATA_2026.zip",
+        "first_seen_2026": "2026-03",
+        "carries_neighborhood": "no",
+        "carries_state_class": "no",
+        "certified_2026_seen": "2026-07-24",
+        "pattern_2025": "Same: 2025 Mail 1/2/3 Appraisal Notice Data files are listed; 2025 certified files dated 07/24/2025.",
+        "access": "free direct",
+        "load_with": "scripts/tx/overlay-values.mjs --format dcad-notice",
+        "evidence": [
+          "https://www.dallascad.org/DataProducts.aspx",
+          "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5Cdcad.org%5Cweb%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CMAIL1_APPRAISAL_NOTICE_DATA_2026.zip",
+          "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5Cdata%20products%5CDCAD2027_CURRENT.zip"
+        ],
+        "notes": "First 200 KB of the zip read: the CSV inside is timestamped 2026-03-30, is tab-delimited with no header row, and each row is year, 17-digit account, value columns, and dates 2026-05-18 / 2026-05-15 (protest deadline) / 2026-07-17. There are no neighborhood or class codes, so comps need a join on account to the CURRENT/certified CSV set (NBHD_CD, SPTD_CD). The 'first seen' date is the zip member timestamp; the site gives no posting date. Separately, DCAD2027_CURRENT.zip is already rebuilt as APPRAISAL_YR 2027 (members dated 2026-10-12), which suggests DCAD2026_CURRENT may also have carried 2026 values in season. Not verified."
+      }
     },
     {
       "county": "Tarrant",
@@ -538,7 +972,27 @@
       "resolved_at": "2026-09-08",
       "layout_verified_against": "pacs_8_0_34.json",
       "layout_verified_on": "2026-09-09",
-      "loaded": true
+      "loaded": true,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": "PropertyData(Delimited)_R.ZIP (legacy pipe-delimited, refreshed continuously); True Prodigy extract 000_Tarrant_All_Taxing_Units.zip ('2026 True Prodigy Data Extract - Revised Weekly')",
+        "url": "https://www.tad.org/content/data-download/PropertyData(Delimited)_R.ZIP",
+        "first_seen_2026": null,
+        "carries_neighborhood": "no",
+        "carries_state_class": "yes",
+        "certified_2026_seen": null,
+        "pattern_2025": "2025 legacy PropertyData (Certified) sets and 'Agent Summary Data 2025 - Revised Weekly'; in-season availability in 2025 not established.",
+        "access": "free direct",
+        "load_with": "scripts/tx/overlay-values.mjs --format tad-r",
+        "evidence": [
+          "https://www.tad.org/resources/data-downloads",
+          "https://www.tad.org/content/data-download/PropertyData(Delimited)_R.ZIP",
+          "https://www.tad.org/content/data-download/000_Tarrant_All_Taxing_Units.zip",
+          "https://www.tad.org/content/data-download/TP_Legacy8.0.33-AppraisalExportLayout.zip"
+        ],
+        "notes": "Header of PropertyData_R (Last-Modified 2026-10-19) read: it carries Appraisal_Year 2026, Notice_Date 2026-04-15, values, Property_Class and State_Use_Code ('A'), but no neighborhood code; LegalDescription and TAD_Map are the only area proxies. Both files are overwritten in place, so their April-May 2026 existence can't be shown (Wayback was unreachable). The True Prodigy layout zip is dated 2026-07-20, which suggests the PACS extract (which has hood_cd) arrived after the deadline."
+      }
     },
     {
       "county": "Denton",
@@ -563,7 +1017,26 @@
       },
       "loaded": true,
       "loaded_at": "2026-09-21",
-      "rows_in_db": 299329
+      "rows_in_db": 299329,
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-27",
+        "pattern_2025": "Same: the 2025 directory holds only certified extracts (folders dated 2025-07-28) plus RollCorrections; no preliminary data.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://dentoncad.net/data/_uploaded/files/datafiles/",
+          "https://dentoncad.net/data/_uploaded/files/datafiles/2026/",
+          "https://dentoncad.net/data/_uploaded/files/datafiles/2025/"
+        ],
+        "notes": "The open Apache index shows the 2026/ folder created 2026-07-24. The only thing in it before then is AppraisalExportLayout (2026-02-17); the Certified* folders are dated 2026-07-27/29. No preliminary or notice export. The neighborhood/class answers describe the certified PACS export, not an in-season file."
+      }
     },
     {
       "county": "Montgomery",
@@ -587,7 +1060,28 @@
       "notes": "RESOLVED 20 Sept 2026 IN A BROWSER, because the page is a Prodigy single-page app that serves an empty shell to every non-browser fetch. FREE, no login, certified rolls back to 2019. ** THIS DISTRICT PUBLISHES A PRELIMINARY ROLL ** - the only one found on any district so far, and it is the answer to the open question in TX_Model_Decided (\"Which districts publish a preliminary roll in April, and when?\"). A preliminary roll carries NOTICED values before certification, which is the only current-year data that exists before the 15 May deadline. Whether it appears in April rather than merely existing for 2026 is STILL UNCHECKED - look again after 1 April. FILES ARE ON GOOGLE DRIVE, not the district domain, and drive.google.com is denied at the agent egress gateway like every CAD host, so the download is a human step. Google Drive also interstitials large files, so a plain curl of the uc?export=download URL returns an HTML confirmation page rather than the zip.",
       "resolved_at": "2026-09-20",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 from Certified Appraisal Roll 2026.zip (397,123,927 bytes, sha256 1fbfc70655bf83a5356322ff95a942091baf42bb6779c54c1fd3a7fea0201083), layout 8.0.0.33. Google Drive IS now reachable from the device VM: GET uc?export=download&id=<ID>, read the uuid from the interstitial form, then GET drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t&uuid=<uuid>. 246,741 residential rows, 221,160 A1. Needs --max-old-space-size=8192 (OOMs at 3.2 GB). Two fixes it forced: SM4 Skirting/mh was counted as living area via MH (SKIRT now excluded), and account 000000323405 carries its 13,866 sqft lot in the acres field, which overflowed numeric(12,4) and rolled back the COPY (acresOrNull in load.mjs)."
+      "loaded_note": "LOADED 3 Oct 2026 from Certified Appraisal Roll 2026.zip (397,123,927 bytes, sha256 1fbfc70655bf83a5356322ff95a942091baf42bb6779c54c1fd3a7fea0201083), layout 8.0.0.33. Google Drive IS now reachable from the device VM: GET uc?export=download&id=<ID>, read the uuid from the interstitial form, then GET drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t&uuid=<uuid>. 246,741 residential rows, 221,160 A1. Needs --max-old-space-size=8192 (OOMs at 3.2 GB). Two fixes it forced: SM4 Skirting/mh was counted as living area via MH (SKIRT now excluded), and account 000000323405 carries its 13,866 sqft lot in the acres field, which overflowed numeric(12,4) and rolled back the COPY (acresOrNull in load.mjs).",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026_MCAD_Preliminary .zip (PACS text export: files 2026-04-17_2026_APPRAISAL_INFO.TXT etc.), plus 2026_MCAD_Preliminary_JSON.zip",
+        "url": "https://drive.google.com/file/d/1BzJR8uO9ho83TTJ3bzZLaxXuArxgvtEC/view",
+        "first_seen_2026": "2026-04-17",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-08-04",
+        "pattern_2025": "Unknown. The page now lists only the 2026 preliminary roll; the 2025 certified file (MCAD_Certified_2025_071626.zip) is a July 2026 re-export.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://mcad-tx.org/appraisal-data-exports",
+          "https://cdn.builder.io/api/v3/content/page?apiKey=b635c7175b7e4189adcce8edeafb6e89&url=/appraisal-data-exports",
+          "https://drive.google.com/file/d/1BzJR8uO9ho83TTJ3bzZLaxXuArxgvtEC/view",
+          "https://drive.google.com/file/d/1VbACdMUGzj4r5PTWPmSqN_wOP8KnrBPa/view",
+          "https://drive.google.com/file/d/1pQvjZX9rnM-vUOwhGuLfiWpZ3S9Ms2mr/view"
+        ],
+        "notes": "The Drive file's last-modified is 2026-04-17 14:51 GMT. Every member inside the zip is named and dated 2026-04-17 (APPRAISAL_HEADER, APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, STATE_CODE ...), and APPRAISAL_INFO rows carry year 2026. Neighborhood and state class are 'yes' on the standard PACS APPRAISAL_INFO layout (hood_cd, imprv_state_cd); I did not parse those columns. Drive date = upload date, so when it was linked on the page isn't proven. Drive downloads now work from this sandbox via drive.usercontent.google.com with the confirm/uuid token."
+      }
     },
     {
       "county": "Hidalgo",
@@ -601,7 +1095,27 @@
       "files": {},
       "checked_note": "Checked 3 Oct 2026: /data-downloads offers only (1) a monthly GIS shapefile zip on Google Drive (HCADShapefiles.zip, id 1jdNqzlfEVDkSbWp2eva7S1U93rlDhZdo, ~148 MB) whose data.csv has per-account values, caps, main area and year built but NO neighbourhood or subdivision code, and (2) a Dropbox \"2026 TYP Certified Export\" that is minerals only. Loadable only with a bespoke loader deriving subdivision from legalDescription.",
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-hidalgo.mjs from the GIS zip data.csv (hidalgo_gis.zip, 155,074,784 bytes, data.csv dated 4 Aug 2026). CURRENT roll, not a certified snapshot. No neighbourhood code exists in anything Hidalgo publishes: neighborhood_code is NULL and abs_subdv_cd is the subdivision name parsed from legalDescription (8,209 subdivisions; 95% of homes in one of >= 10). countyStats therefore carries no dispersion for Hidalgo and the county page makes no neighbourhood claim. capValue is ONE combined cap loss, assigned to homestead or circuit-breaker by exemption. 237,981 residential rows, 211,907 A1; 6 rows excluded for broken cap arithmetic; 14 rows have unescaped quotes, handled by the splitter. No situs ZIP; situs city on ~60%."
+      "loaded_note": "LOADED 3 Oct 2026 with scripts/tx/load-hidalgo.mjs from the GIS zip data.csv (hidalgo_gis.zip, 155,074,784 bytes, data.csv dated 4 Aug 2026). CURRENT roll, not a certified snapshot. No neighbourhood code exists in anything Hidalgo publishes: neighborhood_code is NULL and abs_subdv_cd is the subdivision name parsed from legalDescription (8,209 subdivisions; 95% of homes in one of >= 10). countyStats therefore carries no dispersion for Hidalgo and the county page makes no neighbourhood claim. capValue is ONE combined cap loss, assigned to homestead or circuit-breaker by exemption. 237,981 residential rows, 211,907 A1; 6 rows excluded for broken cap arithmetic; 14 rows have unescaped quotes, handled by the splitter. No situs ZIP; situs city on ~60%.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": "HCADShapefiles.zip (GIS parcels plus data.csv/data.mdb appraisal table), the only bulk real-property file on the Data Downloads page",
+        "url": "https://drive.google.com/file/d/1jdNqzlfEVDkSbWp2eva7S1U93rlDhZdo/view",
+        "first_seen_2026": null,
+        "carries_neighborhood": "no",
+        "carries_state_class": "yes",
+        "certified_2026_seen": null,
+        "pattern_2025": "Prodigy Reports list shows 2025 Preliminary Totals PDFs only (first 6 May 2025, weekly to 23 Jun). No bulk preliminary export found.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.hidalgoad.org/data-downloads",
+          "https://cdn.builder.io/api/v3/content/page?apiKey=b3a296d626784710bd8fa763e31fe3d7&url=/data-downloads",
+          "https://prod-container.trueprodigyapi.com/public/reportcategory/Preliminary%20Totals/search",
+          "https://drive.google.com/file/d/1jdNqzlfEVDkSbWp2eva7S1U93rlDhZdo/view"
+        ],
+        "notes": "The page says parcel data is 'exported monthly and joined to appraisal data'. The Drive file keeps one ID and is overwritten each time (current copy last-modified 2026-08-04), so I can't tell what it held in April 2026. data.csv has stateCd and market/appraised/cap values, but no neighborhood code and no tax-year column. For 2026 there are only Preliminary Totals PDFs (first 11 May 2026) and a Certified Totals PDF (29 Jul 2026). The 'Certified Exports' Dropbox link is the TYP mineral roll."
+      }
     },
     {
       "county": "McLennan",
@@ -638,7 +1152,27 @@
       "confidence": "indexed",
       "files": {},
       "loaded": true,
-      "loaded_note": "LOADED 3 Oct 2026. The real page is /data-exports (Prodigy SPA - browser only), which lists certified, adjusted and PRELIMINARY rolls back several years, all on Google Drive. 2026 certified: RCAD CERT 2026 APP ROLL 07_13_2026.zip, Drive id 1Ekz8ijj32TIMF_g7JsAOq-Yy8A5jXey6, 1,365,390,494 bytes, sha256 a8b5d788353358fdc4f7815722a1f02e69861016d7e0ba4026a8ac2cb65d77f4, layout 8.0.0.33. Preliminary 2026 rolls as of 16 March (1v8ROCSty1do5sgoKWWCzJ4h0UnzVwNow) and 26 May (1juamoCBY39eg861J86SaUoaJJrShrAlV) - the second district found publishing in-season data, and the earliest (March). 44,233 residential rows, 40,528 A1. situs_zip only ~26% filled."
+      "loaded_note": "LOADED 3 Oct 2026. The real page is /data-exports (Prodigy SPA - browser only), which lists certified, adjusted and PRELIMINARY rolls back several years, all on Google Drive. 2026 certified: RCAD CERT 2026 APP ROLL 07_13_2026.zip, Drive id 1Ekz8ijj32TIMF_g7JsAOq-Yy8A5jXey6, 1,365,390,494 bytes, sha256 a8b5d788353358fdc4f7815722a1f02e69861016d7e0ba4026a8ac2cb65d77f4, layout 8.0.0.33. Preliminary 2026 rolls as of 16 March (1v8ROCSty1do5sgoKWWCzJ4h0UnzVwNow) and 26 May (1juamoCBY39eg861J86SaUoaJJrShrAlV) - the second district found publishing in-season data, and the earliest (March). 44,233 residential rows, 40,528 A1. situs_zip only ~26% filled.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026 PRELIMINARY APPRAISAL ROLL as of March 16, 2026 (RCAD PRELIM 2026 APP ROLL 03_16_2026.zip); second prelim as of May 26, 2026",
+        "url": "https://drive.google.com/file/d/1v8ROCSty1do5sgoKWWCzJ4h0UnzVwNow/view",
+        "first_seen_2026": "2026-03-16",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-13",
+        "pattern_2025": "Preliminary rolls as of 2025-03-21 and 2025-06-20; certified as of 2025-07-14/16. 2024: prelims 03-19 and 04-20. 2023: prelim 04-04.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://www.rockwallcad.com/data-exports",
+          "https://cdn.builder.io/api/v3/content/page?apiKey=2e615a483b6d4bc1837e9d292108d157&url=/data-exports",
+          "https://drive.google.com/file/d/1v8ROCSty1do5sgoKWWCzJ4h0UnzVwNow/view",
+          "https://drive.google.com/file/d/1juamoCBY39eg861J86SaUoaJJrShrAlV/view"
+        ],
+        "notes": "Data Exports page is a True Prodigy/Builder.io SPA; links go to Google Drive. The March 16 zip is 1.36 GB and its directory shows PACS-layout files (APPRAISAL_INFO, IMPROVEMENT_DETAIL, LAND_DETAIL, STATE_CODE, plus a 1.8 GB SKETCH_INFO) with the 8.0.30 layout PDF; the large size means a Drive confirm-download step."
+      }
     },
     {
       "county": "Hunt",
@@ -742,7 +1276,25 @@
       "notes": "Downloads page is GIS only. Property search requires a login.",
       "loaded": true,
       "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-smith.mjs. NOT a records request: https://www.smithcad.org/downloads.html publishes data/2026/2026_Real_Property_Certifled_AppraisalRoll_cd.zip (19,161,156 bytes) - two CSVs, one row per account with NEIGHBORHOOD, SUBDIVISION, HEATED AREA and all value stages. USE CODE is local (A00 residence, A60 mobile home). 75,928 residential rows. Situs city/ZIP are not in the extract (only the owner mailing address).",
-      "access_corrected": "free"
+      "access_corrected": "free",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "unknown",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-08-04",
+        "pattern_2025": null,
+        "access": "unknown",
+        "load_with": null,
+        "evidence": [
+          "https://www.smithcad.org/downloads.html",
+          "https://www.smithcad.org/data/2026/2026_Real_Property_Certifled_AppraisalRoll_cd.zip"
+        ],
+        "notes": "Downloads page now lists only 2026 certified CSVs (Last-Modified 4 Aug 2026; header has NEIGHBORHOOD and USE CODE). No preliminary file listed; /data/ directory is 403 and the Wayback Machine was unreachable, so whether anything was posted in spring cannot be confirmed. tx_districts.json says 'GIS only / PIA request' - now outdated, certified data is free direct."
+      }
     },
     {
       "county": "Comal",
@@ -814,7 +1366,27 @@
         "certified_2026": "https://libertycad.com/wp-content/uploads/2026/07/2026-CERTIFIED-APPRAISAL-ROLL-ALL-ENTITIES.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 44,127 residential rows, 24,951 A1 and 18,831 A2 (mobile-home lots, most with the home on a separate account). RM1-3 \"... M HOME\" is the mobile home - now an include."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34). 44,127 residential rows, 24,951 A1 and 18,831 A2 (mobile-home lots, most with the home on a separate account). RM1-3 \"... M HOME\" is the mobile home - now an include.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-PRELIMARY-APPRAISAL-ROLL.zip (PACS export dated 2026-03-31, layout 8.0.33)",
+        "url": "https://libertycad.com/wp-content/uploads/2026/04/2026-PRELIMARY-APPRAISAL-ROLL.zip",
+        "first_seen_2026": "2026-04-02",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-17",
+        "pattern_2025": "No 2025 preliminary zip in the media library; only 2025-Certified-as-of-supp-1.zip (2025-08-18).",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://libertycad.com/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00&mime_type=application/zip",
+          "https://libertycad.com/2026-prelimary-appraisal-roll/",
+          "https://libertycad.com/wp-content/uploads/2026/04/2026-PRELIMARY-APPRAISAL-ROLL.zip",
+          "https://libertycad.com/"
+        ],
+        "notes": "The file is 76 MB, Last-Modified 2026-04-02, and contains APPRAISAL_INFO, LAND_DETAIL, IMPROVEMENT_DETAIL and STATE_CODE. The homepage button now points to the certified roll; it is unverified whether the prelim was linked publicly in April (Wayback was unreachable), but the direct URL works."
+      }
     },
     {
       "county": "Wise",
@@ -832,7 +1404,26 @@
       },
       "publishes_preliminary": true,
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 25,406 residential rows, 20,409 A1. Publishes an April preliminary roll."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 25,406 residential rows, 20,409 A1. Publishes an April preliminary roll.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-PRELIMINARY-DATA-DOWNLOAD.zip (PACS export dated 2026-04-15)",
+        "url": "https://wise-cad.com/wp-content/uploads/2026/04/2026-PRELIMINARY-DATA-DOWNLOAD.zip",
+        "first_seen_2026": "2026-04-15",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-08-05",
+        "pattern_2025": "2025-Preliminary-Real-Export-Roll.zip uploaded 2025-04-22; certified 2025-07-29. April prelims also in 2022 to 2024.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://wise-cad.com/data-downloads/",
+          "https://wise-cad.com/wp-content/uploads/2026/04/2026-PRELIMINARY-DATA-DOWNLOAD.zip",
+          "https://wise-cad.com/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00&mime_type=application/zip"
+        ],
+        "notes": "40 MB zip containing APPRAISAL_INFO, LAND_DETAIL, IMPROVEMENT_DETAIL and STATE_CODE, with layout changes 8.0.32 posted the same day. The BPP prelim followed on 2026-05-29."
+      }
     },
     {
       "county": "Orange",
@@ -848,7 +1439,26 @@
         "certified_2026": "https://orangecad.net/wp-content/uploads/2026/07/2026-Certified-Appraisal-Roll-Export-Files.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs (now parameterised) - Orion certified export plus property-data export, both inside the one zip. No CAD entity row; every taxing unit agrees on value. 33,371 residential rows, 27,370 A1. Situs ZIP almost never present."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load-hays.mjs (now parameterised) - Orion certified export plus property-data export, both inside the one zip. No CAD entity row; every taxing unit agrees on value. 33,371 residential rows, 27,370 A1. Situs ZIP almost never present.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-Property-Data-Exports.zip (Orion: Property, Land, Improvement, Segment, Owner, Sales CSVs + '2026 Preliminary Export - Vendor.zip')",
+        "url": "https://orangecad.net/wp-content/uploads/2026/04/2026-Property-Data-Exports.zip",
+        "first_seen_2026": "2026-04-17",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-30",
+        "pattern_2025": "2025-Property-Data-Export.zip uploaded 2025-04-21; certified export 2025-07-28.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://orangecad.net/data-downloads/",
+          "https://orangecad.net/wp-content/uploads/2026/04/2026-Property-Data-Exports.zip",
+          "https://orangecad.net/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00&mime_type=application/zip"
+        ],
+        "notes": "Format is ORION, not PACS. The Property file header has NbhdCode/NbhdDesc and both CurrMarketValue (2026) and prior MarketValue. StateCode is in the Land and Improvement files, not the Property file. Sales.zip is also included."
+      }
     },
     {
       "county": "Nacogdoches",
@@ -919,7 +1529,26 @@
         "certified_2026": "https://atascosacad.com/wp-content/uploads/2026/07/2026-ATASCOSA-CERTIFIED-EXPORT.zip"
       },
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 15,506 residential rows, 9,705 A1."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 15,506 residential rows, 9,705 A1.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "no",
+        "file": null,
+        "url": null,
+        "first_seen_2026": null,
+        "carries_neighborhood": "unknown",
+        "carries_state_class": "unknown",
+        "certified_2026_seen": "2026-07-21",
+        "pattern_2025": "No 2025 data export found in the media library at all; the only other export-related upload is the 2021 PACS layout 8.0.25.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://atascosacad.com/data-export/",
+          "https://atascosacad.com/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00",
+          "https://atascosacad.com/wp-json/wp/v2/media?search=export"
+        ],
+        "notes": "The only 2026 data file is the certified PACS export (2026-07-21). The media library shows no zip of any kind between January and July 2026."
+      }
     },
     {
       "county": "Caldwell",
@@ -936,7 +1565,26 @@
       },
       "publishes_preliminary": true,
       "loaded": true,
-      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 10,790 residential rows, 8,072 A1. Publishes preliminary exports from 10 April - in-season data."
+      "loaded_note": "LOADED 4 Oct 2026 with scripts/tx/load.mjs (8.0.0.34), no code changes. 10,790 residential rows, 8,072 A1. Publishes preliminary exports from 10 April - in-season data.",
+      "in_season": {
+        "checked_at": "2026-10-19",
+        "published_2026_before_deadline": "yes",
+        "file": "2026-Preliminary-Export_Real-and-Mobile-Homes-ONLY_April-10-2026.zip; then April 27 (no BPP/minerals), May 8, May 22, June 2, June 5 refreshes",
+        "url": "https://caldwellcad.org/wp-content/uploads/2026/04/2026-Preliminary-Export_Real-and-Mobile-Homes-ONLY_April-10-2026.zip",
+        "first_seen_2026": "2026-04-10",
+        "carries_neighborhood": "yes",
+        "carries_state_class": "yes",
+        "certified_2026_seen": "2026-07-23",
+        "pattern_2025": "Prelim appraisal-notices export 2025-04-14, prelim exports 2025-05-01 and 2025-05-28; certified 2025-07-25. Same April pattern in 2023 and 2024.",
+        "access": "free direct",
+        "load_with": null,
+        "evidence": [
+          "https://caldwellcad.org/publicly-available-data/",
+          "https://caldwellcad.org/wp-content/uploads/2026/04/2026-Preliminary-Export_Real-and-Mobile-Homes-ONLY_April-10-2026.zip",
+          "https://caldwellcad.org/wp-json/wp/v2/media?per_page=100&after=2025-01-01T00:00:00&mime_type=application/zip"
+        ],
+        "notes": "PACS export with APPRAISAL_INFO, LAND_DETAIL, IMPROVEMENT_DETAIL and STATE_CODE (25 MB zip). Several refreshes ran through the protest season."
+      }
     }
   ],
   "hearing_outcome_publishers": {
