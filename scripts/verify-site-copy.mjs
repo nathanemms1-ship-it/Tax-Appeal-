@@ -48,6 +48,11 @@ export const BANNED = [
   ['our filing', /\bour (?:[\w-]+ ){0,3}filing\b/gi],
   ['dispute letter', /\bdispute letter\b/gi],
   ['clients file in', /\bclients? file in \d/gi],
+  // Added 18 Oct 2026: two blog lines the list above missed ("TaxAppeal USA processes
+  // petitions ... and files well before the deadline", "We process and mail within 24-48 hours").
+  ['we process and mail', /\bwe process and (?:mail|file)\b/gi],
+  ['TaxAppeal files', /\btaxappeal(?: usa)? (?:files|submits|processes (?:petitions|appeals|protests))\b/gi],
+  ['files well before the deadline', /\bfiles well before\b/gi],
 ];
 const NEGATION = /\b(?:not|never|don't|doesn't|won't|cannot|can't|no longer)\b[^.]{0,40}$/i;
 

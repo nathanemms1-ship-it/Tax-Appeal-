@@ -86,7 +86,7 @@ export default function BlogPost({ post, coverage }) {
     "headline": post.title,
     "description": post.metaDescription,
     "datePublished": post.publishDate,
-    "dateModified": post.publishDate,
+    "dateModified": post.updated || post.publishDate,
     "author": { "@type": "Organization", "name": "TaxAppeal USA" },
     "publisher": {
       "@type": "Organization",
@@ -178,6 +178,11 @@ export default function BlogPost({ post, coverage }) {
             <span style={{ fontSize: 12, color: "#5A7A9F" }}>
               {new Date(post.publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
             </span>
+            {post.updated && (
+              <span style={{ fontSize: 12, color: "#5A7A9F" }}>
+                Updated {new Date(post.updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
+              </span>
+            )}
           </div>
           <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, lineHeight: 1.2, marginBottom: 16, maxWidth: 720 }}>
             {post.title}
