@@ -22,6 +22,8 @@ const STATUS_CONFIG = {
     description: 'Your deadline is close, so your kit was emailed to you as a PDF. Print it, sign it in ink and mail it so it arrives before your deadline, or hand-deliver it.' },
   kit_sent: { label: 'Sent by you', color: C.navy, bg: C.lightBlue, icon: '✉️',
     description: 'You told us your kit is signed and sent. The county writes to you directly. Email a photo of anything it sends to ' + C_EMAIL + ' and we will tell you your options.' },
+  refunded_no_data: { label: 'Refunded', color: C.navy, bg: C.lightBlue, icon: '↩️',
+    description: 'Your appraisal district did not publish its data in time for us to build your kit, so we refunded you in full and emailed you the protest form filled in. Sign it and mail it before your deadline.' },
   awaiting_notice: { label: 'Reserved', color: C.navy, bg: C.lightBlue, icon: '🗓️',
     description: 'Your kit is reserved. We check your case again when your values are published, and refund you in full if the case is gone.' },
   pending: {

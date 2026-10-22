@@ -73,12 +73,18 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
 
   // A real case in a district we cannot sell yet: save them for the "your
   // county is open" email rather than losing them (same as Georgia).
+  // No data before the deadline last year (lib/tx/inSeason.js): a different
+  // promise, "we'll write if your district publishes in time". Past the cut-off
+  // there is nothing to wait for, so no waitlist.
+  const noSeasonData = review?.notSellableReason === 'no_season_data';
+  const pastCutoff = review?.notSellableReason === 'past_data_cutoff';
+  const deadlineText = review?.timing?.deadlineText || 'your deadline';
   useEffect(() => {
-    if (!isCase || review?.sellable || waitlisted || !account?.email) return;
+    if (!isCase || review?.sellable || pastCutoff || waitlisted || !account?.email) return;
     setWaitlisted(true);
     fetch('/api/join-waitlist', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: account.email, name: `${account.firstName || ''} ${account.lastName || ''}`.trim(), state: 'TX', county, propertyAddress: review?.situsAddress || '', blockedReason: 'tx_county_not_open' }),
+      body: JSON.stringify({ email: account.email, name: `${account.firstName || ''} ${account.lastName || ''}`.trim(), state: 'TX', county, propertyAddress: review?.situsAddress || '', blockedReason: noSeasonData ? 'tx_awaiting_data' : 'tx_county_not_open' }),
     }).catch(() => {});
   }, [isCase, review?.sellable, waitlisted, account?.email]);
 
@@ -128,6 +134,40 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
     );
   }
 
+  if (!review?.sellable && noSeasonData) {
+    return (
+      <div style={panel}>
+        <p style={head}>Your protest has a case. We can&rsquo;t take an order for {county ? `${county} County` : 'your county'} yet.</p>
+        <p style={body}>
+          We build your kit from the appraisal district&rsquo;s own data for this year. Last year {county ? `the ${county} County district` : 'your district'} did
+          not publish that data until after the protest deadline, so we can&rsquo;t promise you a kit in time, and we won&rsquo;t take your money for one.
+          {account?.email ? ` If it publishes in time this year, we'll email ${account.email} and you can order then.` : ' Leave your email and we will write if it publishes in time this year.'}
+        </p>
+        <p style={{ ...body, color: K.muted, fontSize: 13.5 }}>
+          Either way you can protest on your own: file the Comptroller&rsquo;s{' '}
+          <a href="https://comptroller.texas.gov/forms/50-132.pdf" target="_blank" rel="noopener noreferrer">Form 50-132</a> with the appraisal district by {deadlineText}.
+        </p>
+      </div>
+    );
+  }
+
+  if (!review?.sellable && pastCutoff) {
+    return (
+      <div style={panel}>
+        <p style={head}>Your protest has a case, but it is too late for us to build your kit.</p>
+        <p style={body}>
+          Your appraisal district hasn&rsquo;t published this year&rsquo;s data yet, and the {deadlineText} deadline is too close to wait for it.
+          We won&rsquo;t take payment for a kit we can&rsquo;t send in time.
+        </p>
+        <p style={body}>
+          You can still protest: file the Comptroller&rsquo;s{' '}
+          <a href="https://comptroller.texas.gov/forms/50-132.pdf" target="_blank" rel="noopener noreferrer">Form 50-132</a> with the appraisal district,
+          postmarked by {deadlineText}. Tick box 1 in Section 3 and ask for an informal conference; you can bring your evidence to that conference.
+        </p>
+      </div>
+    );
+  }
+
   if (!review?.sellable) {
     return (
       <div style={panel}>
@@ -147,8 +187,14 @@ export default function TxKitCheckout({ review, property, account, ownerMail, at
       <div style={panel}>
         <p style={head}>Reserve your protest kit &mdash; ${SERVICE_PRICE_DOLLARS}</p>
         <p style={body}>
-          On last year&rsquo;s values your home already looks over-appraised. Your district publishes {review.taxYear} values in the spring.
-          When it does, we check your protest again on the new values, automatically. If it still lowers your bill, we mail you
+          On last year&rsquo;s values your home already looks over-appraised.
+        </p>
+        <p style={body}>
+          <strong>When your kit goes out.</strong>{' '}
+          {review?.timing?.paragraph || `We build your kit from your appraisal district's ${review.taxYear} data file, not from your notice, so it does not go out the day notices arrive.`}
+        </p>
+        <p style={body}>
+          When the data is loaded, we check your protest again on the new values, automatically. If it still lowers your bill, we mail you
           the Comptroller&rsquo;s Form 50-132 filled in, the comparison of similar homes and a return envelope addressed to the
           appraisal district, and email you a PDF copy of the full kit the same day. If it no longer does, we refund you in full before anything is mailed.
           You don&rsquo;t need to do anything until then.

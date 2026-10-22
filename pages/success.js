@@ -5,6 +5,10 @@ import { SERVICE_PRICE_CENTS } from '../lib/pricing';
 
 import { C } from "../lib/theme";
 import LogoMark from '../components/LogoMark';
+import { dataCutoff } from '../lib/tx/inSeason.js';
+import { currentTaxYear } from '../lib/tx/protestDeadline.js';
+
+const txCutoffText = dataCutoff(currentTaxYear()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' });
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
@@ -257,7 +261,7 @@ function KitSuccess({ session, sessionId }) {
             : presale && isFL
             ? `Thank you${first}. When your county's new values are out, we check your petition again automatically. Then we need one date from your TRIM notice, the petition deadline: we mail your kit, or refund you in full.`
             : presale && isTX
-            ? `Thank you${first}. When your appraisal district publishes this year's values, we check your protest again automatically: we mail your kit, or refund you in full.`
+            ? `Thank you${first}. Your kit goes out once your appraisal district publishes this year's data file, which is not the day notices arrive. Then we check your protest again automatically: we mail your kit, or refund you in full. If the file is not out by ${txCutoffText}, we refund you and email you the protest form filled in, so you can still file on time.`
             : presale
             ? `Thank you${first}. When your assessment notice arrives, enter its value from the link in your receipt email. We check your case again then: we mail your kit, or refund you in full.`
             : isFL

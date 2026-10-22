@@ -6,6 +6,8 @@ import { isStateServable, STATE_NAMES, servingFrom } from '../../../lib/stateSer
 import { isFlCountySupported } from '../../../lib/flVabAddresses';
 import { getFlVabFee } from '../../../lib/flCountyFees';
 import { kitCountyOpen } from '../../../lib/kit/countyOpen';
+import { cadForCounty } from '../../../lib/tx/inSeason.js';
+import { currentTaxYear } from '../../../lib/tx/protestDeadline.js';
 
 /**
  * The two gates that decide whether we can file in a Florida county, in one place.
@@ -386,6 +388,35 @@ export default async function handler(req, res) {
           } catch (emailErr) {
             // Leave blocked_reason set so tomorrow's run tries again.
             console.error(`[notify-waitlist] county-open email failed for ${email}:`, emailErr.message);
+          }
+        } else {
+          totalSkipped++;
+        }
+        continue;
+      }
+
+      /**
+       * tx_awaiting_data (19 Oct 2026): a Texas case in a district with no data
+       * before the deadline last year. ONE email, when this season's data for
+       * that district is loaded (so checkout sells an ordinary kit, not a
+       * reservation) and the county is open and the season lets them buy.
+       */
+      if (blocked_reason === 'tx_awaiting_data') {
+        const canBuy = !!(windowStatus?.canFile || windowStatus?.canPreOrder);
+        const cad = cadForCounty(county);
+        let loaded = false;
+        if (cad && canBuy && kitCountyOpen('TX', county, { now: new Date() }).open) {
+          const { data } = await supabase.from('tx_parcels').select('account_number').eq('cad_id', cad).eq('tax_year', currentTaxYear()).limit(1);
+          loaded = Array.isArray(data) && data.length > 0;
+        }
+        if (loaded) {
+          const mail = buildKitCountyOpenEmail({ name, state: 'TX', county, propertyAddress: property_address });
+          try {
+            await resend.emails.send({ from: 'TaxAppeal USA <reminders@taxappealusa.com>', to: email, subject: mail.subject, html: mail.html });
+            await supabase.from('waitlist').update({ blocked_reason: null, last_notified_at: new Date().toISOString(), notified_count: (entry.notified_count || 0) + 1 }).eq('id', id);
+            totalSent++;
+          } catch (emailErr) {
+            console.error(`[notify-waitlist] data-loaded email failed for ${email}:`, emailErr.message);
           }
         } else {
           totalSkipped++;

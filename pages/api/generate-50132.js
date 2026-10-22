@@ -38,6 +38,7 @@ import { resolveCounty } from './resolve-county';
 import crypto from 'crypto';
 import { txKitDecision, txSellability, TX_QUOTE } from '../../lib/kit/txQuote';
 import { txPresaleOrder, txPresaleSellability } from '../../lib/kit/txPresale';
+import { reservationTiming } from '../../lib/tx/inSeason.js';
 
 /** Same lifetime as Georgia's kitKey (pages/api/ga-kit-quote.js). */
 export const TX_KIT_KEY_TTL_SECONDS = 7 * 24 * 3600;
@@ -393,6 +394,9 @@ export default async function handler(req, res) {
       county: LOADED_CADS[cadId] || null,
       taxYear,
       accountNumber,
+      // When this district's data comes, and the cut-off (lib/tx/inSeason.js):
+      // the reservation screen and the waitlist screen both print it.
+      timing: presale ? reservationTiming(cadId, taxYear) : null,
 
       /**
        * THE SAVING THIS PACKET ACTUALLY SUPPORTS.

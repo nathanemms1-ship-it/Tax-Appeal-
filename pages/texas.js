@@ -179,7 +179,7 @@ export default function Texas() {
           <button className="btn-primary" style={{ background: C.gold, color: C.darkNavy, fontSize: 17, padding: "18px 44px" }} onClick={go}>
             Check My Texas Protest — $89 →
           </button>
-          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Before notices go out you can reserve your kit: we check again when your values are published, and refund you in full if the case is gone.</div>
+          <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>Before notices go out you can reserve your kit in most districts. It goes out once your district publishes its data, not the day notices arrive; we check again then, and refund you in full if the case is gone or the data comes too late.</div>
         </div>
       </section>
 

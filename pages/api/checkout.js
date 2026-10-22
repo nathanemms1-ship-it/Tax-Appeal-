@@ -12,6 +12,7 @@ import { Redis } from '@upstash/redis';
 import { gaSellability, gaPresaleSellability } from '../../lib/kit/gaQuote';
 import { txSellability } from '../../lib/kit/txQuote';
 import { txPresaleSellability } from '../../lib/kit/txPresale';
+import { reservationTiming } from '../../lib/tx/inSeason.js';
 import { flPresaleSellability } from '../../lib/kit/flPresale';
 import { flSellability } from '../../lib/kit/flQuote';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
@@ -303,7 +304,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: 'TaxAppeal USA — Texas protest kit, reserved',
-description: `Reserved for ${kitOrder.property.address}. When the appraisal district publishes ${kitOrder.taxYear} values, we check your protest again. If it still lowers your bill, we mail you Form 50-132 filled in, the evidence and a return envelope addressed to the district, and email you a PDF copy of the full kit. If it no longer does, we refund you in full before anything is mailed. You sign and mail it; we do not file your protest or represent you.`,
+description: `Reserved for ${kitOrder.property.address}. Your kit goes out once the appraisal district publishes its ${kitOrder.taxYear} data, not the day notices arrive. Then we check your protest again. If it still lowers your bill, we mail you Form 50-132 filled in, the evidence and a return envelope addressed to the district, and email you a PDF copy of the full kit. If it no longer does, or the data is not out by ${reservationTiming(kitOrder.cadId, kitOrder.taxYear).cutoffText}, we refund you in full before anything is mailed (in that last case with the protest form filled in, so you can still file on time). You sign and mail it; we do not file your protest or represent you.`,
 },
 unit_amount: SERVICE_PRICE_CENTS,
 },

@@ -18,8 +18,10 @@ import { KIT_STATUS, KIT_ROW_COLUMNS } from '../../../lib/kit/dispatchKit';
 import { noticeUrl, trimUrl } from '../../../lib/kit/noticeLink';
 import { processFlPresale, flRollPlan, flTrimAskEmail } from '../../../lib/kit/flPresale';
 import { flPresaleRunDeps, rollChecker } from '../../../lib/kit/flPresaleRun';
-import { processTxPresale } from '../../../lib/kit/txPresale';
+import { processTxPresale, processTxCutoff } from '../../../lib/kit/txPresale';
+import { dataCutoff } from '../../../lib/tx/inSeason.js';
 import { presaleDeps } from '../../../lib/kit/presaleDeps';
+import { getAppealAddress, isMailable } from '../../../lib/appealAddresses';
 import { findComps } from '../../../lib/tx/comps';
 import { buildProtest } from '../../../lib/tx/protest';
 import { reminderDue, reminderEmail as kitReminderEmail, sentUrl, OUT_WITH_CUSTOMER } from '../../../lib/kit/afterMailing';
@@ -80,11 +82,18 @@ export function reminderPlan(row, ws, now = new Date()) {
  */
 export const TX_ROLL_LATE = { month: 4, day: 20 };
 
-/** What to do with one Texas reservation today. Pure, for scripts/verify-tx-presale.mjs. */
+/**
+ * What to do with one Texas reservation today. Pure, for scripts/verify-tx-presale.mjs.
+ * 'cutoff' (19 Oct 2026): still no data 10 days before the deadline
+ * (lib/tx/inSeason.js dataCutoff) -> refund, and email the filled-in form.
+ */
 export function txRollPlan(row, rollLoaded, now = new Date()) {
   const k = row?.kit_order || {};
   if (row?.state_code !== 'TX' || k.presale !== true || row.payment_status !== 'paid' || row.dispute_status !== KIT_STATUS.AWAITING_NOTICE) return 'skip';
   if (rollLoaded) return 'process';
+  let cutoff = null;
+  try { cutoff = dataCutoff(k.taxYear); } catch { /* unsupported year: page ops below, never refund on a guess */ }
+  if (cutoff && now >= cutoff) return 'cutoff';
   const late = new Date(Date.UTC(Number(k.taxYear), TX_ROLL_LATE.month - 1, TX_ROLL_LATE.day));
   return now >= late && !k.rollLateAlertAt ? 'late_alert' : 'wait';
 }
@@ -102,7 +111,7 @@ async function txRollPass(supabase, now) {
     }
     return loaded.get(key);
   };
-  let processed = 0; let lateAlerts = 0;
+  let processed = 0; let lateAlerts = 0; let cutoffRefunds = 0;
   for (const row of rows || []) {
     const k = row.kit_order || {};
     const plan = txRollPlan(row, k.presale ? await rollLoaded(k.cadId, k.taxYear) : false, now);
@@ -123,13 +132,21 @@ async function txRollPass(supabase, now) {
       } catch (e) {
         await alertOps('TX pre-sale pass threw', `order=${row.id}\n${e?.message}`, { force: true });
       }
+    } else if (plan === 'cutoff') {
+      try {
+        const addr = getAppealAddress('TX', k.property?.county);
+        const r = await processTxCutoff(row, { ...presaleDeps(row, { supabase, alertOps }), appealAddress: addr && isMailable(addr, now) ? addr : null, now });
+        if (r.status === 'refunded_no_data') cutoffRefunds++;
+      } catch (e) {
+        await alertOps('TX pre-sale cut-off threw', `order=${row.id}\n${e?.message}`, { force: true });
+      }
     } else if (plan === 'late_alert') {
       await alertOps('TX pre-sale: district roll not loaded yet', `order=${row.id} cad=${k.cadId} ${k.property?.county || ''} year=${k.taxYear}\nLoad this district's ${k.taxYear} roll, or refund.`, { force: true });
       await supabase.from('orders').update({ kit_order: { ...k, rollLateAlertAt: now.toISOString() } }).eq('id', row.id).eq('dispute_status', KIT_STATUS.AWAITING_NOTICE);
       lateAlerts++;
     }
   }
-  return { checked: (rows || []).length, processed, lateAlerts };
+  return { checked: (rows || []).length, processed, lateAlerts, cutoffRefunds };
 }
 
 /*

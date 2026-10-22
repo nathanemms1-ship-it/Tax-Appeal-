@@ -145,7 +145,7 @@ t('the Texas kit does not import the Georgia kit (keeps 2 MB of GA forms out of 
   t('the Texas line item is the kit at the price constant, and never says we file', /Texas protest kit, mailed to you/.test(checkout) && /we do not file your protest or represent you/.test(checkout) && (checkout.match(/unit_amount: SERVICE_PRICE_CENTS/g) || []).length >= 2);
   const ui = read('components/TxKitCheckout.js');
   t('no checkout without the documents-only acknowledgment', /disabled=\{!agreed \|\| busy\}/.test(ui) && /does not file it, represent me or appear for me/.test(ui));
-  t("a case in a district that isn't open joins the waitlist", /blockedReason: 'tx_county_not_open'/.test(ui) && /'tx_county_not_open'/.test(read('lib/waitlistReasons.js')));
+  t("a case in a district that isn't open joins the waitlist", /blockedReason: (noSeasonData \? 'tx_awaiting_data' : )?'tx_county_not_open'/.test(ui) && /'tx_county_not_open'/.test(read('lib/waitlistReasons.js')));
   t('every no-sale reason has customer copy', ['saving_below_fee', 'capped_beyond_reach', 'not_over_appraised', 'insufficient_comparables', 'cap_artifact_only', 'nothing_to_ask_for', 'no_value_on_roll', 'bill_wont_drop_enough'].every((c) => new RegExp(`\\b${c}:`).test(ui)));
 }
 

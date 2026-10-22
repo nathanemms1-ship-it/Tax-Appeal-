@@ -1,5 +1,10 @@
 import { escapeHtml as h } from '../../lib/escape';
 import { SERVICE_PRICE_CENTS } from '../../lib/pricing';
+import { reservationTiming, cadForCounty } from '../../lib/tx/inSeason.js';
+import { currentTaxYear } from '../../lib/tx/protestDeadline.js';
+
+/** The Texas reservation timing for a county name, for the season being sold. */
+const txTiming = (county) => reservationTiming(cadForCounty(county), currentTaxYear());
 import { BUSINESS_NAME, LEGAL_ENTITY, BUSINESS_ADDRESS, BUSINESS_ADDRESS_LINES } from '../../lib/businessInfo';
 
 /**
@@ -100,8 +105,8 @@ export function confirmationEmailTemplate({ firstName, lastName, address, county
       ...claimBase,
       subject: '✅ Payment received — your protest kit is reserved — TaxAppeal USA',
       heading: 'You Are Reserved',
-      subheading: 'We check again when your district publishes this year\'s values',
-      intro: 'Thank you — your payment is in. When your appraisal district publishes this year\'s values (usually in April), we check your protest again on them, automatically; you do not need to do anything. If a protest still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.',
+      subheading: 'Your kit goes out when your district publishes its data',
+      intro: `Thank you — your payment is in. ${txTiming(county).paragraph} When it is loaded, we check your protest again on it automatically; you do not need to do anything. If a protest still lowers your bill, we print your completed kit and mail it to you. If it no longer does, we refund you in full before anything is mailed.`,
       ctaLabel: null,
     }
     : isFL && orderStatus === 'awaiting_notice'

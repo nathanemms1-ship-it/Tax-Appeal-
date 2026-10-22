@@ -209,6 +209,7 @@ for (const status of KIT_STATUSES) {
     'scripts/sql/waitlist_blocked_reason_fl_not_eligible.sql',
     'scripts/sql/waitlist_blocked_reason_ga_county_not_open.sql',
     'scripts/sql/waitlist_blocked_reason_tx_county_not_open.sql',
+    'scripts/sql/waitlist_blocked_reason_tx_awaiting_data.sql',
   ];
   let permitted = null; let fromFile = null;
   for (const f of sqlFiles) {
