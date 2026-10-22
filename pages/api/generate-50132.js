@@ -39,6 +39,7 @@ import crypto from 'crypto';
 import { txKitDecision, txSellability, TX_QUOTE } from '../../lib/kit/txQuote';
 import { txPresaleOrder, txPresaleSellability } from '../../lib/kit/txPresale';
 import { reservationTiming } from '../../lib/tx/inSeason.js';
+import { currentTaxYear } from '../../lib/tx/protestDeadline.js';
 
 /** Same lifetime as Georgia's kitKey (pages/api/ga-kit-quote.js). */
 export const TX_KIT_KEY_TTL_SECONDS = 7 * 24 * 3600;
@@ -62,7 +63,15 @@ export default async function handler(req, res) {
   const b = req.body || {};
   let cadId = Number(b.cadId);
   let accountNumber = typeof b.accountNumber === 'string' ? b.accountNumber.trim() : '';
-  const taxYear = Number(b.taxYear) || ROLL_YEAR;
+  /**
+   * THE SEASON IS THE SERVER'S, NOT THE BROWSER'S (22 Oct 2026). This took
+   * the year from the request (else the roll year), and pages/apply.js sends
+   * new Date().getFullYear(): between the May deadline and New Year that built
+   * the closed season's protest. Nothing could be sold that way (the deadline
+   * check refuses it) but the screen said the wrong thing. One rule, the one
+   * every Texas page uses: lib/tx/protestDeadline.js currentTaxYear.
+   */
+  const taxYear = currentTaxYear();
 
   /**
    * PRE-SALE (16 Oct 2026). From 31 January the season's roll does not exist

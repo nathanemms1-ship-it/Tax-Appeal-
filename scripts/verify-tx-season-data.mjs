@@ -113,6 +113,7 @@ const ui = read('components/TxKitCheckout.js');
 t('the reservation screen prints the timing paragraph', /review\?\.timing\?\.paragraph/.test(ui) && /When your kit goes out\./.test(ui));
 t('a no-data district: no sale, the waitlist for "data published", and how to file alone', /notSellableReason === 'no_season_data'/.test(ui) && /noSeasonData \? 'tx_awaiting_data' : 'tx_county_not_open'/.test(ui) && /we won&rsquo;t take your money for one/.test(ui) && /50-132\.pdf/.test(ui));
 t('past the cut-off: no sale, no waitlist, how to file alone', /notSellableReason === 'past_data_cutoff'/.test(ui) && /if \(!isCase \|\| review\?\.sellable \|\| pastCutoff/.test(ui) && /too late for us to build your kit/.test(ui));
+t('the review builds for the season the server computes, never a year the browser sends', /const taxYear = currentTaxYear\(\);/.test(read('pages/api/generate-50132.js')) && !/Number\(b\.taxYear\)/.test(read('pages/api/generate-50132.js')));
 t('the review response carries the timing', /timing: presale \? reservationTiming\(cadId, taxYear\) : null/.test(read('pages/api/generate-50132.js')));
 const rec = confirmationEmailTemplate({ firstName: 'Jane', lastName: 'Doe', address: '1 A St', county: 'Johnson', stateCode: 'TX', orderStatus: 'awaiting_notice' });
 t('the receipt email says the kit waits for the data, when it came last year, and the cut-off', /does not go out the day notices arrive/.test(rec) && /March 31/.test(rec) && /protest form filled in/.test(rec));
