@@ -92,8 +92,8 @@ t('it carries what the notice step needs to re-run', q.kitOrder.quoteInput.prope
 
 // ── 2. THE PRE-SALE GATE ────────────────────────────────────────────────────
 // INJECTION: skip the address check in gaPresaleSellability -> FAILS.
-t('a county with an unconfirmed address is not sold a reservation', q.sellable === false && q.notSellableReason === 'address_not_confirmed');
-t('a county whose form is unsettled (Clayton) is not sold a reservation', gaPresaleSellability({ ...q.kitOrder, property: { ...q.kitOrder.property, county: 'Clayton' } }, { now: NOW }).reason === 'county_form_unconfirmed');
+t('a county with an unconfirmed address is not sold a reservation', ['Hall', 'Coweta', 'Walton'].some((c) => gaPresaleSellability({ ...q.kitOrder, property: { ...q.kitOrder.property, county: c } }, { now: NOW }).reason === 'address_not_confirmed'));
+t('a county whose form is unsettled (Douglas) is not sold a reservation', gaPresaleSellability({ ...q.kitOrder, property: { ...q.kitOrder.property, county: 'Douglas' } }, { now: NOW }).reason === 'county_form_unconfirmed');
 t('a full order is not mistaken for a reservation', gaPresaleSellability({ ...q.kitOrder, presale: false }).reason === 'not_a_presale');
 t('an incomplete owner address is refused before payment', gaPresaleSellability({ ...q.kitOrder, owner: { ...q.kitOrder.owner, zip: '' } }, { now: NOW }).reason === 'owner_incomplete');
 const ni = noticeQuoteInput(q.kitOrder, { noticeValue: 470000, noticeDate: '2027-05-01', fultonBilling100: false });

@@ -218,9 +218,9 @@ t('Cobb: for 2026 its own form is used', cobb26.form.id === 'COBB' && cobbP3.inc
 t("Cobb's oversized form is scaled onto a Letter page", Math.round(cobbBack.getPage(2).getWidth()) === 612 && Math.round(cobbBack.getPage(2).getHeight()) === 792);
 // INJECTION: drop removeFields -> FAILS (the kit would print the form's own buttons).
 t('Cobb: the "Clear Form" and "Print Form" buttons do not print', !/Clear \S*[\s\S]{0,60}Form|Print \S*[\s\S]{0,60}Form/.test(cobbP3));
-t('Clayton (phone call pending) is not sellable', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Clayton' } }), { now: NOW })) === 'county_form_unconfirmed');
+t('Douglas (form not settled online) is not sellable', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Douglas' } }), { now: NOW })) === 'county_form_unconfirmed');
 t('a county outside the table is not sellable', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'Baldwin' } }), { now: NOW })) === 'county_form_unconfirmed');
-t('a proof for a not-yet-sellable county still renders, on the state form, watermarked', (await buildGaKit(order({ property: { ...SAMPLE.property, county: 'Clayton' } }), { now: NOW, proof: true })).form.id === 'STATE');
+t('a proof for a not-yet-sellable county still renders, on the state form, watermarked', (await buildGaKit(order({ property: { ...SAMPLE.property, county: 'Douglas' } }), { now: NOW, proof: true })).form.id === 'STATE');
 // INJECTION: remove the maxLength check -> FAILS (pdf-lib would throw a raw error, not a KitError).
 t('a value too long for a county field refuses the kit cleanly', await code(() => buildGaKit(order({ property: { ...SAMPLE.property, county: 'DeKalb' }, evidence: { ...SAMPLE.evidence, indicatedValue: 1e15 } }), { now: NOW })) === 'field_too_long');
 

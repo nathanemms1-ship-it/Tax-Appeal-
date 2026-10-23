@@ -57,14 +57,16 @@ t('the bill check is measured against the $89 price', SERVICE_PRICE_CENTS === 89
 t('Gwinnett, not a homestead, $80,000 over: a case, with the yearly saving', q.decision === QUOTE.CASE && q.savings.yearlySaving >= 89);
 
 // ── 4. CAN THIS COUNTY BE SOLD TODAY? ───────────────────────────────────────
-// Every GA appeal address is unverified today: a real case, not sellable.
+// 22 Oct 2026: Gwinnett's address is confirmed; Hall's, Coweta's and Walton's are not.
 // INJECTION: skip the address check in gaSellability -> FAILS.
-t('a real case in a county whose address is unconfirmed is not sellable', q.decision === QUOTE.CASE && q.sellable === false && q.notSellableReason === 'address_not_confirmed');
+const unconf = [];
+for (const c of ['Hall', 'Coweta', 'Walton']) unconf.push(await quoteGaKit(base({ property: { county: c } }), deps()));
+t('a real case in a county whose address is unconfirmed is not sellable', unconf.some((u) => u.decision === QUOTE.CASE && u.sellable === false && u.notSellableReason === 'address_not_confirmed'));
 const cham = await quoteGaKit(base({ property: { county: 'Chatham' } }), deps());
 t("Chatham: its form's ownership question is asked before anything else", cham.decision === QUOTE.NEED_INFO && cham.reason === 'need_ownedOnJan1');
 const ful = await quoteGaKit(base({ property: { county: 'Fulton' } }), deps());
 t("Fulton: the 85%/100% billing choice is asked, never assumed", ful.decision === QUOTE.NEED_INFO && ful.reason === 'need_fultonBilling100');
-t('Clayton (form unconfirmed): a case, not sellable', (await quoteGaKit(base({ property: { county: 'Clayton' } }), deps())).notSellableReason === 'county_form_unconfirmed');
+t('Douglas (form unconfirmed): a case, not sellable', (await quoteGaKit(base({ property: { county: 'Douglas' } }), deps())).notSellableReason === 'county_form_unconfirmed');
 t('Cobb for 2027 (its form says 2026): not sellable', (await quoteGaKit(base({ property: { county: 'Cobb' } }), deps())).notSellableReason === 'county_form_wrong_year');
 t('gaSellability refuses a blank value outright', gaSellability({ ...q.kitOrder, requestedValue: 0 }, { now: NOW }).ok === false);
 

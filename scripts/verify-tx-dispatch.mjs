@@ -66,8 +66,8 @@ const t = (name, cond) => (cond ? pass++ : failures.push(name));
     && kitCountyOpen('TX', 'Potter').reason === 'address_not_confirmed');
   t('so is a Georgia one', getAppealAddress('GA', 'Nowhere') == null && refused('GA', 'Nowhere'));
   t('a seeded-but-unverified county is still refused',
-    getAppealAddress('TX', 'Harris') != null && !isMailable(getAppealAddress('TX', 'Harris'))
-    && kitCountyOpen('TX', 'Harris').reason === 'address_not_confirmed');
+    getAppealAddress('TX', 'Wichita') != null && !isMailable(getAppealAddress('TX', 'Wichita'))
+    && kitCountyOpen('TX', 'Wichita').reason === 'address_not_confirmed');
   t('a state that is not sold as a kit is never open',
     kitCountyOpen('AR', 'Benton').open === false && kitCountyOpen('AL', 'Jefferson').open === false);
   /*
@@ -75,14 +75,16 @@ const t = (name, cond) => (cond ? pass++ : failures.push(name));
     of the districts whose roll we hold can be sold a kit addressed from an
     unverified row, by either route.
   */
-  t('no district whose roll we hold can reach the post today', [
+  // 22 Oct 2026: rows are confirmed from documents now. The rule that matters is
+  // unchanged: a district is open IF AND ONLY IF its own row is mailable.
+  t('every district whose roll we hold is open exactly when its row is confirmed', [
     'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
     'Harris', 'Dallas', 'Tarrant', 'Travis', 'Collin', 'Denton', 'El Paso',
     'Montgomery', 'Hidalgo', 'Cameron', 'Bell', 'Nueces', 'Jefferson',
-  ].every((c) => refused('TX', c)));
-  t('...and the seven seeded on 4 Oct are refused as unverified, not as missing', [
-    'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
-  ].every((c) => getAppealAddress('TX', c) != null && refused('TX', c)));
+  ].every((c) => refused('TX', c) === !isMailable(getAppealAddress('TX', c))));
+  t('...and the ones still unverified are refused as unverified, not as missing', [
+    'Guadalupe', 'Taylor', 'Wichita',
+  ].every((c) => getAppealAddress('TX', c) != null && kitCountyOpen('TX', c).reason === 'address_not_confirmed'));
 
   // --- what pins the live gates ---------------------------------------------
   const rd = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');

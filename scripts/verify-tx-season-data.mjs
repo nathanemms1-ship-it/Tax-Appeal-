@@ -57,7 +57,7 @@ const mk = (cadId, county) => txPresaleOrder({ packet: txPacket({}, 2026), taxYe
 // INJECTION: drop the canReserve check -> FAILS (money taken where no data comes in time).
 t('no reservation is sold where the district published nothing before the deadline last year', txPresaleSellability(mk(61, 'Denton'), { now: NOW }).reason === 'no_season_data' && txPresaleSellability(mk(227, 'Travis'), { now: NOW }).waitlist === true);
 const harris = mk(101, 'Harris');
-t('a reserve district gets past the data gate (on to the address check)', txPresaleSellability(harris, { now: NOW }).reason === 'address_not_confirmed');
+t('a reserve district with a confirmed address takes a reservation (Harris)', txPresaleSellability(harris, { now: NOW }).ok === true);
 // INJECTION: drop the cut-off check -> FAILS.
 t('no reservation is sold on or after the cut-off', txPresaleSellability(harris, { now: new Date('2027-05-07T00:00:00Z') }).reason === 'past_data_cutoff');
 t('the reservation stores the form for the season year, with no opinion of value', harris.form50132?.taxYear === 2027 && harris.form50132.opinionOfValue === null && !!harris.form50132.accountNumber);

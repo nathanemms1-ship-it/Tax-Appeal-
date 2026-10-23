@@ -35,7 +35,8 @@ const order = (patch = {}) => ({
 const o = order();
 t('a reservation records the screen, not a buildable kit', o.presale === true && o.taxYear === 2027 && o.screenYear === 2026 && o.prior.decision === TX_QUOTE.CASE && !o.packet);
 // INJECTION: drop the address check in txPresaleSellability -> FAILS.
-t('a district with an unconfirmed address is not sold a reservation', txPresaleSellability(o, { now: NOW }).reason === 'address_not_confirmed');
+t('a district with an unconfirmed address is not sold a reservation', txPresaleSellability(order({ cadId: 243, property: { ...o.property, county: 'Wichita' } }), { now: NOW }).reason === 'address_not_confirmed');
+t('a district with a confirmed address is sold a reservation', txPresaleSellability(o, { now: NOW }).ok === true);
 t('a screen with a caution is not sold a reservation', txPresaleSellability(txPresaleOrder({ packet: { ...SCREEN, cautions: [{ code: 'saving_below_fee' }] }, taxYear: 2027, screenYear: 2026, cadId: 71, accountNumber: 'E0000001', county: 'El Paso', owner: TX_OWNER }), { now: NOW }).noCase === true);
 t('an incomplete owner address is refused before payment', txPresaleSellability(order({ owner: { ...TX_OWNER, zip: '' } }), { now: NOW }).reason === 'owner_incomplete');
 t('a "reservation" for the roll we already hold is not one', txPresaleSellability(order({ screenYear: 2027 }), { now: NOW }).reason === 'not_a_presale');

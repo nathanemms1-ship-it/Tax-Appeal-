@@ -173,20 +173,21 @@ t('an Arkansas order is not sent down the kit path', lob.calls.length === 0 && r
   t('the Texas email sends them to Section 8 on the page the layout says, and says protest', /Section 8 of Form 50-132 \(page 4\)/.test(tem?.text) && /do not file your protest/.test(tem?.text) && /30 days after your notice/.test(tem?.text) && /^Protest-kit-2027-/.test(tem?.attachments?.[0]?.filename || ''));
   t('the Georgia email still names page 3', /appeal form \(page 3\)/.test(em.text));
   lob = fakeLob(); alerts.length = 0;
-  r = await dispatchKit(txRow, { supabase: fakeSupabase(), resend: fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: lob, checkSpend: spendOk });
-  t('Texas, real address table (unconfirmed): no mail, needs_review, ops paged', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'address_not_mailable' && alerts.length === 1);
+  // 22 Oct 2026: real rows are confirmed now, so the unconfirmed case is given explicitly.
+  r = await dispatchKit(txRow, { supabase: fakeSupabase(), resend: fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: lob, checkSpend: spendOk, addressLookup: () => ({ ...elPaso, confidence: 'unverified', verifiedOn: null }) });
+  t('Texas, an unconfirmed district address: no mail, needs_review, ops paged', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'address_not_mailable' && alerts.length === 1);
 }
 
-// The real address table: every GA row is unverified today.
+// An unconfirmed county address (given explicitly: real GA rows are confirmed from 22 Oct 2026).
 lob = fakeLob(); db = fakeSupabase(); alerts.length = 0;
-r = await dispatchKit(row(), { supabase: db, resend: fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: lob, checkSpend: spendOk });
+r = await dispatchKit(row(), { supabase: db, resend: fakeResend(), alertOps, now: NOW, lobApiKey: 'test_x', lobFetch: lob, checkSpend: spendOk, addressLookup: () => ({ ...GWINNETT_ROW, confidence: 'unverified', verifiedOn: null }) });
 // INJECTION: build with proof:true in dispatchKit -> FAILS (an unconfirmed address would be printed on a real envelope).
 t('an unconfirmed county address: no mail, needs_review, ops paged', lob.calls.length === 0 && r.status === 'needs_review' && r.reason === 'address_not_mailable' && alerts.length === 1);
 lob = fakeLob();
 r = await run(row({ kit_order: { ...kitOrder, requestedValue: 0 } }), { lob });
 t('a blank value assertion: no mail, needs_review', lob.calls.length === 0 && r.reason === 'value_blank');
 lob = fakeLob();
-r = await run(row({ kit_order: { ...kitOrder, property: { ...kitOrder.property, county: 'Clayton' } } }), { lob });
+r = await run(row({ kit_order: { ...kitOrder, property: { ...kitOrder.property, county: 'Douglas' } } }), { lob });
 t('a county whose form is unconfirmed: no mail', lob.calls.length === 0 && r.reason === 'county_form_unconfirmed');
 
 // ── 4. FAILURES ─────────────────────────────────────────────────────────────
@@ -307,16 +308,16 @@ t('the pre-sale receipt promises the refund if the case no longer holds', /refun
 // ── "YOUR COUNTY IS OPEN" (15 Oct 2026) ────────────────────────────────────
 // One email per ga/tx_county_not_open waitlister, only when checkout would now
 // sell in that county. INJECTION: drop the formForCounty call in countyOpen.js
-// -> FAILS (Clayton would be "open" while checkout refuses it).
+// -> FAILS (Douglas would be "open" while checkout refuses it).
 {
   const { kitCountyOpen } = await import('../lib/kit/countyOpen.js');
   const { getAppealAddress } = await import('../lib/appealAddresses.js');
   const ok = (st) => () => ({ ...(st === 'GA' ? GWINNETT_ROW : { ...getAppealAddress('TX', 'El Paso'), confidence: 'confirmed', verifiedOn: '2027-03-01', cassValidated: true }) });
   t('Georgia, state-form county, confirmed address: open', kitCountyOpen('GA', 'Gwinnett', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).open === true);
-  t('Georgia, county form unconfirmed (Clayton): not open even with an address', kitCountyOpen('GA', 'Clayton', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_unconfirmed');
+  t('Georgia, county form unconfirmed (Douglas): not open even with an address', kitCountyOpen('GA', 'Douglas', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_unconfirmed');
   t('Georgia, Cobb in 2027 (its form says 2026): not open', kitCountyOpen('GA', 'Cobb', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_wrong_year');
   t('Texas, confirmed district address: open', kitCountyOpen('TX', 'El Paso', { now: NOW, addressLookup: ok('TX') }).open === true);
-  t('the real address tables today: nothing is open', kitCountyOpen('GA', 'Gwinnett', { now: NOW, taxYear: 2027 }).open === false && kitCountyOpen('TX', 'El Paso', { now: NOW }).open === false);
+  t('the real address tables: a county still unconfirmed is not open', kitCountyOpen('GA', 'Hall', { now: NOW, taxYear: 2027 }).open === false && kitCountyOpen('TX', 'Wichita', { now: NOW }).open === false);
   t('Florida is not a kit state here', kitCountyOpen('FL', 'Broward').open === false);
   const cron = read('pages/api/cron/notify-waitlist.js');
   const branch = cron.slice(cron.indexOf("if (blocked_reason === 'ga_county_not_open' || blocked_reason === 'tx_county_not_open') {"));

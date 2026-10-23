@@ -49,7 +49,7 @@ async function pageText(pdf, n) {
 
 // ── 1. PREREQUISITES ────────────────────────────────────────────────────────
 t('the fixture is a filable Texas packet with a comps grid', PACKET.filable === true && PACKET.hasGrid === true && PACKET.form50132);
-t('El Paso has an address row (unverified today)', ROW && ROW.confidence !== 'confirmed');
+t('El Paso has an address row', !!ROW && !!ROW.line1);
 
 // ── 2. THE LAYOUT LOB DEPENDS ON ────────────────────────────────────────────
 const kit = await buildTxKit(order(), { proof: true, now: NOW });
@@ -104,7 +104,7 @@ t('a tax year the deadline module has not checked is refused', await code(() => 
 t('no packet, no kit', await code(() => buildTxKit(order({ packet: null }), { proof: true, now: NOW })) === 'no_packet');
 t('no owner zip, no kit', await code(() => buildTxKit(order({ owner: { ...order().owner, zip: '' } }), { proof: true, now: NOW })) === 'owner_incomplete');
 // INJECTION: skip isMailable in validateTxOrder -> FAILS.
-t('an unverified district address is never printed on a real kit', await code(() => buildTxKit(order(), { now: NOW })) === 'address_not_mailable');
+t('an unverified district address is never printed on a real kit', await code(() => buildTxKit(order({ countyAddress: { ...ROW, confidence: 'unverified', verifiedOn: null } }), { now: NOW })) === 'address_not_mailable');
 
 // ── 7. WIRING ───────────────────────────────────────────────────────────────
 const cfg = read('next.config.js');
@@ -128,7 +128,8 @@ t('the Texas kit does not import the Georgia kit (keeps 2 MB of GA forms out of 
   t('a clean packet saving less than the price is a no-sale', txKitDecision({ ...PACKET, estimatedSaving: SERVICE_PRICE_DOLLARS - 1 }).reason === 'bill_wont_drop_enough');
   t('no value to ask for is a no-sale', txKitDecision({ ...PACKET, form50132: { ...PACKET.form50132, opinionOfValue: null } }).reason === 'nothing_to_ask_for');
   t('no packet is a no-sale', txKitDecision(null).reason === 'no_packet');
-  const s1 = txSellability(txKitOrder(), { now: NOW });
+  // Wichita: a loaded district whose address is still unconfirmed (22 Oct 2026).
+  const s1 = txSellability({ ...txKitOrder(), property: { ...txKitOrder().property, county: 'Wichita' } }, { now: NOW });
   // INJECTION: skip the address check in txSellability -> FAILS.
   t('a real case in a district whose address is unconfirmed is not sellable', s1.ok === false && s1.reason === 'address_not_confirmed' && !s1.noCase);
   const s2 = txSellability(txKitOrder({ packet: { ...PACKET, cautions: [{ code: 'saving_below_fee' }] } }), { now: NOW });

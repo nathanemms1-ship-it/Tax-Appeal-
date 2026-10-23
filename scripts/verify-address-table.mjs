@@ -331,6 +331,22 @@ function selftest() {
         { url: 'https://testcad.org/pt311a.pdf', type: SOURCE_TYPES.APPEAL_FORM_PDF, checkedOn: '2026-08-01' },
         { phone: '555-0100', type: SOURCE_TYPES.PHONE, checkedOn: '2026-08-01', staffName: 'J. Smith' },
       ] }, true, 'TX'],
+    // Portal vendor files (22 Oct 2026): trusted only under the row's own district path.
+    ['TX: a vendor-hosted protest PDF under the row\'s own district path is accepted',
+      { ...txBase, vendorFileSlug: 'testcad', sources: [
+        { url: 'https://prod-container.trueprodigyapi.com/public/filedownload/testcad/abc.pdf', type: SOURCE_TYPES.PROTEST_FORM_PDF, checkedOn: '2026-08-01' },
+        { url: 'https://testcad.org/protest', type: SOURCE_TYPES.CAD_SITE, checkedOn: '2026-08-01' },
+      ] }, false, 'TX'],
+    ['TX: a vendor-hosted PDF under ANOTHER district\'s path is rejected',
+      { ...txBase, vendorFileSlug: 'testcad', sources: [
+        { url: 'https://prod-container.trueprodigyapi.com/public/filedownload/othercad/abc.pdf', type: SOURCE_TYPES.PROTEST_FORM_PDF, checkedOn: '2026-08-01' },
+        { url: 'https://testcad.org/protest', type: SOURCE_TYPES.CAD_SITE, checkedOn: '2026-08-01' },
+      ] }, true, 'TX'],
+    ['TX: the vendor host is never trusted without a declared district path',
+      { ...txBase, sources: [
+        { url: 'https://prod-container.trueprodigyapi.com/public/filedownload/testcad/abc.pdf', type: SOURCE_TYPES.PROTEST_FORM_PDF, checkedOn: '2026-08-01' },
+        { url: 'https://testcad.org/protest', type: SOURCE_TYPES.CAD_SITE, checkedOn: '2026-08-01' },
+      ] }, true, 'TX'],
     ['a state with no declared vocabulary is rejected, not defaulted',
       { ...base }, true, 'FL'],
   ];
@@ -400,4 +416,4 @@ if (f.length) {
 }
 
 console.log('\n✓ address table structurally valid');
-console.log('  (structurally valid ≠ correct. Only a phone call makes a row confirmed.)');
+console.log('  (structurally valid ≠ correct. A row is confirmed by two agreeing source types, one strong, plus a USPS check: see confirmedBy on each row.)');
