@@ -316,7 +316,12 @@ t('the pre-sale receipt promises the refund if the case no longer holds', /refun
   t('Georgia, state-form county, confirmed address: open', kitCountyOpen('GA', 'Gwinnett', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).open === true);
   t('Georgia, county form unconfirmed (Douglas): not open even with an address', kitCountyOpen('GA', 'Douglas', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_unconfirmed');
   t('Georgia, Cobb in 2027 (its form says 2026): not open', kitCountyOpen('GA', 'Cobb', { now: NOW, taxYear: 2027, addressLookup: ok('GA') }).reason === 'county_form_wrong_year');
-  t('Texas, confirmed district address: open', kitCountyOpen('TX', 'El Paso', { now: NOW, addressLookup: ok('TX') }).open === true);
+  t('Texas, confirmed district address: open', kitCountyOpen('TX', 'Harris', { now: NOW, addressLookup: ok('TX') }).open === true);
+  // 2 Nov 2026: every Texas county page now joins visitors to this list, so the
+  // "open" email also needs the roll, and a district that takes reservations.
+  // INJECTION: drop the Texas coverage check in kitCountyOpen -> FAILS (Bexar told "open" with no roll).
+  t('Texas, a county whose roll we do not hold is never "open", whatever its address', kitCountyOpen('TX', 'Bexar', { now: NOW, addressLookup: ok('TX') }).reason === 'not_covered');
+  t('Texas, a district whose data comes too late waits for its data, not this email', kitCountyOpen('TX', 'El Paso', { now: NOW, addressLookup: ok('TX') }).reason === 'no_season_data');
   t('the real address tables: a county still unconfirmed is not open', kitCountyOpen('GA', 'Hall', { now: NOW, taxYear: 2027 }).open === false && kitCountyOpen('TX', 'Wichita', { now: NOW }).open === false);
   t('Florida is not a kit state here', kitCountyOpen('FL', 'Broward').open === false);
   const cron = read('pages/api/cron/notify-waitlist.js');

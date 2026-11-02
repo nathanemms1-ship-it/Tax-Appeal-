@@ -288,7 +288,29 @@ for (const [rel, html] of docs) {
     }
   }
 
-  for (const code of sellingCodes) {
+  /* TEXAS IS GATED PER COUNTY, NOT PER STATE (2 Nov 2026, lib/tx/countyOffer.js).
+     Alphabetical sampling would pick Anderson, Andrews... — counties we hold no
+     roll for, which now (correctly) carry no Offer and no buy button. So Texas is
+     sampled by its own groups: a reservation county must still sell, a county we
+     do not serve must not. */
+  {
+    const sells = ['harris-county-tx.html', 'dallas-county-tx.html', 'collin-county-tx.html'];
+    const waits = ['bexar-county-tx.html', 'anderson-county-tx.html', 'denton-county-tx.html', 'wichita-county-tx.html'];
+    for (const f of sells) {
+      const html = read(join('counties', f));
+      check(`counties/${f}: a reservation county carries its Offer`, pageLevelOfferCount(html) === 1);
+      check(`counties/${f}: ...the "$89 flat fee" tile`, html.includes('Flat fee — never a %'));
+      check(`counties/${f}: ...and a way to buy (reserve, or check free before reservations open)`, /Reserve My <!-- -->Protest<!-- --> Kit — \$89|Check My Home — Free/.test(html));
+    }
+    for (const f of waits) {
+      const html = read(join('counties', f));
+      check(`counties/${f}: a county we cannot sell carries no Offer`, pageLevelOfferCount(html) === 0);
+      check(`counties/${f}: ...no buy button`, !BUY.test(html) && !NAV_BUY.test(html) && !/Reserve My <!-- -->Protest/.test(html));
+      check(`counties/${f}: ...and a notify signup`, /Notify me when/.test(html) && /id="notify"/.test(html));
+    }
+  }
+
+  for (const code of sellingCodes.filter((c) => c !== 'TX')) {
     for (const f of sample(groups[code], 6)) {
       const html = read(join('counties', f));
       check(`counties/${f}: still carries its Offer`, pageLevelOfferCount(html) === 1,

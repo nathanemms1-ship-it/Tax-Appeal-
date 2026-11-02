@@ -300,7 +300,7 @@ export default function CountyRollFacts({ county }) {
         <p style={{ fontSize: 13, color: C.muted, fontFamily: 'Arial,sans-serif', lineHeight: 1.6, margin: 0, paddingTop: 16, borderTop: `1px solid ${C.rule}` }}>
           Source: {county.district} {s.certifiedRoll === false ? '' : 'certified '}{s.taxYear} appraisal roll, as published
           by the district. Counted {s.computedAt}. We publish these because we hold the data — if we did not hold your
-          county&apos;s roll, we would not file for you, and this section would not be here.
+          county&apos;s roll, we would not sell you a kit for it, and this section would not be here.
         </p>
 
       </div>

@@ -12,8 +12,15 @@ import { currentTaxYear, deadlineSentence, deadlineShort } from '../../lib/tx/pr
 
 import { C } from "../../lib/theme";
 import LogoMark from '../../components/LogoMark';
+import SeasonNotice from '../../components/SeasonNotice';
+import { txCountyOffer } from '../../lib/tx/countyOffer';
 
-export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSentenceText }) {
+export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSentenceText, txOffer = null }) {
+  /* What THIS city's county can be sold (lib/tx/countyOffer.js, 2 Nov 2026). The page
+     keeps its title; where we cannot sell, it promises a notification, not a kit. */
+  const tx = txOffer;
+  const txWaiting = !!tx && !tx.sells;
+  const txPreOrder = !!tx && tx.sells && !tx.reservationsOpen;
   const [openFaq, setOpenFaq] = useState(null);
 
   if (!city) return <div>City not found</div>;
@@ -24,7 +31,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
   const faqs = [
     {
       q: `How do I protest my ${city.name} property taxes?`,
-      a: `You send a Notice of Protest (Comptroller Form 50-132) to the ${city.district} by ${deadlineText} or 30 days from your Notice of Appraised Value, whichever is later. TaxAppeal USA checks first whether a protest will actually lower your tax bill, after caps and exemptions. If it will, we mail you a ready-to-sign protest kit for $89: the form filled in, the evidence, a checklist and a return envelope addressed to the ${city.district}. You sign it, add a stamp and mail it.`,
+      a: `You send a Notice of Protest (Comptroller Form 50-132) to the ${city.district} by ${deadlineText} or 30 days from your Notice of Appraised Value, whichever is later. ${txWaiting ? `TaxAppeal USA doesn't take orders in ${city.county} County yet; the form is free from the Comptroller, and you can file it yourself.` : `TaxAppeal USA checks first whether a protest will actually lower your tax bill, after caps and exemptions. If it will, we mail you a ready-to-sign protest kit for $89: the form filled in, the evidence, a checklist and a return envelope addressed to the ${city.district}. You sign it, add a stamp and mail it.`}`,
     },
     {
       q: `How much can ${city.name} homeowners save by protesting?`,
@@ -88,10 +95,14 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
         {/* Single template literal — see pages/florida/[city].js. The two-child form
             served `Midland<!-- --> Property Tax Protest Service | ...`. */}
         <title>{`${city.name} Property Tax Protest Service | $89 Kit | TaxAppeal USA`}</title>
-        <meta name="description" content={`Protest your ${city.name} property taxes for $89 flat. We check whether a protest can lower your bill first, then mail you a ready-to-sign kit. No % cuts.`} />
+        <meta name="description" content={txWaiting
+          ? `How to protest your ${city.name} property taxes: the ${city.district}, the ${deadlineText} deadline and Form 50-132. Get notified when our $89 kit opens in ${city.county} County.`
+          : txPreOrder
+            ? `Protest your ${city.name} property taxes for $89 flat. Check your home free now; reserve your ready-to-sign kit from ${tx.preOrderText}. No % cuts.`
+            : `Protest your ${city.name} property taxes for $89 flat. We check whether a protest can lower your bill first, then mail you a ready-to-sign kit. No % cuts.`} />
         <link rel="canonical" href={`https://www.taxappealusa.com/texas/${city.slug}`} key="canonical" />
         <meta property="og:title" content={`${city.name} Property Tax Protest — $89 Flat Fee | TaxAppeal USA`} key="og:title" />
-        <meta property="og:description" content={`Protest your ${city.name} property taxes for $89 flat. We check first, then mail you a ready-to-sign protest kit. No percentage cuts.`} key="og:description" />
+        <meta property="og:description" content={txWaiting ? `How to protest your ${city.name} property taxes, free. Get notified when our $89 kit opens in ${city.county} County.` : `Protest your ${city.name} property taxes for $89 flat. We check first, then mail you a ready-to-sign protest kit. No percentage cuts.`} key="og:description" />
         <meta property="og:url" content={`https://www.taxappealusa.com/texas/${city.slug}`} key="og:url" />
         <meta property="og:type" content="website" key="og:type" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
@@ -135,7 +146,9 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "1.5px", color: C.mutedGray }}>Property Tax Dispute</div>
           </div>
         </a>
-        <Link href="/apply"><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>Start my protest →</button></Link>
+        {txWaiting
+          ? <a href="#notify"><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>Notify me →</button></a>
+          : <Link href={txPreOrder ? "/check" : "/apply"}><button className="btn-primary" style={{ padding: "10px 22px", fontSize: 14 }}>{txPreOrder ? "Check my home free →" : "Start my protest →"}</button></Link>}
       </div>
 
       <Breadcrumb trail={trail} selfUrl={canonicalUrl} />
@@ -150,7 +163,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
             {city.name} Property Tax Protest — $89 Flat Fee
           </h1>
           <p style={{ fontSize: 18, color: C.mutedGray, lineHeight: 1.6, maxWidth: 640, marginBottom: 32 }}>
-            {city.description} We check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign protest kit for the {city.district} — a flat $89. You sign it and mail it.
+            {city.description} {txWaiting ? tx.body : <>We check whether a protest will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign protest kit for the {city.district} — a flat $89. You sign it and mail it.</>}
           </p>
           <div className="hero-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
             {/* Two of these four tiles used to read "$89" with the labels
@@ -159,7 +172,7 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
                 who looks at it. Replaced with the deadline, which is the fact a
                 visitor to this page actually arrived needing. */}
             {[
-              ["$89", "Flat fee for the kit"],
+              txWaiting ? ["Free", "How to protest, below"] : ["$89", "Flat fee for the kit"],
               ["0%", "Of your savings taken"],
               [deadlineText, `${taxYear} filing deadline`],
               [city.county + " Co.", "Service area"],
@@ -170,12 +183,26 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
               </div>
             ))}
           </div>
-          <Link href="/apply">
+          {txWaiting ? (
+            <SeasonNotice stateCode="TX" variant="dark" offer={tx} />
+          ) : (<>
+          {txPreOrder && (
+            <p style={{ fontSize: 15, color: C.white, lineHeight: 1.6, maxWidth: 640, margin: "0 0 18px" }}>
+              <strong style={{ color: C.gold }}>{tx.heading}.</strong> {tx.body}
+            </p>
+          )}
+          <Link href={txPreOrder ? "/check" : "/apply"}>
             <button className="btn-gold" style={{ fontSize: 17, padding: "18px 44px" }}>
-              Check My {city.name} Protest — $89 →
+              {txPreOrder ? <>Check My {city.name} Home — Free →</> : <>Check My {city.name} Protest — $89 →</>}
             </button>
           </Link>
           <div style={{ fontSize: 13, color: "#5A7A9F", marginTop: 12 }}>If it won&apos;t lower your bill, we&apos;ll tell you, and we won&apos;t sell you one.</div>
+          {txPreOrder && (
+            <div style={{ marginTop: 22 }}>
+              <SeasonNotice stateCode="TX" variant="dark" compact offer={{ ...tx, body: `Leave your email and we'll write on ${tx.preOrderText}, the day reservations open.` }} />
+            </div>
+          )}
+          </>)}
         </div>
       </section>
 
@@ -355,11 +382,17 @@ export default function TexasCityPage({ city, taxYear, deadlineText, deadlineSen
               FAQ and the comparison table on this page, but framed as an explicit
               hypothetical ("on a $X reduction, a contingency firm charges $Y") rather
               than as something anyone has earned. */}
-          We check whether a protest will actually lower your tax bill before you pay. If it will, your kit is $89 flat — no percentage cuts. If the district lowers your value, you keep 100% of the savings.
+          {txWaiting
+            ? <>We don&apos;t take orders in {city.county} County yet. Leave your email above and we&apos;ll write when that changes; the steps on this page are how to protest on your own meanwhile.</>
+            : <>We check whether a protest will actually lower your tax bill before you pay. If it will, your kit is $89 flat — no percentage cuts. If the district lowers your value, you keep 100% of the savings.</>}
         </p>
-        <Link href="/apply">
-          <button className="btn-gold">Start My {city.name} Protest — $89 →</button>
-        </Link>
+        {txWaiting ? (
+          <a href="#notify"><button className="btn-gold">Notify Me When {city.county} County Opens →</button></a>
+        ) : (
+          <Link href={txPreOrder ? "/check" : "/apply"}>
+            <button className="btn-gold">{txPreOrder ? <>Check My {city.name} Home — Free →</> : <>Start My {city.name} Protest — $89 →</>}</button>
+          </Link>
+        )}
         <p style={{ fontSize: 13, color: "#5A7A9F", marginTop: 16 }}>
           Texas Tax Code §41.41 · {city.district} · You sign it and mail it
         </p>
@@ -400,6 +433,9 @@ export async function getStaticProps({ params }) {
       taxYear,
       deadlineText: deadlineShort(taxYear),
       deadlineSentenceText: deadlineSentence(taxYear, city.district),
+      // What this city's county can be sold (lib/tx/countyOffer.js). Rebuilt with
+      // the page every 12 hours, so 31 January flips it without a deploy.
+      txOffer: txCountyOffer(city.county, { district: city.district }),
     },
     revalidate: 43200,
   };

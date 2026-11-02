@@ -30,6 +30,8 @@ register('./resolve-extensionless.mjs', import.meta.url);
 
 const { getAppealAddress, isMailable, APPEAL_ADDRESSES, MAX_VERIFIED_AGE_DAYS } =
   await import('../lib/appealAddresses.js');
+const { loadedCadFor } = await import('../lib/tx/countyOffer.js');
+const { canReserve } = await import('../lib/tx/inSeason.js');
 
 let pass = 0; const failures = [];
 const t = (name, cond) => (cond ? pass++ : failures.push(name));
@@ -62,8 +64,8 @@ const t = (name, cond) => (cond ? pass++ : failures.push(name));
 
   t('a Texas county with no row is refused, not mailed from the body',
     getAppealAddress('TX', 'Midland') == null && getAppealAddress('TX', 'Potter') == null
-    && kitCountyOpen('TX', 'Midland').reason === 'address_not_confirmed'
-    && kitCountyOpen('TX', 'Potter').reason === 'address_not_confirmed');
+    && kitCountyOpen('TX', 'Midland').open === false
+    && kitCountyOpen('TX', 'Potter').open === false);
   t('so is a Georgia one', getAppealAddress('GA', 'Nowhere') == null && refused('GA', 'Nowhere'));
   t('a seeded-but-unverified county is still refused',
     getAppealAddress('TX', 'Wichita') != null && !isMailable(getAppealAddress('TX', 'Wichita'))
@@ -77,14 +79,14 @@ const t = (name, cond) => (cond ? pass++ : failures.push(name));
   */
   // 22 Oct 2026: rows are confirmed from documents now. The rule that matters is
   // unchanged: a district is open IF AND ONLY IF its own row is mailable.
-  t('every district whose roll we hold is open exactly when its row is confirmed', [
+  t('every district whose roll we hold is open exactly when its row is confirmed and it takes reservations', [
     'Guadalupe', 'Johnson', 'Kaufman', 'Taylor', 'Grayson', 'Rockwall', 'Wichita',
     'Harris', 'Dallas', 'Tarrant', 'Travis', 'Collin', 'Denton', 'El Paso',
     'Montgomery', 'Hidalgo', 'Cameron', 'Bell', 'Nueces', 'Jefferson',
-  ].every((c) => refused('TX', c) === !isMailable(getAppealAddress('TX', c))));
+  ].every((c) => refused('TX', c) === !(isMailable(getAppealAddress('TX', c)) && canReserve(loadedCadFor(c)))));
   t('...and the ones still unverified are refused as unverified, not as missing', [
     'Guadalupe', 'Taylor', 'Wichita',
-  ].every((c) => getAppealAddress('TX', c) != null && kitCountyOpen('TX', c).reason === 'address_not_confirmed'));
+  ].every((c) => getAppealAddress('TX', c) != null && !isMailable(getAppealAddress('TX', c)) && refused('TX', c)));
 
   // --- what pins the live gates ---------------------------------------------
   const rd = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');

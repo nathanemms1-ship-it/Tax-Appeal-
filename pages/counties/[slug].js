@@ -41,6 +41,7 @@ const SEASON = { GA: seasonDates('GA'), FL: seasonDates('FL'), AR: seasonDates('
 import CountyRollFacts from '../../components/CountyRollFacts';
 import SeasonNotice from '../../components/SeasonNotice';
 import { stateSaleStatus } from '../../lib/stateService';
+import { txCountyOffer } from '../../lib/tx/countyOffer';
 
 import { C } from "../../lib/theme";
 
@@ -124,7 +125,7 @@ const filingTargetFor = (county, fl) => {
 // Concise, self-contained answer placed at the top of the page.
 // Leads with the direct answer + year + deadline + form + statute — the format
 // AI engines (ChatGPT, Perplexity, Google AI Overviews) extract and cite.
-const directAnswer = (county, fl) => {
+const directAnswer = (county, fl, tx = null) => {
   const t = termsFor(county);
   if (county.code === "FL") {
     const fee = fl ? ` The ${county.name} County VAB filing fee is ${fl.feeText}, payable to ${fl.feePayableTo}; you pay it to the county with a cheque in the envelope.` : "";
@@ -138,7 +139,11 @@ const directAnswer = (county, fl) => {
     return `To appeal your ${county.name} County property taxes in ${t.year}, send a property tax appeal (${t.form} or the county's own form) to the ${county.district} within 45 days of the date on your annual assessment notice. Georgia counties mail notices between April and June, so the date differs by county and by home. Support your appeal with recent sales of similar homes showing your home is overvalued. Appeals are authorized under ${county.statute}. TaxAppeal USA checks first whether an appeal will actually lower your tax bill. If it will, we mail you a ready-to-sign appeal kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
   }
   if (county.code === "TX") {
-    return `To protest your ${county.name} County property taxes in ${t.year}, send a Notice of Protest (${t.form}) to the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include evidence that your home is valued above market or above similar homes. Protests are authorized under ${county.statute}. TaxAppeal USA checks first whether a protest will actually lower your tax bill. If it will, we mail you a ready-to-sign protest kit for a flat $89 — you sign it and mail it. No percentage of your savings.`;
+    return `To protest your ${county.name} County property taxes in ${t.year}, send a Notice of Protest (${t.form}) to the ${county.district} by ${TX_DEADLINE} — or within 30 days of your appraisal notice, whichever is later. Include evidence that your home is valued above market or above similar homes. Protests are authorized under ${county.statute}. ${tx && !tx.sells
+      ? (tx.kind === "not_covered"
+        ? `TaxAppeal USA does not serve ${county.name} County yet; the Comptroller's Form 50-132 is free, and you can file it yourself.`
+        : `TaxAppeal USA does not take orders in ${county.name} County yet; the Comptroller's Form 50-132 is free, and you can file it yourself.`)
+      : `TaxAppeal USA checks first whether a protest will actually lower your tax bill. If it will, we mail you a ready-to-sign protest kit for a flat $89 — you sign it and mail it. No percentage of your savings.${tx && !tx.reservationsOpen ? ` Reservations open ${tx.preOrderText}.` : ""}`}`;
   }
   return `To appeal your ${county.name} County property taxes in ${t.year}, send ${t.form} to the ${county.district} by ${deadlineFor(county)}. Support your appeal with recent comparable sales showing your home is assessed above market value. Appeals are authorized under ${county.statute}. TaxAppeal USA prepares appeal kits — the form filled in, the evidence and a return envelope — that you sign and mail yourself.`;
 };
@@ -255,11 +260,19 @@ const faqs = (county, fl) => {
   ];
 };
 
-export default function CountyPage({ county, fl, contentRevised, note = null }) {
+export default function CountyPage({ county, fl, contentRevised, note = null, txOffer = null }) {
   if (!county) return <div style={{ padding: 40, color: C.text }}>County not found.</div>;
 
   const t = termsFor(county);
   const svc = saleStatusFor(county);
+  /* TEXAS, PER COUNTY (2 Nov 2026, lib/tx/countyOffer.js). `svc` says whether we
+     sell the STATE; `tx` says what we can do in THIS county. A Texas county we do
+     not sell keeps its page and its title, and promises a notification instead
+     of a kit. Every other state takes exactly the path it took before. */
+  const tx = county.code === "TX" ? txOffer : null;
+  const sells = svc.selling && (!tx || tx.sells);
+  const txWaiting = !!tx && !tx.sells;
+  const txPreOrder = !!tx && tx.sells && !tx.reservationsOpen;
   const action = county.code === "TX" ? "Protest" : "Appeal";
   const target = filingTargetFor(county, fl);
   /**
@@ -291,13 +304,20 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
   const title = `${county.name} County, ${county.state} Property Tax ${action} ${t.year} | TaxAppeal USA`;
   const description = county.code === "FL" && fl
     ? `${county.name} County, Florida VAB petition ${t.year} — deadline ${fl.deadlineKnown ? fl.deadlineText : "25 days after your TRIM notice"}. We check first, then mail you a ready-to-sign DR-486 kit for $89. You pay the ${fl.feeText} county fee.`
+    : txWaiting
+      ? `How to protest your ${county.name} County, Texas property taxes in ${t.year} — deadline ${deadlineFor(county)}, Form 50-132 and the evidence the district wants. ${tx.kind === "not_covered" ? `Get notified when our $89 kit opens in ${county.name} County.` : `Get notified when ${county.name} County opens for our $89 kit.`}`
+    : txPreOrder
+      ? `${county.name} County, Texas property tax protest for ${t.year} — deadline ${deadlineFor(county)}. Check your home free now; reserve your ready-to-sign $89 protest kit from ${tx.preOrderText}.`
     : svc.selling
       ? `${county.name} County, ${county.state} property tax ${t.verb} for ${t.year} — deadline ${deadlineFor(county)}. We check first, then mail you a ready-to-sign ${t.noun} kit for $89 flat.`
       : `How to ${t.verb} your ${county.name} County, ${county.state} property taxes — the deadline, the ${county.district} and the evidence. Our ${svc.name} appeal kit opens for the ${svc.servingFrom} season.`;
   const canonicalUrl = `https://www.taxappealusa.com/counties/${county.slug}`;
   const stateHref = `/${county.state.toLowerCase()}`;
 
-  const faqList = faqs(county, fl);
+  // Texas counties we cannot sell: the "how does TaxAppeal USA handle it" answer says so first.
+  const faqList = faqs(county, fl).map((f) => (txWaiting && /^How does TaxAppeal USA handle/.test(f.q)
+    ? { ...f, a: `We don't take orders in ${county.name} County yet${tx.kind === "not_covered" ? " because we don't hold its appraisal roll" : ""}; leave your email at the top of this page and we'll write when we do. When we do, this is how it works. ${f.a}` }
+    : f));
   const steps = howToSteps(county, fl);
 
   /**
@@ -358,7 +378,7 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
        bought. Spread rather than a null key, because `offers: undefined` survives
        JSON.stringify as an absent key only by accident of the serialiser, and an
        accident is not a gate. */
-    ...(svc.selling ? {
+    ...(sells ? {
       offers: {
         "@type": "Offer",
         price: "89",
@@ -406,7 +426,15 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
             <div style={{ width: 36, height: 36, background: `linear-gradient(135deg,${C.gold},${C.goldDim})`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: C.white }}>⚖</div>
             <span style={{ color: C.white, fontSize: 18, fontWeight: 700, letterSpacing: "0.03em" }}>TaxAppeal USA</span>
           </Link>
-          {svc.selling ? (
+          {txWaiting ? (
+            <a href="#notify" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
+              Notify me when {county.name} opens
+            </a>
+          ) : txPreOrder ? (
+            <Link href="/check" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
+              Check My Home — Free
+            </Link>
+          ) : svc.selling ? (
             <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "10px 22px", borderRadius: 6, fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "Arial, sans-serif" }}>
               Start My {action} — $89
             </Link>
@@ -451,6 +479,8 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
                 <>
                   We check whether a petition will actually lower your tax bill, after caps and exemptions, before you pay. If it will, we mail you a ready-to-sign DR-486 kit with a return envelope addressed to the <strong style={{ color: C.gold }}>{target}</strong> — <strong style={{ color: C.gold }}>$89 flat</strong>. You sign it and mail it{fl ? <>, with your county&apos;s {fl.feeText} filing fee, paid by you to the county</> : null}.
                 </>
+              ) : txWaiting ? (
+                <>{tx.body}</>
               ) : (
                 svc.selling ? (
                   <>
@@ -474,9 +504,14 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
               </p>
             )}
             <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-              {svc.selling && (
+              {txPreOrder && (
+                <Link href="/check" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
+                  Check My Home — Free
+                </Link>
+              )}
+              {sells && !txPreOrder && (
                 <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "16px 36px", borderRadius: 8, fontSize: 16, fontWeight: 700, textDecoration: "none", fontFamily: "Arial,sans-serif" }}>
-                  File My {action} — $89 Flat
+                  {tx ? <>Reserve My {action} Kit — $89</> : <>File My {action} — $89 Flat</>}
                 </Link>
               )}
               <a href="#how-it-works" style={{ background: "rgba(255,255,255,0.08)", color: C.white, padding: "16px 28px", borderRadius: 8, fontSize: 15, fontWeight: 500, textDecoration: "none", border: "1px solid rgba(255,255,255,0.2)", fontFamily: "Arial,sans-serif" }}>
@@ -490,6 +525,20 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
                 <SeasonNotice stateCode={county.code} variant="dark" />
               </div>
             )}
+            {/* Texas: the reservation date and when the kit goes out, then a reminder
+                for that date; or, where we cannot sell, the notification. */}
+            {tx && (
+              <div style={{ marginTop: 28 }}>
+                {txPreOrder && (
+                  <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 auto 18px", maxWidth: 560, lineHeight: 1.6, fontFamily: "Arial,sans-serif" }}>
+                    <strong style={{ color: C.gold }}>{tx.heading}.</strong> {tx.body}
+                  </p>
+                )}
+                {(txWaiting || txPreOrder) && (
+                  <SeasonNotice stateCode="TX" variant="dark" compact={txPreOrder} offer={txPreOrder ? { ...tx, heading: tx.heading, body: `Leave your email and we'll write on ${tx.preOrderText}, the day reservations open.` } : tx} />
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -500,7 +549,7 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
               {county.name} County Property Tax {action} — {t.year} · Reviewed {contentRevised}
             </div>
             <p style={{ fontSize: 18, lineHeight: 1.65, color: C.text, margin: 0, fontFamily: "Arial,sans-serif" }}>
-              {directAnswer(county, fl)}
+              {directAnswer(county, fl, tx)}
             </p>
           </div>
         </div>
@@ -539,7 +588,9 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
               // fee comes from the same table checkout charges from, and the deadline
               // from the same window the funnel gates on. Neither can drift from what
               // we actually do without the build failing.
-              svc.selling
+              txWaiting
+                ? { num: "Free", label: `How to protest in ${county.name} County, below` }
+                : svc.selling
                 ? { num: "$89", label: "Flat fee — never a %" }
                 : { num: String(svc.servingFrom), label: `Season we open in ${svc.name}` },
               fl
@@ -762,14 +813,25 @@ export default function CountyPage({ county, fl, contentRevised, note = null }) 
               Ready to lower your {county.name} County taxes?
             </h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", fontFamily: "Arial,sans-serif", marginBottom: 36, lineHeight: 1.7 }}>
-              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. Enter your address and we&apos;ll check whether {t.aNoun} would actually lower your tax bill before you pay anything. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one.
+              Deadline: <strong style={{ color: C.gold }}>{fl ? fl.deadlineText : deadlineFor(county)}</strong>. {txWaiting
+                ? <>We don&apos;t take orders in {county.name} County yet. Leave your email above and we&apos;ll write when that changes; the steps on this page are how to protest on your own meanwhile.</>
+                : <>Enter your address and we&apos;ll check whether {t.aNoun} would actually lower your tax bill before you pay anything. If it won&apos;t, we&apos;ll tell you, and we won&apos;t sell you one.</>}
             </p>
-            {svc.selling && note && (
+            {svc.selling && !tx && note && (
               <p style={{ fontSize: 15, color: "rgba(255,255,255,0.8)", fontFamily: "Arial,sans-serif", margin: "-16px 0 30px", lineHeight: 1.6 }}>{note}</p>
             )}
-            <Link href="/apply" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
-              Check My {action} — $89 Kit →
+            {txPreOrder && (
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.8)", fontFamily: "Arial,sans-serif", margin: "-16px 0 30px", lineHeight: 1.6 }}>Reservations open {tx.preOrderText}. Until then, check your home free on last year&apos;s values.</p>
+            )}
+            {txWaiting ? (
+              <a href="#notify" style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
+                Notify Me When {county.name} County Opens →
+              </a>
+            ) : (
+            <Link href={txPreOrder ? "/check" : "/apply"} style={{ background: C.gold, color: C.navy, padding: "18px 44px", borderRadius: 8, fontSize: 18, fontWeight: 700, textDecoration: "none", display: "inline-block", fontFamily: "Arial,sans-serif" }}>
+              {txPreOrder ? <>Check My Home — Free →</> : <>Check My {action} — $89 Kit →</>}
             </Link>
+            )}
             <div style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "Arial,sans-serif" }}>
               {fl ? `$89 flat · plus ${county.name} County's ${fl.feeText} filing fee, paid by you to the county` : "Flat $89"} · You sign it and mail it · No percentage fees · {county.state} only
             </div>
@@ -961,5 +1023,7 @@ export async function getStaticProps({ params }) {
   const fl = county.code === "FL" ? await floridaFacts(county) : null;
 
   // Decided at build, like every other date here, so the server and browser render the same text.
-  return { props: { county, fl, contentRevised: COUNTY_CONTENT_REVISED, note: seasonNote(county) } };
+  // Texas: what this county can be sold, from the same facts checkout uses (lib/tx/countyOffer.js).
+  const txOffer = county.code === "TX" ? txCountyOffer(county.name, { district: county.district }) : null;
+  return { props: { county, fl, contentRevised: COUNTY_CONTENT_REVISED, note: seasonNote(county), txOffer }, ...(county.code === "TX" ? { revalidate: 43200 } : {}) };
 }

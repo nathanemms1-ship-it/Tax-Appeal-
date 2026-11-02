@@ -34,8 +34,13 @@ import { C, FONTS } from "../lib/theme";
  * and pushed the Arkansas and Alabama county pages, and /little-rock, into a
  * horizontal scroll on a phone. Hence boxSizing on each of the three. 30 Aug 2026.
  */
-export default function SeasonNotice({ stateCode, id = 'notify', variant = 'light', compact = false }) {
-  const status = stateSaleStatus(stateCode);
+export default function SeasonNotice({ stateCode, id = 'notify', variant = 'light', compact = false, offer = null }) {
+  /* A per-COUNTY notice (2 Nov 2026, lib/tx/countyOffer.js): a Texas county we do
+     not sell, in a state we do. It renders even though the state is selling, and
+     joins the waitlist with the county and the reason it is waiting, so
+     cron/notify-waitlist.js tells them when THAT county opens. */
+  const base = stateSaleStatus(stateCode);
+  const status = offer ? { ...base, selling: false, heading: offer.heading, body: offer.body, promise: offer.promise } : base;
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [state, setState] = useState('idle'); // idle | sending | done | duplicate | error
@@ -66,7 +71,7 @@ export default function SeasonNotice({ stateCode, id = 'notify', variant = 'ligh
         // propertyAddress is what makes the eventual email worth opening — see the
         // note above the address field. Omitted rather than sent empty, so a blank
         // never overwrites an address an earlier signup already gave us.
-        body: JSON.stringify({ email: mail, state: status.code, ...(property ? { propertyAddress: property } : {}) }),
+        body: JSON.stringify({ email: mail, state: status.code, ...(offer ? { county: offer.county, blockedReason: offer.blockedReason } : {}), ...(property ? { propertyAddress: property } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
